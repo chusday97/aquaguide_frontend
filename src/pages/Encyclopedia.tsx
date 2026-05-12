@@ -206,6 +206,23 @@ const isSaltwaterLife = (fish: Fish) => {
   return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name);
 };
 
+const matchesWaterTypeFilter = (fish: Fish, waterTypeFilter: string) => {
+  if (waterTypeFilter === 'Freshwater') {
+    return !isSaltwaterLife(fish);
+  }
+  if (waterTypeFilter === 'Saltwater') {
+    return isSaltwaterLife(fish);
+  }
+  if (waterTypeFilter === 'Coldwater') {
+    const tempMatch = fish.waterTemperature?.match(/(\d+)-/);
+    if (tempMatch) {
+      return parseInt(tempMatch[1]) <= 18;
+    }
+    return false;
+  }
+  return true;
+};
+
 const getToolFunctions = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
   const tags: string[] = [];
@@ -493,11 +510,26 @@ export default function Encyclopedia() {
   };
 
   const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || selectedCategory !== '全部';
-  const categories = getSecondaryCategories(allFishes, lifeTypeFilter);
+  const categorySourceFishes = allFishes.filter((fish) => {
+    const matchesSearch = fish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (fish.scientificName && fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === 'All' || fish.difficulty === difficultyFilter;
+    const matchesLifeType = lifeTypeFilter === 'All' || getLifeType(fish) === lifeTypeFilter;
+    const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
+
+    return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType;
+  });
+  const categories = getSecondaryCategories(categorySourceFishes, lifeTypeFilter);
   const lifeTypeCounts = lifeTypes.reduce<Record<string, number>>((acc, item) => {
     acc[item.id] = allFishes.filter(fish => getLifeType(fish) === item.id).length;
     return acc;
   }, {});
+
+  useEffect(() => {
+    if (selectedCategory !== '全部' && !categories.includes(selectedCategory)) {
+      setSelectedCategory('全部');
+    }
+  }, [categories, selectedCategory]);
 
   const filteredFishes = allFishes.filter((fish) => {
     const matchesSearch = fish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -510,20 +542,7 @@ export default function Encyclopedia() {
       matchesCategory = fish.category === selectedCategory;
     }
     
-    let matchesWaterType = true;
-    if (waterTypeFilter === 'Freshwater') {
-      matchesWaterType = !isSaltwaterLife(fish);
-    } else if (waterTypeFilter === 'Saltwater') {
-      matchesWaterType = isSaltwaterLife(fish);
-    } else if (waterTypeFilter === 'Coldwater') {
-      // Simple heuristic for coldwater: lower bound of temp is <= 18
-      const tempMatch = fish.waterTemperature?.match(/(\d+)-/);
-      if (tempMatch && parseInt(tempMatch[1]) <= 18) {
-        matchesWaterType = true;
-      } else {
-        matchesWaterType = false;
-      }
-    }
+    const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
 
     return matchesSearch && matchesDifficulty && matchesLifeType && matchesCategory && matchesWaterType;
   });
