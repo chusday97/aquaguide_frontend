@@ -322,6 +322,7 @@ export default function Encyclopedia() {
   const [discoveryDragStartX, setDiscoveryDragStartX] = useState<number | null>(null);
   const [discoveryDragX, setDiscoveryDragX] = useState(0);
   const [discoveryMessage, setDiscoveryMessage] = useState('');
+  const [loadedDiscoveryImageSrc, setLoadedDiscoveryImageSrc] = useState('');
 
   useEffect(() => {
     const savedAq = localStorage.getItem('aquariums');
@@ -374,11 +375,32 @@ export default function Encyclopedia() {
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
+  const discoveryImageSrc = discoveryFish ? getEncyclopediaImage(discoveryFish) : '';
+  const nextDiscoveryImageSrc = nextDiscoveryFish ? getEncyclopediaImage(nextDiscoveryFish) : '';
   const discoveryUsedToday = discoveryState.consumedIds.length;
   const discoveryRemainingToday = Math.max(0, DISCOVERY_DAILY_LIMIT - discoveryUsedToday);
   const isDiscoveryDailyLimitReached = discoveryRemainingToday === 0;
   const discoveryRotation = Math.max(-9, Math.min(9, discoveryDragX / 18));
   const discoveryIntent = discoveryDragX > 44 ? 'interest' : discoveryDragX < -44 ? 'skip' : null;
+
+  useEffect(() => {
+    if (!discoveryImageSrc) return;
+
+    setLoadedDiscoveryImageSrc('');
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => setLoadedDiscoveryImageSrc(discoveryImageSrc);
+    image.src = discoveryImageSrc;
+    if (image.complete) setLoadedDiscoveryImageSrc(discoveryImageSrc);
+
+    discoveryState.queueIds.slice(1, 5).forEach(id => {
+      const fish = discoveryPool.find(item => item.id === id);
+      if (!fish) return;
+      const preload = new Image();
+      preload.decoding = 'async';
+      preload.src = getEncyclopediaImage(fish);
+    });
+  }, [discoveryImageSrc, discoveryPool, discoveryState.queueIds]);
 
   const advanceDiscoveryCard = (action: 'skip' | 'interest') => {
     if (!discoveryFish) return;
@@ -564,7 +586,14 @@ export default function Encyclopedia() {
             {nextDiscoveryFish && (
               <div className="absolute inset-x-4 top-8 h-[330px] rounded-[24px] border border-border bg-white/70 shadow-sm rotate-[-3deg]">
                 <div className="flex h-56 items-center justify-center p-6 opacity-35">
-                  <img src={getEncyclopediaImage(nextDiscoveryFish)} alt={nextDiscoveryFish.name} className="max-h-full max-w-full object-contain" referrerPolicy="no-referrer" />
+                  <img
+                    src={nextDiscoveryImageSrc}
+                    alt={nextDiscoveryFish.name}
+                    className="max-h-full max-w-full object-contain"
+                    referrerPolicy="no-referrer"
+                    loading="eager"
+                    decoding="async"
+                  />
                 </div>
               </div>
             )}
@@ -600,13 +629,22 @@ export default function Encyclopedia() {
                 </button>
               </div>
 
-              <div className="flex h-56 items-center justify-center p-2">
+              <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-[18px] p-2">
+                {loadedDiscoveryImageSrc !== discoveryImageSrc && (
+                  <div className="absolute inset-2 flex items-center justify-center rounded-[18px] bg-gradient-to-br from-sky-50 via-white to-emerald-50">
+                    <div className="h-20 w-40 animate-pulse rounded-full bg-slate-100/80 blur-sm" />
+                    <span className="absolute bottom-4 text-[11px] font-bold text-ink/35">正在加载鱼图...</span>
+                  </div>
+                )}
                 <img
-                  src={getEncyclopediaImage(discoveryFish)}
+                  src={discoveryImageSrc}
                   alt={discoveryFish.name}
-                  className="max-h-full max-w-full object-contain drop-shadow-md"
+                  className={`max-h-full max-w-full object-contain drop-shadow-md transition-opacity duration-300 ${loadedDiscoveryImageSrc === discoveryImageSrc ? 'opacity-100' : 'opacity-0'}`}
                   referrerPolicy="no-referrer"
+                  loading="eager"
+                  decoding="async"
                   draggable={false}
+                  onLoad={() => setLoadedDiscoveryImageSrc(discoveryImageSrc)}
                 />
               </div>
 
