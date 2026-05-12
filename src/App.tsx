@@ -4,7 +4,7 @@
  */
 
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { BookOpen, Droplets, Bot } from 'lucide-react';
 
@@ -20,17 +20,20 @@ const navItems = [
 
 function BottomNavigation() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
-    <nav className="shrink-0 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
+    <nav className="relative z-50 shrink-0 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
       <div className="grid grid-cols-3 gap-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
           return (
-            <Link
+            <button
               key={item.path}
-              to={item.path}
+              type="button"
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => navigate(item.path)}
               className={cn(
                 "relative flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-bold transition-all",
                 isActive
@@ -40,7 +43,7 @@ function BottomNavigation() {
             >
               <Icon className={cn("mb-1 h-5 w-5", isActive ? "stroke-white" : "")} />
               {item.label}
-            </Link>
+            </button>
           );
         })}
       </div>
