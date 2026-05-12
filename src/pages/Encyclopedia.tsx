@@ -176,10 +176,18 @@ const loadWishlistIds = () => {
 };
 
 const secondaryCategoryOrder: Record<string, string[]> = {
-  fish: ['灯科鱼', '慈鲷科', '鲤科鱼', '迷鳃鱼', '鳉鱼科', '鲶鱼/异型', '鲀科', '海水鱼', '鱼类'],
+  fish: ['灯科鱼', '慈鲷科', '鲤科鱼', '迷鳃鱼', '鳉鱼科', '鲶鱼/异型', '鲀科', '海水鱼'],
   invertebrate: ['虾类', '螺类', '虾螺蟹'],
   reptile: ['龟类', '两栖/爬宠'],
   plant: ['水草'],
+  coral: ['珊瑚/海水无脊椎'],
+};
+
+const hiddenSecondaryCategories: Record<string, string[]> = {
+  fish: ['鱼类'],
+  invertebrate: ['虾螺蟹'],
+  plant: ['水草'],
+  hardscape: ['硬景/底床'],
   coral: ['珊瑚/海水无脊椎'],
 };
 
@@ -257,11 +265,13 @@ const getToolFunctions = (fish: Fish) => {
 const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) => {
   if (lifeTypeFilter === 'All') return [];
   const order = secondaryCategoryOrder[lifeTypeFilter] || [];
+  const hidden = hiddenSecondaryCategories[lifeTypeFilter] || [];
   const cats = Array.from(
     new Set(
       fishes
         .filter(fish => getLifeType(fish) === lifeTypeFilter)
         .map(fish => fish.category)
+        .filter(category => !hidden.includes(category))
         .filter(Boolean)
     )
   );
