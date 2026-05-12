@@ -30,6 +30,8 @@ const lifeTypes = [
   { id: 'coral', label: '珊瑚/海葵', hint: '海水无脊椎' },
 ];
 
+const housingModes: Array<NonNullable<Fish['housingMode']>> = ['适合混养', '谨慎混养', '建议单养'];
+
 const DISCOVERY_DAILY_LIMIT = 10;
 const DISCOVERY_HISTORY_DAYS = 7;
 const DISCOVERY_STORAGE_KEY = 'aquapediaDiscoveryDeck';
@@ -329,6 +331,7 @@ export default function Encyclopedia() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
   const [waterTypeFilter, setWaterTypeFilter] = useState<string>('All');
   const [lifeTypeFilter, setLifeTypeFilter] = useState<string>('All');
+  const [housingFilter, setHousingFilter] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
@@ -482,6 +485,7 @@ export default function Encyclopedia() {
     setDifficultyFilter(prev => prev === id ? 'All' : id);
     setWaterTypeFilter('All');
     setLifeTypeFilter('All');
+    setHousingFilter('All');
     setSelectedCategory('全部');
   };
 
@@ -493,6 +497,7 @@ export default function Encyclopedia() {
 
   const handleLifeTypeClick = (id: string) => {
     setLifeTypeFilter(prev => prev === id ? 'All' : id);
+    setHousingFilter('All');
     setSelectedCategory('全部');
   };
 
@@ -506,18 +511,20 @@ export default function Encyclopedia() {
     setDifficultyFilter('All');
     setWaterTypeFilter('All');
     setLifeTypeFilter('All');
+    setHousingFilter('All');
     setSelectedCategory('全部');
   };
 
-  const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || selectedCategory !== '全部';
+  const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
   const categorySourceFishes = allFishes.filter((fish) => {
     const matchesSearch = fish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (fish.scientificName && fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesDifficulty = difficultyFilter === 'All' || fish.difficulty === difficultyFilter;
     const matchesLifeType = lifeTypeFilter === 'All' || getLifeType(fish) === lifeTypeFilter;
     const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
+    const matchesHousing = housingFilter === 'All' || (fish.housingMode || '适合混养') === housingFilter;
 
-    return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType;
+    return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType && matchesHousing;
   });
   const categories = getSecondaryCategories(categorySourceFishes, lifeTypeFilter);
   const lifeTypeCounts = lifeTypes.reduce<Record<string, number>>((acc, item) => {
@@ -536,6 +543,7 @@ export default function Encyclopedia() {
                           (fish.scientificName && fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesDifficulty = difficultyFilter === 'All' || fish.difficulty === difficultyFilter;
     const matchesLifeType = lifeTypeFilter === 'All' || getLifeType(fish) === lifeTypeFilter;
+    const matchesHousing = housingFilter === 'All' || (fish.housingMode || '适合混养') === housingFilter;
     
     let matchesCategory = true;
     if (selectedCategory !== '全部') {
@@ -544,7 +552,7 @@ export default function Encyclopedia() {
     
     const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
 
-    return matchesSearch && matchesDifficulty && matchesLifeType && matchesCategory && matchesWaterType;
+    return matchesSearch && matchesDifficulty && matchesLifeType && matchesCategory && matchesWaterType && matchesHousing;
   });
 
   const getDifficultyLabel = (difficulty: string) => {
@@ -874,6 +882,27 @@ export default function Encyclopedia() {
               <><ChevronDown className="w-3 h-3 mr-1" /> 按二级标签筛选</>
             )}
           </button>
+        </div>
+
+        {/* Row 5: Housing Mode */}
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">混养建议</span>
+          <div className="grid min-w-0 grid-cols-3 gap-2">
+            {housingModes.map(mode => {
+              const isActive = housingFilter === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setHousingFilter(prev => prev === mode ? 'All' : mode)}
+                  className={`min-h-10 rounded-sm border px-2 py-2 text-center text-[11px] font-black transition-all ${getHousingBadgeClass(mode)} ${
+                    isActive ? 'ring-2 ring-accent/40 shadow-sm' : 'opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  {mode}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
