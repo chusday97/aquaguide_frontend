@@ -124,6 +124,17 @@ const getToolFunctions = (fish: Fish) => {
   return Array.from(new Set(tags));
 };
 
+const formatRecommendationReason = (text: string) => {
+  const fallback = '基于您当前鱼缸内的生物，我们为您推荐以下兼容性较好的品种。';
+  const normalized = (text || fallback).replace(/\s+/g, ' ').trim();
+  const lines = normalized
+    .split(/[。；;]\s*/)
+    .map(line => line.trim().replace(/[，,]\s*$/, ''))
+    .filter(Boolean);
+
+  return lines.length > 0 ? lines : [fallback];
+};
+
 const getRecommendationReason = (candidate: Fish, aquarium: Aquarium) => {
   const currentFishes = aquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
   const reasons: string[] = [];
@@ -1211,23 +1222,59 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               </div>
             ) : (
               <>
-                <p className="text-sm text-ink/80 font-medium mb-4 rounded-sm bg-accent/5 border border-accent/20 p-3 leading-relaxed">
-                  {aiReasoning || "基于您当前鱼缸内的生物，我们为您推荐以下兼容性较好的品种："}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="mb-4 rounded-sm border border-accent/20 bg-accent/5 p-3">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
+                      {activeAquarium.waterType === 'Saltwater' ? '海水缸' : '淡水缸'}
+                    </span>
+                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
+                      {activeAquarium.targetTemperature || 25}°C
+                    </span>
+                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
+                      已有 {activeAquarium.fishes.length} 种生物
+                    </span>
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[11px] font-black uppercase tracking-[1px] text-accent">推荐逻辑</div>
+                    <ul className="space-y-2">
+                      {formatRecommendationReason(aiReasoning).map((line, index) => (
+                        <li key={`${line}-${index}`} className="grid grid-cols-[18px_1fr] gap-2 text-[13px] font-medium leading-relaxed text-ink/80">
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-accent" />
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-black text-ink">AI 提到的生物</h4>
+                  <span className="text-[11px] font-bold text-ink/45">可一键加入种草清单</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
                   {aiRecommendations.map(fish => (
-                    <div key={fish.id} className="flex items-center gap-3 p-2 border border-border rounded-sm hover:border-accent transition-colors cursor-pointer" onClick={() => {
-                      setFishSearchTerm(fish.name);
-                      setSelectedFishId(fish.id);
-                      setIsRecommendOpen(false);
-                      setIsAddFishOpen(true);
-                    }}>
-                      <img src={fish.image} alt={fish.name} className="w-12 h-12 rounded-full object-contain p-1 bg-white" referrerPolicy="no-referrer" />
-                      <div>
-                        <h4 className="text-sm font-bold text-ink">{fish.name}</h4>
-                        <p className="text-[10px] text-ink/60 font-medium">{fish.category}</p>
+                    <div key={fish.id} className="grid grid-cols-[56px_1fr_auto] items-center gap-3 rounded-sm border border-border bg-white p-2 transition-colors hover:border-accent">
+                      <img src={fish.image} alt={fish.name} className="h-14 w-14 rounded-sm bg-bg object-contain p-1" referrerPolicy="no-referrer" />
+                      <div className="min-w-0">
+                        <h4 className="truncate text-sm font-bold text-ink">{fish.name}</h4>
+                        <p className="truncate text-[10px] font-medium text-ink/60">{fish.category}</p>
+                        <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/50">
+                          {getRecommendationReason(fish, activeAquarium)}
+                        </p>
                       </div>
-                      <Plus className="w-4 h-4 text-accent ml-auto" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`h-9 shrink-0 rounded-sm px-2 text-[11px] font-black ${
+                          wishlistFishIds.has(fish.id)
+                            ? 'border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100'
+                            : 'border-accent/30 text-accent hover:bg-accent hover:text-white'
+                        }`}
+                        onClick={() => toggleWishlist(fish.id)}
+                      >
+                        <Heart className={`mr-1 h-3.5 w-3.5 ${wishlistFishIds.has(fish.id) ? 'fill-current' : ''}`} />
+                        {wishlistFishIds.has(fish.id) ? '已种草' : '种草'}
+                      </Button>
                     </div>
                   ))}
                   {aiRecommendations.length === 0 && (
