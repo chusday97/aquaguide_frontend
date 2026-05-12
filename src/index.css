@@ -42,6 +42,27 @@ body {
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
+
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
+}
+
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
