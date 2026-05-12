@@ -782,7 +782,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           <button
             key={aq.id}
             onClick={() => setActiveId(aq.id)}
-            className={`px-4 py-2 text-xs md:text-sm whitespace-nowrap rounded-sm border transition-colors font-bold ${
+            className={`px-4 py-2 text-sm whitespace-nowrap rounded-sm border transition-colors font-bold ${
               activeId === aq.id 
                 ? 'bg-ink text-white border-ink' 
                 : 'bg-white text-ink border-border hover:border-ink'
@@ -793,59 +793,59 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         ))}
         <button
           onClick={handleAddAquarium}
-          className="px-4 py-2 text-xs md:text-sm whitespace-nowrap rounded-sm border border-dashed border-ink/40 text-ink/70 hover:text-ink hover:border-ink transition-colors font-bold flex items-center"
+          className="px-4 py-2 text-sm whitespace-nowrap rounded-sm border border-dashed border-ink/40 text-ink/70 hover:text-ink hover:border-ink transition-colors font-bold flex items-center"
         >
           <Plus className="w-3 h-3 mr-1" /> 新建
         </button>
       </div>
 
       {/* Active Aquarium Header */}
-      <header className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <header className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 items-center gap-3">
           {isEditingName ? (
-            <div className="flex items-center gap-2">
+            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-2">
               <Input 
                 value={editNameValue} 
                 onChange={(e) => setEditNameValue(e.target.value)}
-                className="font-serif text-2xl md:text-3xl h-10 w-[200px] border-ink/30"
+                className="h-11 min-w-0 border-ink/30 font-serif text-2xl"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
               />
               <Button size="sm" onClick={handleRenameSubmit} className="h-10 rounded-sm bg-ink text-white">保存</Button>
             </div>
           ) : (
-            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setEditNameValue(activeAquarium.name); setIsEditingName(true); }}>
-              <h1 className="font-serif text-3xl md:text-4xl leading-[1.1] text-ink font-bold">{activeAquarium.name}</h1>
-              <Edit2 className="w-5 h-5 text-ink/40 group-hover:text-ink transition-colors" />
+            <div className="group flex min-w-0 cursor-pointer items-center gap-2" onClick={() => { setEditNameValue(activeAquarium.name); setIsEditingName(true); }}>
+              <h1 className="min-w-0 break-words font-serif text-[34px] font-bold leading-tight text-ink">{activeAquarium.name}</h1>
+              <Edit2 className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-ink" />
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline" className="rounded-sm border-rose-200 text-rose-500 hover:bg-rose-50 h-9 px-3 md:px-4 text-xs md:text-sm font-bold">
-            <Heart className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 fill-current" />
+        <div className="grid min-w-0 grid-cols-2 gap-2">
+          <Button onClick={() => document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline" className="h-10 min-w-0 rounded-sm border-rose-200 px-2 text-xs font-bold text-rose-500 hover:bg-rose-50">
+            <Heart className="mr-1 h-4 w-4 shrink-0 fill-current" />
             种草清单
             <span className="ml-1 bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full text-[10px]">{wishlistFishIds.size}</span>
           </Button>
-          <Button onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }} variant="outline" className="rounded-sm border-border text-ink hover:bg-bg h-9 px-3 md:px-4 text-xs md:text-sm font-bold">
-            <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+          <Button onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }} variant="outline" className="h-10 min-w-0 rounded-sm border-border px-2 text-xs font-bold text-ink hover:bg-bg">
+            <Settings className="mr-1 h-4 w-4 shrink-0" />
             鱼缸设置
           </Button>
-          <Button onClick={handleSmartRecommend} variant="outline" className="rounded-sm border-accent text-accent hover:bg-accent hover:text-white h-9 px-3 md:px-4 text-xs md:text-sm font-bold">
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+          <Button onClick={handleSmartRecommend} variant="outline" className="col-span-2 h-10 min-w-0 rounded-sm border-accent px-2 text-xs font-bold text-accent hover:bg-accent hover:text-white">
+            <Sparkles className="mr-1 h-4 w-4 shrink-0" />
             智能混养推荐
           </Button>
         </div>
       </header>
 
       {/* Tank Water Change Dashboard */}
-      <div className="bg-white border border-border p-4 md:p-6 rounded-sm flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
+      <div className="flex min-w-0 flex-col gap-4 rounded-sm border border-border bg-white p-4 shadow-sm">
+        <div className="grid min-w-0 grid-cols-[56px_1fr] items-center gap-4">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-full ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
             <Calendar className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-xs md:text-sm uppercase tracking-wider text-ink/60 font-bold">下次换水倒计时</h3>
+              <h3 className="text-xs uppercase tracking-wider text-ink/60 font-bold">下次换水倒计时</h3>
               <button
                 type="button"
                 aria-label="查看囤水和换水提示"
@@ -855,8 +855,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 <HelpCircle className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className={`font-serif text-3xl md:text-4xl font-bold ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className={`font-serif text-4xl font-bold ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
                 {isChangeOverdue ? '已过期' : `${daysUntilChange} 天`}
               </span>
               <span className="text-xs text-ink/60 font-medium">
@@ -875,12 +875,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             )}
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="rounded-sm border-border text-ink hover:bg-bg font-bold h-10">
+        <div className="grid w-full grid-cols-2 gap-2">
+          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="h-10 min-w-0 rounded-sm border-border px-2 text-xs font-bold text-ink hover:bg-bg">
             <Calendar className="w-4 h-4 mr-2" />
             换水日历
           </Button>
-          <Button onClick={handleTankWaterChange} className="rounded-sm bg-ink hover:bg-ink/90 text-white font-bold h-10">
+          <Button onClick={handleTankWaterChange} className="h-10 min-w-0 rounded-sm bg-ink px-2 text-xs font-bold text-white hover:bg-ink/90">
             <Droplets className="w-4 h-4 mr-2" />
             记录换水
           </Button>
@@ -888,7 +888,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </div>
 
       {/* Visual Tank Placeholder */}
-      <div className="w-full h-64 md:h-96 rounded-sm relative overflow-hidden border-4 border-accent shadow-inner group">
+      <div className="relative h-72 w-full overflow-hidden rounded-sm border-4 border-accent shadow-inner group">
         <ThreeAquarium 
           aquarium={activeAquarium} 
           activeSpecies={active3DSpecies}
@@ -933,7 +933,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         {/* Add Fish Button Overlay */}
         <Button 
           onClick={() => setIsAddFishOpen(true)} 
-          className="absolute top-2 right-2 z-10 rounded-sm bg-accent/90 hover:bg-accent text-white shadow-sm h-8 px-3 text-xs font-bold transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          className="absolute top-2 right-2 z-10 h-8 rounded-sm bg-accent/90 px-3 text-xs font-bold text-white opacity-100 shadow-sm transition-opacity hover:bg-accent"
         >
           <Plus className="w-3 h-3 mr-1" /> 添加生物
         </Button>
@@ -954,13 +954,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </div>
 
       {/* Health Score */}
-      <div className={`border p-4 md:p-5 rounded-sm flex flex-col gap-3 shadow-sm ${healthBg} border-transparent`}>
+      <div className={`flex flex-col gap-3 rounded-sm border border-transparent p-4 shadow-sm ${healthBg}`}>
         <div className="flex items-center justify-between">
           <div className={`flex items-center gap-2 font-bold ${healthColor}`}>
             <Activity className="w-5 h-5" />
-            <span className="text-sm md:text-base">鱼缸健康度</span>
+            <span className="text-sm">鱼缸健康度</span>
           </div>
-          <div className={`font-serif text-2xl md:text-3xl font-bold ${healthColor}`}>
+          <div className={`font-serif text-2xl font-bold ${healthColor}`}>
             {healthScore}%
           </div>
         </div>
@@ -988,12 +988,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
       {/* Bottom Encyclopedia */}
       {activeAquarium.fishes.length > 0 && (
-        <div className="bg-white border border-border p-4 md:p-5 rounded-sm shadow-sm">
+        <div className="rounded-sm border border-border bg-white p-4 shadow-sm">
           <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-accent" />
             缸内生物图鉴
           </h3>
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {activeAquarium.fishes.map(aqFish => {
               const fishInfo = fishData.find(f => f.id === aqFish.fishId);
               if (!fishInfo) return null;
@@ -1011,7 +1011,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         if (selectedAqFish?.aqFish.id === aqFish.id) setSelectedAqFish(null);
                       }
                     }}
-                    className="absolute -top-2 right-2 z-20 w-5 h-5 rounded-full bg-white border border-red-200 text-red-500 shadow-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                    className="absolute -top-2 right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 opacity-100 shadow-sm transition-opacity hover:bg-red-50"
                     title="删除这个生物"
                   >
                     <X className="w-3 h-3" />
@@ -1033,7 +1033,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       )}
 
       {/* Wishlist Section */}
-      <div id="wishlist-section" className="bg-rose-50/50 border border-rose-100 p-4 md:p-5 rounded-sm shadow-sm">
+      <div id="wishlist-section" className="rounded-sm border border-rose-100 bg-rose-50/50 p-4 shadow-sm">
         <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
           <Heart className="w-4 h-4 text-rose-500 fill-current" />
           我的种草清单
@@ -1044,7 +1044,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             您还没有种草任何生物，去生物图鉴看看吧～
           </div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {Array.from(wishlistFishIds).map(id => {
               const fishInfo = fishData.find(f => f.id === id);
               if (!fishInfo) return null;
