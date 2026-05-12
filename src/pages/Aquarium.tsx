@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
-import { ThreeAquarium } from '../components/ThreeAquarium';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
+
+const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
 const substrateOptions = [
   { value: '无', label: '裸缸', hint: '方便清洁' },
@@ -900,11 +901,19 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
       {/* Visual Tank Placeholder */}
       <div className="relative h-72 w-full overflow-hidden rounded-sm border-4 border-accent shadow-inner group">
-        <ThreeAquarium 
-          aquarium={activeAquarium} 
-          activeSpecies={active3DSpecies}
-          onSpeciesSelect={setActive3DSpecies}
-        />
+        <Suspense
+          fallback={
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
+              正在加载鱼缸画面...
+            </div>
+          }
+        >
+          <ThreeAquarium
+            aquarium={activeAquarium}
+            activeSpecies={active3DSpecies}
+            onSpeciesSelect={setActive3DSpecies}
+          />
+        </Suspense>
         
         {/* Environment Info Overlay */}
         <div className="absolute top-2 left-2 flex gap-2 z-10 pointer-events-none">

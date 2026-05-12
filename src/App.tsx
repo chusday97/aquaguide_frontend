@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import Encyclopedia from './pages/Encyclopedia';
-import AquariumManager from './pages/Aquarium';
-import AIAssistant from './pages/AIAssistant';
 import { cn } from '@/lib/utils';
 import { BookOpen, Droplets, Bot } from 'lucide-react';
+
+const AquariumManager = lazy(() => import('./pages/Aquarium'));
+const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
+const AIAssistant = lazy(() => import('./pages/AIAssistant'));
 
 const navItems = [
   { path: '/aquarium', label: '我的鱼缸', icon: Droplets },
@@ -46,6 +48,18 @@ function BottomNavigation() {
   );
 }
 
+function PageLoading() {
+  return (
+    <div className="flex min-h-[60dvh] items-center justify-center rounded-sm border border-border bg-white p-6 text-center">
+      <div>
+        <div className="mx-auto mb-3 h-10 w-10 animate-pulse rounded-full bg-accent-light" />
+        <p className="text-sm font-bold text-ink/70">正在加载 AquaGuide...</p>
+        <p className="mt-1 text-[11px] font-medium text-ink/45">国内网络首次打开可能需要几秒</p>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Router>
@@ -53,12 +67,14 @@ export default function App() {
         <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-bg shadow-2xl md:h-[min(100dvh-48px,932px)] md:rounded-[34px] md:border md:border-white/70">
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-[calc(12px+env(safe-area-inset-top))]">
             <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
-            <Routes>
-              <Route path="/" element={<Navigate to="/aquarium" replace />} />
-              <Route path="/encyclopedia" element={<Encyclopedia />} />
-              <Route path="/aquarium" element={<AquariumManager />} />
-              <Route path="/assistant" element={<AIAssistant />} />
-            </Routes>
+              <Suspense fallback={<PageLoading />}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/aquarium" replace />} />
+                  <Route path="/encyclopedia" element={<Encyclopedia />} />
+                  <Route path="/aquarium" element={<AquariumManager />} />
+                  <Route path="/assistant" element={<AIAssistant />} />
+                </Routes>
+              </Suspense>
             </div>
           </main>
 
