@@ -682,42 +682,42 @@ export default function Encyclopedia() {
       </section>
 
       <div className="flex flex-col gap-5 mt-4">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-ink shrink-0 mr-4">分类筛选</h3>
-          <div className="flex min-w-0 items-center gap-2">
-             <div className="relative w-[140px] md:w-48 shrink-0">
+        <div className="flex min-w-0 flex-col gap-3">
+          <h3 className="text-base font-bold text-ink">分类筛选</h3>
+          <div className="grid min-w-0 grid-cols-[1fr_auto] items-center gap-2">
+             <div className="relative min-w-0">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink/50" />
                 <Input 
                   placeholder="搜索生物..." 
-                  className="border-border rounded-sm bg-white h-8 pl-7 text-[11px] text-ink placeholder:text-ink/50 font-medium w-full"
+                  className="border-border rounded-sm bg-white h-9 pl-7 text-[12px] text-ink placeholder:text-ink/50 font-medium w-full"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
              </div>
-             <button onClick={clearFilters} className="text-[11px] text-ink/60 hover:text-ink font-bold whitespace-nowrap bg-bg border border-border rounded-sm px-2 h-8 flex items-center transition-colors">
+             <button onClick={clearFilters} className="text-[12px] text-ink/60 hover:text-ink font-bold whitespace-nowrap bg-bg border border-border rounded-sm px-3 h-9 flex items-center transition-colors">
                一键重置
              </button>
           </div>
         </div>
 
         {/* Row 1: Life Type */}
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="text-xs font-bold text-ink/70 shrink-0 w-[50px] mt-2">生物类型</span>
-          <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">生物类型</span>
+          <div className="grid min-w-0 grid-cols-2 gap-2">
             {lifeTypes.map(type => {
               const isActive = lifeTypeFilter === type.id;
               return (
                 <button
                   key={type.id}
                   onClick={() => handleLifeTypeClick(type.id)}
-                  className={`px-2.5 py-2 text-left rounded-sm border transition-all ${
+                  className={`min-h-[58px] px-3 py-2 text-left rounded-sm border transition-all ${
                     isActive
                       ? 'bg-accent text-white border-accent shadow-sm'
                       : 'bg-white text-ink border-border hover:border-accent hover:text-accent'
                   }`}
                 >
-                  <div className="text-[12px] font-bold leading-none mb-1">{type.label}</div>
-                  <div className={`text-[10px] leading-none ${isActive ? 'text-white/75' : 'text-ink/45'}`}>
+                  <div className="break-keep text-[13px] font-bold leading-tight mb-1">{type.label}</div>
+                  <div className={`text-[10px] leading-tight ${isActive ? 'text-white/75' : 'text-ink/45'}`}>
                     {type.hint} · {lifeTypeCounts[type.id] || 0}
                   </div>
                 </button>
@@ -727,14 +727,14 @@ export default function Encyclopedia() {
         </div>
 
         {/* Row 2: Difficulty */}
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="text-xs font-bold text-ink/70 shrink-0 w-[50px]">饲养难度</span>
-          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">饲养难度</span>
+          <div className="flex min-w-0 flex-wrap gap-2">
             {difficulties.map(d => (
               <button
                 key={d.id}
                 onClick={() => handleDifficultyClick(d.id)}
-                className={`px-3 py-1.5 text-[11px] whitespace-nowrap rounded-sm border transition-colors font-bold ${
+                className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-colors font-bold ${
                   difficultyFilter === d.id 
                     ? 'bg-accent text-white border-accent' 
                     : 'bg-white text-ink border-border hover:border-accent'
@@ -747,9 +747,9 @@ export default function Encyclopedia() {
         </div>
 
         {/* Row 3: Water Type */}
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="text-xs font-bold text-ink/70 shrink-0 w-[50px]">水质建议</span>
-          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">水质建议</span>
+          <div className="flex min-w-0 flex-wrap gap-2">
             {waterTypes.map(w => {
               const isActive = waterTypeFilter === w.id;
               let btnClass = 'bg-white text-ink/80 border-border hover:border-ink';
@@ -762,7 +762,7 @@ export default function Encyclopedia() {
                 <button
                   key={w.id}
                   onClick={() => handleWaterTypeClick(w.id)}
-                  className={`px-3 py-1.5 text-[11px] whitespace-nowrap rounded-sm border transition-all font-bold ${btnClass}`}
+                  className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-all font-bold ${btnClass}`}
                 >
                   {w.label}
                 </button>
@@ -774,10 +774,10 @@ export default function Encyclopedia() {
         {/* Row 4: Secondary Category Circles (Wrap & Collapse) */}
         <div className="flex flex-col gap-2">
           {isCategoriesExpanded && (
-            <div className="flex min-w-0 items-start gap-3 mt-2">
-              <span className="text-xs font-bold text-ink/70 shrink-0 w-[50px] mt-2">二级标签</span>
-              <div className="relative flex min-w-0 flex-1 items-start gap-3 overflow-hidden md:gap-4">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300 md:gap-4">
+            <div className="flex min-w-0 flex-col gap-2 mt-2">
+              <span className="text-xs font-bold text-ink/70">二级标签</span>
+              <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
+                <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
                   {categories.length > 0 ? categories.map(cat => {
                     const sampleFish = allFishes.find(f => f.category === cat);
                     const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
@@ -785,10 +785,10 @@ export default function Encyclopedia() {
                     return (
                       <div 
                         key={cat} 
-                        className="flex w-[58px] cursor-pointer flex-col items-center gap-1.5 md:w-[64px]" 
+                        className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5" 
                         onClick={() => handleCategoryClick(cat)}
                       >
-                        <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
                           selectedCategory === cat ? 'border-accent border-[2px] shadow-sm scale-105' : 'border-border border'
                         }`}>
                           <img src={bgImage} alt={cat} className="w-full h-full object-contain p-1 opacity-90" referrerPolicy="no-referrer" />
@@ -820,7 +820,7 @@ export default function Encyclopedia() {
         </div>
       </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 mt-2">
+        <div className="grid grid-cols-2 gap-3 mt-2">
           {filteredFishes.map((fish) => {
             const isOwned = ownedFishIds.has(fish.id);
             const isWishlist = wishlistFishIds.has(fish.id);
@@ -831,7 +831,7 @@ export default function Encyclopedia() {
             return (
               <div 
                 key={fish.id} 
-                className={`${theme.bgTheme} border p-3 md:p-4 flex flex-col gap-2 cursor-pointer transition-colors group shadow-sm ${isOwned ? 'border-accent/50' : theme.borderTheme}`}
+                className={`${theme.bgTheme} border p-3 flex flex-col gap-2 cursor-pointer transition-colors group shadow-sm ${isOwned ? 'border-accent/50' : theme.borderTheme}`}
                 onClick={() => setSelectedFish(fish)}
               >
                 <div className={`w-full aspect-[4/3] bg-white flex items-center justify-center overflow-hidden relative rounded-sm border border-border/50`}>
@@ -844,8 +844,8 @@ export default function Encyclopedia() {
                 </div>
               <div className="flex flex-col gap-2">
                 <div>
-                  <h2 className="font-serif text-sm md:text-base italic truncate text-ink font-bold">{fish.name}</h2>
-                  <p className="text-[10px] md:text-[11px] text-ink/70 truncate font-medium">{fish.category}</p>
+                  <h2 className="font-serif text-[15px] italic truncate text-ink font-bold">{fish.name}</h2>
+                  <p className="text-[11px] text-ink/70 truncate font-medium">{fish.category}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <span className="bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-ink border border-border rounded-sm">
