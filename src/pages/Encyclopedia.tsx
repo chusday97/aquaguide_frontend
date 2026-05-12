@@ -185,6 +185,12 @@ const secondaryCategoryOrder: Record<string, string[]> = {
 
 const getLifeType = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
+  if (fish.category === '水草') {
+    return isHardscapeSpecies(fish) ? 'hardscape' : 'plant';
+  }
+  if (fish.category === '硬景/底床') {
+    return 'hardscape';
+  }
   if (isAquaticPlantSpecies(fish)) {
     return 'plant';
   }
@@ -367,7 +373,7 @@ export default function Encyclopedia() {
   };
 
   const allFishes = useMemo(
-    () => fishData.filter(fish => !isAquaticPlantSpecies(fish) && !isHardscapeSpecies(fish)),
+    () => fishData.filter(fish => !['plant', 'hardscape'].includes(getLifeType(fish))),
     []
   );
   const discoveryPool = useMemo(

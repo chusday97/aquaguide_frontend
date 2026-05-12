@@ -63,6 +63,8 @@ const normalizeAquariumPlants = (aquariums: Aquarium[]) => aquariums.map(aquariu
 
 const getLifeType = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
+  if (fish.category === '水草') return isHardscapeSpecies(fish) ? 'hardscape' : 'plant';
+  if (fish.category === '硬景/底床') return 'hardscape';
   if (isAquaticPlantSpecies(fish)) return 'plant';
   if (isHardscapeSpecies(fish)) return 'hardscape';
   if (fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone/i.test(text)) return 'coral';
