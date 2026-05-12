@@ -29,6 +29,10 @@ const shareWithNativeSheet = async (title: string) => {
 };
 
 export function ShareActions() {
+  if (!isWeChatBrowser()) {
+    return null;
+  }
+
   const handleShareToFriend = async () => {
     try {
       if (await shareWithNativeSheet(appShareConfig.friendTitle)) return;
@@ -73,4 +77,3 @@ export function ShareActions() {
     </div>
   );
 }
-
