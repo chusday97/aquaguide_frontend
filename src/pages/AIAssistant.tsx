@@ -12,6 +12,13 @@ interface Message {
   content: string;
 }
 
+interface StructuredAnswer {
+  conclusion: string;
+  reasons: string[];
+  actions: string[];
+  askNext?: string;
+}
+
 const SUGGESTED_QUESTIONS = [
   "新手适合养什么鱼？",
   "鱼缸水质变浑浊怎么办？",
@@ -42,6 +49,81 @@ const loadSavedMessages = () => {
     return [welcomeMessage];
   }
 };
+
+const parseStructuredAnswer = (content: string): StructuredAnswer | null => {
+  const normalized = content.trim();
+  if (!normalized) return null;
+
+  const conclusion = normalized.match(/(?:结论|建议)[:：]\s*([\s\S]*?)(?=\n(?:原因|理由|下一步|操作|追问|建议追问)[:：]|$)/)?.[1]?.trim();
+  const reasonsBlock = normalized.match(/(?:原因|理由)[:：]\s*([\s\S]*?)(?=\n(?:下一步|操作|追问|建议追问)[:：]|$)/)?.[1]?.trim();
+  const actionsBlock = normalized.match(/(?:下一步|操作)[:：]\s*([\s\S]*?)(?=\n(?:追问|建议追问)[:：]|$)/)?.[1]?.trim();
+  const askNext = normalized.match(/(?:追问|建议追问)[:：]\s*([\s\S]*?)$/)?.[1]?.trim();
+
+  if (!conclusion && !reasonsBlock && !actionsBlock) return null;
+
+  const toList = (block?: string) => (block || '')
+    .split(/\n|；|;/)
+    .map(item => item.replace(/^[-*•\d.、\s]+/, '').trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  return {
+    conclusion: conclusion || normalized.split('\n')[0],
+    reasons: toList(reasonsBlock).slice(0, 3),
+    actions: toList(actionsBlock).slice(0, 4),
+    askNext,
+  };
+};
+
+function AssistantAnswer({ content }: { content: string }) {
+  const structured = parseStructuredAnswer(content);
+
+  if (!structured) {
+    return <span>{content}</span>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-accent/70">结论</div>
+        <p className="text-[14px] font-black leading-relaxed text-accent">{structured.conclusion}</p>
+      </div>
+
+      {structured.reasons.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">为什么</div>
+          <ul className="space-y-1.5">
+            {structured.reasons.map((reason, index) => (
+              <li key={`${reason}-${index}`} className="grid grid-cols-[16px_1fr] gap-1.5 text-[12px] font-medium leading-relaxed text-ink/75">
+                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent/60" />
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {structured.actions.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">下一步</div>
+          <div className="space-y-1.5">
+            {structured.actions.map((action, index) => (
+              <div key={`${action}-${index}`} className="rounded-sm border border-accent/15 bg-white/70 px-2.5 py-2 text-[12px] font-bold leading-relaxed text-ink">
+                {index + 1}. {action}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {structured.askNext && (
+        <div className="rounded-full bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent">
+          可以继续问：{structured.askNext}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>(loadSavedMessages);
@@ -85,9 +167,18 @@ export default function AIAssistant() {
       const recentMessages = [...messages, userMessage].slice(-12);
       const responseText = await askAquaGuideAI({
         messages: recentMessages.map(msg => ({ role: msg.role, content: msg.content })),
-        maxTokens: 1200,
-        temperature: 0.35,
+        maxTokens: 650,
+        temperature: 0.25,
         system: `你是一个专业的水族专家和养殖助手。你的任务是回答用户关于养鱼、水族箱管理、水质、鱼类疾病等方面的问题。如果用户询问鱼类名，请在文件中查找对应的 pH、温度和混养建议。如果数据库中不存在该鱼类，请明确告知用户。
+请始终使用简短、结构化、可执行的手机端回答，不要输出长篇说明。
+必须按以下格式回答，标题不可改名：
+结论：一句话回答，最多35个中文字符。
+原因：
+- 最多3条，每条不超过28个中文字符。
+下一步：
+- 给用户2-4个具体动作，每条不超过30个中文字符。
+追问：给一个用户可以继续点击/输入的问题，最多25个中文字符。
+如果信息不足，先给安全建议，再在“追问”里问最关键的一个补充问题。
 请优先基于以下本地水族数据库中的信息进行回答：
 ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: f.waterTemperature, ph: f.phLevel, diff: f.difficulty, size: f.size, category: f.category, temperament: f.temperament, tankSize: f.tankSize, waterChangeCycle: f.waterChangeCycle, description: f.description})))}
 如果用户问了与水族、养鱼无关的问题，请礼貌地引导回养鱼的话题。`,
@@ -143,8 +234,14 @@ ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: 
                     : 'mr-8 border border-accent/10 bg-accent-light/60 text-accent font-bold'
                 }`}
               >
-                <span className="mr-2 font-bold text-ink/60">{message.role === 'user' ? '问：' : '答：'}</span>
-                {message.content}
+                {message.role === 'user' ? (
+                  <>
+                    <span className="mr-2 font-bold text-ink/60">问：</span>
+                    {message.content}
+                  </>
+                ) : (
+                  <AssistantAnswer content={message.content} />
+                )}
               </div>
             ))}
             {isLoading && (
