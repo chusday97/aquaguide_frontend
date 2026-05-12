@@ -1,0 +1,88 @@
+﻿id,name,scientificName,category,image,difficulty,waterTemperature,phLevel,tankSize,housingMode
+1,巴西龟,Trachemys scripta elegans,龟类,https://upload.wikimedia.org/wikipedia/commons/9/96/RedEaredSlider.jpg,Easy,20-30°C,6.5-8.0,至少 200 升,建议单养
+2,草龟,Chinemys reevesii,龟类,https://upload.wikimedia.org/wikipedia/commons/3/33/Mauremys_reevesii.jpg,Easy,20-28°C,7.0-8.0,至少 200 升,建议单养
+3,花龟,Mauremys sinensis,龟类,https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Chinese_stripe-necked_turtle_%28Mauremys_sinensis%29_Bach_Ma.jpg/1280px-Chinese_stripe-necked_turtle_%28Mauremys_sinensis%29_Bach_Ma.jpg,Easy,22-30°C,7.0-8.0,至少 200 升,建议单养
+4,剃刀麝香龟,Sternotherus carinatus,龟类,https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/RazorBackMuskTurtle.jpg/1280px-RazorBackMuskTurtle.jpg,Easy,22-28°C,6.5-7.5,至少 100 升,建议单养
+5,巨蛋麝香龟,Staurotypus salvinii,龟类,https://upload.wikimedia.org/wikipedia/commons/7/7a/Staurotypus_salvinii.jpg,Medium,23-28°C,6.5-7.5,至少 200 升,建议单养
+6,猪鼻龟,Carettochelys insculpta,龟类,https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Carettochelys_insculpta_01.JPG/1280px-Carettochelys_insculpta_01.JPG,Hard,26-30°C,7.5-8.5,至少 200 升,建议单养
+7,蛋龟 (密西西比),Sternotherus odoratus,龟类,https://upload.wikimedia.org/wikipedia/commons/4/4f/Sternotherus_odoratus.jpg,Easy,20-28°C,6.5-7.5,至少 100 升,建议单养
+8,斑马螺,Neritina natalensis,螺类,/species-transparent/base_missing_005_sheet_03_斑马螺_Neritina_natalensis.png?v=cutfix_20260510,Easy,22-26°C,7.0-8.5,至少 30 升,谨慎混养
+9,神秘螺,Pomacea bridgesii,螺类,/species-transparent/base_missing_005_sheet_09_神秘螺_Pomacea_bridgesii.png?v=cutfix_20260510,Easy,20-28°C,7.0-8.0,至少 30 升,谨慎混养
+10,鲍鱼螺,Septaria porcellana,螺类,https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Septaria_porcellana_01.jpg/1280px-Septaria_porcellana_01.jpg,Easy,20-28°C,7.0-8.5,至少 30 升,谨慎混养
+11,杀手螺,Anentome helena,螺类,/species-transparent/base_missing_001_sheet_04_杀手螺_Anentome_helena.png?v=cutfix_20260510,Easy,22-26°C,7.0-8.0,至少 30 升,谨慎混养
+12,小精灵鱼,Otocinclus vittatus,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/9/95/Otocinclus_vittatus.jpg,Medium,21-26°C,6.0-7.5,至少 30 升,适合混养
+13,胡子鱼,Ancistrus sp.,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/8/8d/Bristlenose_Catfish_700.jpg,Easy,22-27°C,6.0-7.5,至少 100 升,适合混养
+14,黑壳虾,Neocaridina denticulata,虾类,https://upload.wikimedia.org/wikipedia/commons/f/f3/Cherry_Shrimp_Neocaridina_davidi.jpg,Easy,15-28°C,6.5-7.5,至少 30 升,谨慎混养
+15,大和藻虾,Caridina multidentata,虾类,/species-transparent/base_missing_002_sheet_02_大和藻虾_Caridina_multidentata.png?v=cutfix_20260510,Medium,10-28°C,6.5-7.5,至少 30 升,适合混养
+16,极火虾 (米虾),Neocaridina davidi,虾类,https://upload.wikimedia.org/wikipedia/commons/f/f3/Cherry_Shrimp_Neocaridina_davidi.jpg,Easy,18-28°C,6.5-8.0,至少 30 升,谨慎混养
+17,水晶虾 (蜂虾),Caridina cf. cantonensis,虾类,https://upload.wikimedia.org/wikipedia/commons/6/6f/Crystal_Red_Shrimp.jpg,Hard,22-25°C,6.0-6.8,至少 30 升,谨慎混养
+18,苏拉威西虾 (白袜),Caridina dennerli,虾类,https://upload.wikimedia.org/wikipedia/commons/f/fb/Caridina-dennerli.jpg,Hard,26-30°C,7.5-8.5,至少 30 升,谨慎混养
+19,长额体虾 (草虾),Palaemonetes sinensis,虾类,https://upload.wikimedia.org/wikipedia/commons/2/22/Palaemonetes_sinensis.jpg,Easy,10-28°C,7.0-8.0,至少 30 升,谨慎混养
+20,网球虾,Atyopsis moluccensis,虾类,https://upload.wikimedia.org/wikipedia/commons/f/f1/Atyopsis_moluccensis.jpg,Medium,22-28°C,6.5-7.5,至少 100 升,谨慎混养
+21,非洲过滤虾,Atya gabonensis,虾类,https://upload.wikimedia.org/wikipedia/commons/2/25/Atya_gabonensis.jpg,Medium,22-28°C,6.5-7.5,至少 100 升,谨慎混养
+22,螯虾 (佛蓝),Procambarus alleni,虾类,https://upload.wikimedia.org/wikipedia/commons/1/1a/Procambarus_alleni.jpg,Easy,18-28°C,7.0-8.5,至少 100 升,谨慎混养
+23,迷你对虾 (小橘螯),Cambarellus patzcuarensis,虾类,https://upload.wikimedia.org/wikipedia/commons/b/b3/Cambarellus_patzcuarensis.jpg,Easy,20-25°C,7.0-8.0,至少 30 升,谨慎混养
+24,公子小丑,Amphiprion ocellaris,海水鱼,/species-transparent/batch_004_species_sheet_03_公子小丑_Amphiprion_ocellaris.png?v=cutfix_20260510,Easy,24-27°C,8.1-8.4,至少 30 升,谨慎混养
+25,黄三角吊,Zebrasoma flavescens,海水鱼,https://upload.wikimedia.org/wikipedia/commons/c/c8/Zebrasoma_flavescens_01.jpg,Medium,24-28°C,8.1-8.4,至少 100 升,谨慎混养
+26,蓝吊 (多莉),Paracanthurus hepatus,海水鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Paletten-Doktorfisch_M%C3%BCnster.JPG/1280px-Paletten-Doktorfisch_M%C3%BCnster.JPG,Medium,24-27°C,8.1-8.4,至少 200 升,谨慎混养
+27,火焰仙,Centropyge loricula,海水鱼,https://upload.wikimedia.org/wikipedia/commons/f/f6/Flame_Angelfish_(Centropyge_loricula).jpg,Hard,24-27°C,8.1-8.4,至少 100 升,谨慎混养
+28,长鼻狮子鱼,Pterois volitans,海水鱼,/species-transparent/batch_004_species_sheet_07_长鼻狮子鱼_Pterois_volitans.png?v=cutfix_20260510,Medium,23-26°C,8.1-8.4,至少 200 升,建议单养
+29,青魔,Chromis viridis,海水鱼,https://upload.wikimedia.org/wikipedia/commons/1/1d/Chromis_viridis.jpg,Easy,24-28°C,8.1-8.4,至少 30 升,谨慎混养
+30,六线龙,Pseudocheilinus hexataenia,海水鱼,https://upload.wikimedia.org/wikipedia/commons/2/21/Pseudocheilinus_hexataenia_M_St_Pauls_Rocks.jpg,Easy,24-27°C,8.1-8.4,至少 30 升,谨慎混养
+31,雷达鱼,Nemateleotris magnifica,海水鱼,https://upload.wikimedia.org/wikipedia/commons/5/52/Nemateleotris_magnifica_2.jpg,Medium,23-28°C,8.1-8.4,至少 30 升,谨慎混养
+32,尖嘴红格,Neocirrhites armatus,海水鱼,https://upload.wikimedia.org/wikipedia/commons/2/20/Flame_Hawkfish_%28Neocirrhites_armatus%29.jpg,Easy,24-27°C,8.1-8.4,至少 30 升,谨慎混养
+33,蓝闪电神仙,Centropyge bicolor,海水鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Bicolor_angelfish_%28Centropyge_bicolor%29_%2840856469565%29_%28cropped%29.jpg/1280px-Bicolor_angelfish_%28Centropyge_bicolor%29_%2840856469565%29_%28cropped%29.jpg,Hard,24-27°C,8.1-8.4,至少 100 升,谨慎混养
+34,毕加索炮弹,Rhinecanthus aculeatus,海水鱼,https://upload.wikimedia.org/wikipedia/commons/1/10/Rhinecanthus_aculeatus.jpg,Easy,23-27°C,8.1-8.4,至少 200 升,谨慎混养
+35,紫雷达,Nemateleotris decora,海水鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Nemateleotris_decora.jpg/1280px-Nemateleotris_decora.jpg,Medium,23-28°C,8.1-8.4,至少 30 升,谨慎混养
+36,黄尾蓝魔,Chrysiptera parasema,海水鱼,https://upload.wikimedia.org/wikipedia/commons/1/18/Chrysiptera_parasema.JPG,Easy,24-28°C,8.1-8.4,至少 30 升,谨慎混养
+37,医生鱼,Labroides dimidiatus,海水鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/L%C3%A1brido_limpiador_com%C3%BAn_%28Labroides_dimidiatus%29%2C_mar_Rojo%2C_Egipto%2C_2023-04-17%2C_DD_90.jpg/1280px-L%C3%A1brido_limpiador_com%C3%BAn_%28Labroides_dimidiatus%29%2C_mar_Rojo%2C_Egipto%2C_2023-04-17%2C_DD_90.jpg,Hard,24-27°C,8.1-8.4,至少 100 升,谨慎混养
+38,倒吊王,Acanthurus lineatus,海水鱼,https://upload.wikimedia.org/wikipedia/commons/6/66/Acanthurus_lineatus_Reunion.jpg,Hard,24-28°C,8.1-8.4,至少 200 升,谨慎混养
+39,金鱼,Carassius auratus,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/4/41/Carassius_auratus.jpg,Easy,4-25°C,7.0-8.5,至少 100 升,适合混养
+40,锦鲤,Cyprinus carpio,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/5/51/Common_Carp_(Cyprinus_carpio)_(19488145985).jpg,Easy,2-30°C,7.0-8.5,至少 200 升,谨慎混养
+41,斑马鱼,Danio rerio,鲤科鱼,/species-transparent/batch_001_species_sheet_05_斑马鱼_Danio_rerio.png?v=cutfix_20260510,Easy,18-24°C,6.5-7.5,至少 30 升,适合混养
+42,白云金丝,Tanichthys albonubes,鲤科鱼,/species-transparent/batch_001_species_sheet_04_白云金丝_Tanichthys_albonubes.png?v=cutfix_20260510,Easy,14-22°C,6.0-8.5,至少 30 升,适合混养
+43,樱花鲫,Puntius titteya,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/3/36/Cherry_barb_female.jpg,Easy,23-27°C,6.0-8.0,至少 30 升,适合混养
+44,红尾鲨,Epalzeorhynchos bicolor,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/1/19/Labeo_bicolor.jpg,Medium,22-26°C,6.5-7.5,至少 100 升,适合混养
+45,彩虹鲨,Epalzeorhynchos frenatum,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/a/a4/Epalzeorhynchos_frenatus_by_Ark.jpg,Medium,22-26°C,6.5-7.5,至少 100 升,适合混养
+46,虎皮鱼,Puntigrus tetrazona,鲤科鱼,/species-transparent/batch_002_species_sheet_03_虎皮鱼_Puntigrus_tetrazona.png?v=cutfix_20260510,Easy,20-26°C,6.0-8.0,至少 30 升,适合混养
+47,蓝三角灯,Trigonostigma heteromorpha,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/1/10/Trigonostigma_heteromorpha.jpg,Easy,23-28°C,5.0-7.0,至少 30 升,适合混养
+48,一眉道人,Sahyadria denisonii,鲤科鱼,/species-transparent/batch_002_species_sheet_04_一眉道人_Sahyadria_denisonii.png?v=cutfix_20260510,Medium,15-25°C,6.5-7.8,至少 100 升,适合混养
+49,玫瑰鲫,Pethia conchonius,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/b/bd/Rosy_barb.jpg,Easy,18-22°C,6.0-7.0,至少 100 升,适合混养
+50,黑带达尼欧,Danio nigrofasciatus,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/0/0a/Danio_nigrofasciatus.jpg,Easy,24-28°C,6.5-7.0,至少 30 升,适合混养
+51,金苔鼠,Gyrinocheilus aymonieri,鲤科鱼,/species-transparent/batch_002_species_sheet_06_金苔鼠_Gyrinocheilus_aymonieri.png?v=cutfix_20260510,Easy,24-28°C,6.0-8.0,至少 200 升,谨慎混养
+52,波罗鱼,Puntius oligolepis,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/5/55/Checker_barb.jpg,Easy,20-24°C,6.0-7.5,至少 30 升,适合混养
+53,银鲨,Balantiocheilos melanopterus,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Balantiocheilos_melanopterus_-_Karlsruhe_Zoo_02.jpg/1280px-Balantiocheilos_melanopterus_-_Karlsruhe_Zoo_02.jpg,Medium,22-28°C,6.5-7.0,至少 200 升,谨慎混养
+54,青苔鼠,Crossocheilus oblongus,鲤科鱼,/species-transparent/morph_batch_009_sheet_08_青苔鼠_Gyrinocheilus_aymonieri_var.png?v=cutfix_20260510,Easy,20-26°C,6.5-8.0,至少 100 升,适合混养
+55,红目鲫,Moenkhausia sanctaefilomenae,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/f/f6/Moenkhausia_sanctaefilomenae.jpg,Easy,22-28°C,6.0-8.0,至少 30 升,适合混养
+56,大斑马,Devario aequipinnatus,鲤科鱼,https://upload.wikimedia.org/wikipedia/commons/d/df/Devario_aequipinnatus_by_Ark.jpg,Easy,20-25°C,6.0-8.0,至少 100 升,适合混养
+57,珍珠马甲,Trichopodus leerii,迷鳃鱼,/species-transparent/batch_002_species_sheet_09_珍珠马甲_Trichopodus_leerii.png?v=cutfix_20260510,Easy,24-28°C,6.0-8.0,至少 100 升,谨慎混养
+58,三色猫,Synodontis nigriventris,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/d/da/Synodontis_nigriventris_01.jpg,Easy,22-28°C,6.0-7.5,至少 100 升,适合混养
+59,红十字鱼,Aphyocharax anisitsi,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/6/6d/Aphyocharax_anisitsi_1.jpg,Easy,22-28°C,6.0-7.5,至少 30 升,适合混养
+60,钻石灯,Moenkhausia pittieri,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/e/e0/Moenkhausia_pittieri_01.jpg,Medium,24-28°C,6.0-7.0,至少 30 升,适合混养
+61,喷火灯,Hyphessobrycon amandae,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Hyphessobrycon_amandae_A.jpg/1280px-Hyphessobrycon_amandae_A.jpg,Easy,24-29°C,5.0-7.0,至少 30 升,适合混养
+62,金灯,Hemigrammus rodwayi,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/8/87/Hemigrammus_rodwayi.jpg,Medium,24-28°C,5.5-7.0,至少 30 升,适合混养
+63,三线豹鼠,Corydoras trilineatus,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/4/4e/Corydoras_trilineatus.jpg,Easy,22-26°C,6.0-8.0,至少 30 升,适合混养
+64,熊猫鼠,Corydoras panda,鲶鱼/异型,/species-transparent/batch_001_species_sheet_09_熊猫鼠_Corydoras_panda.png?v=cutfix_20260510,Easy,22-25°C,6.0-7.0,至少 30 升,适合混养
+65,皇冠豹异型,Panaque suttonorum,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Panaque_suttonorum.JPG/1280px-Panaque_suttonorum.JPG,Hard,23-27°C,6.5-7.5,至少 200 升,谨慎混养
+66,红剑鱼,Xiphophorus helleri,鳉鱼科,/species-transparent/batch_001_species_sheet_08_红剑鱼_Xiphophorus_hellerii.png?v=cutfix_20260510,Easy,20-28°C,7.0-8.0,至少 100 升,适合混养
+67,孔雀鱼,Poecilia reticulata,鳉鱼科,/species-transparent/batch_001_species_sheet_06_孔雀鱼_Poecilia_reticulata.png?v=cutfix_20260510,Easy,20-28°C,7.0-8.5,至少 30 升,适合混养
+68,玛丽鱼,Poecilia latipinna,鳉鱼科,/species-transparent/batch_001_species_sheet_07_玛丽鱼_Poecilia_sphenops.png?v=cutfix_20260510,Easy,21-28°C,7.0-8.5,至少 100 升,适合混养
+69,蓝宝石鱼,Andinoacara pulcher,慈鲷科,/species-transparent/batch_003_species_sheet_10_蓝宝石鱼_Andinoacara_pulcher.png?v=cutfix_20260510,Easy,22-28°C,6.5-8.0,至少 100 升,适合混养
+70,泰国斗鱼,Betta splendens,迷鳃鱼,https://upload.wikimedia.org/wikipedia/commons/6/61/Betta-splendens-male.jpg,Easy,24-30°C,6.0-7.5,至少 30 升,建议单养
+71,蓝曼龙,Trichopodus trichopterus,迷鳃鱼,/species-transparent/batch_002_species_sheet_10_蓝曼龙_Trichopodus_trichopterus.png?v=cutfix_20260510,Easy,22-28°C,6.0-8.5,至少 100 升,谨慎混养
+72,巧克力娃娃,Carinotetraodon travanoricus,鲀科,https://upload.wikimedia.org/wikipedia/commons/2/29/Pea_puffer.jpg,Hard,22-26°C,6.5-7.5,至少 30 升,建议单养
+73,玻璃猫鱼,Kryptopterus vitreolus,鲶鱼/异型,/species-transparent/batch_011_species_sheet_04_玻璃猫鱼_Kryptopterus_vitreolus.png?v=cutfix_20260510,Medium,20-26°C,6.0-7.0,至少 30 升,适合混养
+74,七彩神仙,Symphysodon aequifasciatus,慈鲷科,/species-transparent/batch_003_species_sheet_02_七彩神仙_Symphysodon_aequifasciatus.png?v=cutfix_20260510,Hard,26-30°C,5.0-6.5,至少 100 升,谨慎混养
+75,荷兰凤凰,Mikrogeophagus ramirezi,慈鲷科,/species-transparent/batch_003_species_sheet_03_荷兰凤凰_Mikrogeophagus_ramirezi.png?v=cutfix_20260510,Medium,26-30°C,5.0-6.0,至少 30 升,谨慎混养
+76,非洲王子,Labidochromis caeruleus,慈鲷科,/species-transparent/batch_003_species_sheet_06_非洲王子_Labidochromis_caeruleus.png?v=cutfix_20260510,Easy,24-28°C,7.5-8.5,至少 100 升,谨慎混养
+77,地图鱼,Astronotus ocellatus,慈鲷科,/species-transparent/batch_004_species_sheet_01_地图鱼_Astronotus_ocellatus.png?v=cutfix_20260510,Easy,22-28°C,6.0-7.5,至少 200 升,谨慎混养
+78,神仙鱼,Pterophyllum scalare,慈鲷科,/species-transparent/batch_001_species_sheet_10_神仙鱼_Pterophyllum_scalare.png?v=cutfix_20260510,Easy,24-28°C,6.0-7.0,至少 100 升,谨慎混养
+79,宝莲灯,Paracheirodon axelrodi,灯科鱼,/species-transparent/batch_001_species_sheet_02_宝莲灯_Paracheirodon_axelrodi.png?v=cutfix_20260510,Medium,23-27°C,5.0-6.5,至少 30 升,适合混养
+80,红绿灯,Paracheirodon innesi,灯科鱼,/species-transparent/batch_001_species_sheet_01_红绿灯_Paracheirodon_innesi.png?v=cutfix_20260510,Easy,21-25°C,5.5-7.0,至少 30 升,适合混养
+81,红鼻剪刀,Hemigrammus rhodostomus,灯科鱼,/species-transparent/batch_001_species_sheet_03_红鼻剪刀_Hemigrammus_rhodostomus.png?v=cutfix_20260510,Medium,24-28°C,5.5-7.0,至少 30 升,适合混养
+82,黑莲灯,Hyphessobrycon herbertaxelrodi,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/7/7b/Black_Neon_Tetra.jpg,Easy,23-28°C,5.5-7.5,至少 30 升,适合混养
+83,柠檬灯,Hyphessobrycon pulchripinnis,灯科鱼,https://upload.wikimedia.org/wikipedia/commons/2/23/Lemon_Tetra.jpg,Easy,23-28°C,6.0-7.5,至少 30 升,适合混养
+84,熊猫异型,Hypancistrus zebra,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/2/2f/Hypancistrus_zebra.jpg,Hard,26-30°C,6.0-7.5,至少 100 升,适合混养
+85,黄金马甲,Ancistrus triradiatus,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/8/8d/Bristlenose_Catfish_700.jpg,Easy,22-27°C,6.0-7.5,至少 100 升,适合混养
+86,大帆女王,Pterygoplichthys gibbiceps,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Pterygoplichthys_gibbiceps_in_Botanic_garden_Teplice_%281%29.JPG/1280px-Pterygoplichthys_gibbiceps_in_Botanic_garden_Teplice_%281%29.JPG,Easy,23-28°C,6.5-8.0,至少 200 升,谨慎混养
+87,直升机异型,Farlowella vittata,鲶鱼/异型,https://upload.wikimedia.org/wikipedia/commons/2/24/Farlowella_vittata.jpg,Medium,24-28°C,6.0-7.5,至少 100 升,适合混养
