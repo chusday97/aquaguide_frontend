@@ -2,9 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { fishData } from '../data/fishData';
-import { Crown, Sparkles } from 'lucide-react';
+import { Sparkles, Trash2 } from 'lucide-react';
 import { askAquaGuideAI } from '../lib/aiClient';
 
 interface Message {
@@ -20,14 +19,32 @@ const SUGGESTED_QUESTIONS = [
   "新鱼入缸需要注意什么？"
 ];
 
+const CHAT_STORAGE_KEY = 'aquaguide_ai_chat_messages';
+
+const welcomeMessage: Message = {
+  id: 'welcome',
+  role: 'assistant',
+  content: '你好！我是你的养鱼助手。无论你是想了解某种鱼的饲养条件，还是遇到了水质问题，都可以问我。'
+};
+
+const loadSavedMessages = () => {
+  try {
+    const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!saved) return [welcomeMessage];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [welcomeMessage];
+    return parsed.filter((message): message is Message =>
+      typeof message?.id === 'string' &&
+      (message.role === 'user' || message.role === 'assistant') &&
+      typeof message.content === 'string'
+    );
+  } catch {
+    return [welcomeMessage];
+  }
+};
+
 export default function AIAssistant() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: '你好！我是你的养鱼助手。无论你是想了解某种鱼的饲养条件，还是遇到了水质问题，都可以问我。'
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>(loadSavedMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -37,6 +54,16 @@ export default function AIAssistant() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.slice(-80)));
+  }, [messages]);
+
+  const handleClearChat = () => {
+    if (!confirm('确定要清空 AI 助手的历史对话吗？')) return;
+    setMessages([welcomeMessage]);
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+  };
 
   const handleSend = async (textToSubmit?: string) => {
     const text = textToSubmit || input;
@@ -55,8 +82,9 @@ export default function AIAssistant() {
     setIsLoading(true);
 
     try {
+      const recentMessages = [...messages, userMessage].slice(-12);
       const responseText = await askAquaGuideAI({
-        messages: [...messages, userMessage].map(msg => ({ role: msg.role, content: msg.content })),
+        messages: recentMessages.map(msg => ({ role: msg.role, content: msg.content })),
         maxTokens: 1200,
         temperature: 0.35,
         system: `你是一个专业的水族专家和养殖助手。你的任务是回答用户关于养鱼、水族箱管理、水质、鱼类疾病等方面的问题。如果用户询问鱼类名，请在文件中查找对应的 pH、温度和混养建议。如果数据库中不存在该鱼类，请明确告知用户。
@@ -85,33 +113,49 @@ ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: 
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-10rem)] min-w-0 max-w-3xl flex-col overflow-x-hidden md:h-[calc(100vh-5rem)]">
-      <header className="mb-4 md:mb-6">
-        <h1 className="font-serif text-3xl md:text-4xl leading-[1.1] mb-1 md:mb-2 text-ink font-bold">AI 养鱼助手</h1>
-        <p className="text-ink/80 text-xs md:text-sm font-medium">有任何养鱼方面的问题？随时问我！</p>
+    <div className="mx-auto flex min-h-[calc(100dvh-150px)] min-w-0 max-w-full flex-col overflow-x-hidden">
+      <header className="mb-4 flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="mb-1 font-serif text-[34px] font-bold leading-tight text-ink">AI 养鱼助手</h1>
+          <p className="text-xs font-medium text-ink/80">会记住本机里的历史对话，继续追问也能接上上下文。</p>
+        </div>
+        {messages.length > 1 && (
+          <button
+            type="button"
+            onClick={handleClearChat}
+            className="mt-1 inline-flex h-9 shrink-0 items-center rounded-sm border border-border bg-white px-2 text-[11px] font-bold text-ink/60 hover:text-red-500"
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            清空
+          </button>
+        )}
       </header>
       
-      <div className="flex-1 flex flex-col bg-white border border-border p-3 md:p-6 overflow-hidden">
-        <ScrollArea className="flex-1 pr-3 md:pr-4" ref={scrollRef}>
+      <div className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-border bg-white p-3">
+        <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
           <div className="flex flex-col gap-4">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`text-xs md:text-[13px] leading-[1.6] ${message.role === 'user' ? 'text-ink font-medium' : 'text-accent font-bold'}`}
+                className={`rounded-sm px-3 py-2 text-[13px] leading-[1.65] ${
+                  message.role === 'user'
+                    ? 'ml-8 border border-border bg-bg text-ink font-medium'
+                    : 'mr-8 border border-accent/10 bg-accent-light/60 text-accent font-bold'
+                }`}
               >
-                <span className="text-ink/60 mr-2 font-bold">{message.role === 'user' ? '问：' : '答：'}</span>
+                <span className="mr-2 font-bold text-ink/60">{message.role === 'user' ? '问：' : '答：'}</span>
                 {message.content}
               </div>
             ))}
             {isLoading && (
-              <div className="text-xs md:text-[13px] italic text-ink/60 border-t border-border mt-2 pt-2 font-medium">
+              <div className="mt-2 border-t border-border pt-2 text-[13px] italic text-ink/60 font-medium">
                 AI 正在为您分析当前鱼缸环境...
               </div>
             )}
           </div>
         </ScrollArea>
         
-        <div className="mt-3 md:mt-4 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-2">
           {messages.length === 1 && (
             <div className="flex flex-wrap gap-2 mb-1">
               {SUGGESTED_QUESTIONS.map((q, i) => (
@@ -119,7 +163,7 @@ ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: 
                   key={i}
                   onClick={() => handleSend(q)}
                   disabled={isLoading}
-                  className="text-[11px] md:text-xs bg-bg border border-border hover:border-accent hover:text-accent text-ink/80 px-3 py-1.5 rounded-sm transition-colors font-medium flex items-center"
+                  className="flex items-center rounded-sm border border-border bg-bg px-3 py-1.5 text-[11px] font-medium text-ink/80 transition-colors hover:border-accent hover:text-accent"
                 >
                   <Sparkles className="w-3 h-3 mr-1 opacity-50" />
                   {q}
@@ -136,9 +180,9 @@ ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: 
               onChange={(e) => setInput(e.target.value)}
               placeholder="输入您的问题..."
               disabled={isLoading}
-              className="flex-1 rounded-none border-border text-xs p-2.5 md:p-3 h-auto shadow-none focus-visible:ring-1 focus-visible:ring-accent text-ink placeholder:text-ink/50 font-medium"
+              className="h-auto flex-1 rounded-none border-border p-2.5 text-xs font-medium text-ink shadow-none placeholder:text-ink/50 focus-visible:ring-1 focus-visible:ring-accent"
             />
-            <Button type="submit" disabled={!input.trim() || isLoading} className="rounded-none bg-accent hover:bg-accent/90 text-white h-auto px-4 md:px-6 text-xs md:text-sm font-bold">
+            <Button type="submit" disabled={!input.trim() || isLoading} className="h-auto rounded-none bg-accent px-4 text-xs font-bold text-white hover:bg-accent/90">
               发送
             </Button>
           </form>
