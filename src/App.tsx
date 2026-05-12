@@ -9,7 +9,6 @@ import AquariumManager from './pages/Aquarium';
 import AIAssistant from './pages/AIAssistant';
 import { cn } from '@/lib/utils';
 import { BookOpen, Droplets, Bot } from 'lucide-react';
-import { ShareActions } from './components/ShareActions';
 
 const navItems = [
   { path: '/aquarium', label: '我的鱼缸', icon: Droplets },
@@ -63,7 +62,6 @@ export default function App() {
             </div>
           </main>
 
-          <ShareActions />
           <BottomNavigation />
         </div>
       </div>
