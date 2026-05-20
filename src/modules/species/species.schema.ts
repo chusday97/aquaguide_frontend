@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import type { Fish } from '../../types';
+
+export const lifeTypeSchema = z.enum(['All', 'fish', 'invertebrate', 'reptile', 'coral', 'plant', 'hardscape']);
 
 export const fishSchema = z.object({
   id: z.string().min(1),
@@ -34,8 +37,9 @@ export const fishSchema = z.object({
 
 export const speciesListInputSchema = z.object({
   searchTerm: z.string().optional().default(''),
-  lifeType: z.enum(['All', 'fish', 'invertebrate', 'reptile', 'coral']).optional().default('All'),
+  lifeType: lifeTypeSchema.optional().default('All'),
   category: z.string().optional().default('全部'),
+  includeScenery: z.boolean().optional().default(false),
   limit: z.number().int().positive().max(500).optional().default(500),
 });
 
@@ -52,9 +56,13 @@ export const speciesDetailOutputSchema = z.object({
   item: fishSchema.nullable(),
 });
 
-export type FishRecord = z.infer<typeof fishSchema>;
+export type FishRecord = Fish;
 export type SpeciesListInput = z.infer<typeof speciesListInputSchema>;
-export type SpeciesListOutput = z.infer<typeof speciesListOutputSchema>;
+export interface SpeciesListOutput {
+  items: Fish[];
+  total: number;
+}
 export type SpeciesDetailInput = z.infer<typeof speciesDetailInputSchema>;
-export type SpeciesDetailOutput = z.infer<typeof speciesDetailOutputSchema>;
-
+export interface SpeciesDetailOutput {
+  item: Fish | null;
+}

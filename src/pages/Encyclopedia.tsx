@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
-import { fishData } from '../data/fishData';
-import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
+import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
+import { getLifeType, getToolFunctions } from '../modules/species/species.service';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -175,117 +175,6 @@ const loadWishlistIds = () => {
   }
 };
 
-const secondaryCategoryOrder: Record<string, string[]> = {
-  fish: ['灯科鱼', '慈鲷科', '鲤科鱼', '迷鳃鱼', '鳉鱼科', '鲶鱼/异型', '鲀科', '海水鱼'],
-  invertebrate: ['虾类', '螺类', '虾螺蟹'],
-  reptile: ['龟类', '两栖/爬宠'],
-  plant: ['水草'],
-  coral: ['珊瑚/海水无脊椎'],
-};
-
-const hiddenSecondaryCategories: Record<string, string[]> = {
-  fish: ['鱼类'],
-  invertebrate: ['虾螺蟹'],
-  plant: ['水草'],
-  hardscape: ['硬景/底床'],
-  coral: ['珊瑚/海水无脊椎'],
-};
-
-const getLifeType = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
-  if (fish.category === '水草') {
-    return isHardscapeSpecies(fish) ? 'hardscape' : 'plant';
-  }
-  if (fish.category === '硬景/底床') {
-    return 'hardscape';
-  }
-  if (isAquaticPlantSpecies(fish)) {
-    return 'plant';
-  }
-  if (isHardscapeSpecies(fish)) {
-    return 'hardscape';
-  }
-  if (fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone/i.test(text)) {
-    return 'coral';
-  }
-  if (fish.category === '虾螺蟹' || fish.category === '虾类' || fish.category === '螺类' || /虾|螺|蟹|shrimp|snail|crab/i.test(text)) {
-    return 'invertebrate';
-  }
-  if (fish.category === '龟类' || fish.category === '两栖/爬宠' || /龟|蛙|蝾螈|六角恐龙|axolotl|turtle|frog|newt/i.test(text)) {
-    return 'reptile';
-  }
-  return 'fish';
-};
-
-const isSaltwaterLife = (fish: Fish) => {
-  const lifeType = getLifeType(fish);
-  return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name);
-};
-
-const matchesWaterTypeFilter = (fish: Fish, waterTypeFilter: string) => {
-  if (waterTypeFilter === 'Freshwater') {
-    return !isSaltwaterLife(fish);
-  }
-  if (waterTypeFilter === 'Saltwater') {
-    return isSaltwaterLife(fish);
-  }
-  if (waterTypeFilter === 'Coldwater') {
-    const tempMatch = fish.waterTemperature?.match(/(\d+)-/);
-    if (tempMatch) {
-      return parseInt(tempMatch[1]) <= 18;
-    }
-    return false;
-  }
-  return true;
-};
-
-const getToolFunctions = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
-  const tags: string[] = [];
-
-  if (/除藻|藻膜|褐藻|黑毛藻|飞狐|小精灵|胡子|异型|Otocinclus|Ancistrus|Crossocheilus|Amano|大和藻虾|角螺|鲍螺|海藻/i.test(text)) {
-    tags.push('除藻');
-  }
-  if (/残饵|清理|底层|沉底|鼠鱼|Corydoras|虾|螺|蟹/i.test(text)) {
-    tags.push('清残饵');
-  }
-  if (/控螺|杀手螺|食螺|Anentome|泛滥的杂螺/i.test(text)) {
-    tags.push('控螺');
-  }
-  if (/翻砂|底砂|沙地|海参|钻沙|砂/i.test(text)) {
-    tags.push('翻砂');
-  }
-  if (getLifeType(fish) === 'plant' || getLifeType(fish) === 'hardscape' || /水草|莫斯|榕|蕨|椒草|沉木|石|造景|根肥|液肥/i.test(text)) {
-    tags.push('造景维护');
-  }
-
-  return Array.from(new Set(tags));
-};
-
-const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) => {
-  if (lifeTypeFilter === 'All') return [];
-  const order = secondaryCategoryOrder[lifeTypeFilter] || [];
-  const hidden = hiddenSecondaryCategories[lifeTypeFilter] || [];
-  const cats = Array.from(
-    new Set(
-      fishes
-        .filter(fish => getLifeType(fish) === lifeTypeFilter)
-        .map(fish => fish.category)
-        .filter(category => !hidden.includes(category))
-        .filter(Boolean)
-    )
-  );
-
-  return cats.sort((a, b) => {
-    const aIndex = order.indexOf(a);
-    const bIndex = order.indexOf(b);
-    if (aIndex !== -1 || bIndex !== -1) {
-      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-    }
-    return a.localeCompare(b, 'zh-Hans-CN');
-  });
-};
-
 const getFishTemperatureTheme = (tempString: string) => {
   const match = tempString.match(/(\d+)-(\d+)/);
   if (!match) return { type: 'general', needsHeater: false, bgTheme: 'bg-orange-50', borderTheme: 'border-orange-100 hover:border-orange-300' };
@@ -382,10 +271,19 @@ export default function Encyclopedia() {
     localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
   };
 
-  const allFishes = useMemo(
-    () => fishData.filter(fish => !['plant', 'hardscape'].includes(getLifeType(fish))),
-    []
+  const encyclopediaCatalog = useMemo(
+    () => encyclopediaService.search({
+      searchTerm,
+      lifeType: lifeTypeFilter as 'All' | 'fish' | 'invertebrate' | 'reptile' | 'coral',
+      category: selectedCategory,
+      difficulty: difficultyFilter as 'All' | 'Easy' | 'Medium' | 'Hard',
+      waterType: waterTypeFilter as 'All' | 'Freshwater' | 'Saltwater' | 'Coldwater',
+      housingMode: housingFilter as 'All' | '适合混养' | '谨慎混养' | '建议单养',
+      limit: 500,
+    }),
+    [difficultyFilter, housingFilter, lifeTypeFilter, searchTerm, selectedCategory, waterTypeFilter]
   );
+  const allFishes = encyclopediaCatalog.allItems;
   const discoveryPool = useMemo(
     () => allFishes,
     [allFishes]
@@ -532,21 +430,8 @@ export default function Encyclopedia() {
   };
 
   const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
-  const categorySourceFishes = allFishes.filter((fish) => {
-    const matchesSearch = fish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (fish.scientificName && fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesDifficulty = difficultyFilter === 'All' || fish.difficulty === difficultyFilter;
-    const matchesLifeType = lifeTypeFilter === 'All' || getLifeType(fish) === lifeTypeFilter;
-    const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
-    const matchesHousing = housingFilter === 'All' || (fish.housingMode || '适合混养') === housingFilter;
-
-    return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType && matchesHousing;
-  });
-  const categories = getSecondaryCategories(categorySourceFishes, lifeTypeFilter);
-  const lifeTypeCounts = lifeTypes.reduce<Record<string, number>>((acc, item) => {
-    acc[item.id] = allFishes.filter(fish => getLifeType(fish) === item.id).length;
-    return acc;
-  }, {});
+  const categories = encyclopediaCatalog.categories;
+  const lifeTypeCounts = encyclopediaCatalog.lifeTypeCounts;
 
   useEffect(() => {
     if (selectedCategory !== '全部' && !categories.includes(selectedCategory)) {
@@ -554,22 +439,7 @@ export default function Encyclopedia() {
     }
   }, [categories, selectedCategory]);
 
-  const filteredFishes = allFishes.filter((fish) => {
-    const matchesSearch = fish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (fish.scientificName && fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesDifficulty = difficultyFilter === 'All' || fish.difficulty === difficultyFilter;
-    const matchesLifeType = lifeTypeFilter === 'All' || getLifeType(fish) === lifeTypeFilter;
-    const matchesHousing = housingFilter === 'All' || (fish.housingMode || '适合混养') === housingFilter;
-    
-    let matchesCategory = true;
-    if (selectedCategory !== '全部') {
-      matchesCategory = fish.category === selectedCategory;
-    }
-    
-    const matchesWaterType = matchesWaterTypeFilter(fish, waterTypeFilter);
-
-    return matchesSearch && matchesDifficulty && matchesLifeType && matchesCategory && matchesWaterType && matchesHousing;
-  });
+  const filteredFishes = encyclopediaCatalog.items;
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
