@@ -11,6 +11,7 @@ import { BookOpen, Droplets, Bot } from 'lucide-react';
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
 const AIAssistant = lazy(() => import('./pages/AIAssistant'));
+const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 
 const navItems = [
   { path: '/aquarium', label: '我的鱼缸', icon: Droplets },
@@ -66,24 +67,44 @@ function PageLoading() {
 export default function App() {
   return (
     <Router>
-      <div className="min-h-[100dvh] overflow-x-hidden bg-[#dfe8e5] text-ink md:flex md:items-center md:justify-center md:p-6">
-        <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-bg shadow-2xl md:h-[min(100dvh-48px,932px)] md:rounded-[34px] md:border md:border-white/70">
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-[calc(12px+env(safe-area-inset-top))]">
-            <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
-              <Suspense fallback={<PageLoading />}>
-                <Routes>
-                  <Route path="/" element={<Navigate to="/aquarium" replace />} />
-                  <Route path="/encyclopedia" element={<Encyclopedia />} />
-                  <Route path="/aquarium" element={<AquariumManager />} />
-                  <Route path="/assistant" element={<AIAssistant />} />
-                </Routes>
-              </Suspense>
-            </div>
-          </main>
-
-          <BottomNavigation />
-        </div>
-      </div>
+      <AppShell />
     </Router>
+  );
+}
+
+function AppShell() {
+  const location = useLocation();
+  const isStructurePreview = location.pathname === '/project-structure';
+
+  if (isStructurePreview) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/project-structure" element={<ProjectStructurePreview />} />
+          <Route path="*" element={<Navigate to="/project-structure" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  return (
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[#dfe8e5] text-ink md:flex md:items-center md:justify-center md:p-6">
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-bg shadow-2xl md:h-[min(100dvh-48px,932px)] md:rounded-[34px] md:border md:border-white/70">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-[calc(12px+env(safe-area-inset-top))]">
+          <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/aquarium" replace />} />
+                <Route path="/encyclopedia" element={<Encyclopedia />} />
+                <Route path="/aquarium" element={<AquariumManager />} />
+                <Route path="/assistant" element={<AIAssistant />} />
+              </Routes>
+            </Suspense>
+          </div>
+        </main>
+
+        <BottomNavigation />
+      </div>
+    </div>
   );
 }
