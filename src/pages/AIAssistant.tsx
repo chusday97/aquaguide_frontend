@@ -3,13 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fishData } from '../data/fishData';
-import { Sparkles, Trash2 } from 'lucide-react';
-import { askAquaGuideAI } from '../lib/aiClient';
+import { Heart, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { assistantService } from '../modules/assistant/assistant.service';
+import type { AssistantAskOutput } from '../modules/assistant/assistant.schema';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  mentionedSpeciesIds?: string[];
+  suggestedActions?: AssistantAskOutput['suggestedActions'];
 }
 
 interface StructuredAnswer {
@@ -129,6 +132,13 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>(loadSavedMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => {
+    try {
+      return new Set<string>(JSON.parse(localStorage.getItem('wishlistFishIds') || '[]'));
+    } catch {
+      return new Set<string>();
+    }
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -145,6 +155,13 @@ export default function AIAssistant() {
     if (!confirm('确定要清空 AI 助手的历史对话吗？')) return;
     setMessages([welcomeMessage]);
     localStorage.removeItem(CHAT_STORAGE_KEY);
+  };
+
+  const addToWishlist = (speciesId: string) => {
+    const next = new Set(wishlistFishIds);
+    next.add(speciesId);
+    setWishlistFishIds(next);
+    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
   };
 
   const handleSend = async (textToSubmit?: string) => {
@@ -165,29 +182,19 @@ export default function AIAssistant() {
 
     try {
       const recentMessages = [...messages, userMessage].slice(-12);
-      const responseText = await askAquaGuideAI({
-        messages: recentMessages.map(msg => ({ role: msg.role, content: msg.content })),
-        maxTokens: 650,
-        temperature: 0.25,
-        system: `你是一个专业的水族专家和养殖助手。你的任务是回答用户关于养鱼、水族箱管理、水质、鱼类疾病等方面的问题。如果用户询问鱼类名，请在文件中查找对应的 pH、温度和混养建议。如果数据库中不存在该鱼类，请明确告知用户。
-请始终使用简短、结构化、可执行的手机端回答，不要输出长篇说明。
-必须按以下格式回答，标题不可改名：
-结论：一句话回答，最多35个中文字符。
-原因：
-- 最多3条，每条不超过28个中文字符。
-下一步：
-- 给用户2-4个具体动作，每条不超过30个中文字符。
-追问：给一个用户可以继续点击/输入的问题，最多25个中文字符。
-如果信息不足，先给安全建议，再在“追问”里问最关键的一个补充问题。
-请优先基于以下本地水族数据库中的信息进行回答：
-${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: f.waterTemperature, ph: f.phLevel, diff: f.difficulty, size: f.size, category: f.category, temperament: f.temperament, tankSize: f.tankSize, waterChangeCycle: f.waterChangeCycle, description: f.description})))}
-如果用户问了与水族、养鱼无关的问题，请礼貌地引导回养鱼的话题。`,
+      const response = await assistantService.ask({
+        question: userMessage.content,
+        history: recentMessages
+          .filter(message => message.id !== userMessage.id)
+          .map(message => ({ role: message.role, content: message.content })),
       });
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: responseText || '抱歉，我没有理解你的问题。'
+        content: response.answer || '抱歉，我没有理解你的问题。',
+        mentionedSpeciesIds: response.mentionedSpeciesIds,
+        suggestedActions: response.suggestedActions,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -240,7 +247,38 @@ ${JSON.stringify(fishData.map(f => ({name: f.name, sci: f.scientificName, temp: 
                     {message.content}
                   </>
                 ) : (
-                  <AssistantAnswer content={message.content} />
+                  <>
+                    <AssistantAnswer content={message.content} />
+                    {message.mentionedSpeciesIds && message.mentionedSpeciesIds.length > 0 && (
+                      <div className="mt-3 grid gap-2">
+                        {message.mentionedSpeciesIds.map(speciesId => {
+                          const species = fishData.find(fish => fish.id === speciesId);
+                          if (!species) return null;
+                          const isAdded = wishlistFishIds.has(speciesId);
+                          return (
+                            <button
+                              key={speciesId}
+                              type="button"
+                              onClick={() => addToWishlist(speciesId)}
+                              disabled={isAdded}
+                              className="flex items-center gap-2 rounded-sm border border-accent/15 bg-white px-2.5 py-2 text-left transition-colors hover:border-accent disabled:cursor-default disabled:bg-accent/5"
+                            >
+                              <img src={species.image} alt={species.name} className="h-9 w-12 shrink-0 object-contain" loading="lazy" />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[12px] font-black text-ink">{species.name}</span>
+                                <span className="block truncate text-[10px] font-bold text-ink/50">{species.category}</span>
+                              </span>
+                              {isAdded ? (
+                                <Heart className="h-4 w-4 shrink-0 fill-accent text-accent" />
+                              ) : (
+                                <Plus className="h-4 w-4 shrink-0 text-accent" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}

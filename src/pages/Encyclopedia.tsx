@@ -3,6 +3,13 @@ import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
 import { getLifeType, getToolFunctions } from '../modules/species/species.service';
+import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
+import {
+  DISCOVERY_DAILY_LIMIT,
+  DISCOVERY_STORAGE_KEY,
+  normalizeDiscoveryState,
+  recommendationService,
+} from '../modules/recommendation/recommendation.service';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,9 +39,6 @@ const lifeTypes = [
 
 const housingModes: Array<NonNullable<Fish['housingMode']>> = ['适合混养', '谨慎混养', '建议单养'];
 
-const DISCOVERY_DAILY_LIMIT = 10;
-const DISCOVERY_HISTORY_DAYS = 7;
-const DISCOVERY_STORAGE_KEY = 'aquapediaDiscoveryDeck';
 const ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
   sp_0019: '/species-display/sp_0019_埃及神仙_display_white.png?v=displayfix_20260510',
   sp_0175: '/species-display/sp_0175_血钻神仙_display_white.png?v=displayfix_20260510',
@@ -61,76 +65,6 @@ const getEncyclopediaImage = (fish: Fish) => (
   || (needsWhiteDisplayImage(fish) ? `/species-display/${fish.id}_display_white.png?v=displayfix2_20260510` : fish.image)
 );
 
-interface DiscoveryDeckState {
-  dateKey: string;
-  queueIds: string[];
-  consumedIds: string[];
-  history: { id: string; dateKey: string }[];
-}
-
-const getLocalDateKey = (date = new Date()) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const dayNumber = (dateKey: string) => {
-  const [year, month, day] = dateKey.split('-').map(Number);
-  return Math.floor(new Date(year, month - 1, day).getTime() / 86400000);
-};
-
-const hashString = (value: string) => {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-};
-
-const seededRandom = (seed: number) => {
-  let value = seed || 1;
-  return () => {
-    value |= 0;
-    value = value + 0x6D2B79F5 | 0;
-    let t = Math.imul(value ^ value >>> 15, 1 | value);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-};
-
-const shuffleWithSeed = <T,>(items: T[], seed: string) => {
-  const random = seededRandom(hashString(seed));
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-};
-
-const normalizeDiscoveryState = (state?: Partial<DiscoveryDeckState>): DiscoveryDeckState => {
-  const today = getLocalDateKey();
-  const history = (state?.history || []).filter(item => today && dayNumber(today) - dayNumber(item.dateKey) < DISCOVERY_HISTORY_DAYS);
-
-  if (!state || state.dateKey !== today) {
-    return {
-      dateKey: today,
-      queueIds: [],
-      consumedIds: [],
-      history,
-    };
-  }
-
-  return {
-    dateKey: today,
-    queueIds: Array.isArray(state.queueIds) ? state.queueIds : [],
-    consumedIds: Array.isArray(state.consumedIds) ? state.consumedIds.slice(0, DISCOVERY_DAILY_LIMIT) : [],
-    history,
-  };
-};
-
 const loadDiscoveryState = () => {
   try {
     return normalizeDiscoveryState(JSON.parse(localStorage.getItem(DISCOVERY_STORAGE_KEY) || 'null'));
@@ -141,30 +75,6 @@ const loadDiscoveryState = () => {
 
 const saveDiscoveryState = (state: DiscoveryDeckState) => {
   localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(state));
-};
-
-const createDiscoveryQueue = (fishes: Fish[], state: DiscoveryDeckState, wishlistIds: Set<string>) => {
-  const remaining = DISCOVERY_DAILY_LIMIT - state.consumedIds.length;
-  if (remaining <= 0) return [];
-
-  const blockedIds = new Set([
-    ...state.history.map(item => item.id),
-    ...state.consumedIds,
-    ...state.queueIds,
-    ...wishlistIds,
-  ]);
-  const strictCandidates = fishes.filter(fish => getLifeType(fish) !== 'hardscape' && !blockedIds.has(fish.id));
-  const fallbackCandidates = fishes.filter(fish => (
-    getLifeType(fish) !== 'hardscape' &&
-    !wishlistIds.has(fish.id) &&
-    !state.consumedIds.includes(fish.id) &&
-    !state.queueIds.includes(fish.id)
-  ));
-  const candidates = strictCandidates.length >= remaining ? strictCandidates : fallbackCandidates;
-
-  return shuffleWithSeed(candidates, `${state.dateKey}-${state.consumedIds.length}-${state.history.length}`)
-    .slice(0, remaining)
-    .map(fish => fish.id);
 };
 
 const loadWishlistIds = () => {
@@ -291,13 +201,13 @@ export default function Encyclopedia() {
 
   useEffect(() => {
     setDiscoveryState(prev => {
-      const normalized = normalizeDiscoveryState(prev);
-      const shouldFillQueue = normalized.queueIds.length === 0 && normalized.consumedIds.length < DISCOVERY_DAILY_LIMIT;
-      const nextState = shouldFillQueue
-        ? { ...normalized, queueIds: createDiscoveryQueue(discoveryPool, normalized, wishlistFishIds) }
-        : normalized;
-      saveDiscoveryState(nextState);
-      return nextState;
+      const output = recommendationService.createDiscoveryDeck({
+        speciesPool: discoveryPool,
+        wishlistIds: Array.from(wishlistFishIds),
+        state: prev,
+      });
+      saveDiscoveryState(output.state);
+      return output.state;
     });
   }, [discoveryPool, wishlistFishIds]);
 
@@ -338,39 +248,25 @@ export default function Encyclopedia() {
 
   const advanceDiscoveryCard = (action: 'skip' | 'interest') => {
     if (!discoveryFish) return;
-    if (action === 'interest') {
+    const output = recommendationService.advanceDiscoveryDeck({
+      speciesId: discoveryFish.id,
+      action,
+      speciesPool: discoveryPool,
+      wishlistIds: Array.from(wishlistFishIds),
+      state: discoveryState,
+    });
+
+    if (output.addedWishlistId) {
       const next = new Set(wishlistFishIds);
-      next.add(discoveryFish.id);
+      next.add(output.addedWishlistId);
       setWishlistFishIds(next);
       localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-      setDiscoveryMessage(`已把 ${discoveryFish.name} 加入种草清单`);
-    } else {
-      setDiscoveryMessage(`已跳过 ${discoveryFish.name}`);
     }
+    setDiscoveryMessage(output.message);
     setDiscoveryDragStartX(null);
     setDiscoveryDragX(0);
-    setDiscoveryState(prev => {
-      const normalized = normalizeDiscoveryState(prev);
-      const consumedIds = Array.from(new Set([...normalized.consumedIds, discoveryFish.id])).slice(0, DISCOVERY_DAILY_LIMIT);
-      const history = [
-        ...normalized.history.filter(item => item.id !== discoveryFish.id),
-        { id: discoveryFish.id, dateKey: normalized.dateKey },
-      ].filter(item => dayNumber(normalized.dateKey) - dayNumber(item.dateKey) < DISCOVERY_HISTORY_DAYS);
-      const baseState = {
-        ...normalized,
-        consumedIds,
-        history,
-        queueIds: normalized.queueIds.filter(id => id !== discoveryFish.id),
-      };
-      const nextState = consumedIds.length >= DISCOVERY_DAILY_LIMIT
-        ? { ...baseState, queueIds: [] }
-        : baseState.queueIds.length === 0
-          ? { ...baseState, queueIds: createDiscoveryQueue(discoveryPool, baseState, action === 'interest' ? new Set([...wishlistFishIds, discoveryFish.id]) : wishlistFishIds) }
-          : baseState;
-
-      saveDiscoveryState(nextState);
-      return nextState;
-    });
+    saveDiscoveryState(output.state);
+    setDiscoveryState(output.state);
   };
 
   const handleDiscoveryPointerDown = (event: PointerEvent<HTMLDivElement>) => {

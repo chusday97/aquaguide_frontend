@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
+import { getLifeType } from '../modules/species/species.service';
+import { recommendationService } from '../modules/recommendation/recommendation.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -61,38 +63,6 @@ const normalizeAquariumPlants = (aquariums: Aquarium[]) => aquariums.map(aquariu
   };
 });
 
-const getLifeType = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
-  if (fish.category === '水草') return isHardscapeSpecies(fish) ? 'hardscape' : 'plant';
-  if (fish.category === '硬景/底床') return 'hardscape';
-  if (isAquaticPlantSpecies(fish)) return 'plant';
-  if (isHardscapeSpecies(fish)) return 'hardscape';
-  if (fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone/i.test(text)) return 'coral';
-  if (fish.category === '虾螺蟹' || fish.category === '虾类' || fish.category === '螺类' || /虾|螺|蟹|shrimp|snail|crab/i.test(text)) return 'invertebrate';
-  if (fish.category === '龟类' || fish.category === '两栖/爬宠' || /龟|蛙|蝾螈|六角恐龙|axolotl|turtle|frog|newt/i.test(text)) return 'reptile';
-  return 'fish';
-};
-
-const isSaltwaterLife = (fish: Fish) => {
-  const lifeType = getLifeType(fish);
-  return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name);
-};
-
-const isRecommendableSpecies = (fish: Fish) => {
-  const lifeType = getLifeType(fish);
-  return !['plant', 'hardscape', 'reptile'].includes(lifeType) && fish.housingMode !== '建议单养';
-};
-
-const parseRange = (str: string, fallback: [number, number]) => {
-  const match = str.match(/([\d.]+)-([\d.]+)/);
-  if (match) return [parseFloat(match[1]), parseFloat(match[2])] as [number, number];
-  const single = parseFloat(str);
-  if (!Number.isNaN(single)) return [single, single] as [number, number];
-  return fallback;
-};
-
-const rangesOverlap = (a: [number, number], b: [number, number]) => Math.max(a[0], b[0]) <= Math.min(a[1], b[1]);
-
 const parseLiters = (value: string | undefined, fallback = 0) => {
   const match = (value || '').match(/([\d.]+)/);
   return match ? parseFloat(match[1]) : fallback;
@@ -118,15 +88,6 @@ const getBioLoadLiters = (fish: Fish) => {
   return Math.round(base * temperamentMultiplier);
 };
 
-const getToolFunctions = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
-  const tags: string[] = [];
-  if (/除藻|藻膜|褐藻|黑毛藻|飞狐|小精灵|胡子|异型|Otocinclus|Ancistrus|Crossocheilus|Amano|大和藻虾|角螺|鲍螺|海藻/i.test(text)) tags.push('除藻');
-  if (/残饵|清理|底层|沉底|鼠鱼|Corydoras|虾|螺|蟹/i.test(text)) tags.push('清残饵');
-  if (/控螺|杀手螺|食螺|Anentome|泛滥的杂螺/i.test(text)) tags.push('控螺');
-  return Array.from(new Set(tags));
-};
-
 const formatRecommendationReason = (text: string) => {
   const fallback = '基于您当前鱼缸内的生物，我们为您推荐以下兼容性较好的品种。';
   const normalized = (text || fallback).replace(/\s+/g, ' ').trim();
@@ -136,34 +97,6 @@ const formatRecommendationReason = (text: string) => {
     .filter(Boolean);
 
   return lines.length > 0 ? lines : [fallback];
-};
-
-const getRecommendationReason = (candidate: Fish, aquarium: Aquarium) => {
-  const currentFishes = aquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
-  const reasons: string[] = [];
-  const toolFunctions = getToolFunctions(candidate);
-
-  if (toolFunctions.length > 0) reasons.push(`功能: ${toolFunctions.slice(0, 2).join('/')}`);
-
-  if (currentFishes.length === 0) {
-    if (candidate.difficulty === 'Easy') reasons.push('新手友好');
-    if (candidate.housingMode === '适合混养') reasons.push('后续好搭配');
-    return reasons.slice(0, 3).join(' · ') || '适合作为空缸起步生物';
-  }
-
-  const candidateTemp = parseRange(candidate.waterTemperature, [0, 40]);
-  const candidatePh = parseRange(candidate.phLevel, [0, 14]);
-  const tempOk = currentFishes.every(fish => rangesOverlap(parseRange(fish.waterTemperature, [0, 40]), candidateTemp));
-  const phOk = currentFishes.every(fish => rangesOverlap(parseRange(fish.phLevel, [0, 14]), candidatePh));
-  const currentHasLarge = currentFishes.some(fish => fish.size === 'Large');
-  const currentHasAggressive = currentFishes.some(fish => fish.temperament === 'Aggressive' || fish.temperament === 'Territorial');
-
-  if (tempOk) reasons.push('水温匹配');
-  if (phOk) reasons.push('pH匹配');
-  if (candidate.housingMode === '适合混养') reasons.push('适合混养');
-  if (!currentHasLarge && !currentHasAggressive && candidate.size !== 'Large') reasons.push('体型风险低');
-
-  return reasons.slice(0, 3).join(' · ') || '与当前鱼缸参数兼容';
 };
 
 export default function AquariumManager() {
@@ -495,80 +428,6 @@ export default function AquariumManager() {
     return getTankConflicts(activeAquarium);
   };
 
-  const getCompatibleRecommendations = (aquarium: Aquarium): Fish[] => {
-    const currentFishes = aquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
-    const tankIsSaltwater = aquarium.waterType === 'Saltwater' || currentFishes.some(isSaltwaterLife);
-    const tankHasSingleOnly = currentFishes.some(fish => fish.housingMode === '建议单养' || getLifeType(fish) === 'reptile');
-    const tankVolume = getTankVolumeLiters(aquarium);
-    const currentBioLoad = aquarium.fishes.reduce((sum, aqFish) => {
-      const fish = fishData.find(item => item.id === aqFish.fishId);
-      return sum + (fish ? getBioLoadLiters(fish) * Math.max(1, aqFish.quantity || 1) : 0);
-    }, 0);
-    const tankTempRange = currentFishes.reduce<[number, number] | null>((range, fish) => {
-      const next = parseRange(fish.waterTemperature, [0, 40]);
-      return range ? [Math.max(range[0], next[0]), Math.min(range[1], next[1])] : next;
-    }, null);
-    const tankPhRange = currentFishes.reduce<[number, number] | null>((range, fish) => {
-      const next = parseRange(fish.phLevel, [0, 14]);
-      return range ? [Math.max(range[0], next[0]), Math.min(range[1], next[1])] : next;
-    }, null);
-
-    const baseCandidates = fishData.filter(candidate => {
-      if (currentFishes.some(current => current.id === candidate.id)) return false;
-      if (!isRecommendableSpecies(candidate)) return false;
-      if (tankIsSaltwater !== isSaltwaterLife(candidate)) return false;
-      return true;
-    });
-
-    const hasObviousConflict = (candidate: Fish, strictMode: boolean) => {
-      const candidateTemp = parseRange(candidate.waterTemperature, [0, 40]);
-      const candidatePh = parseRange(candidate.phLevel, [0, 14]);
-      if (tankTempRange && !rangesOverlap(tankTempRange, candidateTemp)) return true;
-      if (tankPhRange && !rangesOverlap(tankPhRange, candidatePh)) return true;
-
-      return !currentFishes.every(current => {
-        const currentLife = getLifeType(current);
-        const candidateLife = getLifeType(candidate);
-        if (current.name.includes('斗鱼') && candidate.name.includes('斗鱼')) return false;
-        if (candidateLife === 'invertebrate' && (current.temperament === 'Aggressive' || current.size === 'Large')) return false;
-        if (currentLife === 'invertebrate' && (candidate.temperament === 'Aggressive' || candidate.size === 'Large')) return false;
-
-        if (!strictMode) return true;
-        if (current.temperament === 'Aggressive' && candidate.size === 'Small') return false;
-        if (candidate.temperament === 'Aggressive' && current.size === 'Small') return false;
-        if (current.size === 'Large' && candidate.size === 'Small') return false;
-        if (candidate.size === 'Large' && current.size === 'Small') return false;
-        return true;
-      });
-    };
-
-    const strictCandidates = baseCandidates.filter(candidate => {
-      if (tankHasSingleOnly) return false;
-      if (tankVolume > 0 && currentBioLoad + getBioLoadLiters(candidate) > tankVolume * 0.95) return false;
-      return !hasObviousConflict(candidate, true);
-    });
-
-    const relaxedCandidates = baseCandidates.filter(candidate => {
-      if (tankVolume > 0 && currentBioLoad + getBioLoadLiters(candidate) > tankVolume * 1.15) return false;
-      return !hasObviousConflict(candidate, false);
-    });
-
-    const candidates = strictCandidates.length > 0
-      ? strictCandidates
-      : relaxedCandidates.length > 0
-        ? relaxedCandidates
-        : baseCandidates;
-
-    return candidates.sort((a, b) => {
-      const diffScore = { Easy: 0, Medium: 1, Hard: 2 } as Record<string, number>;
-      const housingScore = (fish: Fish) => fish.housingMode === '适合混养' ? -1 : fish.housingMode === '谨慎混养' ? 0.5 : 2;
-      const toolBonus = (fish: Fish) => getToolFunctions(fish).length > 0 ? -1.2 : 0;
-      const loadScore = (fish: Fish) => getBioLoadLiters(fish) / 25;
-      const score = (fish: Fish) => (diffScore[fish.difficulty] ?? 1) + housingScore(fish) + toolBonus(fish) + loadScore(fish);
-      return score(a) - score(b);
-    }).slice(0, 8);
-  };
-
   const handleAskAIAboutConflicts = async () => {
     if (!activeAquarium) return;
     setIsRecommending(true);
@@ -616,11 +475,11 @@ ${conflicts.join('; ')}
         const f = fishData.find(d => d.id === af.fishId);
         return f ? `${f.name} x${af.quantity}` : '';
       }).filter(Boolean).join(', ');
-      const currentFishDetails = activeAquarium.fishes
-        .map(af => fishData.find(d => d.id === af.fishId))
+      const localRecommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
+      const localRecommendations = localRecommendationItems
+        .map(item => fishData.find(fish => fish.id === item.speciesId))
         .filter(Boolean) as Fish[];
-      const activeTankIsSaltwater = activeAquarium.waterType === 'Saltwater' || currentFishDetails.some(isSaltwaterLife);
-      const recommendableDatabase = fishData.filter(fish => isRecommendableSpecies(fish) && isSaltwaterLife(fish) === activeTankIsSaltwater);
+      const recommendableDatabase = localRecommendations.length > 0 ? localRecommendations : fishData.filter(fish => !isAquaticPlantSpecies(fish) && !isHardscapeSpecies(fish)).slice(0, 30);
 
       const prompt = `
 您是一个专业的水族混养顾问。请从我的本地数据库中挑选最适合当前鱼缸的 4-6 种生物进行混养推荐。
@@ -653,22 +512,25 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       if (match) {
         try {
           const ids = JSON.parse(match[0]) as string[];
-          const safeIds = new Set(getCompatibleRecommendations(activeAquarium).map(fish => fish.id));
+          const safeIds = new Set(localRecommendationItems.map(item => item.speciesId));
           const recs = ids.map(id => fishData.find(f => f.id === id)).filter(Boolean).filter(fish => safeIds.has((fish as Fish).id)) as Fish[];
-          setAiRecommendations(recs.length > 0 ? recs : getCompatibleRecommendations(activeAquarium));
+          setAiRecommendations(recs.length > 0 ? recs : localRecommendations);
         } catch(e) {
           console.error("JSON parse error from AI", e);
-          setAiRecommendations(getCompatibleRecommendations(activeAquarium));
+          setAiRecommendations(localRecommendations);
         }
         setAiReasoning(text.replace(match[0], '').trim());
       } else {
         setAiReasoning(text);
-        setAiRecommendations(getCompatibleRecommendations(activeAquarium));
+        setAiRecommendations(localRecommendations);
       }
     } catch(err) {
       console.error(err);
       setAiReasoning("AI 请求失败，可能是 API Key、模型权限或网络访问问题。当前展示离线默认推荐如下：");
-      setAiRecommendations(getCompatibleRecommendations(activeAquarium));
+      const localRecommendations = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items
+        .map(item => fishData.find(fish => fish.id === item.speciesId))
+        .filter(Boolean) as Fish[];
+      setAiRecommendations(localRecommendations);
     } finally {
       setIsRecommending(false);
     }
@@ -686,7 +548,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   if (!activeAquarium) return null;
 
   const currentFishesDetails = activeAquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
-  const recommendations = getCompatibleRecommendations(activeAquarium);
+  const recommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
+  const recommendationReasonById = new Map(recommendationItems.map(item => [item.speciesId, item.reason]));
+  const recommendations = recommendationItems
+    .map(item => fishData.find(fish => fish.id === item.speciesId))
+    .filter(Boolean) as Fish[];
 
   // Search logic for Add Fish
   const searchResults = fishSearchTerm.trim() 
@@ -1167,7 +1033,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                           )}
                         </div>
                         <p className="text-[10px] text-ink/60 font-medium truncate">
-                          {fishSearchTerm.trim() ? fish.category : getRecommendationReason(fish, activeAquarium)}
+                          {fishSearchTerm.trim() ? fish.category : recommendationReasonById.get(fish.id) || fish.category}
                         </p>
                       </div>
                     </div>
@@ -1270,7 +1136,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         <h4 className="truncate text-sm font-bold text-ink">{fish.name}</h4>
                         <p className="truncate text-[10px] font-medium text-ink/60">{fish.category}</p>
                         <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/50">
-                          {getRecommendationReason(fish, activeAquarium)}
+                          {recommendationReasonById.get(fish.id) || '与当前鱼缸参数兼容'}
                         </p>
                       </div>
                       <Button

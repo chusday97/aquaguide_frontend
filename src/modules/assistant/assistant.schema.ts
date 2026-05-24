@@ -4,6 +4,10 @@ export const assistantAskInputSchema = z.object({
   userId: z.string().min(1).default('local-user'),
   conversationId: z.string().optional(),
   question: z.string().min(1),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).default([]),
   aquariumId: z.string().optional(),
   context: z.object({
     aquariumSummary: z.string().optional(),
@@ -23,4 +27,3 @@ export const assistantAskOutputSchema = z.object({
 
 export type AssistantAskInput = z.infer<typeof assistantAskInputSchema>;
 export type AssistantAskOutput = z.infer<typeof assistantAskOutputSchema>;
-
