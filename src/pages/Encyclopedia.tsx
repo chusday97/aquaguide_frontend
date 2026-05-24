@@ -53,16 +53,9 @@ const ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
   sp_0446: '/species-display/sp_0446_神仙鱼_display_white.png?v=displayfix_20260510',
 };
 
-const needsWhiteDisplayImage = (fish: Fish) => (
-  fish.category.includes('珊瑚')
-  || fish.name.includes('珊瑚')
-  || fish.name.includes('海葵')
-  || fish.name.includes('水母')
-);
-
 const getEncyclopediaImage = (fish: Fish) => (
   ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES[fish.id]
-  || (needsWhiteDisplayImage(fish) ? `/species-display/${fish.id}_display_white.png?v=displayfix2_20260510` : fish.image)
+  || fish.image
 );
 
 const loadDiscoveryState = () => {
@@ -398,7 +391,7 @@ export default function Encyclopedia() {
                   <img
                     src={nextDiscoveryImageSrc}
                     alt={nextDiscoveryFish.name}
-                    className="max-h-full max-w-full object-contain"
+                    className="h-full w-full object-contain p-5"
                     referrerPolicy="no-referrer"
                     loading="eager"
                     decoding="async"
@@ -448,7 +441,7 @@ export default function Encyclopedia() {
                 <img
                   src={discoveryImageSrc}
                   alt={discoveryFish.name}
-                  className={`max-h-full max-w-full object-contain drop-shadow-md transition-opacity duration-300 ${loadedDiscoveryImageSrc === discoveryImageSrc ? 'opacity-100' : 'opacity-0'}`}
+                  className={`h-full w-full object-contain p-4 drop-shadow-md transition-opacity duration-300 ${loadedDiscoveryImageSrc === discoveryImageSrc ? 'opacity-100' : 'opacity-0'}`}
                   referrerPolicy="no-referrer"
                   loading="eager"
                   decoding="async"

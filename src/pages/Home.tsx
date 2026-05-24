@@ -103,7 +103,7 @@ export default function Home() {
             return (
               <div key={id} onClick={() => setSelectedFish(fish)} className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors">
-                  <img src={fish.image} alt={fish.name} className="w-full h-full object-cover mix-blend-multiply" referrerPolicy="no-referrer" />
+                  <img src={fish.image} alt={fish.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
                 </div>
                 <span className="text-[10px] font-bold text-ink w-16 text-center truncate">{fish.name}</span>
               </div>
@@ -162,7 +162,7 @@ export default function Home() {
               {ownedFishes.length > 0 ? (
                   ownedFishes.slice(0, 3).map((fish, i) => (
                     <div key={i} className={`w-10 h-10 rounded-full overflow-hidden border-[3px] border-[#F4F1EA] shadow-md ${i > 0 ? '-ml-4' : ''}`}>
-                      <img src={fish.image} className="w-full h-full object-cover mix-blend-multiply" alt="" referrerPolicy="no-referrer" />
+                      <img src={fish.image} className="h-full w-full object-contain bg-white p-1" alt="" referrerPolicy="no-referrer" />
                     </div>
                   ))
                 ) : (
@@ -207,7 +207,7 @@ export default function Home() {
                   return (
                     <div key={record.id} className="flex flex-col items-center gap-1">
                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 grayscale opacity-80 bg-bg/50">
-                        <img src={fishInfo.image} alt={fishInfo.name} className="w-full h-full object-cover mix-blend-multiply" referrerPolicy="no-referrer" />
+                        <img src={fishInfo.image} alt={fishInfo.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
                       </div>
                       <div className="text-[10px] text-ink/70 font-medium">
                         {new Date(record.date).toLocaleDateString()}
@@ -230,7 +230,7 @@ export default function Home() {
               <img 
                 src={selectedFish.image} 
                 alt={selectedFish.name} 
-                className="object-cover w-full h-full mix-blend-multiply opacity-90"
+                className="h-full w-full object-contain bg-white p-4 opacity-95"
                 referrerPolicy="no-referrer"
               />
             </div>

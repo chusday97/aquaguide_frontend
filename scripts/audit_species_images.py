@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import csv
+import html
 import json
 import re
 from collections import deque
@@ -16,6 +17,21 @@ PUBLIC_DIR = ROOT / "public"
 OUTPUT_DIR = ROOT / "output/image_quality"
 AUDIT_CSV = OUTPUT_DIR / "species_image_quality_audit.csv"
 REWORK_CSV = OUTPUT_DIR / "species_image_rework_queue.csv"
+AUDIT_HTML = OUTPUT_DIR / "species_image_quality_audit.html"
+
+ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES = {
+    "sp_0019": "/species-display/sp_0019_埃及神仙_display_white.png?v=displayfix_20260510",
+    "sp_0175": "/species-display/sp_0175_血钻神仙_display_white.png?v=displayfix_20260510",
+    "sp_0176": "/species-display/sp_0176_黑白大理石神仙_display_white.png?v=displayfix_20260510",
+    "sp_0177": "/species-display/sp_0177_红眼蓝钻神仙_display_white.png?v=displayfix_20260510",
+    "sp_0178": "/species-display/sp_0178_熊猫神仙_display_white.png?v=displayfix_20260510",
+    "sp_0240": "/species-display/sp_0240_白金神仙_长鳍_display_white.png?v=displayfix_20260510",
+    "sp_0241": "/species-display/sp_0241_大理石神仙_球形_display_white.png?v=displayfix_20260510",
+    "sp_0247": "/species-display/sp_0247_蓝钻神仙_球形_display_white.png?v=displayfix_20260510",
+    "sp_0272": "/species-display/sp_0272_长鳍神仙_黑_display_white.png?v=displayfix_20260510",
+    "sp_0388": "/species-display/sp_0388_血钻神仙_改良_display_white.png?v=displayfix_20260510",
+    "sp_0446": "/species-display/sp_0446_神仙鱼_display_white.png?v=displayfix_20260510",
+}
 
 KNOWN_MANUAL_ISSUES = {}
 
@@ -46,6 +62,13 @@ def image_path(public_url: str) -> Optional[Path]:
         return None
     path = public_url.split("?", 1)[0].lstrip("/")
     return PUBLIC_DIR / path
+
+
+def display_image_for(fish: dict) -> str:
+    # Keep this aligned with src/pages/Encyclopedia.tsx: only explicit, known-good
+    # display overrides are used. Do not invent /species-display paths that may
+    # not exist, otherwise the app can show blank cards.
+    return ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES.get(fish.get("id", ""), fish.get("image", ""))
 
 
 def manual_issue_for(fish: dict) -> dict:
@@ -85,11 +108,15 @@ def audit_image(path: Optional[Path]) -> dict:
     if path is None:
         return {
             "exists": "external",
+            "width": "",
+            "height": "",
             "foreground_ratio": "",
             "bbox_fill_ratio": "",
             "largest_component_ratio": "",
             "edge_margin_px": "",
             "edge_touch": "",
+            "bbox": "",
+            "crop_safe": "unknown",
             "auto_issue": "",
             "auto_note": "外链参考图，跳过本地透明图像素检查",
         }
@@ -97,17 +124,22 @@ def audit_image(path: Optional[Path]) -> dict:
     if not path.exists():
         return {
             "exists": "no",
+            "width": "0",
+            "height": "0",
             "foreground_ratio": "0",
             "bbox_fill_ratio": "0",
             "largest_component_ratio": "0",
             "edge_margin_px": "0",
             "edge_touch": "yes",
+            "bbox": "",
+            "crop_safe": "no",
             "auto_issue": "missing_file",
             "auto_note": "图片文件不存在",
         }
 
     with Image.open(path) as img:
         arr = np.array(img.convert("RGBA"))
+        width, height = img.size
 
     alpha = arr[:, :, 3]
     if alpha.min() > 250:
@@ -122,11 +154,15 @@ def audit_image(path: Optional[Path]) -> dict:
     if foreground == 0:
         return {
             "exists": "yes",
+            "width": str(width),
+            "height": str(height),
             "foreground_ratio": "0",
             "bbox_fill_ratio": "0",
             "largest_component_ratio": "0",
             "edge_margin_px": "0",
             "edge_touch": "yes",
+            "bbox": "",
+            "crop_safe": "no",
             "auto_issue": "empty_cutout",
             "auto_note": "透明图几乎没有主体",
         }
@@ -146,32 +182,132 @@ def audit_image(path: Optional[Path]) -> dict:
 
     issue = ""
     notes: list[str] = []
+    crop_safe = "yes"
     if fg_ratio < 0.015:
         issue = "tiny_subject"
+        crop_safe = "review"
         notes.append("主体面积过小，可能被抠掉")
     if component_ratio < 0.55:
         issue = issue or "fragmented_subject"
+        crop_safe = "review"
         notes.append("主体碎片化，可能只剩鳍/线条/局部")
     if bbox_fill < 0.05:
         issue = issue or "sparse_cutout"
+        crop_safe = "review"
         notes.append("透明图有效像素过稀，可能残留线条或主体不完整")
     if edge_touch:
         issue = issue or "edge_touch"
-        notes.append("主体或残留像素贴边，建议人工抽查是否被裁切")
-    elif edge_margin < 48:
+        crop_safe = "no"
+        notes.append("主体或残留像素贴边，有被裁切风险")
+    elif edge_margin < 32:
         issue = issue or "low_edge_margin"
+        crop_safe = "review"
         notes.append(f"主体透明安全边距偏小（{edge_margin}px），小缩略图或3D贴图可能视觉裁切")
 
     return {
         "exists": "yes",
+        "width": str(width),
+        "height": str(height),
         "foreground_ratio": f"{fg_ratio:.4f}",
         "bbox_fill_ratio": f"{bbox_fill:.4f}",
         "largest_component_ratio": f"{component_ratio:.4f}",
         "edge_margin_px": str(edge_margin),
         "edge_touch": "yes" if edge_touch else "no",
+        "bbox": f"{min_x},{min_y},{bbox_w},{bbox_h}",
+        "crop_safe": crop_safe,
         "auto_issue": issue,
         "auto_note": "；".join(notes),
     }
+
+
+def relative_thumb_src(path: Optional[Path]) -> str:
+    if path is None or not path.exists():
+        return ""
+    return html.escape(Path("../../").joinpath(path.relative_to(ROOT)).as_posix(), quote=True)
+
+
+def render_html(rows: list[dict], rework_rows: list[dict]) -> None:
+    high = sum(1 for row in rework_rows if row["severity"] == "high")
+    crop_risk = sum(1 for row in rows if row["crop_safe"] != "yes")
+    missing = sum(1 for row in rows if row["exists"] == "no")
+
+    def badge_class(row: dict) -> str:
+        if row["severity"] == "high" or row["crop_safe"] == "no":
+            return "bad"
+        if row["issue"] or row["crop_safe"] == "review":
+            return "warn"
+        return "ok"
+
+    body_rows = []
+    for row in rows:
+        thumb = row.get("thumb", "")
+        thumb_html = f'<img src="{thumb}" alt="{html.escape(row["name"], quote=True)}" loading="lazy" />' if thumb else '<span class="noimg">无图</span>'
+        body_rows.append(f"""
+          <tr class="{badge_class(row)}">
+            <td>{thumb_html}</td>
+            <td><strong>{html.escape(row["name"])}</strong><br><span>{html.escape(row["scientificName"])}</span><br><code>{html.escape(row["id"])}</code></td>
+            <td>{html.escape(row["category"])}</td>
+            <td><b>{html.escape(row["crop_safe"])}</b><br><span>边距 {html.escape(row["edge_margin_px"])}px</span><br><span>{html.escape(row["bbox"])}</span></td>
+            <td>{html.escape(row["foreground_ratio"])} / {html.escape(row["bbox_fill_ratio"])}<br><span>主体完整度 {html.escape(row["largest_component_ratio"])}</span></td>
+            <td><b>{html.escape(row["issue"] or "ok")}</b><br><span>{html.escape(row["note"])}</span></td>
+            <td><code>{html.escape(row["displayImage"])}</code></td>
+          </tr>
+        """)
+
+    AUDIT_HTML.write_text(f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AquaGuide 图片质量审核表</title>
+  <style>
+    body {{ margin: 0; padding: 24px; background: #f5f7f3; color: #17251f; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }}
+    h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .muted {{ color: #67746d; font-size: 13px; line-height: 1.7; }}
+    .summary {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; }}
+    .pill {{ border: 1px solid #d7ddd7; background: white; padding: 8px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }}
+    table {{ width: 100%; border-collapse: collapse; background: white; font-size: 12px; }}
+    th, td {{ border: 1px solid #dfe5df; padding: 8px; text-align: left; vertical-align: middle; }}
+    th {{ position: sticky; top: 0; z-index: 2; background: #173f32; color: white; }}
+    td:first-child {{ width: 96px; }}
+    img {{ width: 88px; height: 68px; object-fit: contain; background: #fff; border: 1px solid #e4e8e4; border-radius: 6px; padding: 8px; box-sizing: border-box; }}
+    code {{ font-size: 11px; color: #526159; word-break: break-all; }}
+    span {{ color: #68766e; }}
+    tr.ok {{ background: #ffffff; }}
+    tr.warn {{ background: #fff8e8; }}
+    tr.bad {{ background: #fff1f1; }}
+    .noimg {{ display: inline-flex; width: 88px; height: 68px; align-items: center; justify-content: center; border: 1px dashed #d7ddd7; color: #999; }}
+  </style>
+</head>
+<body>
+  <h1>AquaGuide 图片质量审核表</h1>
+  <p class="muted">用于检查 App 实际展示图片是否存在缺失、主体贴边、透明抠图过碎、主体过小等问题。页面缩略图全部使用 object-fit: contain 和安全内边距预览，不会在审核表里二次裁切。</p>
+  <div class="summary">
+    <span class="pill">总数：{len(rows)}</span>
+    <span class="pill">需复查：{len(rework_rows)}</span>
+    <span class="pill">高优先级：{high}</span>
+    <span class="pill">裁切/边缘风险：{crop_risk}</span>
+    <span class="pill">缺失文件：{missing}</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>预览</th>
+        <th>物种</th>
+        <th>旧分类</th>
+        <th>裁切安全</th>
+        <th>像素指标</th>
+        <th>问题</th>
+        <th>App展示图</th>
+      </tr>
+    </thead>
+    <tbody>
+      {''.join(body_rows)}
+    </tbody>
+  </table>
+</body>
+</html>
+""", encoding="utf-8")
 
 
 def main() -> None:
@@ -180,7 +316,8 @@ def main() -> None:
     rework_rows = []
 
     for fish in load_fish_data():
-        path = image_path(fish.get("image", ""))
+        display_image = display_image_for(fish)
+        path = image_path(display_image)
         metrics = audit_image(path)
         manual = manual_issue_for(fish)
         issue = manual.get("issue") or metrics["auto_issue"]
@@ -192,7 +329,9 @@ def main() -> None:
             "scientificName": fish.get("scientificName", ""),
             "category": fish.get("category", ""),
             "image": fish.get("image", ""),
+            "displayImage": display_image,
             "file": str(path) if path else fish.get("image", ""),
+            "thumb": relative_thumb_src(path),
             **metrics,
             "issue": issue,
             "severity": severity,
@@ -208,13 +347,19 @@ def main() -> None:
         "scientificName",
         "category",
         "image",
+        "displayImage",
         "file",
+        "thumb",
         "exists",
+        "width",
+        "height",
         "foreground_ratio",
         "bbox_fill_ratio",
         "largest_component_ratio",
         "edge_margin_px",
         "edge_touch",
+        "bbox",
+        "crop_safe",
         "auto_issue",
         "auto_note",
         "issue",
@@ -222,14 +367,16 @@ def main() -> None:
         "note",
     ]
     with AUDIT_CSV.open("w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
     with REWORK_CSV.open("w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rework_rows)
+
+    render_html(rows, rework_rows)
 
     high = sum(1 for row in rework_rows if row["severity"] == "high")
     print(f"audited={len(rows)}")
@@ -237,6 +384,7 @@ def main() -> None:
     print(f"high_priority={high}")
     print(f"audit_csv={AUDIT_CSV}")
     print(f"rework_csv={REWORK_CSV}")
+    print(f"audit_html={AUDIT_HTML}")
 
 
 if __name__ == "__main__":
