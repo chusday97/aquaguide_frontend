@@ -4,6 +4,7 @@ import {
   getDisplayableSpecies,
   getLifeType,
   getLifeTypeCounts,
+  getSecondaryCategory,
   getSecondaryCategories,
   matchesWaterTypeFilter,
 } from '../species/species.service';
@@ -57,7 +58,7 @@ export const encyclopediaService = {
     const categorySourceItems = allItems.filter((fish) => matchesBaseFilters(fish, activeFilters));
     const categories = getSecondaryCategories(categorySourceItems, parsed.data.lifeType);
     const items = categorySourceItems
-      .filter((fish) => parsed.data.category === '全部' || fish.category === parsed.data.category)
+      .filter((fish) => parsed.data.category === '全部' || getSecondaryCategory(fish) === parsed.data.category)
       .slice(0, parsed.data.limit);
 
     loggerService.info({ module: 'encyclopedia', action: 'search', message: 'Encyclopedia search completed', details: { total: items.length } });

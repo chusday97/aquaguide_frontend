@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
-import { getLifeType, getToolFunctions } from '../modules/species/species.service';
+import { getLifeType, getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import {
   DISCOVERY_DAILY_LIMIT,
@@ -471,7 +471,7 @@ export default function Encyclopedia() {
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">分类</p>
-                    <p className="text-[11px] font-black text-ink truncate">{discoveryFish.category}</p>
+                    <p className="text-[11px] font-black text-ink truncate">{getSecondaryCategory(discoveryFish)}</p>
                   </div>
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">水温</p>
@@ -626,7 +626,7 @@ export default function Encyclopedia() {
               <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
                   {categories.length > 0 ? categories.map(cat => {
-                    const sampleFish = allFishes.find(f => f.category === cat);
+                    const sampleFish = allFishes.find(f => getSecondaryCategory(f) === cat);
                     const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
                     
                     return (
@@ -647,7 +647,7 @@ export default function Encyclopedia() {
                     );
                   }) : (
                     <div className="text-xs text-ink/50 font-medium py-3">
-                      先选择上方“生物类型”，这里会显示对应的二级标签，例如灯科鱼、虾类、龟类、珊瑚。
+                      先选择上方“生物类型”，这里会显示对应的二级标签，例如灯科鱼、除藻生物、龟类、海葵。
                     </div>
                   )}
                 </div>
@@ -713,7 +713,7 @@ export default function Encyclopedia() {
               <div className="flex flex-col gap-2">
                 <div>
                   <h2 className="font-serif text-[15px] italic truncate text-ink font-bold">{fish.name}</h2>
-                  <p className="text-[11px] text-ink/70 truncate font-medium">{fish.category}</p>
+                  <p className="text-[11px] text-ink/70 truncate font-medium">{getSecondaryCategory(fish)}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <span className="bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-ink border border-border rounded-sm">

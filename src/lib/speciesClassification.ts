@@ -25,7 +25,6 @@ export const isHardscapeSpecies = (fish: Fish) => {
   const scientificName = fish.scientificName || '';
   const text = `${name} ${scientificName} ${fish.category || ''}`;
 
-  if (fish.category === '硬景/底床') return true;
   if (fish.category === '水草' && /水草泥|底床|硬景|沉木|石|砂/.test(name)) return true;
   if (hardscapeScientificPattern.test(scientificName)) return true;
   return /硬景|底床|Hardscape/i.test(text) && hardscapeNamePattern.test(name);
