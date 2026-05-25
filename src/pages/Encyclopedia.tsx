@@ -103,6 +103,19 @@ const getHousingBadgeClass = (mode?: Fish['housingMode']) => {
   }
 };
 
+const getDifficultyBadgeClass = (difficulty: string) => {
+  switch (difficulty) {
+    case 'Easy':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'Medium':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'Hard':
+      return 'bg-red-50 text-red-600 border-red-200';
+    default:
+      return 'bg-white text-ink border-border';
+  }
+};
+
 const formatWeatherLocation = (weather: LocalWeatherOutput | null) => (
   [weather?.city, weather?.region].filter(Boolean).join(' · ') || '当前位置'
 );
@@ -629,8 +642,8 @@ export default function Encyclopedia() {
                 onClick={() => handleDifficultyClick(d.id)}
                 className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-colors font-bold ${
                   difficultyFilter === d.id 
-                    ? 'bg-accent text-white border-accent' 
-                    : 'bg-white text-ink border-border hover:border-accent'
+                    ? `${getDifficultyBadgeClass(d.id)} ring-2 ring-ink/10 shadow-sm`
+                    : `${getDifficultyBadgeClass(d.id)} opacity-80 hover:opacity-100`
                 }`}
               >
                 {d.label}
@@ -741,7 +754,7 @@ export default function Encyclopedia() {
                   <p className="text-[11px] leading-tight text-ink/70 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">{getSecondaryCategory(fish)}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  <span className="bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-ink border border-border rounded-sm">
+                  <span className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-sm ${getDifficultyBadgeClass(fish.difficulty)}`}>
                     {getDifficultyLabel(fish.difficulty)}
                   </span>
                   <span className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-sm ${getHousingBadgeClass(fish.housingMode)}`}>
@@ -809,7 +822,7 @@ export default function Encyclopedia() {
                       </div>
                       <DialogDescription className="text-xs text-ink/70 mt-1 font-medium">{selectedFish.scientificName}</DialogDescription>
                     </div>
-                    <span className="text-[11px] font-bold px-2 py-1 bg-accent-light text-accent rounded-sm whitespace-nowrap border border-accent/20">
+                    <span className={`text-[11px] font-bold px-2 py-1 rounded-sm whitespace-nowrap border ${getDifficultyBadgeClass(selectedFish.difficulty)}`}>
                       {getDifficultyLabel(selectedFish.difficulty)}
                     </span>
                   </div>
