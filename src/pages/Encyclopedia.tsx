@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
-import { getLifeType, getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
+import { getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import {
   DISCOVERY_DAILY_LIMIT,
@@ -24,14 +24,9 @@ const difficulties = [
   { id: 'Hard', label: '骨灰级玩家' }
 ];
 
-const waterTypes = [
-  { id: 'Freshwater', label: '淡水缸' },
-  { id: 'Saltwater', label: '海水缸' },
-  { id: 'Coldwater', label: '冷水缸' }
-];
-
 const lifeTypes = [
-  { id: 'fish', label: '鱼类', hint: '观赏鱼' },
+  { id: 'freshwaterFish', label: '淡水鱼', hint: '草缸/冷水/热带鱼' },
+  { id: 'saltwaterFish', label: '海水鱼', hint: '海缸观赏鱼' },
   { id: 'invertebrate', label: '虾螺蟹', hint: '工具生物' },
   { id: 'reptile', label: '龟/两栖', hint: '单养优先' },
   { id: 'coral', label: '珊瑚/海葵', hint: '海水无脊椎' },
@@ -177,7 +172,7 @@ export default function Encyclopedia() {
   const encyclopediaCatalog = useMemo(
     () => encyclopediaService.search({
       searchTerm,
-      lifeType: lifeTypeFilter as 'All' | 'fish' | 'invertebrate' | 'reptile' | 'coral',
+      lifeType: lifeTypeFilter as 'All' | 'freshwaterFish' | 'saltwaterFish' | 'invertebrate' | 'reptile' | 'coral',
       category: selectedCategory,
       difficulty: difficultyFilter as 'All' | 'Easy' | 'Medium' | 'Hard',
       waterType: waterTypeFilter as 'All' | 'Freshwater' | 'Saltwater' | 'Coldwater',
@@ -286,28 +281,16 @@ export default function Encyclopedia() {
 
   const handleDifficultyClick = (id: string) => {
     setDifficultyFilter(prev => prev === id ? 'All' : id);
-    setWaterTypeFilter('All');
-    setLifeTypeFilter('All');
-    setHousingFilter('All');
-    setSelectedCategory('全部');
-  };
-
-  const handleWaterTypeClick = (id: string) => {
-    setWaterTypeFilter(prev => prev === id ? 'All' : id);
-    setDifficultyFilter('All');
     setSelectedCategory('全部');
   };
 
   const handleLifeTypeClick = (id: string) => {
     setLifeTypeFilter(prev => prev === id ? 'All' : id);
-    setHousingFilter('All');
     setSelectedCategory('全部');
   };
 
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(prev => prev === cat ? '全部' : cat);
-    setDifficultyFilter('All');
-    setWaterTypeFilter('All');
   };
 
   const clearFilters = () => {
@@ -586,32 +569,7 @@ export default function Encyclopedia() {
           </div>
         </div>
 
-        {/* Row 3: Water Type */}
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">水质建议</span>
-          <div className="flex min-w-0 flex-wrap gap-2">
-            {waterTypes.map(w => {
-              const isActive = waterTypeFilter === w.id;
-              let btnClass = 'bg-white text-ink/80 border-border hover:border-ink';
-              if (isActive) {
-                if (w.id === 'Freshwater') btnClass = 'bg-emerald-500 text-white border-emerald-500 shadow-sm';
-                else if (w.id === 'Saltwater') btnClass = 'bg-blue-600 text-white border-blue-600 shadow-sm';
-                else if (w.id === 'Coldwater') btnClass = 'bg-cyan-500 text-white border-cyan-500 shadow-sm';
-              }
-              return (
-                <button
-                  key={w.id}
-                  onClick={() => handleWaterTypeClick(w.id)}
-                  className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-all font-bold ${btnClass}`}
-                >
-                  {w.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Row 4: Secondary Category Circles (Wrap & Collapse) */}
+        {/* Row 3: Secondary Category Circles (Wrap & Collapse) */}
         <div className="flex flex-col gap-2">
           {isCategoriesExpanded && (
             <div className="flex min-w-0 flex-col gap-2 mt-2">

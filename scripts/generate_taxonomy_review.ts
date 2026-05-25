@@ -1,14 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fishData } from '../src/data/fishData';
-import { getLifeType, getSecondaryCategory } from '../src/modules/species/species.service';
+import { getEncyclopediaLifeType, getSecondaryCategory } from '../src/modules/species/species.service';
 
 const outputDir = path.resolve('output/classification_audit');
 const csvPath = path.join(outputDir, 'species_taxonomy_review.csv');
 const htmlPath = path.join(outputDir, 'species_taxonomy_review.html');
 
 const primaryLabelByLifeType: Record<string, string> = {
-  fish: '鱼类',
+  freshwaterFish: '淡水鱼',
+  saltwaterFish: '海水鱼',
   invertebrate: '虾螺蟹',
   reptile: '龟/两栖',
   coral: '珊瑚/海葵',
@@ -17,7 +18,7 @@ const primaryLabelByLifeType: Record<string, string> = {
 };
 
 const reviewReasonFor = (oldCategory: string, primary: string, secondary: string) => {
-  if (primary === '鱼类' && /水草|硬景|底床/.test(oldCategory)) return '旧分类把鱼放进了水草或硬景';
+  if ((primary === '淡水鱼' || primary === '海水鱼') && /水草|硬景|底床/.test(oldCategory)) return '旧分类把鱼放进了水草或硬景';
   if ((primary === '水草' || primary === '硬景/底砂') && /鱼类|灯科鱼|慈鲷|斗鱼|鲶鱼|异型|海水鱼/.test(oldCategory)) return '旧分类把造景素材放进了生物分类';
   if (primary === '虾螺蟹' && oldCategory === '海水鱼') return '旧分类把海水清洁生物放进了海水鱼';
   if (primary === '珊瑚/海葵' && oldCategory === '海水鱼') return '旧分类把水母/滤食生物放进了海水鱼';
@@ -33,8 +34,8 @@ const escapeHtml = (value: unknown) => String(value ?? '')
   .replaceAll('"', '&quot;');
 
 const rows = fishData.map((fish) => {
-  const lifeType = getLifeType(fish);
-  const primary = primaryLabelByLifeType[lifeType] || '鱼类';
+  const lifeType = getEncyclopediaLifeType(fish);
+  const primary = primaryLabelByLifeType[lifeType] || '淡水鱼';
   const secondary = getSecondaryCategory(fish);
   const reviewReason = reviewReasonFor(fish.category, primary, secondary);
 
@@ -45,7 +46,7 @@ const rows = fishData.map((fish) => {
     oldCategory: fish.category,
     proposedPrimaryCategory: primary,
     proposedSecondaryCategory: secondary,
-    showInEncyclopedia: ['鱼类', '虾螺蟹', '龟/两栖', '珊瑚/海葵'].includes(primary),
+    showInEncyclopedia: ['淡水鱼', '海水鱼', '虾螺蟹', '龟/两栖', '珊瑚/海葵'].includes(primary),
     showInAquariumSettings: ['水草', '硬景/底砂'].includes(primary),
     internalReviewFlag: Boolean(reviewReason),
     internalReviewReason: reviewReason,

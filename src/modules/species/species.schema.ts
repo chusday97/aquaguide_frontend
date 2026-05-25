@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Fish } from '../../types';
 
-export const lifeTypeSchema = z.enum(['All', 'fish', 'invertebrate', 'reptile', 'coral', 'plant', 'hardscape']);
+export const lifeTypeSchema = z.enum(['All', 'fish', 'freshwaterFish', 'saltwaterFish', 'invertebrate', 'reptile', 'coral', 'plant', 'hardscape']);
 
 export const fishSchema = z.object({
   id: z.string().min(1),

@@ -2,7 +2,7 @@ import { loggerService } from '../../services/logger/logger.service';
 import { Fish } from '../../types';
 import {
   getDisplayableSpecies,
-  getLifeType,
+  getEncyclopediaLifeType,
   getLifeTypeCounts,
   getSecondaryCategory,
   getSecondaryCategories,
@@ -26,7 +26,7 @@ const matchesBaseFilters = (fish: Fish, filters: EncyclopediaSearchOutput['activ
     || fish.name.toLowerCase().includes(normalizedSearch)
     || fish.scientificName.toLowerCase().includes(normalizedSearch);
   const matchesDifficulty = filters.difficulty === 'All' || fish.difficulty === filters.difficulty;
-  const matchesLifeType = filters.lifeType === 'All' || getLifeType(fish) === filters.lifeType;
+  const matchesLifeType = filters.lifeType === 'All' || getEncyclopediaLifeType(fish) === filters.lifeType;
   const matchesWaterType = matchesWaterTypeFilter(fish, filters.waterType);
   const matchesHousing = filters.housingMode === 'All' || (fish.housingMode || '适合混养') === filters.housingMode;
 
@@ -67,7 +67,7 @@ export const encyclopediaService = {
       allItems,
       categorySourceItems,
       categories,
-      lifeTypeCounts: getLifeTypeCounts(allItems, ['fish', 'invertebrate', 'reptile', 'coral']),
+      lifeTypeCounts: getLifeTypeCounts(allItems, ['freshwaterFish', 'saltwaterFish', 'invertebrate', 'reptile', 'coral']),
       total: items.length,
       activeFilters,
     };

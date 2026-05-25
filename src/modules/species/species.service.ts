@@ -5,6 +5,30 @@ import { Fish } from '../../types';
 import { speciesDetailInputSchema, speciesListInputSchema, SpeciesDetailOutput, SpeciesListOutput } from './species.schema';
 
 const secondaryCategoryOrder: Record<string, string[]> = {
+  freshwaterFish: [
+    '灯科鱼',
+    '白云金丝',
+    '斑马鱼',
+    '孔雀/月光/玛丽/剑尾',
+    '鳉鱼',
+    '斗鱼',
+    '曼龙/马甲',
+    '神仙鱼',
+    '七彩神仙',
+    '短鲷',
+    '慈鲷',
+    '鼠鱼',
+    '异型鱼',
+    '清道夫/青苔鼠',
+    '鳅类/吸鳅',
+    '金鱼',
+    '锦鲤',
+    '雷龙鱼',
+    '龙鱼/古代鱼',
+    '美人鱼',
+    '淡水特色鱼',
+  ],
+  saltwaterFish: ['小丑鱼', '倒吊鱼', '雀鲷', '海水神仙/蝶鱼', '虾虎/青蛙鱼', '狮子鱼/炮弹鱼', '海水特色鱼'],
   fish: [
     '灯科鱼',
     '白云金丝',
@@ -35,6 +59,10 @@ const secondaryCategoryOrder: Record<string, string[]> = {
   hardscape: [],
 };
 
+const isMarineFishText = (text: string) => (
+  /小丑|倒吊|蓝魔鬼|雀鲷|蝶鱼|炮弹|狮子鱼|红利|泗水玫瑰|五彩青蛙|虾虎|Pseudochromis|Amphiprion|Zebrasoma|Paracanthurus|Chaetodon|Chrysiptera|Pterois|Lutjanus|Pterapogon|Xanthichthys|Centropyge|Pomacanthus|Synchiropus|Gobiodon/i.test(text)
+);
+
 export const getLifeType = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
 
@@ -54,14 +82,22 @@ export const getSecondaryCategory = (fish: Fish) => {
   const lifeType = getLifeType(fish);
 
   if (lifeType === 'fish') {
+    if (isSaltwaterSpecies(fish)) {
+      if (/小丑|Amphiprion/i.test(text)) return '小丑鱼';
+      if (/倒吊|Zebrasoma|Paracanthurus/i.test(text)) return '倒吊鱼';
+      if (/雀鲷|蓝魔鬼|Chrysiptera/i.test(text)) return '雀鲷';
+      if (/神仙|蝶|Centropyge|Pomacanthus|Chaetodon/i.test(text)) return '海水神仙/蝶鱼';
+      if (/青蛙|虾虎|Synchiropus|Gobiodon/i.test(text)) return '虾虎/青蛙鱼';
+      if (/狮子鱼|炮弹|Pterois|Xanthichthys/i.test(text)) return '狮子鱼/炮弹鱼';
+      return '海水特色鱼';
+    }
     if (/红绿灯|宝莲灯|红鼻|剪刀|黑裙|红裙|樱桃灯|柠檬灯|红莲灯|琥珀灯|蓝眼灯|血心灯|帝王灯|红眼灯|金灯|黄金灯|霓虹灯|红十字灯|玻璃灯|刚果美人|Hyphessobrycon|Paracheirodon|Hemigrammus|Gymnocorymbus|Moenkhausia|Nematobrycon|Phenacogrammus|Boehlkea|Prionobrama|Aphyocharax/i.test(text)) return '灯科鱼';
     if (/白云金丝|唐鱼|Tanichthys/i.test(text)) return '白云金丝';
     if (/斑马鱼|Danio/i.test(text)) return '斑马鱼';
     if (/孔雀|月光鱼|玛丽|剑尾|红剑|皮球|Poecilia|Xiphophorus/i.test(text)) return '孔雀/月光/玛丽/剑尾';
     if (/鳉|Epiplatys|Sawbwa|Dario|Badis|Poropanchax/i.test(text)) return '鳉鱼';
     if (/斗鱼|Betta/i.test(text)) return '斗鱼';
-    if (/接吻鱼|Helostoma/i.test(text)) return '特色观赏鱼';
-    if (/曼龙|马甲|战舰|天堂鱼|Trichopodus|Sphaerichthys|Macropodus|Osphronemus/i.test(text)) return '曼龙/马甲';
+    if (/曼龙|马甲|战舰|天堂鱼|接吻鱼|Trichopodus|Sphaerichthys|Macropodus|Osphronemus|Helostoma/i.test(text)) return '曼龙/马甲';
     if (/七彩神仙|Symphysodon/i.test(text)) return '七彩神仙';
     if (/神仙|Pterophyllum/i.test(text)) return '神仙鱼';
     if (/短鲷|波子|荷兰凤凰|阿卡西|Apistogramma|Mikrogeophagus/i.test(text)) return '短鲷';
@@ -75,7 +111,7 @@ export const getSecondaryCategory = (fish: Fish) => {
     if (/雷龙|Channa/i.test(text)) return '雷龙鱼';
     if (/龙鱼|恐龙鱼|古代蝴蝶鱼|电鳗|魟|Scleropages|Osteoglossum|Polypterus|Erpetoichthys|Pantodon|Gymnotus|Potamotrygon/i.test(text)) return '龙鱼/古代鱼';
     if (/美人|彩虹|燕子|Melanotaenia|Glossolepis|Iriatherina|Pseudomugil/i.test(text)) return '美人鱼';
-    return '特色观赏鱼';
+    return '淡水特色鱼';
   }
 
   if (lifeType === 'invertebrate') {
@@ -110,7 +146,14 @@ export const getSecondaryCategory = (fish: Fish) => {
 
 export const isSaltwaterSpecies = (fish: Fish) => {
   const lifeType = getLifeType(fish);
-  return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name);
+  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description}`;
+  return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name) || (lifeType === 'fish' && isMarineFishText(text));
+};
+
+export const getEncyclopediaLifeType = (fish: Fish) => {
+  const lifeType = getLifeType(fish);
+  if (lifeType === 'fish') return isSaltwaterSpecies(fish) ? 'saltwaterFish' : 'freshwaterFish';
+  return lifeType;
 };
 
 export const matchesWaterTypeFilter = (fish: Fish, waterTypeFilter: string) => {
@@ -155,7 +198,7 @@ export const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) =
   const cats = Array.from(
     new Set(
       fishes
-        .filter((fish) => getLifeType(fish) === lifeTypeFilter)
+        .filter((fish) => getEncyclopediaLifeType(fish) === lifeTypeFilter)
         .map((fish) => getSecondaryCategory(fish))
         .filter(Boolean),
     ),
@@ -172,7 +215,7 @@ export const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) =
 };
 
 export const getLifeTypeCounts = (fishes: Fish[], lifeTypeIds: string[]) => lifeTypeIds.reduce<Record<string, number>>((acc, item) => {
-  acc[item] = fishes.filter((fish) => getLifeType(fish) === item).length;
+  acc[item] = fishes.filter((fish) => getEncyclopediaLifeType(fish) === item).length;
   return acc;
 }, {});
 
@@ -193,7 +236,7 @@ export const speciesService = {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const source = includeScenery ? fishData : getDisplayableSpecies();
     const items = source
-      .filter((fish) => lifeType === 'All' || getLifeType(fish) === lifeType)
+      .filter((fish) => lifeType === 'All' || getLifeType(fish) === lifeType || getEncyclopediaLifeType(fish) === lifeType)
       .filter((fish) => category === '全部' || getSecondaryCategory(fish) === category)
       .filter((fish) => {
         if (!normalizedSearch) return true;
