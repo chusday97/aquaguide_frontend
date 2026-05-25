@@ -707,16 +707,16 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const healthBarColor = healthScore >= 80 ? 'bg-[#4CAF50]' : healthScore >= 60 ? 'bg-[#FF9800]' : 'bg-[#F44336]';
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
+    <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
       {/* Aquarium Tabs */}
-      <div className="flex min-w-0 flex-wrap gap-2 pb-2">
+      <div className="flex min-w-0 flex-wrap gap-2 pb-1">
         {aquariums.map(aq => (
           <button
             key={aq.id}
             onClick={() => setActiveId(aq.id)}
-            className={`px-4 py-2 text-sm whitespace-nowrap rounded-sm border transition-colors font-bold ${
-              activeId === aq.id 
-                ? 'bg-ink text-white border-ink' 
+            className={`rounded-sm border px-3 py-1.5 text-[12px] font-bold whitespace-nowrap transition-colors ${
+              activeId === aq.id
+                ? 'bg-ink text-white border-ink'
                 : 'bg-white text-ink border-border hover:border-ink'
             }`}
           >
@@ -725,63 +725,63 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         ))}
         <button
           onClick={handleAddAquarium}
-          className="px-4 py-2 text-sm whitespace-nowrap rounded-sm border border-dashed border-ink/40 text-ink/70 hover:text-ink hover:border-ink transition-colors font-bold flex items-center"
+          className="flex items-center rounded-sm border border-dashed border-ink/40 px-3 py-1.5 text-[12px] font-bold whitespace-nowrap text-ink/70 transition-colors hover:border-ink hover:text-ink"
         >
           <Plus className="w-3 h-3 mr-1" /> 新建
         </button>
       </div>
 
       {/* Active Aquarium Header */}
-      <header className="flex min-w-0 flex-col gap-4">
+      <header className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {isEditingName ? (
             <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-2">
               <Input 
                 value={editNameValue} 
                 onChange={(e) => setEditNameValue(e.target.value)}
-                className="h-11 min-w-0 border-ink/30 font-serif text-2xl"
+                className="h-10 min-w-0 border-ink/30 text-xl font-black"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
               />
-              <Button size="sm" onClick={handleRenameSubmit} className="h-10 rounded-sm bg-ink text-white">保存</Button>
+              <Button size="sm" onClick={handleRenameSubmit} className="h-9 rounded-sm bg-ink text-xs font-bold text-white">保存</Button>
             </div>
           ) : (
             <div className="group flex min-w-0 cursor-pointer items-center gap-2" onClick={() => { setEditNameValue(activeAquarium.name); setIsEditingName(true); }}>
-              <h1 className="min-w-0 break-words font-serif text-[34px] font-bold leading-tight text-ink">{activeAquarium.name}</h1>
+              <h1 className="min-w-0 break-words text-[26px] font-black leading-[1.12] tracking-[-0.02em] text-ink">{activeAquarium.name}</h1>
               <Edit2 className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-ink" />
             </div>
           )}
         </div>
         <div className="grid min-w-0 grid-cols-2 gap-2">
-          <Button onClick={() => document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline" className="h-10 min-w-0 rounded-sm border-rose-200 px-2 text-xs font-bold text-rose-500 hover:bg-rose-50">
-            <Heart className="mr-1 h-4 w-4 shrink-0 fill-current" />
+          <Button onClick={() => document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline" className="h-9 min-w-0 rounded-sm border-rose-200 px-2 text-[12px] font-bold text-rose-500 hover:bg-rose-50">
+            <Heart className="mr-1 h-3.5 w-3.5 shrink-0 fill-current" />
             种草清单
             <span className="ml-1 bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full text-[10px]">{wishlistFishIds.size}</span>
           </Button>
-          <Button onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }} variant="outline" className="h-10 min-w-0 rounded-sm border-border px-2 text-xs font-bold text-ink hover:bg-bg">
-            <Settings className="mr-1 h-4 w-4 shrink-0" />
+          <Button onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }} variant="outline" className="h-9 min-w-0 rounded-sm border-border px-2 text-[12px] font-bold text-ink hover:bg-bg">
+            <Settings className="mr-1 h-3.5 w-3.5 shrink-0" />
             鱼缸设置
           </Button>
-          <Button onClick={handleSmartRecommend} variant="outline" className="col-span-2 h-10 min-w-0 rounded-sm border-accent px-2 text-xs font-bold text-accent hover:bg-accent hover:text-white">
-            <Sparkles className="mr-1 h-4 w-4 shrink-0" />
+          <Button onClick={handleSmartRecommend} variant="outline" className="col-span-2 h-9 min-w-0 rounded-sm border-accent px-2 text-[12px] font-bold text-accent hover:bg-accent hover:text-white">
+            <Sparkles className="mr-1 h-3.5 w-3.5 shrink-0" />
             智能混养推荐
           </Button>
         </div>
       </header>
 
       <section className="rounded-sm border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-3 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-600">
-            <CloudSun className="h-5 w-5" />
+        <div className="flex items-start gap-2.5">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-600">
+            <CloudSun className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[13px] font-black text-ink">本地加热棒提醒</h3>
-              <span className="rounded-full border border-white bg-white/80 px-2 py-0.5 text-[10px] font-bold text-ink/55">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="text-[12px] font-black text-ink">本地加热棒提醒</h3>
+              <span className="rounded-full border border-white bg-white/80 px-2 py-0.5 text-[9px] font-bold text-ink/55">
                 IP 天气估算
               </span>
             </div>
-            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/70">
+            <p className="mt-1 text-[11px] font-medium leading-[1.65] text-ink/70">
               {weatherStatus === 'loading' && '正在根据当前网络位置获取当地天气，用来辅助判断这个鱼缸是否需要重点关注加热棒。'}
               {weatherStatus === 'ready' && heaterSpeciesCount > 0 && (
                 <>
@@ -795,7 +795,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               )}
               {weatherStatus === 'unavailable' && (localWeather?.message || '暂时无法获取本地天气，但需要加热的生物仍会在图鉴和卡片中显示“需加热”标签。')}
             </p>
-            <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-100 bg-white/70 px-2 py-1 text-[10px] font-bold text-ink/50">
+            <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-100 bg-white/70 px-2 py-1 text-[9px] font-bold text-ink/50">
               <Thermometer className="h-3 w-3 text-red-500" />
               室外天气只做提醒，最终请看鱼缸温度计。
             </p>
@@ -804,14 +804,14 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </section>
 
       {/* Tank Water Change Dashboard */}
-      <div className="flex min-w-0 flex-col gap-4 rounded-sm border border-border bg-white p-4 shadow-sm">
-        <div className="grid min-w-0 grid-cols-[56px_1fr] items-center gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-full ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
-            <Calendar className="w-6 h-6" />
+      <div className="flex min-w-0 flex-col gap-3 rounded-sm border border-border bg-white p-3 shadow-sm">
+        <div className="grid min-w-0 grid-cols-[46px_1fr] items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
+            <Calendar className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-xs uppercase tracking-wider text-ink/60 font-bold">下次换水倒计时</h3>
+              <h3 className="text-[11px] font-black tracking-wide text-ink/60">下次换水倒计时</h3>
               <button
                 type="button"
                 aria-label="查看囤水和换水提示"
@@ -822,15 +822,15 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               </button>
             </div>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className={`font-serif text-4xl font-bold ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
+              <span className={`text-[30px] font-black leading-none tracking-[-0.03em] ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
                 {isChangeOverdue ? '已过期' : `${daysUntilChange} 天`}
               </span>
-              <span className="text-xs text-ink/60 font-medium">
+              <span className="text-[11px] text-ink/60 font-medium">
                 (周期: {shortestCycle}天)
               </span>
             </div>
             {activeAquarium.lastWaterChangeDate && (
-              <div className="text-[10px] text-ink/50 font-medium mt-1">
+              <div className="text-[10px] text-ink/50 font-medium mt-1.5">
                 上次换水: {format(new Date(activeAquarium.lastWaterChangeDate), 'yyyy-MM-dd HH:mm')}
               </div>
             )}
@@ -842,19 +842,19 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </div>
         </div>
         <div className="grid w-full grid-cols-2 gap-2">
-          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="h-10 min-w-0 rounded-sm border-border px-2 text-xs font-bold text-ink hover:bg-bg">
-            <Calendar className="w-4 h-4 mr-2" />
+          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="h-9 min-w-0 rounded-sm border-border px-2 text-[12px] font-bold text-ink hover:bg-bg">
+            <Calendar className="w-3.5 h-3.5 mr-1.5" />
             换水日历
           </Button>
-          <Button onClick={handleTankWaterChange} className="h-10 min-w-0 rounded-sm bg-ink px-2 text-xs font-bold text-white hover:bg-ink/90">
-            <Droplets className="w-4 h-4 mr-2" />
+          <Button onClick={handleTankWaterChange} className="h-9 min-w-0 rounded-sm bg-ink px-2 text-[12px] font-bold text-white hover:bg-ink/90">
+            <Droplets className="w-3.5 h-3.5 mr-1.5" />
             记录换水
           </Button>
         </div>
       </div>
 
       {/* Visual Tank Placeholder */}
-      <div className="relative h-72 w-full overflow-hidden rounded-sm border-4 border-accent shadow-inner group">
+      <div className="relative h-72 w-full overflow-hidden rounded-sm border-[3px] border-accent shadow-inner group">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -870,11 +870,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </Suspense>
         
         {/* Environment Info Overlay */}
-        <div className="absolute top-2 left-2 flex gap-2 z-10 pointer-events-none">
-          <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/50">
+        <div className="absolute left-2 top-2 z-10 flex max-w-[calc(100%-112px)] flex-wrap gap-1.5 pointer-events-none">
+          <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[9px] font-bold text-ink shadow-sm border border-white/50">
             {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} | {activeAquarium.targetTemperature || '25'}°C
           </div>
-          <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/50">
+          <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[9px] font-bold text-ink shadow-sm border border-white/50">
             {activeAquarium.dimensions?.length || 60}x{activeAquarium.dimensions?.width || 40}x{activeAquarium.dimensions?.height || 40}cm · 约{tankVolumeLiters}L
           </div>
         </div>
@@ -907,7 +907,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         {/* Add Fish Button Overlay */}
         <Button 
           onClick={() => setIsAddFishOpen(true)} 
-          className="absolute top-2 right-2 z-10 h-8 rounded-sm bg-accent/90 px-3 text-xs font-bold text-white opacity-100 shadow-sm transition-opacity hover:bg-accent"
+          className="absolute top-2 right-2 z-10 h-8 rounded-sm bg-accent/90 px-2.5 text-[11px] font-bold text-white opacity-100 shadow-sm transition-opacity hover:bg-accent"
         >
           <Plus className="w-3 h-3 mr-1" /> 添加生物
         </Button>
@@ -928,20 +928,20 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </div>
 
       {/* Health Score */}
-      <div className={`flex flex-col gap-3 rounded-sm border border-transparent p-4 shadow-sm ${healthBg}`}>
+      <div className={`flex flex-col gap-2.5 rounded-sm border border-transparent p-3 shadow-sm ${healthBg}`}>
         <div className="flex items-center justify-between">
           <div className={`flex items-center gap-2 font-bold ${healthColor}`}>
-            <Activity className="w-5 h-5" />
-            <span className="text-sm">鱼缸健康度</span>
+            <Activity className="w-4 h-4" />
+            <span className="text-[13px]">鱼缸健康度</span>
           </div>
-          <div className={`font-serif text-2xl font-bold ${healthColor}`}>
+          <div className={`text-xl font-black leading-none ${healthColor}`}>
             {healthScore}%
           </div>
         </div>
-        <div className="w-full bg-white/50 rounded-full h-2.5 overflow-hidden">
-          <div className={`h-2.5 rounded-full ${healthBarColor} transition-all duration-1000`} style={{ width: `${healthScore}%` }}></div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-white/50">
+          <div className={`h-2 rounded-full ${healthBarColor} transition-all duration-1000`} style={{ width: `${healthScore}%` }}></div>
         </div>
-        <p className={`text-xs font-medium ${healthColor} opacity-80`}>
+        <p className={`text-[11px] font-medium leading-relaxed ${healthColor} opacity-80`}>
           {healthScore >= 80 ? '状态极佳！继续保持良好的换水习惯。' : healthScore >= 60 ? '状态一般。请注意水质或生物混养冲突。' : '状态危险！请立即检查水质、温度或隔离冲突鱼类。'}
         </p>
       </div>
@@ -962,12 +962,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
       {/* Bottom Encyclopedia */}
       {activeAquarium.fishes.length > 0 && (
-        <div className="rounded-sm border border-border bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-accent" />
+        <div className="rounded-sm border border-border bg-white p-3 shadow-sm">
+          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-black text-ink">
+            <BookOpen className="w-3.5 h-3.5 text-accent" />
             缸内生物图鉴
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {activeAquarium.fishes.map(aqFish => {
               const fishInfo = fishData.find(f => f.id === aqFish.fishId);
               if (!fishInfo) return null;
@@ -990,7 +990,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   >
                     <X className="w-3 h-3" />
                   </button>
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-border group-hover:border-accent transition-colors relative">
+                  <div className="h-[52px] w-[52px] rounded-full overflow-hidden border-2 border-border group-hover:border-accent transition-colors relative">
                     <img src={fishInfo.image} alt={fishInfo.name} className="w-full h-full object-contain p-1 bg-white" referrerPolicy="no-referrer" />
                     {aqFish.quantity > 1 && (
                       <div className="absolute top-0 right-0 bg-accent text-white text-[9px] font-bold px-1 rounded-bl-sm">
@@ -998,7 +998,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       </div>
                     )}
                   </div>
-                  <span className="text-[11px] font-bold text-ink text-center leading-tight group-hover:text-accent transition-colors">{fishInfo.name}</span>
+                  <span className="text-[10px] font-bold text-ink text-center leading-tight group-hover:text-accent transition-colors">{fishInfo.name}</span>
                 </div>
               );
             })}
@@ -1007,18 +1007,18 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       )}
 
       {/* Wishlist Section */}
-      <div id="wishlist-section" className="rounded-sm border border-rose-100 bg-rose-50/50 p-4 shadow-sm">
-        <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
-          <Heart className="w-4 h-4 text-rose-500 fill-current" />
+      <div id="wishlist-section" className="rounded-sm border border-rose-100 bg-rose-50/50 p-3 shadow-sm">
+        <h3 className="mb-3 flex items-center gap-2 text-[13px] font-black text-ink">
+          <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" />
           我的种草清单
-          <span className="text-xs font-medium text-ink/50 ml-1">共 {wishlistFishIds.size} 种</span>
+          <span className="ml-1 text-[11px] font-medium text-ink/50">共 {wishlistFishIds.size} 种</span>
         </h3>
         {wishlistFishIds.size === 0 ? (
-          <div className="text-center py-6 text-ink/50 text-xs font-medium">
+          <div className="py-5 text-center text-[11px] font-medium text-ink/50">
             您还没有种草任何生物，去生物图鉴看看吧～
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {Array.from(wishlistFishIds).map(id => {
               const fishInfo = fishData.find(f => f.id === id);
               if (!fishInfo) return null;
@@ -1042,10 +1042,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors relative">
+                  <div className="h-[52px] w-[52px] rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors relative">
                     <img src={fishInfo.image} alt={fishInfo.name} className="w-full h-full object-contain p-1 bg-white opacity-90 group-hover:opacity-100" referrerPolicy="no-referrer" />
                   </div>
-                  <span className="text-[11px] font-bold text-ink text-center leading-tight group-hover:text-rose-600 transition-colors">{fishInfo.name}</span>
+                  <span className="text-[10px] font-bold text-ink text-center leading-tight group-hover:text-rose-600 transition-colors">{fishInfo.name}</span>
                 </div>
               );
             })}
