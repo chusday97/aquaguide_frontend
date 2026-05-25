@@ -10,15 +10,13 @@ import {
   normalizeDiscoveryState,
   recommendationService,
 } from '../modules/recommendation/recommendation.service';
-import { weatherService } from '../services/weather/weather.service';
-import type { LocalWeatherOutput } from '../services/weather/weather.schema';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronUp, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, CloudSun } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus } from 'lucide-react';
 
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
@@ -116,14 +114,6 @@ const getDifficultyBadgeClass = (difficulty: string) => {
   }
 };
 
-const formatWeatherLocation = (weather: LocalWeatherOutput | null) => (
-  [weather?.city, weather?.region].filter(Boolean).join(' · ') || '当前位置'
-);
-
-const formatTemperature = (value?: number) => (
-  typeof value === 'number' ? `${Math.round(value)}°C` : ''
-);
-
 function AnimatedFishBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 mix-blend-multiply">
@@ -170,8 +160,6 @@ export default function Encyclopedia() {
   const [discoveryDragX, setDiscoveryDragX] = useState(0);
   const [discoveryMessage, setDiscoveryMessage] = useState('');
   const [loadedDiscoveryImageSrc, setLoadedDiscoveryImageSrc] = useState('');
-  const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
-  const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
 
   useEffect(() => {
     const savedAq = localStorage.getItem('aquariums');
@@ -185,21 +173,6 @@ export default function Encyclopedia() {
     }
 
     setWishlistFishIds(loadWishlistIds());
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    setWeatherStatus('loading');
-
-    weatherService.getLocalWeather({ timeoutMs: 8000 }).then((weather) => {
-      if (!isMounted) return;
-      setLocalWeather(weather);
-      setWeatherStatus(weather.ok ? 'ready' : 'unavailable');
-    });
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const toggleWishlist = (id: string) => {
@@ -355,9 +328,6 @@ export default function Encyclopedia() {
   }, [categories, selectedCategory]);
 
   const filteredFishes = encyclopediaCatalog.items;
-  const heaterSpeciesCount = filteredFishes.filter((fish) => getFishTemperatureTheme(fish.waterTemperature).needsHeater).length;
-  const weatherLocation = formatWeatherLocation(localWeather);
-  const weatherTemperature = formatTemperature(localWeather?.apparentTemperatureC ?? localWeather?.temperatureC);
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
@@ -552,39 +522,6 @@ export default function Encyclopedia() {
             {discoveryMessage}
           </div>
         )}
-      </section>
-
-      <section className="mt-4 rounded-sm border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-3 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-600">
-            <CloudSun className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[13px] font-black text-ink">本地加热棒提醒</h3>
-              <span className="rounded-full border border-white bg-white/80 px-2 py-0.5 text-[10px] font-bold text-ink/55">
-                IP 天气估算
-              </span>
-            </div>
-            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/70">
-              {weatherStatus === 'loading' && '正在根据当前网络位置获取当地天气，用来辅助判断是否需要重点关注加热棒。'}
-              {weatherStatus === 'ready' && heaterSpeciesCount > 0 && (
-                <>
-                  {weatherLocation} 当前室外约 {weatherTemperature}。当前列表有 {heaterSpeciesCount} 种生物标记为“需加热”，建议用加热棒把水温稳定在物种要求范围内。
-                </>
-              )}
-              {weatherStatus === 'ready' && heaterSpeciesCount === 0 && (
-                <>
-                  {weatherLocation} 当前室外约 {weatherTemperature}。当前筛选结果暂无“需加热”生物，仍建议以鱼缸温度计为准。
-                </>
-              )}
-              {weatherStatus === 'unavailable' && (localWeather?.message || '暂时无法获取本地天气，但需要加热的生物仍会显示“需加热”标签。')}
-            </p>
-            <p className="mt-1 text-[10px] font-medium leading-relaxed text-ink/45">
-              提醒：室外天气不能替代鱼缸水温，请以缸内温度计为准。
-            </p>
-          </div>
-        </div>
       </section>
 
       <div className="flex flex-col gap-5 mt-4">
@@ -916,9 +853,7 @@ export default function Encyclopedia() {
                       <div className="min-w-0">
                         <h4 className="text-[12px] font-black text-red-600">这个物种建议配加热棒</h4>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/70">
-                          {localWeather?.ok
-                            ? `${formatWeatherLocation(localWeather)} 当前室外约 ${formatTemperature(localWeather.apparentTemperatureC ?? localWeather.temperatureC)}，${selectedFish.name} 适宜水温为 ${selectedFish.waterTemperature}，建议使用加热棒和温度计维持稳定水温。`
-                            : `${selectedFish.name} 适宜水温为 ${selectedFish.waterTemperature}。未能获取本地天气时，也建议使用加热棒和温度计维持稳定水温。`}
+                          {selectedFish.name} 适宜水温为 {selectedFish.waterTemperature}，建议使用加热棒和温度计维持稳定水温。
                         </p>
                         <p className="mt-1 text-[10px] font-medium text-ink/45">不要用天气温度直接判断鱼缸水温，缸内温度计更可靠。</p>
                       </div>

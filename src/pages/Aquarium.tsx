@@ -7,13 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
-import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, CloudSun, Thermometer } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
 import { getLifeType } from '../modules/species/species.service';
 import { recommendationService } from '../modules/recommendation/recommendation.service';
+import { weatherService } from '../services/weather/weather.service';
+import type { LocalWeatherOutput } from '../services/weather/weather.schema';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -85,6 +87,20 @@ const getTankVolumeLiters = (aquarium: Aquarium) => {
   return getEstimatedWaterVolumeLiters(aquarium.dimensions);
 };
 
+const formatWeatherLocation = (weather: LocalWeatherOutput | null) => (
+  [weather?.city, weather?.region].filter(Boolean).join(' · ') || '当前位置'
+);
+
+const formatTemperature = (value?: number) => (
+  typeof value === 'number' ? `${Math.round(value)}°C` : ''
+);
+
+const needsHeaterForSpecies = (fish: Fish) => {
+  const match = fish.waterTemperature.match(/(\d+)-(\d+)/);
+  if (!match) return false;
+  return parseInt(match[1], 10) >= 20;
+};
+
 const getBioLoadLiters = (fish: Fish) => {
   const lifeType = getLifeType(fish);
   if (lifeType === 'plant' || lifeType === 'hardscape') return 0;
@@ -141,10 +157,27 @@ export default function AquariumManager() {
 
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(new Set());
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
+  const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
+  const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
 
   useEffect(() => {
     const savedWishlist = localStorage.getItem('wishlistFishIds');
     if (savedWishlist) setWishlistFishIds(new Set(JSON.parse(savedWishlist)));
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    setWeatherStatus('loading');
+
+    weatherService.getLocalWeather({ timeoutMs: 8000 }).then((weather) => {
+      if (!isMounted) return;
+      setLocalWeather(weather);
+      setWeatherStatus(weather.ok ? 'ready' : 'unavailable');
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const toggleWishlist = (id: string) => {
@@ -557,6 +590,14 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   if (!activeAquarium) return null;
 
   const currentFishesDetails = activeAquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
+  const heaterStockedItems = activeAquarium.fishes
+    .map(aqFish => ({ aqFish, fish: fishData.find(f => f.id === aqFish.fishId) }))
+    .filter((item): item is { aqFish: AquariumFish; fish: Fish } => Boolean(item.fish) && needsHeaterForSpecies(item.fish));
+  const heaterSpeciesCount = new Set(heaterStockedItems.map(item => item.fish.id)).size;
+  const heaterAnimalCount = heaterStockedItems.reduce((sum, item) => sum + Math.max(1, item.aqFish.quantity || 1), 0);
+  const heaterSpeciesNames = Array.from(new Set(heaterStockedItems.map(item => item.fish.name))).slice(0, 3).join('、');
+  const weatherLocation = formatWeatherLocation(localWeather);
+  const weatherTemperature = formatTemperature(localWeather?.apparentTemperatureC ?? localWeather?.temperatureC);
   const recommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
   const recommendationReasonById = new Map(recommendationItems.map(item => [item.speciesId, item.reason]));
   const recommendations = recommendationItems
@@ -727,6 +768,40 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </Button>
         </div>
       </header>
+
+      <section className="rounded-sm border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-3 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-600">
+            <CloudSun className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-[13px] font-black text-ink">本地加热棒提醒</h3>
+              <span className="rounded-full border border-white bg-white/80 px-2 py-0.5 text-[10px] font-bold text-ink/55">
+                IP 天气估算
+              </span>
+            </div>
+            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/70">
+              {weatherStatus === 'loading' && '正在根据当前网络位置获取当地天气，用来辅助判断这个鱼缸是否需要重点关注加热棒。'}
+              {weatherStatus === 'ready' && heaterSpeciesCount > 0 && (
+                <>
+                  {weatherLocation} 当前室外约 {weatherTemperature}。当前鱼缸有 {heaterSpeciesCount} 种、约 {heaterAnimalCount} 只生物需要稳定加热{heaterSpeciesNames ? `，例如 ${heaterSpeciesNames}` : ''}，建议开启加热棒并用温度计复核水温。
+                </>
+              )}
+              {weatherStatus === 'ready' && heaterSpeciesCount === 0 && (
+                <>
+                  {weatherLocation} 当前室外约 {weatherTemperature}。当前鱼缸暂无标记为“需加热”的生物，仍建议以缸内温度计为准。
+                </>
+              )}
+              {weatherStatus === 'unavailable' && (localWeather?.message || '暂时无法获取本地天气，但需要加热的生物仍会在图鉴和卡片中显示“需加热”标签。')}
+            </p>
+            <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-100 bg-white/70 px-2 py-1 text-[10px] font-bold text-ink/50">
+              <Thermometer className="h-3 w-3 text-red-500" />
+              室外天气只做提醒，最终请看鱼缸温度计。
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Tank Water Change Dashboard */}
       <div className="flex min-w-0 flex-col gap-4 rounded-sm border border-border bg-white p-4 shadow-sm">
