@@ -320,9 +320,15 @@ export default function Encyclopedia() {
   };
 
   const handleLifeTypeClick = (id: string) => {
-    setLifeTypeFilter(prev => prev === id ? 'All' : id);
+    const nextLifeType = lifeTypeFilter === id ? 'All' : id;
+    setLifeTypeFilter(nextLifeType);
     setWaterTypeFilter('All');
     setSelectedCategory('全部');
+    if (nextLifeType !== 'All') {
+      window.setTimeout(() => {
+        document.getElementById('secondary-tag-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
   };
 
   const handleCategoryClick = (cat: string) => {
@@ -595,6 +601,62 @@ export default function Encyclopedia() {
               );
             })}
           </div>
+          {lifeTypeFilter !== 'All' && (
+            <div id="secondary-tag-panel" className="mt-2 flex scroll-mt-3 min-w-0 flex-col overflow-hidden rounded-sm border border-accent/20 bg-white shadow-lg shadow-accent/5">
+              <div className="flex items-center justify-between gap-2 border-b border-border bg-accent/5 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black text-accent">二级标签</p>
+                  <p className="text-[10px] font-medium leading-tight text-ink/45">
+                    {lifeTypes.find(type => type.id === lifeTypeFilter)?.label || '生物'} · 从上到下选择具体品种
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full border border-accent/20 bg-white px-2 py-1 text-[10px] font-bold text-accent">
+                  {categories.length} 类
+                </span>
+              </div>
+              <div className="max-h-[52svh] min-h-[220px] overflow-y-auto overscroll-contain p-3">
+                <div className="flex min-w-0 flex-col gap-2">
+                  {categories.length > 0 ? categories.map(cat => {
+                    const sampleFish = encyclopediaCatalog.categorySourceItems.find(f => getSecondaryCategory(f) === cat)
+                      || allFishes.find(f => getSecondaryCategory(f) === cat);
+                    const bgImage = sampleFish ? getEncyclopediaImage(sampleFish) : 'https://picsum.photos/seed/allfish/100/100';
+                    const categoryCount = encyclopediaCatalog.categorySourceItems.filter(f => getSecondaryCategory(f) === cat).length;
+
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => handleCategoryClick(cat)}
+                        className={`grid min-h-[54px] grid-cols-[42px_1fr_auto] items-center gap-3 rounded-sm border px-2.5 py-2 text-left transition-all ${
+                          selectedCategory === cat
+                            ? 'border-accent bg-accent text-white shadow-sm'
+                            : 'border-border bg-white text-ink hover:border-accent hover:text-accent'
+                        }`}
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-current/15 bg-white">
+                          <img src={bgImage} alt={cat} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-black leading-tight whitespace-normal break-words [overflow-wrap:anywhere]">
+                            {cat}
+                          </span>
+                          <span className={`mt-0.5 block text-[10px] font-medium ${selectedCategory === cat ? 'text-white/70' : 'text-ink/45'}`}>
+                            具体水族圈分类
+                          </span>
+                        </span>
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${selectedCategory === cat ? 'bg-white/15 text-white' : 'bg-bg text-ink/50'}`}>
+                          {categoryCount}
+                        </span>
+                      </button>
+                    );
+                  }) : (
+                    <div className="rounded-sm border border-dashed border-border bg-bg p-4 text-center text-xs font-medium text-ink/50">
+                      当前条件下没有可用的二级标签，可以减少前面的筛选条件。
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Row 2: Temperature Band */}
@@ -706,44 +768,6 @@ export default function Encyclopedia() {
           </div>
         </div>
 
-        {/* Row 7: Variety */}
-        {lifeTypeFilter !== 'All' && (
-          <div className="flex min-w-0 flex-col gap-2 rounded-sm border border-border/70 bg-white/70 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-ink/70">具体品种</span>
-              <span className="text-[10px] font-medium text-ink/40">最后再按水族圈叫法细分</span>
-            </div>
-            <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
-              <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
-                {categories.length > 0 ? categories.map(cat => {
-                  const sampleFish = allFishes.find(f => getSecondaryCategory(f) === cat);
-                  const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
-
-                  return (
-                    <div
-                      key={cat}
-                      className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5"
-                      onClick={() => handleCategoryClick(cat)}
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
-                        selectedCategory === cat ? 'border-accent border-[2px] shadow-sm scale-105' : 'border-border border'
-                      }`}>
-                        <img src={bgImage} alt={cat} className="w-full h-full object-contain p-1 opacity-90" referrerPolicy="no-referrer" />
-                      </div>
-                      <span className={`max-w-full break-words text-center text-[10px] leading-tight ${selectedCategory === cat ? 'font-bold text-accent' : 'text-ink/80 font-medium'}`}>
-                        {cat}
-                      </span>
-                    </div>
-                  );
-                }) : (
-                  <div className="py-3 text-xs font-medium text-ink/50">
-                    当前条件下没有可用的具体品种，可以减少前面的筛选条件。
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
         <div className="grid grid-cols-2 gap-3 mt-2">
