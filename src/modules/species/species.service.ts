@@ -107,6 +107,7 @@ export const getLifeType = (fish: Fish) => {
   if (/水母|海月|海刺水母|Cassiopea|Aurelia|Chrysaora|Phyllorhiza|Cotylorhiza|Sanderia/i.test(text)) return 'coral';
   if (fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone|管虫|海绵|海星|海参|sponge|starfish|Sabellastarte|Protula|Haliclona|Astropecten/i.test(text)) return 'coral';
   if (fish.category === '虾螺蟹' || fish.category === '虾类' || fish.category === '螺类' || /虾|螺|蟹|shrimp|snail|crab|Lysmata|Thor|Paguristes|Pomacea|Neritina|Clithon|Anentome|Caridina|Neocaridina|Geosesarma/i.test(text)) return 'invertebrate';
+  if (fish.category === '海水鱼' || isMarineFishText(text)) return 'fish';
   if (fish.category === '龟类' || fish.category === '两栖/爬宠' || /龟|蛙|蝾螈|六角恐龙|axolotl|turtle|frog|newt/i.test(text)) return 'reptile';
   return 'fish';
 };
