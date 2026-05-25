@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
-import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, CloudSun, Thermometer } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Thermometer } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI } from '../lib/aiClient';
@@ -594,10 +594,22 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     .map(aqFish => ({ aqFish, fish: fishData.find(f => f.id === aqFish.fishId) }))
     .filter((item): item is { aqFish: AquariumFish; fish: Fish } => Boolean(item.fish) && needsHeaterForSpecies(item.fish));
   const heaterSpeciesCount = new Set(heaterStockedItems.map(item => item.fish.id)).size;
-  const heaterAnimalCount = heaterStockedItems.reduce((sum, item) => sum + Math.max(1, item.aqFish.quantity || 1), 0);
-  const heaterSpeciesNames = Array.from(new Set(heaterStockedItems.map(item => item.fish.name))).slice(0, 3).join('、');
   const weatherLocation = formatWeatherLocation(localWeather);
-  const weatherTemperature = formatTemperature(localWeather?.apparentTemperatureC ?? localWeather?.temperatureC);
+  const weatherTemperatureValue = localWeather?.apparentTemperatureC ?? localWeather?.temperatureC;
+  const weatherTemperature = formatTemperature(weatherTemperatureValue);
+  const heaterRequired = heaterSpeciesCount > 0;
+  const heaterStatusLabel = weatherStatus === 'loading' ? '判断中' : heaterRequired ? '建议需要' : '暂不需要';
+  const heaterStatusDetail = weatherStatus === 'unavailable'
+    ? '天气暂不可用'
+    : heaterRequired
+      ? `${heaterSpeciesCount} 种需恒温`
+      : '当前生物耐温较宽';
+  const thermometerLevel = typeof weatherTemperatureValue === 'number'
+    ? Math.min(92, Math.max(12, Math.round(((weatherTemperatureValue + 5) / 45) * 100)))
+    : 38;
+  const heaterTone = heaterRequired
+    ? 'border-red-100 bg-red-50 text-red-600'
+    : 'border-emerald-100 bg-emerald-50 text-emerald-700';
   const recommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
   const recommendationReasonById = new Map(recommendationItems.map(item => [item.speciesId, item.reason]));
   const recommendations = recommendationItems
@@ -769,40 +781,6 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </div>
       </header>
 
-      <section className="rounded-sm border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-3 shadow-sm">
-        <div className="flex items-start gap-2.5">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-600">
-            <CloudSun className="h-[18px] w-[18px]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h3 className="text-[12px] font-black text-ink">本地加热棒提醒</h3>
-              <span className="rounded-full border border-white bg-white/80 px-2 py-0.5 text-[9px] font-bold text-ink/55">
-                IP 天气估算
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] font-medium leading-[1.65] text-ink/70">
-              {weatherStatus === 'loading' && '正在根据当前网络位置获取当地天气，用来辅助判断这个鱼缸是否需要重点关注加热棒。'}
-              {weatherStatus === 'ready' && heaterSpeciesCount > 0 && (
-                <>
-                  {weatherLocation} 当前室外约 {weatherTemperature}。当前鱼缸有 {heaterSpeciesCount} 种、约 {heaterAnimalCount} 只生物需要稳定加热{heaterSpeciesNames ? `，例如 ${heaterSpeciesNames}` : ''}，建议开启加热棒并用温度计复核水温。
-                </>
-              )}
-              {weatherStatus === 'ready' && heaterSpeciesCount === 0 && (
-                <>
-                  {weatherLocation} 当前室外约 {weatherTemperature}。当前鱼缸暂无标记为“需加热”的生物，仍建议以缸内温度计为准。
-                </>
-              )}
-              {weatherStatus === 'unavailable' && (localWeather?.message || '暂时无法获取本地天气，但需要加热的生物仍会在图鉴和卡片中显示“需加热”标签。')}
-            </p>
-            <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-100 bg-white/70 px-2 py-1 text-[9px] font-bold text-ink/50">
-              <Thermometer className="h-3 w-3 text-red-500" />
-              室外天气只做提醒，最终请看鱼缸温度计。
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Tank Water Change Dashboard */}
       <div className="flex min-w-0 flex-col gap-3 rounded-sm border border-border bg-white p-3 shadow-sm">
         <div className="grid min-w-0 grid-cols-[46px_1fr] items-center gap-3">
@@ -852,6 +830,46 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </Button>
         </div>
       </div>
+
+      <section className="grid min-w-0 grid-cols-[48px_1fr] items-center gap-3 rounded-sm border border-border bg-white p-3 shadow-sm">
+        <div className="relative mx-auto h-24 w-9">
+          <div className="absolute left-1/2 top-0 h-[76px] w-4 -translate-x-1/2 rounded-full border-2 border-ink/20 bg-sky-50">
+            <div
+              className={`absolute bottom-1 left-1/2 w-2.5 -translate-x-1/2 rounded-full transition-all ${heaterRequired ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ height: `${thermometerLevel}%` }}
+            />
+          </div>
+          <div className={`absolute bottom-0 left-1/2 h-9 w-9 -translate-x-1/2 rounded-full border-2 border-white shadow-sm ${heaterRequired ? 'bg-red-500' : 'bg-emerald-500'}`}>
+            <Thermometer className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-white" />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink/40">本地温控</p>
+              <h3 className="text-[17px] font-black leading-tight text-ink">加热棒提醒</h3>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black ${heaterTone}`}>
+              {heaterStatusLabel}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded-sm bg-bg px-2 py-2">
+              <p className="text-[9px] font-bold text-ink/45">当地</p>
+              <p className="mt-0.5 truncate text-[12px] font-black text-ink">{weatherStatus === 'loading' ? '定位中' : weatherLocation}</p>
+            </div>
+            <div className="rounded-sm bg-bg px-2 py-2">
+              <p className="text-[9px] font-bold text-ink/45">当地温度</p>
+              <p className="mt-0.5 text-[12px] font-black text-ink">{weatherTemperature || '--°C'}</p>
+            </div>
+            <div className="rounded-sm bg-bg px-2 py-2">
+              <p className="text-[9px] font-bold text-ink/45">判断</p>
+              <p className="mt-0.5 truncate text-[12px] font-black text-ink">{heaterStatusDetail}</p>
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] font-medium text-ink/45">以缸内温度计为准，天气只做辅助提醒。</p>
+        </div>
+      </section>
 
       {/* Visual Tank Placeholder */}
       <div className="relative h-72 w-full overflow-hidden rounded-sm border-[3px] border-accent shadow-inner group">
