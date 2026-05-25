@@ -166,27 +166,34 @@ function WaterVolume({ length, width, height, isSaltwater }: { length: number; w
 function SubstrateBed({ length, width, height, substrate }: { length: number; width: number; height: number; substrate?: string }) {
   const hasSubstrate = substrate && substrate !== '无';
   const config = {
-    '河沙': { color: '#c9a77c', accent: '#e3c69d', particle: 0.045, count: 3.2, height: 0.2 },
-    '溪流砂': { color: '#9f8d77', accent: '#c7b69d', particle: 0.05, count: 3.4, height: 0.2 },
-    '化妆砂': { color: '#eadfc6', accent: '#fff6df', particle: 0.035, count: 3.6, height: 0.18 },
-    '水草泥': { color: '#2d2117', accent: '#4a3323', particle: 0.055, count: 3.5, height: 0.26 },
-    '黑金沙': { color: '#191818', accent: '#34312d', particle: 0.04, count: 3.8, height: 0.2 },
-    '陶粒': { color: '#8a4d2d', accent: '#b66b3f', particle: 0.075, count: 2.4, height: 0.28 },
-    '碎石': { color: '#8b8d86', accent: '#b6b8ae', particle: 0.085, count: 2.8, height: 0.24 },
-    '鹅卵石': { color: '#6f7774', accent: '#a8b0a8', particle: 0.13, count: 1.8, height: 0.28 },
-    '珊瑚砂': { color: '#efe8d5', accent: '#fff6df', particle: 0.06, count: 3.1, height: 0.24 },
-  }[substrate || '河沙'] || { color: '#c9a77c', accent: '#e3c69d', particle: 0.045, count: 3.2, height: 0.2 };
+    '河沙': { color: '#c9a77c', accent: '#e3c69d', particle: 0.045, count: 7.2, height: 0.34 },
+    '溪流砂': { color: '#9f8d77', accent: '#c7b69d', particle: 0.05, count: 7.4, height: 0.34 },
+    '化妆砂': { color: '#eadfc6', accent: '#fff6df', particle: 0.035, count: 7.8, height: 0.3 },
+    '水草泥': { color: '#2d2117', accent: '#4a3323', particle: 0.055, count: 7.5, height: 0.42 },
+    '黑金沙': { color: '#191818', accent: '#34312d', particle: 0.04, count: 8.1, height: 0.34 },
+    '陶粒': { color: '#8a4d2d', accent: '#b66b3f', particle: 0.075, count: 5.4, height: 0.42 },
+    '碎石': { color: '#8b8d86', accent: '#b6b8ae', particle: 0.085, count: 6.1, height: 0.38 },
+    '鹅卵石': { color: '#6f7774', accent: '#a8b0a8', particle: 0.13, count: 3.5, height: 0.42 },
+    '珊瑚砂': { color: '#efe8d5', accent: '#fff6df', particle: 0.06, count: 6.8, height: 0.38 },
+  }[substrate || '河沙'] || { color: '#c9a77c', accent: '#e3c69d', particle: 0.045, count: 7.2, height: 0.34 };
+  const bedLength = length - 0.08;
+  const bedWidth = width - 0.08;
+  const bedY = -height / 2 + config.height / 2 + 0.02;
+  const topY = -height / 2 + config.height + 0.08;
 
   const pebbles = useMemo(() => {
-    const count = Math.min(140, Math.floor(length * width * config.count));
+    const count = Math.min(360, Math.floor(length * width * config.count));
     return Array.from({ length: count }, (_, index) => {
       const sx = seededRandom(`pebble-x-${index}-${length}-${width}`);
       const sz = seededRandom(`pebble-z-${index}-${length}-${width}`);
       const ss = seededRandom(`pebble-s-${index}-${length}-${width}`);
       const tone = seededRandom(`pebble-tone-${index}-${substrate}`);
+      const z = (sz - 0.5) * (width - 0.18);
+      const frontLift = (z / (width - 0.18) + 0.5) * 0.08;
       return {
-        x: (sx - 0.5) * (length - 0.55),
-        z: (sz - 0.5) * (width - 0.55),
+        x: (sx - 0.5) * (length - 0.18),
+        z,
+        yLift: frontLift + seededRandom(`pebble-y-${index}-${substrate}`) * 0.035,
         scale: config.particle * (0.65 + ss * 0.9),
         color: tone > 0.55 ? config.accent : config.color,
       };
@@ -197,20 +204,30 @@ function SubstrateBed({ length, width, height, substrate }: { length: number; wi
 
   return (
     <group>
-      <mesh position={[0, -height / 2 + 0.12, 0]} receiveShadow>
-        <boxGeometry args={[length - 0.16, config.height, width - 0.16]} />
+      <mesh position={[0, bedY, 0]} rotation={[0.025, 0, 0]} receiveShadow>
+        <boxGeometry args={[bedLength, config.height, bedWidth]} />
         <meshStandardMaterial color={config.color} roughness={0.92} />
       </mesh>
 
+      <mesh position={[0, -height / 2 + config.height * 0.7, width / 2 - 0.02]} receiveShadow>
+        <boxGeometry args={[bedLength, config.height * 0.88, 0.1]} />
+        <meshStandardMaterial color={config.accent} roughness={0.96} />
+      </mesh>
+
+      <mesh position={[0, topY + 0.01, 0]} rotation={[-Math.PI / 2 + 0.025, 0, 0]}>
+        <planeGeometry args={[bedLength, bedWidth, 24, 10]} />
+        <meshStandardMaterial color={config.accent} transparent opacity={0.28} roughness={1} depthWrite={false} />
+      </mesh>
+
       {['溪流砂', '化妆砂', '河沙', '珊瑚砂'].includes(substrate || '') && [-0.25, 0.1, 0.42].map((zOffset, index) => (
-        <mesh key={`sand-ripple-${index}`} position={[0, -height / 2 + 0.24 + index * 0.004, zOffset]} rotation={[-Math.PI / 2, 0, index * 0.06]}>
-          <planeGeometry args={[length * 0.74, 0.035]} />
+        <mesh key={`sand-ripple-${index}`} position={[0, topY + 0.03 + index * 0.004, zOffset]} rotation={[-Math.PI / 2 + 0.025, 0, index * 0.06]}>
+          <planeGeometry args={[bedLength * 0.92, 0.035]} />
           <meshBasicMaterial color="#fff7df" transparent opacity={0.16} depthWrite={false} />
         </mesh>
       ))}
 
       {pebbles.map((pebble, index) => (
-        <mesh key={index} position={[pebble.x, -height / 2 + config.height + 0.13, pebble.z]} scale={[pebble.scale * 1.35, pebble.scale * 0.55, pebble.scale]}>
+        <mesh key={index} position={[pebble.x, topY + pebble.yLift, pebble.z]} scale={[pebble.scale * 1.35, pebble.scale * 0.55, pebble.scale]}>
           <sphereGeometry args={[1, 8, 6]} />
           <meshStandardMaterial color={pebble.color} roughness={0.95} />
         </mesh>
