@@ -1,7 +1,7 @@
 import { Fish } from '../types';
 
-const aquaticPlantScientificPattern = /Hemianthus|Eleocharis|Utricularia|Bucephalandra|Anubias|Rotala|Vesicularia|Microsorum|Bolbitis|Cryptocoryne|Aponogeton|Lemna|Limnobium|Egeria|Nymphaea|Micranthemum|Echinodorus|Bacopa|Myriophyllum|Blyxa|Vallisneria/i;
-const aquaticPlantNamePattern = /矮珍珠|牛毛毡|挖耳草|辣椒榕|水榕|迷你榕|宫廷草|红宫廷|绿宫廷|莫斯|铁皇冠|黑木蕨|椒草|大浪草|浮萍|圆心萍|蜈蚣草|睡莲|虎耳草|绿羽毛|箦藻|水兰|皇冠草|细叶皇冠/;
+const aquaticPlantScientificPattern = /Hemianthus|Eleocharis|Utricularia|Bucephalandra|Anubias|Rotala|Vesicularia|Microsorum|Bolbitis|Cryptocoryne|Aponogeton|Lemna|Limnobium|Egeria|Nymphaea|Micranthemum|Echinodorus|Bacopa|Myriophyllum|Blyxa|Vallisneria|Staurogyne|Ludwigia|Riccia|Fissidens/i;
+const aquaticPlantNamePattern = /矮珍珠|牛毛毡|挖耳草|辣椒榕|水榕|迷你榕|宫廷草|红宫廷|绿宫廷|莫斯|铁皇冠|黑木蕨|椒草|大浪草|浮萍|圆心萍|蜈蚣草|睡莲|红荷根|虎耳草|绿羽毛|箦藻|水兰|皇冠草|细叶皇冠|南美叉柱花|红玫瑰|细叶太阳|红太阴|鹿角苔|凤尾藓/;
 const nonPlantNamePattern = /孔雀鱼|草尾孔雀|红草鱼|恐龙鱼|珍珠马甲|珍珠虎|珍珠麒麟|珍珠神秘螺|珍珠米虾|皇冠黑白魟|雷龙|鱼$/;
 const hardscapeScientificPattern = /Hardscape|Seiryu|Ohko|Lava|Driftwood|Aqua Soil|River Sand|Cosmetic Sand|Iwagumi|Bonsai Wood/i;
 const hardscapeNamePattern = /青龙石|松皮石|火山石|沉木|流木|水草泥|溪流砂|化妆砂|景观板|景观组|景观树|底床/;
