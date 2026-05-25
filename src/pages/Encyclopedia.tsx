@@ -435,9 +435,13 @@ export default function Encyclopedia() {
 
               <div className="mt-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-serif text-2xl italic font-bold text-ink truncate">{discoveryFish.name}</h3>
-                    <p className="mt-0.5 text-[11px] text-ink/55 font-medium truncate">{discoveryFish.scientificName}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-serif text-2xl italic font-bold leading-tight text-ink whitespace-normal break-words [overflow-wrap:anywhere]">
+                      {discoveryFish.name}
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-ink/55 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">
+                      {discoveryFish.scientificName}
+                    </p>
                   </div>
                   <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black ${getHousingBadgeClass(discoveryFish.housingMode)}`}>
                     {discoveryFish.housingMode || '适合混养'}
@@ -447,7 +451,7 @@ export default function Encyclopedia() {
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">分类</p>
-                    <p className="text-[11px] font-black text-ink truncate">{getSecondaryCategory(discoveryFish)}</p>
+                    <p className="text-[11px] font-black leading-tight text-ink whitespace-normal break-words [overflow-wrap:anywhere]">{getSecondaryCategory(discoveryFish)}</p>
                   </div>
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">水温</p>
@@ -663,8 +667,10 @@ export default function Encyclopedia() {
                 </div>
               <div className="flex flex-col gap-2">
                 <div>
-                  <h2 className="font-serif text-[15px] italic truncate text-ink font-bold">{fish.name}</h2>
-                  <p className="text-[11px] text-ink/70 truncate font-medium">{getSecondaryCategory(fish)}</p>
+                  <h2 className="font-serif text-[15px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
+                    {fish.name}
+                  </h2>
+                  <p className="text-[11px] leading-tight text-ink/70 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">{getSecondaryCategory(fish)}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <span className="bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-ink border border-border rounded-sm">
