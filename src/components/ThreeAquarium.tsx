@@ -176,8 +176,8 @@ function SubstrateBed({ length, width, height, substrate }: { length: number; wi
     '鹅卵石': { color: '#6f7774', accent: '#a8b0a8', particle: 0.13, count: 3.5, height: 0.42 },
     '珊瑚砂': { color: '#efe8d5', accent: '#fff6df', particle: 0.06, count: 6.8, height: 0.38 },
   }[substrate || '河沙'] || { color: '#c9a77c', accent: '#e3c69d', particle: 0.045, count: 7.2, height: 0.34 };
-  const bedLength = length - 0.08;
-  const bedWidth = width - 0.08;
+  const bedLength = length + 0.02;
+  const bedWidth = width + 0.02;
   const bedY = -height / 2 + config.height / 2 + 0.02;
   const topY = -height / 2 + config.height + 0.08;
 
@@ -200,7 +200,20 @@ function SubstrateBed({ length, width, height, substrate }: { length: number; wi
     });
   }, [length, width, substrate, config.accent, config.color, config.count, config.particle]);
 
-  if (!hasSubstrate) return null;
+  if (!hasSubstrate) {
+    return (
+      <group>
+        <mesh position={[0, -height / 2 + 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[length - 0.12, width - 0.12, 12, 8]} />
+          <meshStandardMaterial color="#d8f4ef" transparent opacity={0.22} roughness={0.35} metalness={0.08} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, -height / 2 + 0.04, width / 2 - 0.08]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[length - 0.18, 0.025]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.28} depthWrite={false} />
+        </mesh>
+      </group>
+    );
+  }
 
   return (
     <group>
@@ -209,14 +222,21 @@ function SubstrateBed({ length, width, height, substrate }: { length: number; wi
         <meshStandardMaterial color={config.color} roughness={0.92} />
       </mesh>
 
-      <mesh position={[0, -height / 2 + config.height * 0.7, width / 2 - 0.02]} receiveShadow>
-        <boxGeometry args={[bedLength, config.height * 0.88, 0.1]} />
-        <meshStandardMaterial color={config.accent} roughness={0.96} />
-      </mesh>
+      {[
+        [0, -height / 2 + config.height * 0.7, width / 2 + 0.01, bedLength, config.height * 0.95, 0.12],
+        [0, -height / 2 + config.height * 0.62, -width / 2 - 0.01, bedLength, config.height * 0.72, 0.08],
+        [length / 2 + 0.01, -height / 2 + config.height * 0.62, 0, 0.08, config.height * 0.72, bedWidth],
+        [-length / 2 - 0.01, -height / 2 + config.height * 0.62, 0, 0.08, config.height * 0.72, bedWidth],
+      ].map(([x, y, z, sx, sy, sz], index) => (
+        <mesh key={`substrate-edge-${index}`} position={[x, y, z]} receiveShadow>
+          <boxGeometry args={[sx, sy, sz]} />
+          <meshStandardMaterial color={index === 0 ? config.accent : config.color} roughness={0.96} />
+        </mesh>
+      ))}
 
       <mesh position={[0, topY + 0.01, 0]} rotation={[-Math.PI / 2 + 0.025, 0, 0]}>
         <planeGeometry args={[bedLength, bedWidth, 24, 10]} />
-        <meshStandardMaterial color={config.accent} transparent opacity={0.28} roughness={1} depthWrite={false} />
+        <meshStandardMaterial color={config.accent} transparent opacity={0.42} roughness={1} depthWrite={false} />
       </mesh>
 
       {['溪流砂', '化妆砂', '河沙', '珊瑚砂'].includes(substrate || '') && [-0.25, 0.1, 0.42].map((zOffset, index) => (
