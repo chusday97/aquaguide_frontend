@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronUp, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus } from 'lucide-react';
+import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus } from 'lucide-react';
 
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
@@ -150,8 +150,6 @@ export default function Encyclopedia() {
   const [housingFilter, setHousingFilter] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
-  const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
-  const [hasSelectedLifeTypeOnce, setHasSelectedLifeTypeOnce] = useState(false);
 
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());
@@ -300,7 +298,6 @@ export default function Encyclopedia() {
 
   const handleLifeTypeClick = (id: string) => {
     setLifeTypeFilter(prev => prev === id ? 'All' : id);
-    setHasSelectedLifeTypeOnce(true);
     setSelectedCategory('全部');
   };
 
@@ -314,7 +311,6 @@ export default function Encyclopedia() {
     setLifeTypeFilter('All');
     setHousingFilter('All');
     setSelectedCategory('全部');
-    setHasSelectedLifeTypeOnce(false);
   };
 
   const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
@@ -567,43 +563,19 @@ export default function Encyclopedia() {
               );
             })}
           </div>
-        </div>
-
-        {/* Row 2: Difficulty */}
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">饲养难度</span>
-          <div className="flex min-w-0 flex-wrap gap-2">
-            {difficulties.map(d => (
-              <button
-                key={d.id}
-                onClick={() => handleDifficultyClick(d.id)}
-                className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-colors font-bold ${
-                  difficultyFilter === d.id 
-                    ? `${getDifficultyBadgeClass(d.id)} ring-2 ring-ink/10 shadow-sm`
-                    : `${getDifficultyBadgeClass(d.id)} opacity-80 hover:opacity-100`
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 3: Secondary Category Circles (Wrap & Collapse) */}
-        <div className="flex flex-col gap-2">
-          {isCategoriesExpanded && (
-            <div className="flex min-w-0 flex-col gap-2 mt-2">
+          {lifeTypeFilter !== 'All' && (
+            <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-sm border border-border/70 bg-white/70 p-3">
               <span className="text-xs font-bold text-ink/70">二级标签</span>
               <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
                   {categories.length > 0 ? categories.map(cat => {
                     const sampleFish = allFishes.find(f => getSecondaryCategory(f) === cat);
                     const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
-                    
+
                     return (
-                      <div 
-                        key={cat} 
-                        className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5" 
+                      <div
+                        key={cat}
+                        className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5"
                         onClick={() => handleCategoryClick(cat)}
                       >
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
@@ -616,27 +588,35 @@ export default function Encyclopedia() {
                         </span>
                       </div>
                     );
-                  }) : hasSelectedLifeTypeOnce ? (
+                  }) : (
                     <div className="text-xs text-ink/50 font-medium py-3">
                       当前生物类型暂时没有可用的二级标签，可以换一个生物类型看看。
                     </div>
-                  ) : (
-                    null
                   )}
                 </div>
               </div>
             </div>
           )}
-          <button 
-            onClick={() => setIsCategoriesExpanded(!isCategoriesExpanded)}
-            className="flex items-center justify-center w-full py-1.5 text-[11px] text-ink/60 hover:text-ink font-bold transition-colors border border-border border-dashed rounded-sm mt-1 bg-white hover:bg-bg"
-          >
-            {isCategoriesExpanded ? (
-              <><ChevronUp className="w-3 h-3 mr-1" /> 收起二级标签</>
-            ) : (
-              <><ChevronDown className="w-3 h-3 mr-1" /> 按二级标签筛选</>
-            )}
-          </button>
+        </div>
+
+        {/* Row 2: Difficulty */}
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">饲养难度</span>
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {difficulties.map(d => (
+              <button
+                key={d.id}
+                onClick={() => handleDifficultyClick(d.id)}
+                className={`px-3 py-2 text-[12px] whitespace-nowrap rounded-sm border transition-colors font-bold ${
+                  difficultyFilter === d.id
+                    ? `${getDifficultyBadgeClass(d.id)} ring-2 ring-ink/10 shadow-sm`
+                    : `${getDifficultyBadgeClass(d.id)} opacity-80 hover:opacity-100`
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Row 5: Housing Mode */}
