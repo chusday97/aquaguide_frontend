@@ -6,6 +6,8 @@ import {
   getLifeTypeCounts,
   getSecondaryCategory,
   getSecondaryCategories,
+  matchesSizeFilter,
+  matchesTemperamentFilter,
   matchesWaterTypeFilter,
 } from '../species/species.service';
 import { encyclopediaSearchInputSchema, EncyclopediaSearchOutput } from './encyclopedia.schema';
@@ -17,7 +19,16 @@ const defaultOutput: EncyclopediaSearchOutput = {
   categories: [],
   lifeTypeCounts: {},
   total: 0,
-  activeFilters: { searchTerm: '', lifeType: 'All', category: '全部', difficulty: 'All', waterType: 'All', housingMode: 'All' },
+  activeFilters: {
+    searchTerm: '',
+    lifeType: 'All',
+    category: '全部',
+    difficulty: 'All',
+    waterType: 'All',
+    size: 'All',
+    temperament: 'All',
+    housingMode: 'All',
+  },
 };
 
 const matchesBaseFilters = (fish: Fish, filters: EncyclopediaSearchOutput['activeFilters']) => {
@@ -28,9 +39,11 @@ const matchesBaseFilters = (fish: Fish, filters: EncyclopediaSearchOutput['activ
   const matchesDifficulty = filters.difficulty === 'All' || fish.difficulty === filters.difficulty;
   const matchesLifeType = filters.lifeType === 'All' || getEncyclopediaLifeType(fish) === filters.lifeType;
   const matchesWaterType = matchesWaterTypeFilter(fish, filters.waterType);
+  const matchesSize = matchesSizeFilter(fish, filters.size);
+  const matchesTemperament = matchesTemperamentFilter(fish, filters.temperament);
   const matchesHousing = filters.housingMode === 'All' || (fish.housingMode || '适合混养') === filters.housingMode;
 
-  return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType && matchesHousing;
+  return matchesSearch && matchesDifficulty && matchesLifeType && matchesWaterType && matchesSize && matchesTemperament && matchesHousing;
 };
 
 export const encyclopediaService = {
@@ -52,6 +65,8 @@ export const encyclopediaService = {
       category: parsed.data.category,
       difficulty: parsed.data.difficulty,
       waterType: parsed.data.waterType,
+      size: parsed.data.size,
+      temperament: parsed.data.temperament,
       housingMode: parsed.data.housingMode,
     };
     const allItems = getDisplayableSpecies();

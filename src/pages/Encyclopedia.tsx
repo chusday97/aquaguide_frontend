@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
-import { getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
+import { getCareTaxonomyPath, getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import {
   DISCOVERY_DAILY_LIMIT,
@@ -22,6 +22,24 @@ const difficulties = [
   { id: 'Easy', label: '新手适宜' },
   { id: 'Medium', label: '进阶挑战' },
   { id: 'Hard', label: '骨灰级玩家' }
+];
+
+const temperatureBands = [
+  { id: 'Coldwater', label: '冷水', hint: '低温/不用加热' },
+  { id: 'Tropical', label: '热带', hint: '多数需加热' },
+  { id: 'BroadRange', label: '广温', hint: '适应范围较宽' },
+];
+
+const sizeFilters = [
+  { id: 'Small', label: '小型', hint: '小缸/群游' },
+  { id: 'Medium', label: '中型', hint: '中等缸位' },
+  { id: 'Large', label: '大型', hint: '大缸/慎混' },
+];
+
+const temperamentFilters = [
+  { id: 'Peaceful', label: '温和', hint: '更适合混养' },
+  { id: 'Territorial', label: '领地', hint: '注意躲避' },
+  { id: 'Aggressive', label: '凶猛', hint: '高风险' },
 ];
 
 const lifeTypes = [
@@ -146,6 +164,8 @@ export default function Encyclopedia() {
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
   const [waterTypeFilter, setWaterTypeFilter] = useState<string>('All');
+  const [sizeFilter, setSizeFilter] = useState<string>('All');
+  const [temperamentFilter, setTemperamentFilter] = useState<string>('All');
   const [lifeTypeFilter, setLifeTypeFilter] = useState<string>('All');
   const [housingFilter, setHousingFilter] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
@@ -187,11 +207,13 @@ export default function Encyclopedia() {
       lifeType: lifeTypeFilter as 'All' | 'freshwaterFish' | 'saltwaterFish' | 'invertebrate' | 'reptile' | 'coral',
       category: selectedCategory,
       difficulty: difficultyFilter as 'All' | 'Easy' | 'Medium' | 'Hard',
-      waterType: waterTypeFilter as 'All' | 'Freshwater' | 'Saltwater' | 'Coldwater',
+      waterType: waterTypeFilter as 'All' | 'Freshwater' | 'Saltwater' | 'Coldwater' | 'Tropical' | 'BroadRange',
+      size: sizeFilter as 'All' | 'Small' | 'Medium' | 'Large',
+      temperament: temperamentFilter as 'All' | 'Peaceful' | 'Territorial' | 'Aggressive',
       housingMode: housingFilter as 'All' | '适合混养' | '谨慎混养' | '建议单养',
       limit: 500,
     }),
-    [difficultyFilter, housingFilter, lifeTypeFilter, searchTerm, selectedCategory, waterTypeFilter]
+    [difficultyFilter, housingFilter, lifeTypeFilter, searchTerm, selectedCategory, sizeFilter, temperamentFilter, waterTypeFilter]
   );
   const allFishes = encyclopediaCatalog.allItems;
   const discoveryPool = useMemo(
@@ -215,6 +237,7 @@ export default function Encyclopedia() {
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[0]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
+  const discoveryTaxonomy = discoveryFish ? getCareTaxonomyPath(discoveryFish) : null;
   const nextDiscoveryFish = useMemo(
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
@@ -298,6 +321,7 @@ export default function Encyclopedia() {
 
   const handleLifeTypeClick = (id: string) => {
     setLifeTypeFilter(prev => prev === id ? 'All' : id);
+    setWaterTypeFilter('All');
     setSelectedCategory('全部');
   };
 
@@ -308,12 +332,14 @@ export default function Encyclopedia() {
   const clearFilters = () => {
     setDifficultyFilter('All');
     setWaterTypeFilter('All');
+    setSizeFilter('All');
+    setTemperamentFilter('All');
     setLifeTypeFilter('All');
     setHousingFilter('All');
     setSelectedCategory('全部');
   };
 
-  const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
+  const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || sizeFilter !== 'All' || temperamentFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
   const categories = encyclopediaCatalog.categories;
   const lifeTypeCounts = encyclopediaCatalog.lifeTypeCounts;
 
@@ -324,6 +350,7 @@ export default function Encyclopedia() {
   }, [categories, selectedCategory]);
 
   const filteredFishes = encyclopediaCatalog.items;
+  const selectedTaxonomy = selectedFish ? getCareTaxonomyPath(selectedFish) : null;
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
@@ -463,7 +490,7 @@ export default function Encyclopedia() {
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">分类</p>
-                    <p className="text-[11px] font-black leading-tight text-ink whitespace-normal break-words [overflow-wrap:anywhere]">{getSecondaryCategory(discoveryFish)}</p>
+                    <p className="text-[11px] font-black leading-tight text-ink whitespace-normal break-words [overflow-wrap:anywhere]">{discoveryTaxonomy?.variety}</p>
                   </div>
                   <div className="rounded-sm bg-bg p-2">
                     <p className="text-[9px] font-bold text-ink/45">水温</p>
@@ -478,6 +505,11 @@ export default function Encyclopedia() {
                 <p className="mt-3 line-clamp-2 text-[12px] leading-relaxed text-ink/70 font-medium">
                   {discoveryFish.feedingProfile?.recommendedFoods || discoveryFish.diet}
                 </p>
+                {discoveryTaxonomy && (
+                  <p className="mt-2 text-[10px] font-bold leading-relaxed text-ink/45">
+                    {discoveryTaxonomy.waterType} / {discoveryTaxonomy.temperatureBand} / {discoveryTaxonomy.size} / {discoveryTaxonomy.temperament} / {discoveryTaxonomy.difficulty}
+                  </p>
+                )}
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Button
@@ -563,43 +595,77 @@ export default function Encyclopedia() {
               );
             })}
           </div>
-          {lifeTypeFilter !== 'All' && (
-            <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-sm border border-border/70 bg-white/70 p-3">
-              <span className="text-xs font-bold text-ink/70">二级标签</span>
-              <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
-                  {categories.length > 0 ? categories.map(cat => {
-                    const sampleFish = allFishes.find(f => getSecondaryCategory(f) === cat);
-                    const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
-
-                    return (
-                      <div
-                        key={cat}
-                        className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5"
-                        onClick={() => handleCategoryClick(cat)}
-                      >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
-                          selectedCategory === cat ? 'border-accent border-[2px] shadow-sm scale-105' : 'border-border border'
-                        }`}>
-                          <img src={bgImage} alt={cat} className="w-full h-full object-contain p-1 opacity-90" referrerPolicy="no-referrer" />
-                        </div>
-                        <span className={`max-w-full break-words text-center text-[10px] leading-tight ${selectedCategory === cat ? 'font-bold text-accent' : 'text-ink/80 font-medium'}`}>
-                          {cat}
-                        </span>
-                      </div>
-                    );
-                  }) : (
-                    <div className="text-xs text-ink/50 font-medium py-3">
-                      当前生物类型暂时没有可用的二级标签，可以换一个生物类型看看。
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Row 2: Difficulty */}
+        {/* Row 2: Temperature Band */}
+        {(lifeTypeFilter === 'freshwaterFish' || lifeTypeFilter === 'saltwaterFish') && (
+          <div className="flex min-w-0 flex-col gap-2">
+            <span className="text-xs font-bold text-ink/70">水温类型</span>
+            <div className="grid min-w-0 grid-cols-3 gap-2">
+              {temperatureBands.map(item => {
+                const isActive = waterTypeFilter === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setWaterTypeFilter(prev => prev === item.id ? 'All' : item.id)}
+                    className={`min-h-[48px] rounded-sm border px-2 py-2 text-left transition-all ${
+                      isActive ? 'border-accent bg-accent text-white shadow-sm' : 'border-border bg-white text-ink hover:border-accent hover:text-accent'
+                    }`}
+                  >
+                    <div className="text-[12px] font-black leading-tight">{item.label}</div>
+                    <div className={`mt-0.5 text-[9px] leading-tight ${isActive ? 'text-white/75' : 'text-ink/45'}`}>{item.hint}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Row 3: Size */}
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">体型大小</span>
+          <div className="grid min-w-0 grid-cols-3 gap-2">
+            {sizeFilters.map(item => {
+              const isActive = sizeFilter === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSizeFilter(prev => prev === item.id ? 'All' : item.id)}
+                  className={`min-h-[48px] rounded-sm border px-2 py-2 text-left transition-all ${
+                    isActive ? 'border-accent bg-accent text-white shadow-sm' : 'border-border bg-white text-ink hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  <div className="text-[12px] font-black leading-tight">{item.label}</div>
+                  <div className={`mt-0.5 text-[9px] leading-tight ${isActive ? 'text-white/75' : 'text-ink/45'}`}>{item.hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 4: Temperament */}
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="text-xs font-bold text-ink/70">性格风险</span>
+          <div className="grid min-w-0 grid-cols-3 gap-2">
+            {temperamentFilters.map(item => {
+              const isActive = temperamentFilter === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setTemperamentFilter(prev => prev === item.id ? 'All' : item.id)}
+                  className={`min-h-[48px] rounded-sm border px-2 py-2 text-left transition-all ${
+                    isActive ? 'border-accent bg-accent text-white shadow-sm' : 'border-border bg-white text-ink hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  <div className="text-[12px] font-black leading-tight">{item.label}</div>
+                  <div className={`mt-0.5 text-[9px] leading-tight ${isActive ? 'text-white/75' : 'text-ink/45'}`}>{item.hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 5: Difficulty */}
         <div className="flex min-w-0 flex-col gap-2">
           <span className="text-xs font-bold text-ink/70">饲养难度</span>
           <div className="flex min-w-0 flex-wrap gap-2">
@@ -619,7 +685,7 @@ export default function Encyclopedia() {
           </div>
         </div>
 
-        {/* Row 5: Housing Mode */}
+        {/* Row 6: Housing Mode */}
         <div className="flex min-w-0 flex-col gap-2">
           <span className="text-xs font-bold text-ink/70">混养建议</span>
           <div className="grid min-w-0 grid-cols-3 gap-2">
@@ -639,6 +705,45 @@ export default function Encyclopedia() {
             })}
           </div>
         </div>
+
+        {/* Row 7: Variety */}
+        {lifeTypeFilter !== 'All' && (
+          <div className="flex min-w-0 flex-col gap-2 rounded-sm border border-border/70 bg-white/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-ink/70">具体品种</span>
+              <span className="text-[10px] font-medium text-ink/40">最后再按水族圈叫法细分</span>
+            </div>
+            <div className="relative flex min-w-0 items-start gap-3 overflow-hidden">
+              <div className="flex min-w-0 flex-1 flex-wrap gap-3 transition-all duration-300">
+                {categories.length > 0 ? categories.map(cat => {
+                  const sampleFish = allFishes.find(f => getSecondaryCategory(f) === cat);
+                  const bgImage = sampleFish ? sampleFish.image : 'https://picsum.photos/seed/allfish/100/100';
+
+                  return (
+                    <div
+                      key={cat}
+                      className="flex w-[62px] cursor-pointer flex-col items-center gap-1.5"
+                      onClick={() => handleCategoryClick(cat)}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-all ${
+                        selectedCategory === cat ? 'border-accent border-[2px] shadow-sm scale-105' : 'border-border border'
+                      }`}>
+                        <img src={bgImage} alt={cat} className="w-full h-full object-contain p-1 opacity-90" referrerPolicy="no-referrer" />
+                      </div>
+                      <span className={`max-w-full break-words text-center text-[10px] leading-tight ${selectedCategory === cat ? 'font-bold text-accent' : 'text-ink/80 font-medium'}`}>
+                        {cat}
+                      </span>
+                    </div>
+                  );
+                }) : (
+                  <div className="py-3 text-xs font-medium text-ink/50">
+                    当前条件下没有可用的具体品种，可以减少前面的筛选条件。
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
         <div className="grid grid-cols-2 gap-3 mt-2">
@@ -648,6 +753,7 @@ export default function Encyclopedia() {
             const imageClass = isOwned ? 'opacity-100' : 'opacity-90';
             const theme = getFishTemperatureTheme(fish.waterTemperature);
             const toolTags = getToolFunctions(fish);
+            const taxonomy = getCareTaxonomyPath(fish);
 
             return (
               <div 
@@ -668,7 +774,10 @@ export default function Encyclopedia() {
                   <h2 className="font-serif text-[15px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
                     {fish.name}
                   </h2>
-                  <p className="text-[11px] leading-tight text-ink/70 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">{getSecondaryCategory(fish)}</p>
+                  <p className="text-[11px] leading-tight text-ink/70 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">{taxonomy.variety}</p>
+                  <p className="mt-0.5 text-[9px] leading-tight text-ink/45">
+                    {taxonomy.waterType} · {taxonomy.temperatureBand} · {taxonomy.size} · {taxonomy.temperament}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <span className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-sm ${getDifficultyBadgeClass(fish.difficulty)}`}>
@@ -788,6 +897,26 @@ export default function Encyclopedia() {
                 <p className="text-sm md:text-[14px] leading-relaxed text-ink font-medium">
                   {selectedFish.description}
                 </p>
+
+                {selectedTaxonomy && (
+                  <div className="rounded-sm border border-border bg-bg/70 p-3">
+                    <p className="mb-2 text-[10px] font-black tracking-wide text-ink/50">家庭观赏鱼分类路径</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        selectedTaxonomy.waterType,
+                        selectedTaxonomy.temperatureBand,
+                        selectedTaxonomy.size,
+                        selectedTaxonomy.temperament,
+                        selectedTaxonomy.difficulty,
+                        selectedTaxonomy.variety,
+                      ].map(item => (
+                        <span key={item} className="rounded-sm border border-border bg-white px-2 py-1 text-[11px] font-bold text-ink/70">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 text-[12px] border-t border-b border-border py-4 bg-bg/50 px-3 rounded-sm">
                   <div className="flex flex-col gap-1">

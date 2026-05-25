@@ -7,7 +7,9 @@ export const encyclopediaSearchInputSchema = z.object({
   lifeType: z.enum(['All', 'freshwaterFish', 'saltwaterFish', 'invertebrate', 'reptile', 'coral']).default('All'),
   category: z.string().default('全部'),
   difficulty: z.enum(['All', 'Easy', 'Medium', 'Hard']).default('All'),
-  waterType: z.enum(['All', 'Freshwater', 'Saltwater', 'Coldwater']).default('All'),
+  waterType: z.enum(['All', 'Freshwater', 'Saltwater', 'Coldwater', 'Tropical', 'BroadRange']).default('All'),
+  size: z.enum(['All', 'Small', 'Medium', 'Large']).default('All'),
+  temperament: z.enum(['All', 'Peaceful', 'Territorial', 'Aggressive']).default('All'),
   housingMode: z.enum(['All', '适合混养', '谨慎混养', '建议单养']).default('All'),
   limit: z.number().int().positive().max(500).default(500),
 });
@@ -25,6 +27,8 @@ export const encyclopediaSearchOutputSchema = z.object({
     category: z.string(),
     difficulty: z.string(),
     waterType: z.string(),
+    size: z.string(),
+    temperament: z.string(),
     housingMode: z.string(),
   }),
 });
@@ -43,6 +47,8 @@ export interface EncyclopediaSearchOutput {
     category: string;
     difficulty: string;
     waterType: string;
+    size: string;
+    temperament: string;
     housingMode: string;
   };
 }

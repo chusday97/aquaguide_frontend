@@ -63,6 +63,40 @@ const isMarineFishText = (text: string) => (
   /小丑|倒吊|蓝魔鬼|雀鲷|蝶鱼|炮弹|狮子鱼|红利|泗水玫瑰|五彩青蛙|虾虎|Pseudochromis|Amphiprion|Zebrasoma|Paracanthurus|Chaetodon|Chrysiptera|Pterois|Lutjanus|Pterapogon|Xanthichthys|Centropyge|Pomacanthus|Synchiropus|Gobiodon/i.test(text)
 );
 
+const parseTemperatureRange = (temperature?: string) => {
+  const matches = temperature?.match(/(\d+(?:\.\d+)?)/g);
+  if (!matches || matches.length === 0) return null;
+  const values = matches.map(Number).filter(Number.isFinite);
+  if (values.length === 0) return null;
+  return { min: Math.min(...values), max: Math.max(...values) };
+};
+
+export const getTemperatureBand = (fish: Fish) => {
+  const range = parseTemperatureRange(fish.waterTemperature);
+  if (!range) return '广温';
+  if (range.max <= 24 && range.min <= 20) return '冷水';
+  if (range.min >= 22) return '热带';
+  return '广温';
+};
+
+export const getSizeLabel = (fish: Fish) => {
+  if (fish.size === 'Large') return '大型';
+  if (fish.size === 'Medium') return '中型';
+  return '小型';
+};
+
+export const getTemperamentLabel = (fish: Fish) => {
+  if (fish.temperament === 'Aggressive') return '凶猛';
+  if (fish.temperament === 'Territorial') return '领地';
+  return '温和';
+};
+
+export const getDifficultyLabel = (fish: Fish) => {
+  if (fish.difficulty === 'Hard') return '困难';
+  if (fish.difficulty === 'Medium') return '中等';
+  return '极易';
+};
+
 export const getLifeType = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
 
@@ -150,6 +184,15 @@ export const isSaltwaterSpecies = (fish: Fish) => {
   return fish.category === '海水鱼' || lifeType === 'coral' || /海水/.test(fish.name) || (lifeType === 'fish' && isMarineFishText(text));
 };
 
+export const getCareTaxonomyPath = (fish: Fish) => ({
+  waterType: isSaltwaterSpecies(fish) ? '海水' : '淡水',
+  temperatureBand: getTemperatureBand(fish),
+  size: getSizeLabel(fish),
+  temperament: getTemperamentLabel(fish),
+  difficulty: getDifficultyLabel(fish),
+  variety: getSecondaryCategory(fish),
+});
+
 export const getEncyclopediaLifeType = (fish: Fish) => {
   const lifeType = getLifeType(fish);
   if (lifeType === 'fish') return isSaltwaterSpecies(fish) ? 'saltwaterFish' : 'freshwaterFish';
@@ -160,12 +203,20 @@ export const matchesWaterTypeFilter = (fish: Fish, waterTypeFilter: string) => {
   if (waterTypeFilter === 'Freshwater') return !isSaltwaterSpecies(fish);
   if (waterTypeFilter === 'Saltwater') return isSaltwaterSpecies(fish);
   if (waterTypeFilter === 'Coldwater') {
-    const tempMatch = fish.waterTemperature?.match(/(\d+)-/);
-    if (tempMatch) return parseInt(tempMatch[1]) <= 18;
-    return false;
+    return getTemperatureBand(fish) === '冷水';
   }
+  if (waterTypeFilter === 'Tropical') return getTemperatureBand(fish) === '热带';
+  if (waterTypeFilter === 'BroadRange') return getTemperatureBand(fish) === '广温';
   return true;
 };
+
+export const matchesSizeFilter = (fish: Fish, sizeFilter: string) => (
+  sizeFilter === 'All' || fish.size === sizeFilter
+);
+
+export const matchesTemperamentFilter = (fish: Fish, temperamentFilter: string) => (
+  temperamentFilter === 'All' || fish.temperament === temperamentFilter
+);
 
 export const getToolFunctions = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
