@@ -148,6 +148,7 @@ export default function Encyclopedia() {
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
+  const [hasSelectedLifeTypeOnce, setHasSelectedLifeTypeOnce] = useState(false);
 
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());
@@ -313,6 +314,7 @@ export default function Encyclopedia() {
 
   const handleLifeTypeClick = (id: string) => {
     setLifeTypeFilter(prev => prev === id ? 'All' : id);
+    setHasSelectedLifeTypeOnce(true);
     setSelectedCategory('全部');
   };
 
@@ -326,6 +328,7 @@ export default function Encyclopedia() {
     setLifeTypeFilter('All');
     setHousingFilter('All');
     setSelectedCategory('全部');
+    setHasSelectedLifeTypeOnce(false);
   };
 
   const hasActiveFilters = difficultyFilter !== 'All' || waterTypeFilter !== 'All' || lifeTypeFilter !== 'All' || housingFilter !== 'All' || selectedCategory !== '全部';
@@ -663,10 +666,12 @@ export default function Encyclopedia() {
                         </span>
                       </div>
                     );
-                  }) : (
+                  }) : hasSelectedLifeTypeOnce ? (
                     <div className="text-xs text-ink/50 font-medium py-3">
-                      先选择上方“生物类型”，这里会显示对应的二级标签，例如灯科鱼、除藻生物、龟类、海葵。
+                      当前生物类型暂时没有可用的二级标签，可以换一个生物类型看看。
                     </div>
+                  ) : (
+                    null
                   )}
                 </div>
               </div>
