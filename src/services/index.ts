@@ -4,4 +4,4 @@ export * from './database/database.service';
 export * from './logger/logger.service';
 export * from './sheets/google-sheets.service';
 export * from './storage/local-storage.service';
-
+export * from './weather/weather.service';
