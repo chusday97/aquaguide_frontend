@@ -11,6 +11,32 @@ const app = express();
 const port = Number(process.env.PORT || process.env.API_PORT || 8787);
 const deepseekBaseUrl = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
 const deepseekModel = process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
+const aiRateLimitWindowMs = 60 * 1000;
+const aiRateLimitMaxRequests = 10;
+const aiRateLimitBuckets = new Map();
+
+const getClientId = (req) => {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwardedFor || req.ip || req.socket?.remoteAddress || 'unknown';
+};
+
+const checkAiRateLimit = (clientId) => {
+  const now = Date.now();
+  const bucket = aiRateLimitBuckets.get(clientId);
+
+  if (!bucket || now - bucket.windowStart >= aiRateLimitWindowMs) {
+    aiRateLimitBuckets.set(clientId, { count: 1, windowStart: now });
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  if (bucket.count >= aiRateLimitMaxRequests) {
+    const retryAfterSeconds = Math.ceil((aiRateLimitWindowMs - (now - bucket.windowStart)) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+
+  bucket.count += 1;
+  return { allowed: true, retryAfterSeconds: 0 };
+};
 
 app.use(express.json({ limit: '3mb' }));
 
@@ -24,6 +50,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/ai/chat', async (req, res) => {
+  const rateLimit = checkAiRateLimit(getClientId(req));
+  if (!rateLimit.allowed) {
+    return res
+      .status(429)
+      .set('Retry-After', String(rateLimit.retryAfterSeconds))
+      .json({ error: `请求太频繁，请 ${rateLimit.retryAfterSeconds} 秒后再试。` });
+  }
+
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey || apiKey === 'MY_DEEPSEEK_API_KEY') {
     return res.status(503).json({

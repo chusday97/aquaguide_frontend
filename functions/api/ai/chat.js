@@ -6,7 +6,43 @@ const json = (body, init = {}) => new Response(JSON.stringify(body), {
   },
 });
 
+const aiRateLimitWindowMs = 60 * 1000;
+const aiRateLimitMaxRequests = 10;
+const aiRateLimitBuckets = new Map();
+
+const getClientId = (request) => (
+  request.headers.get('CF-Connecting-IP')
+  || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  || 'unknown'
+);
+
+const checkAiRateLimit = (clientId) => {
+  const now = Date.now();
+  const bucket = aiRateLimitBuckets.get(clientId);
+
+  if (!bucket || now - bucket.windowStart >= aiRateLimitWindowMs) {
+    aiRateLimitBuckets.set(clientId, { count: 1, windowStart: now });
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  if (bucket.count >= aiRateLimitMaxRequests) {
+    const retryAfterSeconds = Math.ceil((aiRateLimitWindowMs - (now - bucket.windowStart)) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+
+  bucket.count += 1;
+  return { allowed: true, retryAfterSeconds: 0 };
+};
+
 export async function onRequestPost({ request, env }) {
+  const rateLimit = checkAiRateLimit(getClientId(request));
+  if (!rateLimit.allowed) {
+    return json(
+      { error: `请求太频繁，请 ${rateLimit.retryAfterSeconds} 秒后再试。` },
+      { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } },
+    );
+  }
+
   const apiKey = env.DEEPSEEK_API_KEY;
   const deepseekBaseUrl = (env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
   const deepseekModel = env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
@@ -69,4 +105,3 @@ export async function onRequestPost({ request, env }) {
     }, { status: 500 });
   }
 }
-
