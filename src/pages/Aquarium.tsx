@@ -68,12 +68,21 @@ const parseLiters = (value: string | undefined, fallback = 0) => {
   return match ? parseFloat(match[1]) : fallback;
 };
 
-const getTankVolumeLiters = (aquarium: Aquarium) => {
-  const length = parseFloat(aquarium.dimensions?.length || '60');
-  const width = parseFloat(aquarium.dimensions?.width || '40');
-  const height = parseFloat(aquarium.dimensions?.height || '40');
+const getTankGrossVolumeLiters = (dimensions?: Aquarium['dimensions']) => {
+  const length = parseFloat(dimensions?.length || '60');
+  const width = parseFloat(dimensions?.width || '40');
+  const height = parseFloat(dimensions?.height || '40');
   if ([length, width, height].some(value => Number.isNaN(value) || value <= 0)) return 0;
-  return Math.round((length * width * height) / 1000 * 0.85);
+  return Math.round((length * width * height) / 1000);
+};
+
+const getEstimatedWaterVolumeLiters = (dimensions?: Aquarium['dimensions']) => {
+  const grossVolume = getTankGrossVolumeLiters(dimensions);
+  return grossVolume > 0 ? Math.round(grossVolume * 0.85) : 0;
+};
+
+const getTankVolumeLiters = (aquarium: Aquarium) => {
+  return getEstimatedWaterVolumeLiters(aquarium.dimensions);
 };
 
 const getBioLoadLiters = (fish: Fish) => {
@@ -571,6 +580,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     return sum + (fish ? getBioLoadLiters(fish) * Math.max(1, aqFish.quantity || 1) : 0);
   }, 0);
   const selectedPlantCount = settingsForm.plants?.length || 0;
+  const settingsGrossVolumeLiters = getTankGrossVolumeLiters(settingsForm.dimensions);
+  const settingsEstimatedWaterLiters = getEstimatedWaterVolumeLiters(settingsForm.dimensions);
   const visiblePlantOptions = isPlantListExpanded ? plantOptions : plantOptions.slice(0, 2);
   const hiddenPlantCount = Math.max(plantOptions.length - visiblePlantOptions.length, 0);
   const selectedHardscapeCount = settingsForm.hardscape?.length || 0;
@@ -789,7 +800,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} | {activeAquarium.targetTemperature || '25'}°C
           </div>
           <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/50">
-            {activeAquarium.dimensions?.length || 60}x{activeAquarium.dimensions?.width || 40}x{activeAquarium.dimensions?.height || 40}cm
+            {activeAquarium.dimensions?.length || 60}x{activeAquarium.dimensions?.width || 40}x{activeAquarium.dimensions?.height || 40}cm · 约{tankVolumeLiters}L
           </div>
         </div>
 
@@ -1229,15 +1240,31 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             <div className="grid grid-cols-3 gap-2">
               <div className="grid gap-2">
                 <Label className="text-[11px] uppercase tracking-wider text-ink/70 font-bold">长 (cm)</Label>
-                <Input value={settingsForm.dimensions?.length || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, length: e.target.value}})} className="h-9 text-sm" />
+                <Input type="number" inputMode="decimal" value={settingsForm.dimensions?.length || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, length: e.target.value}})} className="h-9 text-sm" />
               </div>
               <div className="grid gap-2">
                 <Label className="text-[11px] uppercase tracking-wider text-ink/70 font-bold">宽 (cm)</Label>
-                <Input value={settingsForm.dimensions?.width || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, width: e.target.value}})} className="h-9 text-sm" />
+                <Input type="number" inputMode="decimal" value={settingsForm.dimensions?.width || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, width: e.target.value}})} className="h-9 text-sm" />
               </div>
               <div className="grid gap-2">
                 <Label className="text-[11px] uppercase tracking-wider text-ink/70 font-bold">高 (cm)</Label>
-                <Input value={settingsForm.dimensions?.height || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, height: e.target.value}})} className="h-9 text-sm" />
+                <Input type="number" inputMode="decimal" value={settingsForm.dimensions?.height || ''} onChange={e => setSettingsForm({...settingsForm, dimensions: {...settingsForm.dimensions!, height: e.target.value}})} className="h-9 text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-sm border border-accent/15 bg-accent-light/20 p-3">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-ink/50">理论容量</div>
+                <div className="mt-1 font-serif text-2xl font-bold text-ink">
+                  {settingsGrossVolumeLiters > 0 ? `${settingsGrossVolumeLiters}L` : '--'}
+                </div>
+                <div className="mt-0.5 text-[10px] font-medium text-ink/45">长×宽×高÷1000</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-ink/50">估算实际水量</div>
+                <div className="mt-1 font-serif text-2xl font-bold text-accent">
+                  {settingsEstimatedWaterLiters > 0 ? `${settingsEstimatedWaterLiters}L` : '--'}
+                </div>
+                <div className="mt-0.5 text-[10px] font-medium text-ink/45">按约 85% 水位/造景估算</div>
               </div>
             </div>
             <div className="grid gap-2">
