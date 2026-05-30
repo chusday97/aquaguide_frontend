@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
-import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI } from '../lib/aiClient';
@@ -42,6 +42,135 @@ const hardscapeOptions = fishData
   .filter(isHardscapeSpecies)
   .filter((item, index, items) => items.findIndex(next => next.scientificName === item.scientificName && next.name === item.name) === index)
   .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+type TankBuildTemplate = {
+  id: string;
+  name: string;
+  tagline: string;
+  bestFor: string;
+  difficulty: '新手' | '进阶';
+  tankSize: string;
+  temperature: string;
+  substrate: string;
+  plants: string[];
+  hardscape: string[];
+  equipment: string[];
+  equipmentSettings: Aquarium['equipment'];
+  livestock: string[];
+  stockedSpecies: { name: string; quantity: number }[];
+  maintenance: string[];
+  caution: string;
+};
+
+const findSpeciesValueByName = (name: string, matcher: (fish: Fish) => boolean) => {
+  const species = fishData.find(fish => matcher(fish) && (fish.name === name || fish.name.includes(name) || name.includes(fish.name)));
+  return species?.id || name;
+};
+
+const findStockSpeciesByName = (name: string) => {
+  return fishData.find(fish => (
+    !isAquaticPlantSpecies(fish)
+    && !isHardscapeSpecies(fish)
+    && (fish.name === name || fish.name.includes(name) || name.includes(fish.name))
+  ));
+};
+
+const tankBuildTemplates: TankBuildTemplate[] = [
+  {
+    id: 'beginner-low-tech',
+    name: '新手阴性草缸',
+    tagline: '低光、低 CO2 依赖，先把稳定养成习惯。',
+    bestFor: '30-60cm 新手缸、办公室桌面缸',
+    difficulty: '新手',
+    tankSize: '30L 起步，60cm 缸更稳定',
+    temperature: '24',
+    substrate: '水草泥',
+    plants: ['小水榕', '铁皇冠', '黑木蕨', '三角莫斯'],
+    hardscape: ['沉木 (流木)', '杜鹃根'],
+    equipment: ['瀑布过滤或小桶滤', '普通灯/入门水草灯', '可选加热棒'],
+    equipmentSettings: { filter: '瀑布过滤', heater: true, oxygen: false, light: '水草灯' },
+    livestock: ['红绿灯 8-12 条', '咖啡鼠 3-5 条', '斑马螺 1-2 只'],
+    stockedSpecies: [{ name: '红绿灯', quantity: 10 }, { name: '咖啡鼠', quantity: 4 }, { name: '斑马螺', quantity: 1 }],
+    maintenance: ['每周换水 20%-30%', '每周擦缸壁和修剪老叶', '每天开灯 6-7 小时，爆藻时先减光'],
+    caution: '水榕、铁皇冠和黑木蕨不要把根茎埋进泥里，绑在沉木或石头上更稳。',
+  },
+  {
+    id: 'tetra-planted',
+    name: '灯鱼草缸',
+    tagline: '用群游灯鱼做视觉中心，水草负责层次和安全感。',
+    bestFor: '45-90cm 中小型观赏草缸',
+    difficulty: '新手',
+    tankSize: '45L 起步，建议 60cm 以上',
+    temperature: '25',
+    substrate: '水草泥',
+    plants: ['迷你矮珍珠', '牛毛毡', '宫廷草', '红宫廷'],
+    hardscape: ['青龙石', 'ADA风格化妆砂'],
+    equipment: ['水草灯', '桶滤或强瀑布过滤', '可选 CO2', '加热棒'],
+    equipmentSettings: { filter: '桶滤', heater: true, oxygen: false, light: '水草灯' },
+    livestock: ['宝莲灯 12-20 条', '红鼻剪刀/红绿灯 10-15 条', '咖啡鼠 4-6 条', '黑壳虾少量'],
+    stockedSpecies: [{ name: '宝莲灯', quantity: 16 }, { name: '红鼻剪刀', quantity: 10 }, { name: '咖啡鼠', quantity: 4 }, { name: '黑壳虾', quantity: 6 }],
+    maintenance: ['每周换水 30%', '每 2 周修剪一次茎类草', '开灯 7 小时起步，CO2 不稳定时减少红草比例'],
+    caution: '前景草和红草对灯光、肥力和 CO2 更敏感，新手可先减少迷你矮珍珠面积。',
+  },
+  {
+    id: 'shrimp-tank',
+    name: '虾缸',
+    tagline: '给米虾留足躲避和啃食面，重点控制稳定水质。',
+    bestFor: '30-45cm 小缸、繁殖观察缸',
+    difficulty: '新手',
+    tankSize: '20L 起步，30L 以上更稳',
+    temperature: '23',
+    substrate: '水草泥',
+    plants: ['三角莫斯', '青丝绒莫斯', '小水榕', '辣椒榕'],
+    hardscape: ['沉木 (流木)', '火山石板'],
+    equipment: ['海绵过滤', '普通灯', '加热棒视室温决定'],
+    equipmentSettings: { filter: '海绵过滤', heater: false, oxygen: true, light: '普通灯' },
+    livestock: ['极火虾 10-20 只', '黄金米虾/蓝丝绒米虾单色群', '斑马螺 1 只'],
+    stockedSpecies: [{ name: '极火虾', quantity: 15 }, { name: '斑马螺', quantity: 1 }],
+    maintenance: ['每周小换水 10%-20%', '补水和换水温差控制在 1-2°C 内', '避免铜药和强力除藻剂'],
+    caution: '不同颜色米虾混养后代容易返祖，想保色建议单色单缸。',
+  },
+  {
+    id: 'south-america-blackwater',
+    name: '南美黑水缸',
+    tagline: '弱酸软水、沉木落叶和暗色环境，突出南美鱼的状态。',
+    bestFor: '60cm 以上观赏缸、短鲷/神仙主题缸',
+    difficulty: '进阶',
+    tankSize: '60L 起步，神仙鱼建议高缸',
+    temperature: '27',
+    substrate: '河沙',
+    plants: ['大叶皇冠', '细叶皇冠', '黑木蕨'],
+    hardscape: ['沉木 (流木)', '杜鹃根'],
+    equipment: ['桶滤', '弱光灯', '加热棒', '可加黑水素/榄仁叶'],
+    equipmentSettings: { filter: '桶滤', heater: true, oxygen: false, light: '普通灯' },
+    livestock: ['宝莲灯 15-30 条', '阿卡西短鲷 1 对', '神仙鱼 2-4 条', '咖啡鼠 4-6 条'],
+    stockedSpecies: [{ name: '宝莲灯', quantity: 20 }, { name: '阿卡西短鲷', quantity: 2 }, { name: '神仙鱼', quantity: 2 }, { name: '咖啡鼠', quantity: 4 }],
+    maintenance: ['每周换水 20%', '定期补充落叶或黑水材料', '保持水流柔和，避免频繁大幅调 pH'],
+    caution: '黑水缸追求稳定弱酸，不建议同时混入偏硬水或高流速需求的鱼。',
+  },
+  {
+    id: 'seiryu-iwagumi',
+    name: '青龙石岩组缸',
+    tagline: '石组构图强，视觉干净，但更考验控藻和硬度管理。',
+    bestFor: '45-90cm 岩组草缸、极简风格缸',
+    difficulty: '进阶',
+    tankSize: '45L 起步，60cm 以上更容易做纵深',
+    temperature: '24',
+    substrate: '水草泥',
+    plants: ['迷你矮珍珠', '牛毛毡', '南美叉柱花'],
+    hardscape: ['青龙石', '青龙石景观组', 'ADA风格化妆砂'],
+    equipment: ['强水草灯', '桶滤', 'CO2 强烈建议', '加热棒'],
+    equipmentSettings: { filter: '桶滤', heater: true, oxygen: false, light: '水草灯' },
+    livestock: ['红莲灯 12-20 条', '红绿灯 15-25 条', '黑壳虾少量', '斑马螺 1-2 只'],
+    stockedSpecies: [{ name: '红莲灯', quantity: 16 }, { name: '红绿灯', quantity: 15 }, { name: '黑壳虾', quantity: 8 }, { name: '斑马螺', quantity: 1 }],
+    maintenance: ['每周换水 30%-40%', '前 4 周重点控光和勤换水', '前景草爬满后定期薄剪'],
+    caution: '青龙石可能提高硬度，搭配偏软水灯鱼时要观察 GH/KH 和鱼只状态。',
+  },
+].map(template => ({
+  ...template,
+  plants: template.plants.map(name => findSpeciesValueByName(name, isAquaticPlantSpecies)),
+  hardscape: template.hardscape.map(name => findSpeciesValueByName(name, isHardscapeSpecies)),
+}));
 
 const normalizeAquariumPlants = (aquariums: Aquarium[]) => aquariums.map(aquarium => {
   const plantIdsFromFishes = aquarium.fishes
@@ -106,6 +235,28 @@ const getBioLoadLiters = (fish: Fish) => {
   return Math.round(base * temperamentMultiplier);
 };
 
+const getArchiveCategory = (fish: Fish) => {
+  const lifeType = getLifeType(fish);
+  if (lifeType === 'plant') return '水草';
+  if (lifeType === 'hardscape') {
+    return /砂|泥|底床|substrate|soil|sand/i.test(`${fish.name} ${fish.scientificName}`) ? '底砂' : '造景';
+  }
+  if (lifeType === 'invertebrate') return '虾螺';
+  return '鱼类';
+};
+
+const getSubstrateArchiveSpecies = (substrate?: string) => {
+  if (!substrate || substrate === '无') return null;
+  const hardscapeSpecies = fishData.filter(isHardscapeSpecies);
+  return (
+    hardscapeSpecies.find(item => item.name === substrate || item.name.includes(substrate) || substrate.includes(item.name))
+    || (substrate.includes('化妆砂') ? hardscapeSpecies.find(item => item.name.includes('化妆砂')) : undefined)
+    || (substrate.includes('水草泥') ? hardscapeSpecies.find(item => item.name.includes('水草泥')) : undefined)
+    || (/砂|河沙|黑金沙|珊瑚砂/.test(substrate) ? hardscapeSpecies.find(item => item.name.includes('溪流砂') || item.name.includes('化妆砂')) : undefined)
+    || null
+  );
+};
+
 const formatRecommendationReason = (text: string) => {
   const fallback = '基于您当前鱼缸内的生物，我们为您推荐以下兼容性较好的品种。';
   const normalized = (text || fallback).replace(/\s+/g, ' ').trim();
@@ -129,6 +280,16 @@ export default function AquariumManager() {
   const [selectedAqFish, setSelectedAqFish] = useState<{fish: Fish, aqFish: AquariumFish} | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isBuildPlanOpen, setIsBuildPlanOpen] = useState(false);
+  const [isTankPreviewOpen, setIsTankPreviewOpen] = useState(false);
+  const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
+  const [diagnosisText, setDiagnosisText] = useState('');
+  const [diagnosisFullText, setDiagnosisFullText] = useState('');
+  const [diagnosisQuestion, setDiagnosisQuestion] = useState('');
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(tankBuildTemplates[0].id);
+  const [isTankArchiveExpanded, setIsTankArchiveExpanded] = useState(false);
+  const [tankArchiveCategory, setTankArchiveCategory] = useState('全部');
   const [settingsForm, setSettingsForm] = useState<Partial<Aquarium>>({});
   const [isPlantListExpanded, setIsPlantListExpanded] = useState(false);
   const [isScapeListExpanded, setIsScapeListExpanded] = useState(false);
@@ -172,6 +333,26 @@ export default function AquariumManager() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!diagnosisFullText) {
+      setDiagnosisText('');
+      return;
+    }
+
+    setDiagnosisText('');
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index += 2;
+      setDiagnosisText(diagnosisFullText.slice(0, index));
+      if (index >= diagnosisFullText.length) {
+        window.clearInterval(timer);
+        setIsDiagnosing(false);
+      }
+    }, 18);
+
+    return () => window.clearInterval(timer);
+  }, [diagnosisFullText]);
 
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
@@ -429,6 +610,55 @@ export default function AquariumManager() {
     setTankActionMessage(`已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
   };
 
+  const handleApplyBuildTemplate = (template: TankBuildTemplate) => {
+    if (!activeAquarium) return;
+    const now = new Date().toISOString();
+    const templateFish = template.stockedSpecies
+      .map(item => ({ ...item, fish: findStockSpeciesByName(item.name) }))
+      .filter((item): item is { name: string; quantity: number; fish: Fish } => Boolean(item.fish));
+
+    const updated = aquariums.map(a => (
+      a.id === activeId
+        ? (() => {
+            const nextFishes = [...a.fishes];
+            templateFish.forEach(({ fish, quantity }) => {
+              const existingIndex = nextFishes.findIndex(item => item.fishId === fish.id);
+              if (existingIndex >= 0) {
+                nextFishes[existingIndex] = {
+                  ...nextFishes[existingIndex],
+                  quantity: Math.max(nextFishes[existingIndex].quantity || 1, quantity),
+                };
+                return;
+              }
+
+              nextFishes.push({
+                id: Math.random().toString(36).substring(2, 9),
+                fishId: fish.id,
+                quantity,
+                entryDate: now,
+                lastWaterChangeDate: now,
+              });
+            });
+
+            return {
+              ...a,
+              waterType: 'Freshwater' as const,
+              targetTemperature: template.temperature,
+              substrate: template.substrate,
+              plants: template.plants,
+              hardscape: template.hardscape,
+              equipment: template.equipmentSettings,
+              fishes: nextFishes,
+            };
+          })()
+        : a
+    ));
+
+    saveAquariums(updated);
+    setTankActionMessage(`已应用「${template.name}」方案，并加入 ${templateFish.length} 类推荐生物`);
+    setIsBuildPlanOpen(false);
+  };
+
   const handleToggleWaterChangeDate = (dateStr: string) => {
     if (!activeAquarium) return;
     const history = activeAquarium.waterChangeHistory || [];
@@ -571,6 +801,78 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     }
   };
 
+  const buildLocalDiagnosis = (extraQuestion = '') => {
+    const stocked = activeAquarium?.fishes
+      .map(aqFish => {
+        const fish = fishData.find(item => item.id === aqFish.fishId);
+        return fish ? `${fish.name} x${aqFish.quantity || 1}` : '';
+      })
+      .filter(Boolean)
+      .join('、') || '暂无生物';
+
+    return `鱼缸现状分析：
+当前鱼缸为${activeAquarium?.waterType === 'Saltwater' ? '海水' : '淡水'}环境，目标温度 ${activeAquarium?.targetTemperature || 25}°C，估算水体约 ${activeAquarium ? getTankVolumeLiters(activeAquarium) : 0}L。缸内记录：${stocked}。当前健康度为 ${healthScore}%。
+
+优化建议：
+1. 先保持水温稳定，换水前新水温差控制在 1-2°C 内。
+2. 如果最近添加了新鱼，前三天减少打扰，少喂或不喂，观察呼吸、躲藏和体表。
+3. 如果出现水体发白、异味或鱼只浮头，优先检查过滤、停喂 1 天，并少量多次换水。
+${conflicts.length > 0 ? `4. 当前系统检测到风险：${conflicts.join('；')}` : '4. 暂未发现明显混养冲突，继续观察密度和水质变化。'}
+
+默认护理提醒：
+鱼怀孕护理：隔离时避免过小容器，保持弱水流和遮蔽物，临产前减少惊吓。
+鱼苗喂养：少量多餐，优先使用细颗粒、丰年虾幼体或专用开口粮，残饵及时清理。
+水质变差处理：先停喂，检查过滤是否堵塞，换水 20%-30%，不要一次性全缸大换水。
+${extraQuestion ? `\n追问回应：${extraQuestion}\n建议先围绕水温、换水记录、喂食量和鱼只异常表现逐项排查。` : ''}`;
+  };
+
+  const handleOpenDiagnosis = async (extraQuestion = '') => {
+    if (!activeAquarium) return;
+    setIsDiagnosisOpen(true);
+    setIsDiagnosing(true);
+    setDiagnosisFullText('');
+
+    const stocked = activeAquarium.fishes
+      .map(aqFish => {
+        const fish = fishData.find(item => item.id === aqFish.fishId);
+        return fish ? `${fish.name} x${aqFish.quantity || 1}，温度${fish.waterTemperature}，pH ${fish.phLevel}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      const prompt = `你是 AquaGuide 水族护理助手。请用中文逐段分析当前鱼缸现状、优化建议和提醒，语气专业但适合新手。必须包含：鱼怀孕护理、鱼苗喂养、水质变差处理方法。最后给出可执行的今日检查清单。
+
+鱼缸：${activeAquarium.name}
+水体：${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'}
+目标温度：${activeAquarium.targetTemperature || 25}°C
+估算水量：${getTankVolumeLiters(activeAquarium)}L
+健康度：${healthScore}%
+换水：${activeAquarium.lastWaterChangeDate ? format(new Date(activeAquarium.lastWaterChangeDate), 'yyyy-MM-dd HH:mm') : '暂无记录'}
+缸内生物：
+${stocked || '暂无'}
+本地风险：${conflicts.join('；') || '暂无明显风险'}
+${extraQuestion ? `用户追问：${extraQuestion}` : ''}`;
+
+      const text = await askAquaGuideAI({
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 900,
+        temperature: 0.25,
+      });
+      setDiagnosisFullText(text || buildLocalDiagnosis(extraQuestion));
+    } catch (error) {
+      console.error(error);
+      setDiagnosisFullText(buildLocalDiagnosis(extraQuestion));
+    }
+  };
+
+  const handleDiagnosisFollowUp = () => {
+    const question = diagnosisQuestion.trim();
+    if (!question || isDiagnosing) return;
+    setDiagnosisQuestion('');
+    handleOpenDiagnosis(question);
+  };
+
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
       case 'Easy': return '极易';
@@ -592,6 +894,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const recommendations = recommendationItems
     .map(item => fishData.find(fish => fish.id === item.speciesId))
     .filter(Boolean) as Fish[];
+  const selectedBuildTemplate = tankBuildTemplates.find(template => template.id === selectedBuildTemplateId) || tankBuildTemplates[0];
+  const getSpeciesDisplayName = (value: string) => fishData.find(fish => fish.id === value)?.name || value;
 
   // Search logic for Add Fish
   const searchResults = fishSearchTerm.trim() 
@@ -657,6 +961,95 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     : tankVolumeLiters > 0 && currentBioLoadLiters >= tankVolumeLiters * 0.9
       ? `当前鱼缸约 ${tankVolumeLiters}L，生物负载已经偏高，先不要继续加鱼会更安全。`
       : '当前鱼缸的水质区间或体型性格组合比较敏感，暂时没有足够安全的新增候选。';
+  const archiveOwnedById = new Map<string, {
+    fish: Fish;
+    quantity: number;
+    acquiredDate: string;
+    source: 'stocked' | 'plant' | 'hardscape' | 'substrate';
+  }>();
+
+  activeAquarium.fishes.forEach(aqFish => {
+    const fish = fishData.find(item => item.id === aqFish.fishId);
+    if (!fish) return;
+    const existing = archiveOwnedById.get(fish.id);
+    archiveOwnedById.set(fish.id, {
+      fish,
+      quantity: (existing?.quantity || 0) + Math.max(1, aqFish.quantity || 1),
+      acquiredDate: existing?.acquiredDate || aqFish.entryDate,
+      source: 'stocked',
+    });
+  });
+
+  (activeAquarium.plants || []).forEach(value => {
+    const plant = fishData.find(item => (item.id === value || item.name === value) && isAquaticPlantSpecies(item));
+    if (!plant || archiveOwnedById.has(plant.id)) return;
+    archiveOwnedById.set(plant.id, {
+      fish: plant,
+      quantity: 1,
+      acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
+      source: 'plant',
+    });
+  });
+
+  const substrateSpecies = getSubstrateArchiveSpecies(activeAquarium.substrate);
+  if (substrateSpecies && !archiveOwnedById.has(substrateSpecies.id)) {
+    archiveOwnedById.set(substrateSpecies.id, {
+      fish: substrateSpecies,
+      quantity: 1,
+      acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
+      source: 'substrate',
+    });
+  }
+
+  (activeAquarium.hardscape || []).forEach(value => {
+    const hardscape = fishData.find(item => (item.id === value || item.name === value) && isHardscapeSpecies(item));
+    if (!hardscape || archiveOwnedById.has(hardscape.id)) return;
+    archiveOwnedById.set(hardscape.id, {
+      fish: hardscape,
+      quantity: 1,
+      acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
+      source: 'hardscape',
+    });
+  });
+
+  const archiveCandidatePool = fishData
+    .filter(fish => !archiveOwnedById.has(fish.id))
+    .filter(fish => {
+      if (activeAquarium.waterType === 'Saltwater') return fish.category === '海水鱼';
+      return fish.category !== '海水鱼' && getLifeType(fish) !== 'coral';
+    })
+    .filter(fish => (
+      !isHardscapeSpecies(fish)
+      || ['青龙石', '沉木', '杜鹃根', 'ADA风格化妆砂', '火山石板', '水草泥', '溪流砂'].some(name => fish.name.includes(name))
+    ));
+  const archiveFishCandidates = archiveCandidatePool
+    .filter(fish => !isAquaticPlantSpecies(fish) && !isHardscapeSpecies(fish))
+    .slice(0, 24);
+  const archivePlantCandidates = archiveCandidatePool
+    .filter(isAquaticPlantSpecies)
+    .slice(0, 18);
+  const archiveScapeCandidates = archiveCandidatePool
+    .filter(isHardscapeSpecies)
+    .slice(0, 14);
+  const lockedArchiveItems = Array.from(new Map([
+    ...archiveFishCandidates,
+    ...archivePlantCandidates,
+    ...archiveScapeCandidates,
+  ].map(fish => [fish.id, fish])).values())
+    .map(fish => ({ fish, quantity: 0, acquiredDate: '', source: 'stocked' as const, locked: true }));
+  const tankArchiveItems = [
+    ...Array.from(archiveOwnedById.values()).map(item => ({ ...item, locked: false })),
+    ...lockedArchiveItems,
+  ];
+  const archiveCategories = ['全部', '鱼类', '虾螺', '水草', '底砂', '造景'];
+  const filteredTankArchiveItems = tankArchiveItems.filter(item => (
+    tankArchiveCategory === '全部' || getArchiveCategory(item.fish) === tankArchiveCategory
+  ));
+  const acquiredArchiveCount = Array.from(archiveOwnedById.values()).length;
+  const ownedArchivePreviewItems = Array.from(archiveOwnedById.values()).slice(0, 4);
+  const archiveCollectionRate = tankArchiveItems.length > 0
+    ? Math.round((acquiredArchiveCount / tankArchiveItems.length) * 1000) / 10
+    : 0;
 
   // Water change calculation
   const shortestCycle = currentFishesDetails.length > 0 ? Math.min(...currentFishesDetails.map(f => f.waterChangeCycle)) : 7;
@@ -698,7 +1091,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   return (
     <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
       {/* Aquarium Tabs */}
-      <div className="flex min-w-0 flex-wrap gap-2 pb-1">
+      <div className="order-[0] flex min-w-0 flex-wrap gap-2 pb-1">
         {aquariums.map(aq => (
           <button
             key={aq.id}
@@ -720,91 +1113,47 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </button>
       </div>
 
-      {/* Active Aquarium Header */}
-      <header className="flex min-w-0 flex-col gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {isEditingName ? (
-            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-2">
-              <Input 
-                value={editNameValue} 
-                onChange={(e) => setEditNameValue(e.target.value)}
-                className="h-10 min-w-0 border-ink/30 text-xl font-black"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
-              />
-              <Button size="sm" onClick={handleRenameSubmit} className="h-9 rounded-sm bg-ink text-xs font-bold text-white">保存</Button>
-            </div>
-          ) : (
-            <div className="group flex min-w-0 cursor-pointer items-center gap-2" onClick={() => { setEditNameValue(activeAquarium.name); setIsEditingName(true); }}>
-              <h1 className="min-w-0 break-words text-[26px] font-black leading-[1.12] tracking-[-0.02em] text-ink">{activeAquarium.name}</h1>
-              <Edit2 className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-ink" />
-            </div>
-          )}
-        </div>
-        <div className="grid min-w-0 grid-cols-2 gap-2">
-          <Button onClick={() => document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline" className="h-9 min-w-0 rounded-sm border-rose-200 px-2 text-[12px] font-bold text-rose-500 hover:bg-rose-50">
-            <Heart className="mr-1 h-3.5 w-3.5 shrink-0 fill-current" />
-            种草清单
-            <span className="ml-1 bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full text-[10px]">{wishlistFishIds.size}</span>
-          </Button>
-          <Button onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }} variant="outline" className="h-9 min-w-0 rounded-sm border-border px-2 text-[12px] font-bold text-ink hover:bg-bg">
-            <Settings className="mr-1 h-3.5 w-3.5 shrink-0" />
-            鱼缸设置
-          </Button>
-          <Button onClick={handleSmartRecommend} variant="outline" className="col-span-2 h-9 min-w-0 rounded-sm border-accent px-2 text-[12px] font-bold text-accent hover:bg-accent hover:text-white">
-            <Sparkles className="mr-1 h-3.5 w-3.5 shrink-0" />
-            智能混养推荐
-          </Button>
-        </div>
-      </header>
-
       {/* Tank Water Change Dashboard */}
-      <div className="flex min-w-0 flex-col gap-3 rounded-sm border border-border bg-white p-3 shadow-sm">
-        <div className="grid min-w-0 grid-cols-[46px_1fr] items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
-            <Calendar className="w-5 h-5" />
+      <div className="order-[3] grid grid-cols-2 items-stretch gap-2">
+      <div className="flex min-w-0 flex-col justify-between gap-2 rounded-sm border border-border bg-white p-2.5 shadow-sm">
+        <div className="flex min-w-0 items-start gap-2">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isChangeOverdue ? 'bg-[#FFF4F4] text-[#D32F2F]' : 'bg-accent-light text-accent'}`}>
+            <Calendar className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-[11px] font-black tracking-wide text-ink/60">下次换水倒计时</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="truncate text-[13px] font-black leading-tight text-ink">换水提醒</h3>
               <button
                 type="button"
                 aria-label="查看囤水和换水提示"
                 onClick={() => setIsGuideOpen(true)}
                 className="text-ink/40 hover:text-accent transition-colors"
               >
-                <HelpCircle className="w-4 h-4" />
+                <HelpCircle className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className={`text-[30px] font-black leading-none tracking-[-0.03em] ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+              <span className={`text-[20px] font-black leading-none tracking-[-0.03em] ${isChangeOverdue ? 'text-[#D32F2F]' : 'text-ink'}`}>
                 {isChangeOverdue ? '已过期' : `${daysUntilChange} 天`}
               </span>
-              <span className="text-[11px] text-ink/60 font-medium">
-                (周期: {shortestCycle}天)
+              <span className="text-[10px] text-ink/55 font-medium">
+                周期 {shortestCycle}天
               </span>
             </div>
-            {activeAquarium.lastWaterChangeDate && (
-              <div className="text-[10px] text-ink/50 font-medium mt-1.5">
-                上次换水: {format(new Date(activeAquarium.lastWaterChangeDate), 'yyyy-MM-dd HH:mm')}
-              </div>
-            )}
-            {tankActionMessage && (
-              <div className="mt-2 inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-bold text-[#2E7D32] border border-[#C8E6C9]">
-                {tankActionMessage}
-              </div>
-            )}
           </div>
         </div>
-        <div className="grid w-full grid-cols-2 gap-2">
-          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="h-9 min-w-0 rounded-sm border-border px-2 text-[12px] font-bold text-ink hover:bg-bg">
-            <Calendar className="w-3.5 h-3.5 mr-1.5" />
-            换水日历
+        <div className="grid min-w-0 grid-cols-2 gap-1.5">
+          <Button onClick={() => setIsCalendarOpen(true)} variant="outline" className="h-8 min-w-0 rounded-sm border-border px-1.5 text-[10px] font-bold text-ink hover:bg-bg">
+            <Calendar className="mr-1 h-3 w-3 shrink-0" />
+            日历
           </Button>
-          <Button onClick={handleTankWaterChange} className="h-9 min-w-0 rounded-sm bg-ink px-2 text-[12px] font-bold text-white hover:bg-ink/90">
-            <Droplets className="w-3.5 h-3.5 mr-1.5" />
-            记录换水
+          <Button onClick={handleTankWaterChange} className="h-8 min-w-0 rounded-sm bg-ink px-1.5 text-[10px] font-bold text-white hover:bg-ink/90">
+            <Droplets className="mr-1 h-3 w-3 shrink-0" />
+            记录
           </Button>
+        </div>
+        <div className="truncate text-[9px] font-medium text-ink/45">
+          {tankActionMessage || (activeAquarium.lastWaterChangeDate ? `上次 ${format(new Date(activeAquarium.lastWaterChangeDate), 'M-dd HH:mm')}` : '暂无换水记录')}
         </div>
       </div>
 
@@ -813,9 +1162,23 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         weatherStatus={weatherStatus}
         heaterSpeciesCount={heaterSpeciesCount}
       />
+      </div>
+
+      <div className="order-[4] grid grid-cols-[1fr_auto] items-center gap-2 rounded-sm border border-accent/15 bg-white p-2.5 shadow-sm">
+        <Button onClick={() => handleOpenDiagnosis()} className="h-10 rounded-sm bg-accent text-[13px] font-black text-white hover:bg-accent/90">
+          <Activity className="mr-1.5 h-4 w-4" />
+          一键诊断
+        </Button>
+        <div className="min-w-[82px] text-right">
+          <div className={`text-[18px] font-black leading-none ${healthColor}`}>{healthScore}%</div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-bg">
+            <div className={`h-1.5 rounded-full ${healthBarColor}`} style={{ width: `${healthScore}%` }} />
+          </div>
+        </div>
+      </div>
 
       {/* Visual Tank Placeholder */}
-      <div className="relative h-72 w-full overflow-hidden rounded-sm border-[3px] border-accent shadow-inner group">
+      <div className="order-[5] relative h-72 w-full overflow-hidden rounded-sm border-[3px] border-accent shadow-inner group">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -837,6 +1200,18 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </div>
           <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-sm text-[9px] font-bold text-ink shadow-sm border border-white/50">
             {activeAquarium.dimensions?.length || 60}x{activeAquarium.dimensions?.width || 40}x{activeAquarium.dimensions?.height || 40}cm · 约{tankVolumeLiters}L
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 border-t border-white/30 bg-gradient-to-t from-white/42 via-white/14 to-transparent px-3 pb-2 pt-4 backdrop-blur-[1px]">
+          <div className="flex items-center gap-2">
+            <div className={`flex shrink-0 items-center gap-1 text-[10px] font-black ${healthColor}`}>
+              <Activity className="h-3 w-3" />
+              健康 {healthScore}%
+            </div>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-white/42">
+              <div className={`h-1 rounded-full ${healthBarColor} opacity-85 transition-all duration-1000`} style={{ width: `${healthScore}%` }} />
+            </div>
           </div>
         </div>
 
@@ -865,13 +1240,33 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </div>
         )}
 
-        {/* Add Fish Button Overlay */}
-        <Button 
-          onClick={() => setIsAddFishOpen(true)} 
-          className="absolute top-2 right-2 z-10 h-8 rounded-sm bg-accent/90 px-2.5 text-[11px] font-bold text-white opacity-100 shadow-sm transition-opacity hover:bg-accent"
-        >
-          <Plus className="w-3 h-3 mr-1" /> 添加生物
-        </Button>
+        {/* Tank Action Toolbar */}
+        <div className="absolute right-2 top-2 z-20 flex flex-col gap-2">
+          <Button
+            aria-label="添加生物"
+            title="添加生物"
+            onClick={() => setIsAddFishOpen(true)}
+            className="h-9 w-9 rounded-sm bg-white/90 p-0 text-accent shadow-sm backdrop-blur-sm hover:bg-accent hover:text-white"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            aria-label="全屏预览"
+            title="全屏预览"
+            onClick={() => setIsTankPreviewOpen(true)}
+            className="h-9 w-9 rounded-sm bg-accent/90 p-0 text-white shadow-sm backdrop-blur-sm hover:bg-accent"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+          <Button
+            aria-label="鱼缸设置"
+            title="鱼缸设置"
+            onClick={() => { setSettingsForm(activeAquarium); setIsPlantListExpanded(false); setIsScapeListExpanded(false); setIsSettingsOpen(true); }}
+            className="h-9 w-9 rounded-sm border border-white/60 bg-white/88 p-0 text-ink shadow-sm backdrop-blur-sm hover:bg-bg"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Floating Conflict Warning Trigger */}
         {conflicts.length > 0 && (
@@ -888,27 +1283,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         )}
       </div>
 
-      {/* Health Score */}
-      <div className={`flex flex-col gap-2.5 rounded-sm border border-transparent p-3 shadow-sm ${healthBg}`}>
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center gap-2 font-bold ${healthColor}`}>
-            <Activity className="w-4 h-4" />
-            <span className="text-[13px]">鱼缸健康度</span>
-          </div>
-          <div className={`text-xl font-black leading-none ${healthColor}`}>
-            {healthScore}%
-          </div>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-white/50">
-          <div className={`h-2 rounded-full ${healthBarColor} transition-all duration-1000`} style={{ width: `${healthScore}%` }}></div>
-        </div>
-        <p className={`text-[11px] font-medium leading-relaxed ${healthColor} opacity-80`}>
-          {healthScore >= 80 ? '状态极佳！继续保持良好的换水习惯。' : healthScore >= 60 ? '状态一般。请注意水质或生物混养冲突。' : '状态危险！请立即检查水质、温度或隔离冲突鱼类。'}
-        </p>
-      </div>
+      <Button onClick={() => setIsBuildPlanOpen(true)} variant="outline" className="order-[6] h-10 min-w-0 rounded-sm border-emerald-200 bg-emerald-50 px-3 text-[13px] font-bold text-emerald-700 hover:bg-emerald-100">
+        <Layers3 className="mr-1.5 h-4 w-4 shrink-0" />
+        鱼缸搭建方案
+      </Button>
 
       {conflicts.length > 0 && (
-        <div className="bg-[#FFF4F4] border border-[#FFD6D6] p-4 flex flex-col gap-2">
+        <div className="order-[4] bg-[#FFF4F4] border border-[#FFD6D6] p-4 flex flex-col gap-2">
           <div className="flex items-center text-[#D32F2F] font-bold text-sm">
             <AlertTriangle className="w-4 h-4 mr-2" />
             鱼缸风险警告
@@ -921,107 +1302,246 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </div>
       )}
 
-      {/* Bottom Encyclopedia */}
-      {activeAquarium.fishes.length > 0 && (
-        <div className="rounded-sm border border-border bg-white p-3 shadow-sm">
-          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-black text-ink">
-            <BookOpen className="w-3.5 h-3.5 text-accent" />
-            缸内生物图鉴
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            {activeAquarium.fishes.map(aqFish => {
-              const fishInfo = fishData.find(f => f.id === aqFish.fishId);
-              if (!fishInfo) return null;
+      {/* Tank Species Archive */}
+      <section className="order-[2] overflow-hidden rounded-sm border border-[#E2E0D9] bg-[#F8F7F2] shadow-sm">
+        <button
+          type="button"
+          onClick={() => setIsTankArchiveExpanded(prev => !prev)}
+          className="flex w-full items-center justify-between gap-3 bg-[#E9E8E2] px-3 py-3 text-left transition-colors hover:bg-[#E4E2DB]"
+        >
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[14px] font-black text-ink">
+              <BookOpen className="h-4 w-4 text-accent" />
+              缸内生物图鉴
+            </div>
+            <div className="mt-0.5 text-[10px] font-bold text-ink/45">
+              已获得 {acquiredArchiveCount} / {tankArchiveItems.length} · {activeAquarium.name}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {ownedArchivePreviewItems.length > 0 && (
+              <div className="flex -space-x-2">
+                {ownedArchivePreviewItems.map(item => (
+                  <span key={item.fish.id} className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white bg-white shadow-sm">
+                    <img src={item.fish.image} alt={item.fish.name} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />
+                  </span>
+                ))}
+              </div>
+            )}
+            <span className="rounded-full bg-white/80 px-2.5 py-1 text-[13px] font-black tabular-nums text-ink shadow-sm">
+              {archiveCollectionRate}%
+            </span>
+            <ChevronRight className={`h-4 w-4 text-ink/45 transition-transform ${isTankArchiveExpanded ? 'rotate-90' : ''}`} />
+          </div>
+        </button>
+
+        {isTankArchiveExpanded && (
+          <>
+        <div className="relative border-b border-[#E6E2D8] bg-[#E9E8E2] px-3 pb-2">
+          <div className="hidden items-center justify-between gap-3">
+            <button
+              type="button"
+              aria-label="回到鱼缸画面"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white/85 text-ink/55 shadow-sm transition-colors hover:text-ink"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-[20px] font-black leading-none text-ink">
+                <BookOpen className="h-4 w-4 text-accent" />
+                缸内生物图鉴
+              </div>
+              <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-[11px] font-bold text-ink/45">收集度</div>
+              <div className="mt-1 rounded-full bg-white/80 px-2.5 py-1 text-[16px] font-black tabular-nums text-ink shadow-sm">
+                {archiveCollectionRate}%
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {archiveCategories.map(category => {
+              const isSelected = tankArchiveCategory === category;
               return (
-                <div 
-                  key={aqFish.id} 
-                  className="flex flex-col items-center gap-2 cursor-pointer group relative"
-                  onClick={() => setSelectedAqFish({fish: fishInfo, aqFish})}
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setTankArchiveCategory(category)}
+                  className={`shrink-0 rounded-t-[12px] px-3 py-2 text-[12px] font-black transition-colors ${
+                    isSelected
+                      ? 'bg-white text-ink shadow-sm'
+                      : 'bg-white/45 text-ink/42 hover:bg-white/70 hover:text-ink/70'
+                  }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`确定要从鱼缸中删除「${fishInfo.name}」吗？`)) {
-                        handleRemoveFish(aqFish.id);
-                        if (selectedAqFish?.aqFish.id === aqFish.id) setSelectedAqFish(null);
-                      }
-                    }}
-                    className="absolute -top-2 right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 opacity-100 shadow-sm transition-opacity hover:bg-red-50"
-                    title="删除这个生物"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  <div className="h-[52px] w-[52px] rounded-full overflow-hidden border-2 border-border group-hover:border-accent transition-colors relative">
-                    <img src={fishInfo.image} alt={fishInfo.name} className="w-full h-full object-contain p-1 bg-white" referrerPolicy="no-referrer" />
-                    {aqFish.quantity > 1 && (
-                      <div className="absolute top-0 right-0 bg-accent text-white text-[9px] font-bold px-1 rounded-bl-sm">
-                        x{aqFish.quantity}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-bold text-ink text-center leading-tight group-hover:text-accent transition-colors">{fishInfo.name}</span>
-                </div>
+                  {category}
+                </button>
               );
             })}
           </div>
         </div>
-      )}
 
-      {/* Wishlist Section */}
-      <div id="wishlist-section" className="rounded-sm border border-rose-100 bg-rose-50/50 p-3 shadow-sm">
-        <h3 className="mb-3 flex items-center gap-2 text-[13px] font-black text-ink">
-          <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" />
-          我的种草清单
-          <span className="ml-1 text-[11px] font-medium text-ink/50">共 {wishlistFishIds.size} 种</span>
-        </h3>
-        {wishlistFishIds.size === 0 ? (
-          <div className="py-5 text-center text-[11px] font-medium text-ink/50">
-            您还没有种草任何生物，去生物图鉴看看吧～
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {Array.from(wishlistFishIds).map(id => {
-              const fishInfo = fishData.find(f => f.id === id);
-              if (!fishInfo) return null;
-              return (
-                <div 
-                  key={id} 
-                  className="flex flex-col items-center gap-2 relative group cursor-pointer"
-                  onClick={() => {
-                     // Can reuse setSelectedAqFish but need a valid aqFish. Or just open Dialog. Wait, we may want to add to tank!
-                     // For simplicity, let's open add fish dialog and auto-search it.
-                     setIsAddFishOpen(true);
-                     setFishSearchTerm(fishInfo.name);
-                     setSelectedFishId(fishInfo.id);
-                  }}
-                >
-                  <div className="absolute top-0 -right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(id); }}
-                      className="bg-white border border-border rounded-full p-1 shadow-sm text-ink/50 hover:text-rose-500 hover:border-rose-200"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="h-[52px] w-[52px] rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors relative">
-                    <img src={fishInfo.image} alt={fishInfo.name} className="w-full h-full object-contain p-1 bg-white opacity-90 group-hover:opacity-100" referrerPolicy="no-referrer" />
-                  </div>
-                  <span className="text-[10px] font-bold text-ink text-center leading-tight group-hover:text-rose-600 transition-colors">{fishInfo.name}</span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="relative bg-[#FBFAF6] px-2.5 pb-4 pt-3 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_10%,rgba(27,77,62,0.06),transparent_24%),linear-gradient(rgba(26,26,26,0.025)_1px,transparent_1px)] before:bg-[length:100%_100%,18px_18px]">
+          {filteredTankArchiveItems.length > 0 ? (
+            <div className="relative grid grid-cols-5 gap-x-1.5 gap-y-4">
+              {filteredTankArchiveItems.map(item => {
+                const ownedAqFish = activeAquarium.fishes.find(aqFish => aqFish.fishId === item.fish.id);
+                const canOpenDetail = !item.locked && ownedAqFish && item.source === 'stocked';
+
+                return (
+                  <button
+                    key={`${item.locked ? 'locked' : 'owned'}-${item.fish.id}`}
+                    type="button"
+                    disabled={!canOpenDetail}
+                    onClick={() => {
+                      if (canOpenDetail) setSelectedAqFish({ fish: item.fish, aqFish: ownedAqFish });
+                    }}
+                    className={`group min-w-0 text-center ${canOpenDetail ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="relative mx-auto flex h-[46px] w-full items-end justify-center">
+                      <img
+                        src={item.fish.image}
+                        alt={item.fish.name}
+                        referrerPolicy="no-referrer"
+                        className={`max-h-[44px] max-w-full object-contain transition-transform duration-200 ${
+                          item.locked
+                            ? 'grayscale opacity-20 brightness-0'
+                            : 'drop-shadow-[0_8px_10px_rgba(27,77,62,0.16)] group-hover:scale-[1.04]'
+                        }`}
+                      />
+                      {!item.locked && item.quantity > 1 && (
+                        <span className="absolute right-0 top-0 rounded-full bg-ink/80 px-1 py-0.5 text-[8px] font-black text-white">
+                          x{item.quantity}
+                        </span>
+                      )}
+                    </div>
+                    <div className={`mt-1.5 truncate text-[10px] font-bold leading-tight ${item.locked ? 'text-ink/38' : 'text-ink/75'}`}>
+                      {item.fish.name}
+                    </div>
+                    <div className={`mt-0.5 truncate text-[9px] font-medium leading-tight ${item.locked ? 'text-ink/34' : 'text-ink/48'}`}>
+                      {item.locked ? '未获取' : `${format(new Date(item.acquiredDate), 'M-d')} 已得`}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="relative rounded-sm border border-dashed border-ink/15 bg-white/70 px-4 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent-light text-accent">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div className="text-sm font-black text-ink">还没有这一类图鉴</div>
+              <p className="mx-auto mt-1 max-w-[220px] text-[11px] font-medium leading-relaxed text-ink/50">
+                应用搭建方案或添加生物后，这里会自动点亮。
+              </p>
+            </div>
+          )}
+        </div>
+          </>
         )}
-      </div>
+      </section>
 
       {/* Delete Tank Button */}
       {aquariums.length > 1 && (
-        <div className="flex justify-end mt-4">
+        <div className="order-[7] flex justify-end mt-4">
           <Button variant="ghost" className="text-[#D32F2F] hover:bg-[#FFF4F4] hover:text-[#D32F2F] text-xs font-bold" onClick={() => handleDeleteAquarium(activeId)}>
             删除当前鱼缸
           </Button>
         </div>
       )}
+
+      <Dialog open={isTankPreviewOpen} onOpenChange={setIsTankPreviewOpen}>
+        <DialogContent className="h-[86vh] w-[94vw] max-w-[920px] overflow-hidden rounded-sm border-border p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>鱼缸全屏预览</DialogTitle>
+            <DialogDescription>放大查看当前鱼缸 3D 画面。</DialogDescription>
+          </DialogHeader>
+          <div className="relative h-full w-full bg-[#DDEAE8]">
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
+                  正在加载鱼缸画面...
+                </div>
+              }
+            >
+              <ThreeAquarium
+                aquarium={activeAquarium}
+                activeSpecies={active3DSpecies}
+                onSpeciesSelect={setActive3DSpecies}
+              />
+            </Suspense>
+            <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-1.5 pointer-events-none">
+              <div className="bg-white/82 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/60">
+                {activeAquarium.name}
+              </div>
+              <div className="bg-white/82 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/60">
+                {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || '25'}°C · 约{tankVolumeLiters}L
+              </div>
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 border-t border-white/30 bg-gradient-to-t from-white/42 via-white/14 to-transparent px-4 pb-3 pt-5 backdrop-blur-[1px]">
+              <div className="flex items-center gap-3">
+                <div className={`flex shrink-0 items-center gap-1.5 text-[12px] font-black ${healthColor}`}>
+                  <Activity className="h-4 w-4" />
+                  健康 {healthScore}%
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/42">
+                  <div className={`h-1.5 rounded-full ${healthBarColor} opacity-85 transition-all duration-1000`} style={{ width: `${healthScore}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+        <DialogContent className="w-[92vw] max-w-[560px] max-h-[86vh] overflow-y-auto rounded-sm border-border p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-serif text-xl font-bold italic text-ink">
+              <Activity className="h-5 w-5 text-accent" />
+              一键诊断
+            </DialogTitle>
+            <DialogDescription className="text-xs text-ink/60">
+              基于当前鱼缸记录、换水周期、温度和本地风险做护理分析。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-sm border border-accent/15 bg-accent-light/20 p-3">
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {['鱼怀孕护理', '鱼苗喂养', '水质变差处理'].map(topic => (
+                <button
+                  key={topic}
+                  type="button"
+                  onClick={() => handleOpenDiagnosis(topic)}
+                  className="rounded-full border border-accent/20 bg-white px-2.5 py-1 text-[11px] font-bold text-accent hover:bg-accent hover:text-white"
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-[260px] whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-ink/80">
+              {diagnosisText || (isDiagnosing ? '正在分析当前鱼缸...' : '点击上方主题或一键诊断，查看当前鱼缸护理建议。')}
+              {isDiagnosing && <span className="animate-pulse">▍</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Input
+              value={diagnosisQuestion}
+              onChange={(event) => setDiagnosisQuestion(event.target.value)}
+              placeholder="继续追问，例如：鱼苗今天怎么喂？"
+              className="h-10 rounded-sm text-sm"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleDiagnosisFollowUp();
+              }}
+            />
+            <Button onClick={handleDiagnosisFollowUp} disabled={isDiagnosing || !diagnosisQuestion.trim()} className="h-10 rounded-sm bg-accent px-3 text-sm font-bold text-white">
+              追问
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Fish Dialog (Search Based) */}
       <Dialog open={isAddFishOpen} onOpenChange={(open) => {
@@ -1262,6 +1782,109 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </div>
           <DialogFooter>
             <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsCalendarOpen(false)}>完成</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tank Build Plan Modal */}
+      <Dialog open={isBuildPlanOpen} onOpenChange={setIsBuildPlanOpen}>
+        <DialogContent className="w-[94vw] max-w-[560px] max-h-[90vh] overflow-y-auto rounded-sm border-border p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-serif text-xl font-bold italic text-ink">
+              <Layers3 className="h-5 w-5 text-emerald-700" />
+              鱼缸搭建方案
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-ink/60">
+              先用模板把底砂、水草、硬景和设备搭起来；生物只作为推荐清单，确认购买和入缸后再手动添加。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {tankBuildTemplates.map(template => {
+                const isSelected = selectedBuildTemplate.id === template.id;
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setSelectedBuildTemplateId(template.id)}
+                    className={`rounded-sm border p-3 text-left transition-colors ${
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900'
+                        : 'border-border bg-white text-ink hover:border-emerald-300'
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm font-black">{template.name}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        template.difficulty === '新手'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {template.difficulty}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-ink/60">{template.tagline}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rounded-sm border border-emerald-200 bg-white p-3 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-[17px] font-black leading-tight text-ink">{selectedBuildTemplate.name}</h3>
+                  <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{selectedBuildTemplate.tagline}</p>
+                </div>
+                <span className="rounded-full bg-bg px-2.5 py-1 text-[10px] font-bold text-ink/55">
+                  {selectedBuildTemplate.tankSize}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-sm bg-bg p-2">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-ink/45">适合场景</div>
+                  <div className="mt-1 text-xs font-bold leading-relaxed text-ink">{selectedBuildTemplate.bestFor}</div>
+                </div>
+                <div className="rounded-sm bg-bg p-2">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-ink/45">推荐温度</div>
+                  <div className="mt-1 text-xs font-bold leading-relaxed text-ink">{selectedBuildTemplate.temperature}°C</div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {[
+                  { title: '底砂', items: [selectedBuildTemplate.substrate] },
+                  { title: '水草', items: selectedBuildTemplate.plants.map(getSpeciesDisplayName) },
+                  { title: '硬景', items: selectedBuildTemplate.hardscape.map(getSpeciesDisplayName) },
+                  { title: '设备', items: selectedBuildTemplate.equipment },
+                  { title: '生物推荐', items: selectedBuildTemplate.livestock },
+                  { title: '维护提醒', items: selectedBuildTemplate.maintenance },
+                ].map(section => (
+                  <div key={section.title}>
+                    <div className="mb-1.5 text-[11px] font-black tracking-wide text-ink/55">{section.title}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {section.items.map(item => (
+                        <span key={`${section.title}-${item}`} className="rounded-full border border-border bg-bg px-2.5 py-1 text-[11px] font-bold text-ink/70">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-sm border border-amber-200 bg-amber-50 p-3 text-[11px] font-medium leading-relaxed text-amber-900">
+                <span className="font-black">注意：</span>{selectedBuildTemplate.caution}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsBuildPlanOpen(false)} className="h-9 rounded-sm text-sm font-bold">先看看</Button>
+            <Button onClick={() => handleApplyBuildTemplate(selectedBuildTemplate)} className="h-9 rounded-sm bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">
+              应用到当前鱼缸
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1525,6 +2148,22 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
+            <div className="relative h-28 overflow-hidden rounded-sm border border-accent/15 bg-gradient-to-b from-sky-50 to-emerald-50">
+              <div className="absolute left-5 top-5 h-12 w-10 animate-bounce rounded-b-lg rounded-t-sm border-2 border-accent/35 bg-white/70">
+                <div className="absolute -right-4 top-4 h-2 w-8 rotate-[-18deg] rounded-full bg-accent/30" />
+              </div>
+              <div className="absolute left-20 top-7 h-12 w-24 rounded-sm border-2 border-accent/25 bg-white/60">
+                <div className="absolute inset-x-1 bottom-1 h-5 animate-pulse rounded-sm bg-sky-200/70" />
+                <div className="absolute left-4 top-5 h-2 w-2 animate-ping rounded-full bg-accent/40" />
+                <div className="absolute right-5 top-4 h-2 w-2 animate-ping rounded-full bg-accent/30 [animation-delay:500ms]" />
+              </div>
+              <div className="absolute right-5 top-5 h-14 w-8 rounded-full border-2 border-ink/15 bg-white/70">
+                <div className="absolute bottom-2 left-1/2 h-7 w-2 -translate-x-1/2 animate-pulse rounded-full bg-red-400/70" />
+              </div>
+              <div className="absolute bottom-3 left-4 right-4 text-[10px] font-bold text-ink/50">
+                囤水 → 除氯 → 对温 → 少量换水
+              </div>
+            </div>
             <div className="bg-blue-50 p-3 rounded-sm border border-blue-100">
               <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-blue-600" /> 囤水小贴士</h4>
               <p className="text-xs text-blue-900/80 leading-relaxed font-medium">换水前建议提前 24 小时囤水，除氯并调到接近缸内水温后再换。冬季或温差较大时，优先保证新水温度稳定。</p>

@@ -6,17 +6,17 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { BookOpen, Droplets, Bot } from 'lucide-react';
+import { BookOpen, Droplets, Library } from 'lucide-react';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
-const AIAssistant = lazy(() => import('./pages/AIAssistant'));
+const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 
 const navItems = [
   { path: '/aquarium', label: '我的鱼缸', icon: Droplets },
   { path: '/encyclopedia', label: '图鉴', icon: BookOpen },
-  { path: '/assistant', label: 'AI助手', icon: Bot },
+  { path: '/care', label: '养护百科', icon: Library },
 ];
 
 function BottomNavigation() {
@@ -96,8 +96,8 @@ function AppShell() {
               <Routes>
                 <Route path="/" element={<Navigate to="/aquarium" replace />} />
                 <Route path="/encyclopedia" element={<Encyclopedia />} />
+                <Route path="/care" element={<CareEncyclopedia />} />
                 <Route path="/aquarium" element={<AquariumManager />} />
-                <Route path="/assistant" element={<AIAssistant />} />
               </Routes>
             </Suspense>
           </div>

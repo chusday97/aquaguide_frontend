@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { Fish, Aquarium } from '../types';
+import { fishData } from '../data/fishData';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
 import { getCareTaxonomyPath, getSecondaryCategory, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
@@ -16,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus } from 'lucide-react';
+import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, ChevronRight } from 'lucide-react';
 
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
@@ -37,10 +38,12 @@ const sizeFilters = [
 ];
 
 const temperamentFilters = [
-  { id: 'Peaceful', label: '温和', hint: '更适合混养' },
+  { id: 'Peaceful', label: '温和', hint: '性格稳定' },
   { id: 'Territorial', label: '领地', hint: '注意躲避' },
   { id: 'Aggressive', label: '凶猛', hint: '高风险' },
 ];
+
+const housingModes: Array<NonNullable<Fish['housingMode']>> = ['适合混养', '谨慎混养', '建议单养'];
 
 const lifeTypes = [
   { id: 'freshwaterFish', label: '淡水鱼', hint: '草缸/冷水/热带鱼' },
@@ -49,8 +52,6 @@ const lifeTypes = [
   { id: 'reptile', label: '龟/两栖', hint: '单养优先' },
   { id: 'coral', label: '珊瑚/海葵', hint: '海水无脊椎' },
 ];
-
-const housingModes: Array<NonNullable<Fish['housingMode']>> = ['适合混养', '谨慎混养', '建议单养'];
 
 const ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
   sp_0019: '/species-display/sp_0019_埃及神仙_display_white.png?v=displayfix_20260510',
@@ -104,18 +105,6 @@ const getFishTemperatureTheme = (tempString: string) => {
      return { type: 'general', needsHeater: false, bgTheme: 'bg-orange-50', borderTheme: 'border-orange-100 hover:border-orange-300' };
   } else {
      return { type: 'cold', needsHeater: false, bgTheme: 'bg-blue-50', borderTheme: 'border-blue-100 hover:border-blue-300' };
-  }
-};
-
-const getHousingBadgeClass = (mode?: Fish['housingMode']) => {
-  switch (mode) {
-    case '建议单养':
-      return 'bg-red-50 text-red-600 border-red-200';
-    case '谨慎混养':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
-    case '适合混养':
-    default:
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   }
 };
 
@@ -178,6 +167,11 @@ export default function Encyclopedia() {
   const [discoveryDragX, setDiscoveryDragX] = useState(0);
   const [discoveryMessage, setDiscoveryMessage] = useState('');
   const [loadedDiscoveryImageSrc, setLoadedDiscoveryImageSrc] = useState('');
+  const [isWishlistExpanded, setIsWishlistExpanded] = useState(false);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [activeFilterGroup, setActiveFilterGroup] = useState<'life' | 'size' | 'housing' | 'water' | 'difficulty' | 'temperament'>('life');
+  const [pendingTankFish, setPendingTankFish] = useState<Fish | null>(null);
+  const [targetAquariumId, setTargetAquariumId] = useState('');
 
   useEffect(() => {
     const savedAq = localStorage.getItem('aquariums');
@@ -216,6 +210,9 @@ export default function Encyclopedia() {
     [difficultyFilter, housingFilter, lifeTypeFilter, searchTerm, selectedCategory, sizeFilter, temperamentFilter, waterTypeFilter]
   );
   const allFishes = encyclopediaCatalog.allItems;
+  const wishlistFishes = Array.from(wishlistFishIds)
+    .map(id => fishData.find(fish => fish.id === id))
+    .filter(Boolean) as Fish[];
   const discoveryPool = useMemo(
     () => allFishes,
     [allFishes]
@@ -367,21 +364,20 @@ export default function Encyclopedia() {
     }
   };
 
-  const handleAddToTank = (fish: Fish) => {
+  const addFishToAquarium = (fish: Fish, aquariumId: string) => {
     const saved = localStorage.getItem('aquariums');
     if (!saved) {
       alert('请先在“我的鱼缸”页面创建一个鱼缸！');
       return;
     }
-    const aquariums = JSON.parse(saved);
+    const aquariums: Aquarium[] = JSON.parse(saved);
     if (aquariums.length === 0) return;
-    
-    // Add to the first aquarium by default from encyclopedia
-    const aquarium = aquariums[0];
+    const aquarium = aquariums.find(item => item.id === aquariumId) || aquariums[0];
     
     const newFish = {
       id: Math.random().toString(36).substring(2, 9),
       fishId: fish.id,
+      quantity: 1,
       entryDate: new Date().toISOString(),
       lastWaterChangeDate: new Date().toISOString(),
     };
@@ -391,10 +387,99 @@ export default function Encyclopedia() {
     setOwnedFishIds(prev => new Set(prev).add(fish.id));
     alert(`已将 ${fish.name} 添加到 ${aquarium.name}！`);
     setSelectedFish(null);
+    setPendingTankFish(null);
+    setTargetAquariumId('');
+  };
+
+  const handleAddToTank = (fish: Fish) => {
+    const saved = localStorage.getItem('aquariums');
+    if (!saved) {
+      alert('请先在“我的鱼缸”页面创建一个鱼缸！');
+      return;
+    }
+    const aquariums: Aquarium[] = JSON.parse(saved);
+    if (aquariums.length === 0) return;
+
+    if (aquariums.length === 1) {
+      addFishToAquarium(fish, aquariums[0].id);
+      return;
+    }
+
+    setPendingTankFish(fish);
+    setTargetAquariumId(aquariums[0].id);
   };
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
+      <section className="overflow-hidden rounded-sm border border-rose-100 bg-rose-50/60 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setIsWishlistExpanded(prev => !prev)}
+          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-rose-50"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-rose-400 shadow-sm">
+              <Heart className="h-4 w-4 fill-current" />
+              {wishlistFishes.length > 0 && (
+                <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[8px] font-black leading-none text-white">
+                  {wishlistFishes.length}
+                </span>
+              )}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-black text-ink">我的种草清单</div>
+              <div className="text-[10px] font-medium text-ink/45">
+                {wishlistFishes.length > 0 ? '点开查看已种草生物' : '还没有种草'}
+              </div>
+            </div>
+          </div>
+          <ChevronRight className={`h-4 w-4 shrink-0 text-rose-400 transition-transform ${isWishlistExpanded ? 'rotate-90' : ''}`} />
+        </button>
+
+        {isWishlistExpanded && (wishlistFishes.length === 0 ? (
+          <div className="rounded-sm border border-dashed border-rose-200 bg-white/60 px-3 py-4 text-center text-[11px] font-medium text-ink/50">
+            还没有种草，滑动灵感卡或在图鉴里点心愿按钮。
+          </div>
+        ) : (
+          <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 border-t border-rose-100 bg-[#FBFAF6] px-2.5 py-3">
+            {wishlistFishes.map(fish => (
+              <div
+                key={fish.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedFish(fish)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') setSelectedFish(fish);
+                }}
+                className="group relative min-w-0 cursor-pointer text-center"
+              >
+                <button
+                  type="button"
+                  aria-label={`移除${fish.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleWishlist(fish.id);
+                  }}
+                  className="absolute right-0 top-0 z-10 rounded-full bg-white/90 p-0.5 text-rose-400 shadow-sm hover:text-rose-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <div className="relative mx-auto flex h-[46px] w-full items-end justify-center">
+                  <img
+                    src={getEncyclopediaImage(fish)}
+                    alt={fish.name}
+                    className="max-h-[44px] max-w-full object-contain drop-shadow-[0_8px_10px_rgba(136,80,96,0.14)] transition-transform duration-200 group-hover:scale-[1.04]"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-rose-500">{fish.name}</div>
+                <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-ink/38">已种草</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
       <section className="relative overflow-hidden rounded-sm border border-border bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4 shadow-sm">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
@@ -488,9 +573,6 @@ export default function Encyclopedia() {
                       {discoveryFish.scientificName}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black ${getHousingBadgeClass(discoveryFish.housingMode)}`}>
-                    {discoveryFish.housingMode || '适合混养'}
-                  </span>
                 </div>
 
                 <div className="mt-3 grid grid-cols-3 gap-2">
@@ -560,8 +642,7 @@ export default function Encyclopedia() {
 
       <div className="flex flex-col gap-5 mt-4">
         <div className="flex min-w-0 flex-col gap-3">
-          <h3 className="text-base font-bold text-ink">分类筛选</h3>
-          <div className="grid min-w-0 grid-cols-[1fr_auto] items-center gap-2">
+          <div className="grid min-w-0 grid-cols-[1fr_auto_auto] items-center gap-2">
              <div className="relative min-w-0">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink/50" />
                 <Input 
@@ -571,15 +652,50 @@ export default function Encyclopedia() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
              </div>
+             <button
+               onClick={() => setIsFilterExpanded(prev => !prev)}
+               className="h-9 rounded-sm border border-border bg-white px-3 text-[12px] font-bold text-ink/70 transition-colors hover:border-accent hover:text-accent"
+             >
+               筛选
+             </button>
+             {isFilterExpanded && hasActiveFilters && (
              <button onClick={clearFilters} className="text-[12px] text-ink/60 hover:text-ink font-bold whitespace-nowrap bg-bg border border-border rounded-sm px-3 h-9 flex items-center transition-colors">
                一键重置
              </button>
+             )}
           </div>
         </div>
 
+        {isFilterExpanded && (
+        <>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { id: 'life', label: '按生物类型' },
+            { id: 'size', label: '按体型大小' },
+            { id: 'housing', label: '按是否可混养' },
+            { id: 'water', label: '按水温类型' },
+            { id: 'difficulty', label: '按饲养难度' },
+            { id: 'temperament', label: '按性格风险' },
+          ].map(item => {
+            const isActive = activeFilterGroup === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveFilterGroup(item.id as typeof activeFilterGroup)}
+                className={`shrink-0 rounded-sm border px-3 py-2 text-[12px] font-bold transition-colors ${
+                  isActive ? 'border-accent bg-accent text-white' : 'border-border bg-white text-ink/70 hover:border-accent hover:text-accent'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Row 1: Life Type */}
+        {activeFilterGroup === 'life' && (
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">生物类型</span>
           <div className="grid min-w-0 grid-cols-2 gap-2">
             {lifeTypes.map(type => {
               const isActive = lifeTypeFilter === type.id;
@@ -658,11 +774,11 @@ export default function Encyclopedia() {
             </div>
           )}
         </div>
+        )}
 
         {/* Row 2: Temperature Band */}
-        {(lifeTypeFilter === 'freshwaterFish' || lifeTypeFilter === 'saltwaterFish') && (
+        {activeFilterGroup === 'water' && (
           <div className="flex min-w-0 flex-col gap-2">
-            <span className="text-xs font-bold text-ink/70">水温类型</span>
             <div className="grid min-w-0 grid-cols-3 gap-2">
               {temperatureBands.map(item => {
                 const isActive = waterTypeFilter === item.id;
@@ -684,8 +800,8 @@ export default function Encyclopedia() {
         )}
 
         {/* Row 3: Size */}
+        {activeFilterGroup === 'size' && (
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">体型大小</span>
           <div className="grid min-w-0 grid-cols-3 gap-2">
             {sizeFilters.map(item => {
               const isActive = sizeFilter === item.id;
@@ -704,10 +820,32 @@ export default function Encyclopedia() {
             })}
           </div>
         </div>
+        )}
+
+        {activeFilterGroup === 'housing' && (
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="grid min-w-0 grid-cols-3 gap-2">
+            {housingModes.map(mode => {
+              const isActive = housingFilter === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setHousingFilter(prev => prev === mode ? 'All' : mode)}
+                  className={`min-h-[48px] rounded-sm border px-2 py-2 text-center text-[11px] font-black transition-all ${
+                    isActive ? 'border-accent bg-accent text-white shadow-sm' : 'border-border bg-white text-ink hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  {mode}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        )}
 
         {/* Row 4: Temperament */}
+        {activeFilterGroup === 'temperament' && (
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">性格风险</span>
           <div className="grid min-w-0 grid-cols-3 gap-2">
             {temperamentFilters.map(item => {
               const isActive = temperamentFilter === item.id;
@@ -726,10 +864,11 @@ export default function Encyclopedia() {
             })}
           </div>
         </div>
+        )}
 
         {/* Row 5: Difficulty */}
+        {activeFilterGroup === 'difficulty' && (
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">饲养难度</span>
           <div className="flex min-w-0 flex-wrap gap-2">
             {difficulties.map(d => (
               <button
@@ -746,29 +885,10 @@ export default function Encyclopedia() {
             ))}
           </div>
         </div>
+        )}
 
-        {/* Row 6: Housing Mode */}
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-xs font-bold text-ink/70">混养建议</span>
-          <div className="grid min-w-0 grid-cols-3 gap-2">
-            {housingModes.map(mode => {
-              const isActive = housingFilter === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setHousingFilter(prev => prev === mode ? 'All' : mode)}
-                  className={`min-h-10 rounded-sm border px-2 py-2 text-center text-[11px] font-black transition-all ${getHousingBadgeClass(mode)} ${
-                    isActive ? 'ring-2 ring-accent/40 shadow-sm' : 'opacity-80 hover:opacity-100'
-                  }`}
-                >
-                  {mode}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
+        </>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mt-2">
           {filteredFishes.map((fish) => {
@@ -807,9 +927,6 @@ export default function Encyclopedia() {
                   <span className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-sm ${getDifficultyBadgeClass(fish.difficulty)}`}>
                     {getDifficultyLabel(fish.difficulty)}
                   </span>
-                  <span className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-sm ${getHousingBadgeClass(fish.housingMode)}`}>
-                    {fish.housingMode || '适合混养'}
-                  </span>
                   {theme.needsHeater && (
                     <span className="bg-red-50 text-red-500 px-1.5 py-0.5 text-[10px] font-bold border border-red-100 rounded-sm inline-flex items-center gap-1">
                       <Thermometer className="w-3 h-3" /> 需加热
@@ -842,6 +959,7 @@ export default function Encyclopedia() {
           没有找到匹配的生物。
         </div>
       )}
+      </div>
 
       <Dialog open={!!selectedFish} onOpenChange={(open) => !open && setSelectedFish(null)}>
         <DialogContent className="w-[90vw] max-w-[600px] p-0 overflow-hidden border-border rounded-sm">
@@ -861,9 +979,6 @@ export default function Encyclopedia() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <DialogTitle className="font-serif text-2xl md:text-3xl italic text-ink font-bold">{selectedFish.name}</DialogTitle>
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm border ${getHousingBadgeClass(selectedFish.housingMode)}`}>
-                          {selectedFish.housingMode || '适合混养'}
-                        </span>
                         {getToolFunctions(selectedFish).map(tag => (
                           <span key={tag} className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {tag}
@@ -1029,17 +1144,50 @@ export default function Encyclopedia() {
                   </div>
                 </div>
 
-                <div className={`border p-4 rounded-sm ${getHousingBadgeClass(selectedFish.housingMode)}`}>
-                  <h4 className="text-[11px] uppercase tracking-[1px] font-bold mb-1.5">混养建议</h4>
-                  <div className="text-base font-serif font-bold italic mb-1">{selectedFish.housingMode || '适合混养'}</div>
-                  <p className="text-sm md:text-[14px] leading-relaxed font-medium">
-                    {selectedFish.housingReason || '性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。'}
-                  </p>
-                </div>
-
               </div>
             </ScrollArea>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pendingTankFish} onOpenChange={(open) => !open && setPendingTankFish(null)}>
+        <DialogContent className="w-[90vw] max-w-[420px] rounded-sm border-border p-5">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl font-bold italic text-ink">添加到哪个鱼缸？</DialogTitle>
+            <DialogDescription className="text-xs text-ink/60">
+              选择目标鱼缸后，{pendingTankFish?.name || '该生物'} 会加入对应鱼缸记录。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            {(JSON.parse(localStorage.getItem('aquariums') || '[]') as Aquarium[]).map(aquarium => {
+              const isActive = targetAquariumId === aquarium.id;
+              return (
+                <button
+                  key={aquarium.id}
+                  type="button"
+                  onClick={() => setTargetAquariumId(aquarium.id)}
+                  className={`rounded-sm border px-3 py-3 text-left transition-colors ${
+                    isActive ? 'border-accent bg-accent text-white' : 'border-border bg-white text-ink hover:border-accent'
+                  }`}
+                >
+                  <div className="text-sm font-black">{aquarium.name}</div>
+                  <div className={`mt-1 text-[11px] font-medium ${isActive ? 'text-white/70' : 'text-ink/45'}`}>
+                    {aquarium.dimensions?.length || 60}x{aquarium.dimensions?.width || 40}x{aquarium.dimensions?.height || 40}cm · {aquarium.fishes.length} 种生物
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingTankFish(null)} className="h-9 rounded-sm text-sm font-bold">取消</Button>
+            <Button
+              disabled={!pendingTankFish || !targetAquariumId}
+              onClick={() => pendingTankFish && addFishToAquarium(pendingTankFish, targetAquariumId)}
+              className="h-9 rounded-sm bg-accent text-sm font-bold text-white hover:bg-accent/90"
+            >
+              确认添加
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
