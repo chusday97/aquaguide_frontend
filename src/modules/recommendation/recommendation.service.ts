@@ -78,13 +78,16 @@ const getTankVolumeLiters = (aquarium: Aquarium) => {
 const getBioLoadLiters = (fish: Fish) => {
   const lifeType = getLifeType(fish);
   if (lifeType === 'plant' || lifeType === 'hardscape') return 0;
-  if (lifeType === 'invertebrate') return 2;
+  if (lifeType === 'invertebrate') {
+    if (/螺|snail|Neritina|Pomacea|Clithon|Anentome/i.test(`${fish.name} ${fish.scientificName}`)) return 1.5;
+    return 0.5;
+  }
   if (lifeType === 'coral') return 8;
   if (lifeType === 'reptile') return 60;
 
-  const base = fish.size === 'Large' ? 35 : fish.size === 'Medium' ? 12 : 4;
+  const base = fish.size === 'Large' ? 35 : fish.size === 'Medium' ? 9 : 2.5;
   const temperamentMultiplier = fish.temperament === 'Aggressive' || fish.temperament === 'Territorial' ? 1.35 : 1;
-  return Math.round(base * temperamentMultiplier);
+  return base * temperamentMultiplier;
 };
 
 const isRecommendableSpecies = (fish: Fish) => {

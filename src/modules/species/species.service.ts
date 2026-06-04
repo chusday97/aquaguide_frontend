@@ -176,6 +176,17 @@ export const getSecondaryCategory = (fish: Fish) => {
     return '海水滤食生物';
   }
 
+  if (lifeType === 'plant') {
+    if (/矮珍珠|趴地珍珠|牛毛毡|挖耳草|Glossostigma|Hemianthus|Eleocharis|Utricularia|Sagittaria/i.test(text)) return '前景草';
+    if (/莫斯|鹿角苔|凤尾藓|Fissidens|Vesicularia|Riccia/i.test(text)) return '莫斯/苔藓';
+    if (/水榕|辣椒榕|铁皇冠|黑木蕨|Anubias|Bucephalandra|Microsorum|Bolbitis/i.test(text)) return '阴性附生草';
+    if (/椒草|Cryptocoryne/i.test(text)) return '椒草';
+    if (/宫廷|红丁香|小对叶|水罗兰|红雨伞|红蝴蝶|蜈蚣草|Rotala|Ludwigia|Bacopa|Hygrophila|Proserpinaca|Egeria|Myriophyllum/i.test(text)) return '有茎草';
+    if (/皇冠|水兰|睡莲|红荷根|大浪草|Echinodorus|Vallisneria|Nymphaea|Aponogeton/i.test(text)) return '中后景莲座草';
+    if (/浮萍|圆心萍|红根浮萍|Lemna|Limnobium|Phyllanthus/i.test(text)) return '浮草';
+    return '其他水草';
+  }
+
   return '';
 };
 
@@ -221,6 +232,7 @@ export const matchesTemperamentFilter = (fish: Fish, temperamentFilter: string) 
 
 export const getToolFunctions = (fish: Fish) => {
   const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
+  if (getLifeType(fish) === 'coral') return [];
   const tags: string[] = [];
 
   if (/除藻|藻膜|褐藻|黑毛藻|飞狐|小精灵|胡子|异型|Otocinclus|Ancistrus|Crossocheilus|Amano|大和藻虾|角螺|鲍螺|海藻/i.test(text)) {
@@ -242,7 +254,7 @@ export const getToolFunctions = (fish: Fish) => {
   return Array.from(new Set(tags));
 };
 
-export const getDisplayableSpecies = () => fishData.filter((fish) => !['plant', 'hardscape'].includes(getLifeType(fish)));
+export const getDisplayableSpecies = () => fishData.filter((fish) => getLifeType(fish) !== 'hardscape');
 
 export const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) => {
   if (lifeTypeFilter === 'All') return [];

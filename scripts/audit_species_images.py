@@ -36,16 +36,6 @@ ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES = {
 KNOWN_MANUAL_ISSUES = {}
 
 KNOWN_MANUAL_ISSUES_BY_KEY = {
-    ("甜心柠檬灯", "Hyphessobrycon pulchripinnis var."): {
-        "issue": "semantic_mismatch",
-        "severity": "high",
-        "note": "用户反馈当前甜心柠檬灯图片不符合预期；需要按甜心柠檬灯/柠檬灯改良型重新生成或替换参考图。",
-    },
-    ("黑壳虾", "Neocaridina davidi wild type"): {
-        "issue": "temporary_placeholder",
-        "severity": "high",
-        "note": "黑壳虾为本地补录物种；当前暂用黑色米虾素材占位，最终应替换为半透明黑褐色野生型 Neocaridina davidi 图片。",
-    },
 }
 
 

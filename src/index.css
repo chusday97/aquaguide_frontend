@@ -28,19 +28,117 @@
 html,
 body,
 #root {
+  margin: 0;
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
-  margin: 0;
   max-width: 100vw;
   background-color: #dfe8e5;
   color: var(--color-ink);
   font-family: var(--font-sans);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.app-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden !important;
+}
+
+.modalCard {
+  width: min(480px, calc(100vw - 32px));
+  max-width: 100%;
+  max-height: 82dvh;
+  border-radius: 28px;
+  background: #fff;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+.modalHeader {
+  flex: 0 0 auto;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.modalBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 20px 24px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.modalBody::-webkit-scrollbar,
+[data-slot="dialog-content"] *::-webkit-scrollbar,
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar,
+[data-slot="dialog-content"]::-webkit-scrollbar,
+[role="dialog"]::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.modalFooter {
+  flex: 0 0 auto;
+  padding: 12px 20px 20px;
+  background: linear-gradient(to top, #fff 0%, #fff 72%, rgba(255, 255, 255, 0.86) 100%);
+}
+
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+[data-slot="dialog-content"],
+[data-slot="scroll-area-viewport"],
+.modalCard,
+.modalBody {
+  max-width: 100%;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-slot="dialog-content"] *,
+[role="dialog"] * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 input,

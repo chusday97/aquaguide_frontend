@@ -82,7 +82,7 @@ export const encyclopediaService = {
       allItems,
       categorySourceItems,
       categories,
-      lifeTypeCounts: getLifeTypeCounts(allItems, ['freshwaterFish', 'saltwaterFish', 'invertebrate', 'reptile', 'coral']),
+      lifeTypeCounts: getLifeTypeCounts(allItems, ['freshwaterFish', 'saltwaterFish', 'invertebrate', 'reptile', 'coral', 'plant']),
       total: items.length,
       activeFilters,
     };
