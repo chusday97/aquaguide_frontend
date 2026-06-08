@@ -76,8 +76,10 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
   const addRule = (rule: DiagnosisRuleResult) => rules.push(rule);
 
   const has = (...keywords: string[]) => includesAny(answers, keywords);
+  const uncertainCount = answers.filter(value => value.includes('不确定')).length;
+  const problemText = input.problemType;
 
-  if (has('鱼浮头喘气', '浮头喘气', '浮头', '呼吸明显急促', '急促呼吸') && has('有异味', '水发白', '水发绿')) {
+  if (has('鱼浮头喘气', '浮头喘气', '经常浮头', '呼吸明显急促', '急促呼吸', '浮头') && has('有异味', '水发白', '水发绿', '发白', '发绿', '明显浑浊')) {
     addRule({
       ruleId: 'water-breathing-high-risk',
       riskLevel: 'high',
@@ -91,7 +93,35 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
     });
   }
 
-  if (has('连续死了多条', '2-3 条', '多条鱼', '全缸都异常')) {
+  if (has('经常浮头', '呼吸明显急促', '急促呼吸') && !has('有异味', '明显浑浊', '水发白', '水发绿', '发白', '发绿')) {
+    addRule({
+      ruleId: 'frequent-breathing-warning',
+      riskLevel: 'high',
+      summary: '经常浮头或呼吸明显急促需要优先按缺氧、水温或过滤异常排查。',
+      actions: ['立即增加供氧或水面扰动', '检查过滤是否正常出水', '暂停喂食 12-24 小时'],
+      avoidActions: ['不要继续加鱼', '不要盲目下药', '不要大幅折腾鱼缸'],
+      possibleCauses: ['溶氧不足', '过滤出水异常', '水温或水质波动'],
+      observeItems: ['增氧后 30-60 分钟是否缓解', '是否多条鱼同时浮头', '水体是否开始浑浊或有异味'],
+      missingInfo: ['氨氮/亚硝酸盐', '过滤出水状态', '水温变化'],
+      matchedArticleIds: articleIds,
+    });
+  }
+
+  if (has('偶尔浮头') && !has('经常浮头', '呼吸明显急促', '有异味', '明显浑浊', '死亡多条', '连续死了多条')) {
+    addRule({
+      ruleId: 'occasional-breathing-watch',
+      riskLevel: 'medium',
+      summary: '偶尔浮头更像轻微缺氧、短期应激或环境波动，需要先观察并排查供氧。',
+      actions: ['增加水面扰动或短时打氧', '检查过滤出水是否变弱', '减少本次投喂量'],
+      avoidActions: ['不要直接下药', '不要一次性大比例换水', '不要继续新增生物'],
+      possibleCauses: ['轻微缺氧', '短期应激', '喂食后水体负担增加'],
+      observeItems: ['是否变成经常浮头', '是否伴随拒食或趴底', '水体是否浑浊'],
+      missingInfo: ['持续时间', '最近投喂量', '过滤和增氧状态'],
+      matchedArticleIds: articleIds,
+    });
+  }
+
+  if (has('连续死了多条', '2-3 条', '多条鱼', '死亡多条', '多条异常', '全缸都异常')) {
     addRule({
       ruleId: 'multiple-death-high-risk',
       riskLevel: 'high',
@@ -105,7 +135,7 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
     });
   }
 
-  if (has('换水', '温差较大', '刚换水') && has('异常', '趴底不动', '浮头喘气', '不吃食')) {
+  if (has('换水', '少量换水', '大比例换水', '清洗过滤', '温差较大', '刚换水') && has('异常', '趴底不动', '浮头喘气', '浮头/呼吸急促', '经常浮头', '呼吸明显急促', '不吃食', '拒食')) {
     addRule({
       ruleId: 'after-water-change-stress',
       riskLevel: 'medium',
@@ -119,7 +149,7 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
     });
   }
 
-  if (has('今天刚入缸', '1-3 天', '新鱼') && has('躲藏', '不吃食', '拒食')) {
+  if (has('今天刚入缸', '1-3 天', '新鱼', '有新增生物', '刚入缸 1-3 天') && has('躲藏', '长时间躲藏', '不吃食', '拒食', '连续一天不吃')) {
     addRule({
       ruleId: 'new-fish-stress',
       riskLevel: 'medium',
@@ -133,7 +163,7 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
     });
   }
 
-  if (has('吃不完剩很多', '吃不完沉底', '喂多了', '水变浑')) {
+  if (has('吃不完剩很多', '吃不完沉底', '喂多了', '水变浑', '偏多', '有残饵')) {
     addRule({
       ruleId: 'overfeeding-cloudy-water',
       riskLevel: 'medium',
@@ -143,6 +173,34 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
       possibleCauses: ['残饵污染', '过滤压力增加', '喂食量过大'],
       observeItems: ['水是否变清', '鱼腹是否胀大', '是否继续有残饵'],
       missingInfo: ['每次多久吃完'],
+      matchedArticleIds: articleIds,
+    });
+  }
+
+  if (problemText === '追咬打架' || has('明显追咬', '咬伤鳍条', '持续霸占区域', '抢食严重')) {
+    addRule({
+      ruleId: 'aggression-space-pressure',
+      riskLevel: has('咬伤鳍条', '持续霸占区域') ? 'high' : 'medium',
+      summary: has('咬伤鳍条', '持续霸占区域') ? '追咬已经影响安全，需要优先降低领地和空间压力。' : '当前有追逐或抢食压力，需要先增加躲避和观察对象。',
+      actions: ['增加水草、沉木或石缝作为躲避区', '先暂停继续加入新生物', '观察被追个体是否拒食或受伤'],
+      avoidActions: ['不要继续扩大混养组合', '不要频繁追捞所有生物', '不要只靠加饲料缓解抢食'],
+      possibleCauses: ['领地压力', '密度偏高', '入缸顺序变化'],
+      observeItems: ['是否固定追同一条', '是否出现破鳍或躲藏', '喂食时是否抢食严重'],
+      missingInfo: ['追咬对象', '鱼缸长度和躲避空间', '最近是否新增生物'],
+      matchedArticleIds: articleIds,
+    });
+  }
+
+  if (problemText === '水质浑浊 / 异味' || has('轻微浑浊', '明显浑浊', '发白', '发绿', '有异味', '水面油膜')) {
+    addRule({
+      ruleId: 'water-clarity-check',
+      riskLevel: has('有异味', '明显浑浊') ? 'medium' : 'low',
+      summary: has('有异味', '明显浑浊') ? '水体已经有明显异常，需要先减负并检查过滤。' : '水体轻微异常，先排查残饵、过滤和近期操作。',
+      actions: ['捞出可见残饵和腐败物', '检查过滤是否正常运行', '必要时少量换水 10%-20%'],
+      avoidActions: ['不要一次性全缸大换水', '不要继续过量喂食', '不要同时清洗所有滤材'],
+      possibleCauses: ['残饵污染', '过滤压力增加', '水体菌相波动'],
+      observeItems: ['水是否继续变浑', '是否出现浮头或拒食', '是否有异味加重'],
+      missingInfo: ['最近喂食量', '过滤状态', '氨氮/亚硝酸盐'],
       matchedArticleIds: articleIds,
     });
   }
@@ -181,10 +239,10 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
   if (rules.length === 0) {
     addRule({
       ruleId: 'generic-symptom-check',
-      riskLevel: has('不确定') ? 'unknown' : 'low',
-      summary: '目前没有命中高风险规则，先按症状做初步观察。',
-      actions: ['保持环境稳定', '减少投喂', '观察 24 小时'],
-      avoidActions: ['不要盲目下药', '不要频繁捞鱼', '不要突然大幅换水'],
+      riskLevel: uncertainCount >= Math.max(2, Math.ceil(answers.length / 2)) ? 'unknown' : 'low',
+      summary: uncertainCount >= Math.max(2, Math.ceil(answers.length / 2)) ? '当前信息不足，建议先补充观察和水质信息。' : '目前没有命中高风险规则，先做轻量排查和短期观察。',
+      actions: ['记录异常出现时间和影响范围', '检查过滤出水、水温和水体气味', '把下一次投喂控制在 2-3 分钟内吃完'],
+      avoidActions: ['不要盲目下药', '不要频繁捞鱼', '不要突然大比例换水'],
       possibleCauses: ['信息不足', '轻微应激', '环境波动'],
       observeItems: ['呼吸是否急促', '是否继续拒食', '水体是否异常'],
       missingInfo: ['异常持续时间', '照片或视频描述'],

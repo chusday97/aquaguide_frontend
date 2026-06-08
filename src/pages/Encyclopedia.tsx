@@ -23,6 +23,12 @@ import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { ImagePreviewModal, type PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
+import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import {
+  evaluateSpeciesForAquarium,
+  getCurrentLivestockForAquarium,
+  type SpeciesFitEvaluation,
+} from '../lib/speciesFitEngine';
 
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
@@ -253,7 +259,7 @@ const getSpeciesReminder = (fish: Fish) => {
   return '';
 };
 
-const matchesFunctionFilter = (fish: Fish, functionTag: string | null) => {
+const matchesFunctionFilter = (fish: Fish, functionTag: string | null, fitEvaluation?: SpeciesFitEvaluation) => {
   if (!functionTag || functionTag === '全部') return true;
   const tools = getToolFunctions(fish);
   const taxonomy = getCareTaxonomyPath(fish);
@@ -276,7 +282,7 @@ const matchesFunctionFilter = (fish: Fish, functionTag: string | null) => {
     case '小缸适合':
       return fish.size === 'Small' || searchable.includes('小缸') || searchable.includes('桌面');
     case '适合当前鱼缸':
-      return fish.difficulty === 'Easy' || fish.size === 'Small' || fish.temperament === 'Peaceful';
+      return fitEvaluation?.status === 'suitable';
     case '观赏鱼':
       return getLifeType(fish) === 'freshwaterFish' || getLifeType(fish) === 'saltwaterFish';
     case '工具生物':
@@ -363,15 +369,19 @@ const matchesEnvironmentFilter = (fish: Fish, environment: string | null) => (
     || (environment === '不需加热' && !getFishTemperatureTheme(fish.waterTemperature).needsHeater)
 );
 
-const getFilteredSpecies = (allSpecies: Fish[], filters: ActiveFilters) => {
+const getFilteredSpecies = (allSpecies: Fish[], filters: ActiveFilters, fitEvaluations: Map<string, SpeciesFitEvaluation> = new Map()) => {
   const keyword = filters.keyword.trim();
   return allSpecies
     .filter(fish =>
       matchesKeyword(fish, keyword)
-      && matchesFunctionFilter(fish, filters.functionTag)
+      && matchesFunctionFilter(fish, filters.functionTag, fitEvaluations.get(fish.id))
       && matchesEnvironmentFilter(fish, filters.environment)
     )
     .sort((a, b) => {
+      if (filters.functionTag === '适合当前鱼缸') {
+        const scoreDiff = (fitEvaluations.get(b.id)?.score || 0) - (fitEvaluations.get(a.id)?.score || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+      }
       const rankDiff = getSearchRank(a, keyword) - getSearchRank(b, keyword);
       if (rankDiff !== 0) return rankDiff;
       return a.name.localeCompare(b.name, 'zh-Hans-CN');
@@ -488,6 +498,7 @@ export default function Encyclopedia() {
   const [draftEnvironment, setDraftEnvironment] = useState<string | null>(null);
   const [filterUsage, setFilterUsage] = useState<FilterUsageState>(() => loadFilterUsage());
   const [activeFilterGroup, setActiveFilterGroup] = useState<'life' | 'size' | 'housing' | 'water' | 'difficulty' | 'temperament'>('life');
+  const [currentAquarium, setCurrentAquarium] = useState<Aquarium | null>(null);
   const [pendingTankFish, setPendingTankFish] = useState<Fish | null>(null);
   const [targetAquariumId, setTargetAquariumId] = useState('');
   const [calculatorSpeciesIds, setCalculatorSpeciesIds] = useState<string[]>([]);
@@ -520,6 +531,10 @@ export default function Encyclopedia() {
         aq.fishes.forEach(f => ids.add(f.fishId));
       });
       setOwnedFishIds(ids);
+      const current = appState.currentAquariumId
+        ? aquariums.find(aq => aq.id === appState.currentAquariumId)
+        : aquariums[0];
+      setCurrentAquarium(current || null);
     }
 
     setWishlistFishIds(loadWishlistIds());
@@ -689,12 +704,26 @@ export default function Encyclopedia() {
     activeFilters.functionTag,
     activeFilters.environment,
   ].filter(Boolean) as string[];
-  const resultTitle = resultFilterLabels.length > 0 ? resultFilterLabels.join(' · ') : '全部结果';
+  const isSuitableCurrentTankFilter = activeFilters.functionTag === '适合当前鱼缸';
   const hasAnyActiveCriteria = resultFilterLabels.length > 0;
-  const filteredFishes = useMemo(
-    () => getFilteredSpecies(allFishes, activeFilters),
-    [activeFilters, allFishes]
+  const currentLivestock = useMemo(
+    () => getCurrentLivestockForAquarium(currentAquarium, allFishes),
+    [currentAquarium, allFishes]
   );
+  const fitEvaluations = useMemo(() => {
+    const map = new Map<string, SpeciesFitEvaluation>();
+    allFishes.forEach(fish => {
+      map.set(fish.id, evaluateSpeciesForAquarium(fish, currentAquarium, currentLivestock));
+    });
+    return map;
+  }, [allFishes, currentAquarium, currentLivestock]);
+  const filteredFishes = useMemo(
+    () => getFilteredSpecies(allFishes, activeFilters, fitEvaluations),
+    [activeFilters, allFishes, fitEvaluations]
+  );
+  const resultTitle = isSuitableCurrentTankFilter
+    ? `适合当前鱼缸 · ${filteredFishes.length} 种`
+    : resultFilterLabels.length > 0 ? resultFilterLabels.join(' · ') : '全部结果';
   const resultPageSize = 20;
   const resultPageCount = Math.max(1, Math.ceil(filteredFishes.length / resultPageSize));
   const currentResultPage = Math.min(resultPage, resultPageCount - 1);
@@ -1060,7 +1089,9 @@ export default function Encyclopedia() {
                 {resultTitle} · 当前展示 {pagedFishes.length} 种
               </div>
               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">
-                匹配总数 {filteredFishes.length} 种 · 第 {currentResultPage + 1}/{resultPageCount} 组
+                {isSuitableCurrentTankFilter
+                  ? `已按水质、温度、空间、设备和混养基础条件筛选 · 第 ${currentResultPage + 1}/${resultPageCount} 组`
+                  : `匹配总数 ${filteredFishes.length} 种 · 第 ${currentResultPage + 1}/${resultPageCount} 组`}
               </div>
             </div>
             {hasAnyActiveCriteria && (
@@ -1127,12 +1158,12 @@ export default function Encyclopedia() {
                   onClick={() => setSelectedFish(fish)}
                   aria-label={`查看${fish.name}详情`}
                   data-species-card-image-area
-                  className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-hidden relative rounded-[16px] border ${
+                  className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border ${
                   isInCalculator
-                    ? 'border-emerald-200 bg-bg/60'
+                    ? `border-emerald-100 bg-emerald-50/18 ${getSpeciesImageSurfaceClass(fish)}`
                     : isMarine
-                      ? 'border-sky-200 bg-sky-50/70'
-                      : 'border-border/50 bg-bg/60'
+                      ? 'border-sky-100 bg-sky-50/20'
+                      : `border-transparent bg-transparent ${getSpeciesImageSurfaceClass(fish)}`
                 }`}
                 >
                   {isInCalculator && (
@@ -1154,7 +1185,7 @@ export default function Encyclopedia() {
                     src={getEncyclopediaImage(fish)} 
                     alt={fish.name} 
                     data-species-image
-                    className={`h-[88%] w-[88%] object-contain transition-opacity duration-300 ${imageClass}`}
+                    className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${imageClass} ${getSpeciesImageClass(fish)}`}
                     referrerPolicy="no-referrer"
                   />
                 </button>
@@ -1288,7 +1319,17 @@ export default function Encyclopedia() {
       )}
       </div>
       ) : (
-        <CompatibilityRiskCalculator speciesIds={calculatorSpeciesIds} onSpeciesIdsChange={setCalculatorSpeciesIds} />
+        <CompatibilityRiskCalculator
+          speciesIds={calculatorSpeciesIds}
+          onSpeciesIdsChange={setCalculatorSpeciesIds}
+          preferredSpeciesIds={Array.from(ownedFishIds)}
+          onBrowseAtlas={() => {
+            setViewMode('browse');
+            window.requestAnimationFrame(() => {
+              document.getElementById('calculator-tab-target')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+          }}
+        />
       )}
 
       <SpeciesDetailDialog
@@ -1328,13 +1369,13 @@ export default function Encyclopedia() {
                     type="button"
                     onClick={() => openSpeciesPreview(selectedFish)}
                     data-species-detail-hero
-                    className="flex h-[250px] w-full items-center justify-center rounded-[18px] border border-border/70 bg-white p-3 shadow-sm"
+                    className={`flex h-[250px] w-full items-center justify-center rounded-[18px] border border-transparent bg-transparent p-3 ${getSpeciesImageSurfaceClass(selectedFish)}`}
                     aria-label={`放大查看${selectedFish.name}图片`}
                   >
                     <img
                       src={getEncyclopediaImage(selectedFish)}
                       alt={selectedFish.name}
-                      className="h-[84%] w-[84%] object-contain"
+                      className={`max-h-[84%] max-w-[84%] object-contain ${getSpeciesImageClass(selectedFish)}`}
                       referrerPolicy="no-referrer"
                     />
                   </button>

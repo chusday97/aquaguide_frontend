@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Search, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { fishData } from '../data/fishData';
 import type { Fish } from '../types';
 import { getCareTaxonomyPath } from '../modules/species/species.service';
+import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 
 const DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
   sp_0019: '/species-display/sp_0019_埃及神仙_display_white.png?v=displaycutout_20260601',
@@ -387,9 +388,19 @@ function CompatibilityBottomSheet({
 type CompatibilityRiskCalculatorProps = {
   speciesIds?: string[];
   onSpeciesIdsChange?: (ids: string[]) => void;
+  onBrowseAtlas?: () => void;
+  preferredSpeciesIds?: string[];
 };
 
-export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange }: CompatibilityRiskCalculatorProps = {}) {
+const commonPreviewNames = ['红绿灯', '宝莲灯', '黑壳虾', '极火虾', '斑马螺', '咖啡鼠', '白云金丝', '孔雀鱼'];
+
+const getCommonPreviewSpecies = () => (
+  commonPreviewNames
+    .map(name => fishData.find(fish => fish.name === name) || fishData.find(fish => fish.name.includes(name)))
+    .filter((fish): fish is Fish => Boolean(fish))
+);
+
+export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, onBrowseAtlas, preferredSpeciesIds = [] }: CompatibilityRiskCalculatorProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSpeciesIds, setInternalSpeciesIds] = useState<string[]>([]);
   const [resultFeedback, setResultFeedback] = useState('');
@@ -411,6 +422,16 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange }: 
   const conflictTags = getConflictTags(selectedSpecies, result.reasons);
   const mainConflicts = useMemo(() => getMainConflicts(selectedSpecies), [selectedSpecies]);
   const actionHints = useMemo(() => getActionHints(result.level, selectedSpecies), [result.level, selectedSpecies]);
+  const commonPreviewSpecies = useMemo(() => {
+    const preferredSpecies = Array.from(new Set(preferredSpeciesIds))
+      .map(id => fishData.find(fish => fish.id === id))
+      .filter((fish): fish is Fish => Boolean(fish))
+      .filter(fish => !activeSpeciesIds.includes(fish.id));
+    const fallbackSpecies = getCommonPreviewSpecies()
+      .filter(fish => !activeSpeciesIds.includes(fish.id))
+      .filter(fish => !preferredSpecies.some(item => item.id === fish.id));
+    return (preferredSpecies.length > 0 ? preferredSpecies : fallbackSpecies).slice(0, 8);
+  }, [activeSpeciesIds, preferredSpeciesIds]);
   const selectedCount = selectedSpecies.length;
   const statusLabel = selectedCount === 0
     ? '未开始'
@@ -507,8 +528,8 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange }: 
                     onClick={() => addSpecies(fish)}
                     className="grid min-h-[54px] grid-cols-[44px_1fr_auto] items-center gap-2 rounded-[14px] border border-amber-100 bg-white px-2 py-1.5 text-left transition-colors hover:border-amber-300"
                   >
-                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-amber-50">
-                      <img src={getDisplayImage(fish)} alt={fish.name} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />
+                    <span className="flex h-10 w-10 items-center justify-center overflow-visible rounded-full">
+                      <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-9 max-w-10 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-[12px] font-black text-ink">{fish.name}</span>
@@ -522,6 +543,59 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange }: 
               })}
             </div>
           )}
+
+          <div className="mt-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div>
+                <div className="text-[12px] font-black text-ink">常用生物预览</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/42">左右滑动，点卡片直接加入计算。</div>
+              </div>
+            </div>
+            <div className="relative -mx-3 min-w-0 max-w-[calc(100vw-32px)] overflow-hidden">
+              <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 bg-gradient-to-l from-white/75 to-transparent" />
+              <div className="app-scrollbar-hidden flex w-full min-w-0 snap-x snap-mandatory gap-2 overflow-x-scroll overflow-y-hidden overscroll-x-contain px-3 pb-1 pr-10 touch-pan-x [-webkit-overflow-scrolling:touch]">
+              {commonPreviewSpecies.map(fish => {
+                const taxonomy = getCareTaxonomyPath(fish);
+                return (
+                  <button
+                    key={fish.id}
+                    type="button"
+                    onClick={() => addSpecies(fish)}
+                    className="grid w-[82px] shrink-0 snap-start gap-1 rounded-[14px] border border-transparent bg-transparent p-1 text-left transition-colors hover:border-emerald-100 hover:bg-emerald-50/40"
+                    aria-label={`加入${fish.name}到混养计算`}
+                  >
+                    <span className={`flex h-[58px] w-full items-center justify-center overflow-visible rounded-[13px] ${getSpeciesImageSurfaceClass(fish)}`}>
+                      <img
+                        src={getDisplayImage(fish)}
+                        alt={fish.name}
+                        className={`max-h-[54px] max-w-[78px] object-contain ${getSpeciesImageClass(fish)}`}
+                        referrerPolicy="no-referrer"
+                      />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] font-black text-ink">{fish.name}</span>
+                      <span className="mt-0.5 block truncate text-[9px] font-bold text-ink/42">
+                        {taxonomy.size} · {fish.housingMode || '可评估'}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={onBrowseAtlas}
+                className="flex w-[82px] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-emerald-200 bg-emerald-50/65 p-2 text-center text-emerald-800 shadow-sm"
+                aria-label="浏览更多图鉴"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/75 text-emerald-700 shadow-sm">
+                  <ChevronRight className="h-5 w-5" />
+                </span>
+                <span className="text-[12px] font-black leading-tight">更多</span>
+                <span className="text-[9px] font-bold leading-tight text-emerald-900/58">浏览图鉴</span>
+              </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-[16px] bg-white/75 p-3">
@@ -541,21 +615,21 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange }: 
                 <div className="text-[12px] font-black text-ink/55">还没有添加生物。</div>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-wrap gap-2">
                 {selectedSpecies.map(fish => (
-                  <div key={fish.id} className="relative grid min-w-0 justify-items-center rounded-[14px] bg-white px-2 py-2 text-center shadow-sm">
+                  <div key={fish.id} className="relative flex min-w-0 max-w-full items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/40 py-1 pl-1.5 pr-8">
                     <button
                       type="button"
                       aria-label={`移除${fish.name}`}
                       onClick={() => updateSpeciesIds(prev => prev.filter(id => id !== fish.id))}
-                      className="absolute right-0 top-0 z-10 rounded-full bg-white/95 p-0.5 text-ink/40 shadow-sm hover:text-red-500"
+                      className="absolute right-1.5 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-ink/40 shadow-sm hover:text-red-500"
                     >
                       <X className="h-3 w-3" />
                     </button>
-                    <div className="mx-auto flex h-[42px] items-end justify-center">
-                      <img src={getDisplayImage(fish)} alt={fish.name} className="max-h-[40px] max-w-full object-contain drop-shadow-[0_8px_10px_rgba(90,68,38,0.12)]" referrerPolicy="no-referrer" />
+                    <div className="flex h-9 w-10 shrink-0 items-center justify-center overflow-visible">
+                      <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-8 max-w-10 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     </div>
-                    <div className="mt-1 truncate text-[9px] font-bold text-ink/70">{fish.name}</div>
+                    <div className="truncate text-[11px] font-black text-ink/72">{fish.name}</div>
                   </div>
                 ))}
               </div>

@@ -10,8 +10,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
 import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2, CheckCircle2 } from 'lucide-react';
 import { DeceasedRecord } from '../types';
-import { askAquaGuideAI } from '../lib/aiClient';
+import { askAquaGuideAI, generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
+import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
@@ -640,6 +641,8 @@ export default function AquariumManager() {
   const [diagnosisQuestionIndex, setDiagnosisQuestionIndex] = useState(0);
   const [diagnosisQuizAnswers, setDiagnosisQuizAnswers] = useState<Record<string, string>>({});
   const [diagnosisFollowUps, setDiagnosisFollowUps] = useState<Array<{ question: string; answer: string }>>([]);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [diagnosisAquariumId, setDiagnosisAquariumId] = useState('');
   const [diagnosisRecords, setDiagnosisRecords] = useState<DiagnosisRecord[]>([]);
   const [selectedDiagnosisRecord, setSelectedDiagnosisRecord] = useState<DiagnosisRecord | null>(null);
   const [diagnosisSaveMessage, setDiagnosisSaveMessage] = useState('');
@@ -679,6 +682,7 @@ export default function AquariumManager() {
   const [discoveryMessage, setDiscoveryMessage] = useState('');
   const [loadedDiscoveryImageSrc, setLoadedDiscoveryImageSrc] = useState('');
   const [selectedDiscoveryFish, setSelectedDiscoveryFish] = useState<Fish | null>(null);
+  const [selectedWishlistFish, setSelectedWishlistFish] = useState<Fish | null>(null);
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
   const [fedToday, setFedToday] = useState(false);
@@ -837,11 +841,17 @@ export default function AquariumManager() {
   };
 
   const activeAquarium = aquariums.find(a => a.id === activeId);
+  const diagnosisAquarium = aquariums.find(a => a.id === (diagnosisAquariumId || activeId)) || activeAquarium;
   const pendingDeleteAquarium = aquariums.find(a => a.id === pendingDeleteAquariumId);
 
   useEffect(() => {
     if (!activeId) return;
     patchLocalAppState({ currentAquariumId: activeId }, { debounce: true });
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    setDiagnosisAquariumId(prev => prev || activeId);
   }, [activeId]);
 
   useEffect(() => {
@@ -1218,38 +1228,87 @@ export default function AquariumManager() {
     return tankRiskItems.filter(item => item.severity !== 'info').map(item => `${item.title}：${item.detail}`);
   };
 
+  const formatRiskExplanationText = (explanation: RiskExplanationData, localRiskItems: TankRiskItem[]) => {
+    const localFallbackText = [
+      '暂时无法生成 AI 分析',
+      '你仍然可以参考系统规则结果：当前风险主要来自水体、空间、水质、温度或已有生物冲突。建议先查看本地风险原因，再决定是否加入。',
+      ...localRiskItems.slice(0, 4).map(item => `${item.title}：${item.detail} 下一步：${item.nextStep}`),
+    ].filter(Boolean).join('\n');
+
+    if (explanation.fallback) return localFallbackText;
+
+    const lines = [
+      explanation.summary,
+      ...explanation.reasons.map(reason => `${reason.title}：${reason.detail}${reason.source ? `（${reason.source}）` : ''}`),
+      ...explanation.suggestions.map(suggestion => `建议：${suggestion.title}，${suggestion.detail}`),
+      ...explanation.nextSteps.map((step, index) => `下一步 ${index + 1}：${step}`),
+      explanation.disclaimer,
+    ];
+
+    return lines.filter(Boolean).join('\n');
+  };
+
   const handleAskAIAboutConflicts = async () => {
     if (!activeAquarium) return;
     setIsRecommending(true);
     setAiReasoning('');
     try {
-      const currentFishNames = activeAquarium.fishes.map(af => {
-        const f = fishData.find(d => d.id === af.fishId);
-        return f ? `${f.name} (pH: ${f.phLevel}, 体温: ${f.waterTemperature}, 体型: ${f.size}, 性格: ${f.temperament})` : '';
-      }).filter(Boolean).join('\n ');
+      const livestock = activeAquarium.fishes.map(af => {
+        const fish = fishData.find(d => d.id === af.fishId);
+        return fish ? {
+          id: fish.id,
+          name: fish.name,
+          quantity: af.quantity,
+          category: fish.category,
+          phLevel: fish.phLevel,
+          waterTemperature: fish.waterTemperature,
+          size: fish.size,
+          temperament: fish.temperament,
+          tankSize: fish.tankSize,
+        } : null;
+      }).filter(Boolean);
+      const riskLevel = tankRiskItems.some(item => item.severity === 'danger')
+        ? 'high'
+        : tankRiskItems.some(item => item.severity === 'warning')
+          ? 'medium'
+          : 'info';
+      const riskResult = {
+        riskLevel,
+        riskItems: tankRiskItems,
+        conflicts,
+      };
 
-      const prompt = `你是一个专业的水族理疗师和分析专家。
-我将当前鱼缸内的生物混养数据以及可能产生的冲突列表提供给你，请你根据鱼缸中实际养育的鱼的详细信息给出深入分析，使用友好、专业的口吻，明确指明哪条鱼会欺负哪条鱼，或者谁适应不了当前的水质。
-
-当前缸内水质和环境约束：${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'}, 设定温度 ${activeAquarium.targetTemperature || 25}°C。
-当前缸内生物信息：
-${currentFishNames}
-
-本地计算产生的通用警告提示：
-${conflicts.join('; ')}
-
-请分析以上数据，给出一段 200 字左右的分析解释，并提出具体的改进建议（如隔离、分缸或改变水参数）。不要使用过于复杂的Markdown格式，只需要分出两三段正常文本即可。`;
-
-      const responseText = await askAquaGuideAI({
-        messages: [{ role: 'user', content: prompt }],
-        maxTokens: 700,
-        temperature: 0.3,
+      const explanation = await generateRiskExplanation({
+        aquarium: {
+          id: activeAquarium.id,
+          name: activeAquarium.name,
+          waterType: activeAquarium.waterType,
+          targetTemperature: activeAquarium.targetTemperature,
+          dimensions: activeAquarium.dimensions,
+          equipment: activeAquarium.equipment,
+          volumeLiters: getTankVolumeLiters(activeAquarium),
+        },
+        selectedSpecies: livestock,
+        existingLivestock: livestock,
+        riskResult,
+        ruleFacts: {
+          source: 'AquaGuide local tank risk checker',
+          riskItems: tankRiskItems,
+          conflicts,
+        },
       });
 
-      setAiReasoning(responseText || "AI 无法提供解释，请检查您的网络连接或配置。");
+      setAiReasoning(formatRiskExplanationText(explanation, tankRiskItems));
     } catch(e) {
       console.error(e);
-      setAiReasoning(e instanceof Error ? `${e.message} 当前先参考上方本地风险提示。` : "AI 请求失败。当前先参考上方本地风险提示。");
+      setAiReasoning(formatRiskExplanationText({
+        summary: '暂时无法生成 AI 分析',
+        reasons: [],
+        suggestions: [],
+        nextSteps: [],
+        disclaimer: '最终判断以系统规则结果为准',
+        fallback: true,
+      }, tankRiskItems));
     }
     setIsRecommending(false);
   };
@@ -1343,39 +1402,56 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     icon: diagnosisIconMap[type.id] || <Activity className="h-4 w-4" />,
   }));
 
-  const getDiagnosisTankSummary = () => {
-    const stockedFishes = activeAquarium?.fishes || [];
-    const stocked = stockedFishes
-      .map(aqFish => {
-        const fish = fishData.find(item => item.id === aqFish.fishId);
-        return fish ? `${fish.name} x${aqFish.quantity || 1}` : '';
+  const getDiagnosisLivestock = (aquarium: Aquarium | undefined) => (
+    (aquarium?.fishes || [])
+      .map(aqFish => ({ aqFish, fish: fishData.find(item => item.id === aqFish.fishId) }))
+      .filter((item): item is { aqFish: AquariumFish; fish: Fish } => {
+        if (!item.fish) return false;
+        const lifeType = getLifeType(item.fish);
+        return lifeType !== 'plant' && lifeType !== 'hardscape';
       })
-      .filter(Boolean)
-      .join('、') || '暂无生物';
+  );
+
+  const getDiagnosisTankSummary = () => {
+    const targetAquarium = diagnosisAquarium;
+    const stockedFishes = targetAquarium?.fishes || [];
+    const currentLivestock = getDiagnosisLivestock(targetAquarium);
+    const stocked = currentLivestock
+      .map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`)
+      .join('、') || '暂无活体生物';
     const latestAdded = [...stockedFishes]
       .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())[0];
     const latestAddedFish = latestAdded ? fishData.find(item => item.id === latestAdded.fishId) : null;
     const latestFeeding = feedingRecords
-      .filter(record => record.aquariumId === activeAquarium?.id)
+      .filter(record => record.aquariumId === targetAquarium?.id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
     return {
-      aquariumId: activeAquarium?.id || '',
-      water: activeAquarium?.waterType === 'Saltwater' ? '海水' : '淡水',
-      temperature: `${activeAquarium?.targetTemperature || 25}°C`,
-      volume: `约 ${activeAquarium ? getTankVolumeLiters(activeAquarium) : 0}L`,
+      aquariumId: targetAquarium?.id || '',
+      name: targetAquarium?.name || '未选择鱼缸',
+      water: targetAquarium?.waterType === 'Saltwater' ? '海水' : '淡水',
+      temperature: `${targetAquarium?.targetTemperature || 25}°C`,
+      volume: `约 ${targetAquarium ? getTankVolumeLiters(targetAquarium) : 0}L`,
+      dimensions: targetAquarium ? `${targetAquarium.dimensions.length}×${targetAquarium.dimensions.width}×${targetAquarium.dimensions.height}cm` : '未设置',
       stocked,
-      waterChange: activeAquarium?.lastWaterChangeDate ? format(new Date(activeAquarium.lastWaterChangeDate), 'MM/dd') : '暂无记录',
+      livestockCount: currentLivestock.reduce((sum, item) => sum + (item.aqFish.quantity || 1), 0),
+      waterChange: targetAquarium?.lastWaterChangeDate ? format(new Date(targetAquarium.lastWaterChangeDate), 'MM/dd') : '暂无记录',
       recentFeeding: latestFeeding ? format(new Date(latestFeeding.createdAt), 'MM/dd HH:mm') : '暂无记录',
       recentAddedSpecies: latestAddedFish ? `${latestAddedFish.name} · ${format(new Date(latestAdded.entryDate), 'MM/dd')}` : '暂无记录',
+      equipment: targetAquarium ? [
+        targetAquarium.equipment?.filter ? `过滤：${targetAquarium.equipment.filter}` : '',
+        targetAquarium.equipment?.heater ? '加热：有' : '加热：无',
+        targetAquarium.equipment?.oxygen ? '增氧：有' : '增氧：无',
+      ].filter(Boolean).join(' / ') : '未设置',
       missing: ['如情况没有改善，可选补充 pH / 氨氮 / 亚硝酸盐'],
     };
   };
 
   const buildStructuredDiagnosis = (): DiagnosisResult => {
-    if (!activeAquarium) {
+    const targetAquarium = diagnosisAquarium;
+    if (!targetAquarium) {
       return {
-        verdict: '当前没有可诊断的鱼缸。',
+        verdict: '请先选择一个鱼缸，再进行诊断。',
         risk: '信息不足',
         riskLevel: 'unknown',
         currentAction: '先选择鱼缸',
@@ -1389,8 +1465,84 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       };
     }
 
+    const currentLivestock = getDiagnosisLivestock(targetAquarium);
+    const livestockNames = currentLivestock.map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`);
+    const hasShrimp = currentLivestock.some(({ fish }) => /虾|shrimp|neocaridina|caridina/i.test(`${fish.name} ${fish.scientificName}`));
+    const hasPlants = (targetAquarium.plants || []).length > 0;
+    const problemType: DiagnosisProblemType = isDiagnosisProblemType(diagnosisIssueType) ? diagnosisIssueType : '巡检';
+    const makeStaticResult = (
+      verdict: string,
+      currentAction: string,
+      actions: string[],
+      avoid: string[],
+      observe: string[],
+      missing: string[] = ['活体生物记录', '水质数据'],
+    ): DiagnosisResult => ({
+      verdict,
+      risk: '信息不足',
+      riskLevel: 'unknown',
+      currentAction,
+      keyMetrics: [
+        { label: '问题类型', value: problemType },
+        { label: '当前鱼缸', value: targetAquarium.name },
+        { label: '活体数量', value: `${currentLivestock.reduce((sum, item) => sum + (item.aqFish.quantity || 1), 0)} 只/条` },
+      ],
+      reasons: ['当前数据不足，不能生成鱼只状态判断'],
+      actions,
+      avoid,
+      observe,
+      missing,
+      evidence: [
+        `当前鱼缸：${targetAquarium.name}`,
+        `当前活体：${livestockNames.join('、') || '暂无活体生物'}`,
+        `水体：${diagnosisTankSummary.water} · ${diagnosisTankSummary.volume} · ${diagnosisTankSummary.temperature}`,
+      ],
+    });
+
+    const livestockProblemTypes: DiagnosisProblemType[] = [
+      '鱼浮头 / 呼吸急促',
+      '拒食',
+      '躲藏不动',
+      '追咬打架',
+      '死亡 / 异常死亡',
+      '鱼只异常',
+      '新鱼入缸',
+      '喂食问题',
+      '怀孕/鱼苗',
+      '死亡处理',
+    ];
+    if (currentLivestock.length === 0 && (problemType === '巡检' || livestockProblemTypes.includes(problemType))) {
+      return makeStaticResult(
+        '当前鱼缸暂无活体生物，无法诊断鱼只状态。',
+        '先添加生物，或仅查看水质/设备排查建议',
+        ['先确认鱼缸过滤、温度和水体是否稳定', '如果只是水浑或设备异常，请选择对应问题类型', '添加活体后再进行鱼只状态诊断'],
+        ['不要在没有活体记录时判断鱼病', '不要套用其他鱼种的固定建议'],
+        ['过滤是否正常出水', '水体是否浑浊或有异味', '温度是否稳定'],
+        ['活体生物记录'],
+      );
+    }
+    if (problemType === '虾类死亡' && !hasShrimp) {
+      return makeStaticResult(
+        '当前鱼缸没有虾类记录，无法生成虾类死亡诊断。',
+        '先确认是否已把虾类添加到当前鱼缸',
+        ['检查当前鱼缸活体列表是否选对', '如果实际有虾，请先添加到鱼缸记录', '如果只是水质异常，请切换到水质诊断'],
+        ['不要套用虾类蜕壳或铜药风险判断到没有虾的鱼缸'],
+        ['当前真实活体是否完整记录', '水体是否有异味或浑浊'],
+      );
+    }
+    if (problemType === '水草黄叶 / 烂叶' && !hasPlants) {
+      return makeStaticResult(
+        '当前鱼缸没有水草配置记录，无法判断水草黄叶或烂叶。',
+        '先补充水草配置，或切换到水质/设备排查',
+        ['确认当前鱼缸是否已经记录水草', '检查灯光时长和过滤是否稳定', '如果实际有水草，请先添加到设备配置'],
+        ['不要把水草黄叶原因套用到无水草鱼缸'],
+        ['灯光是否正常', '水体是否浑浊', '底床是否近期翻动'],
+        ['水草配置记录'],
+      );
+    }
+
     const snapshot = {
-      aquariumId: activeAquarium.id,
+      aquariumId: targetAquarium.id,
       waterType: diagnosisTankSummary.water,
       temperature: diagnosisTankSummary.temperature,
       volume: diagnosisTankSummary.volume,
@@ -1401,9 +1553,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       healthScore,
       riskCount: riskReminderCount,
     };
-    const problemType: DiagnosisProblemType = isDiagnosisProblemType(diagnosisIssueType) ? diagnosisIssueType : '巡检';
     const output: DiagnosisOutput = buildDiagnosisResult({
-      aquarium: activeAquarium,
+      aquarium: targetAquarium,
       snapshot,
       problemType,
       answers: diagnosisQuizAnswers as DiagnosisAnswerMap,
@@ -1425,7 +1576,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       avoid: output.avoidActions,
       observe: output.observeItems,
       missing: output.missingInfo,
-      evidence: output.evidence,
+      evidence: Array.from(new Set([
+        `当前鱼缸：${targetAquarium.name}`,
+        `当前真实活体：${livestockNames.join('、') || '暂无活体生物'}`,
+        ...output.evidence,
+      ].filter(Boolean))).slice(0, 6),
       nextCheckAt: output.nextCheckAt,
     };
   };
@@ -1453,10 +1608,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
   const handleOpenDiagnosis = () => {
     if (!activeAquarium) return;
+    setDiagnosisAquariumId(activeAquarium.id);
     setIsDiagnosisOpen(true);
     setDiagnosisMode('home');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
+    setDiagnosisResult(null);
     setIsDiagnosing(false);
     setDiagnosisFullText('');
     setDiagnosisText('');
@@ -1466,12 +1623,14 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const handleOpenDiagnosisWithType = (typeId: string) => {
     if (!activeAquarium) return;
     const safeType: DiagnosisProblemType = isDiagnosisProblemType(typeId) ? typeId : '巡检';
+    setDiagnosisAquariumId(activeAquarium.id);
     setIsDiagnosisOpen(true);
     setDiagnosisIssueType(safeType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
     setDiagnosisFollowUps([]);
+    setDiagnosisResult(null);
     setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
@@ -1488,6 +1647,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
     setDiagnosisFollowUps([]);
+    setDiagnosisResult(null);
     setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
@@ -1496,6 +1656,15 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
   const handleDiagnosisAnswer = (questionId: string, answer: string) => {
     setDiagnosisQuizAnswers(prev => ({ ...prev, [questionId]: answer }));
+    setDiagnosisResult(null);
+    setDiagnosisSaveMessage('');
+  };
+
+  const handleRunDiagnosis = () => {
+    const result = buildStructuredDiagnosis();
+    setDiagnosisResult(result);
+    setDiagnosisMode('result');
+    setDiagnosisSaveMessage('');
   };
 
   const handleDiagnosisNext = () => {
@@ -1505,8 +1674,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       setDiagnosisQuestionIndex(prev => prev + 1);
       return;
     }
-    setDiagnosisMode('result');
-    setDiagnosisSaveMessage('');
+    handleRunDiagnosis();
   };
 
   const handleDiagnosisPrevious = () => {
@@ -1518,8 +1686,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   };
 
   const handleSaveDiagnosisRecord = () => {
-    if (!activeAquarium) return;
-    const result = buildStructuredDiagnosis();
+    const targetAquarium = diagnosisAquarium;
+    if (!targetAquarium) return;
+    const result = diagnosisResult || buildStructuredDiagnosis();
     const problemType: DiagnosisProblemType = isDiagnosisProblemType(diagnosisIssueType) ? diagnosisIssueType : '巡检';
     const activeQuestions = getDiagnosisQuestions(problemType, diagnosisQuizAnswers);
     const structuredAnswers = activeQuestions
@@ -1534,7 +1703,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       diagnosisId: id,
       id,
       createdAt: new Date().toISOString(),
-      aquariumId: activeAquarium.id,
+      aquariumId: targetAquarium.id,
       source: careDiagnosisContext
         ? { type: 'care_article', title: careDiagnosisContext.title }
         : { type: 'home' },
@@ -1588,14 +1757,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           ? '怀孕/鱼苗'
           : '巡检';
     setCareDiagnosisContext(context);
+    setDiagnosisAquariumId(activeAquarium.id);
     setDiagnosisIssueType(issueType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps(context.selectedSymptoms.length > 0 ? [{
-      question: `来自百科：${context.title}`,
-      answer: `已带入表现：${context.selectedSymptoms.join('、')}。`,
-    }] : []);
+    setDiagnosisFollowUps([]);
+    setDiagnosisResult(null);
     setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
@@ -2533,7 +2701,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     ? ((diagnosisQuestionIndex + 1) / activeDiagnosisQuestions.length) * 100
     : 0;
   const recentDiagnosisRecords = diagnosisRecords
-    .filter(record => record.aquariumId === activeId)
+    .filter(record => record.aquariumId === diagnosisTankSummary.aquariumId)
     .slice(0, 3);
   const temperatureValue = parseInt(activeAquarium.targetTemperature || '25', 10);
   const temperatureStatusText = Number.isNaN(temperatureValue)
@@ -2710,7 +2878,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       },
     }] : []),
   ];
-  const structuredDiagnosis = buildStructuredDiagnosis();
+  const structuredDiagnosis = diagnosisResult;
 
   return (
     <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
@@ -2855,16 +3023,23 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     >
                       <X className="h-3 w-3" />
                     </button>
-                    <div className="relative mx-auto flex h-[46px] w-full items-end justify-center">
-                      <img
-                        src={fish.image}
-                        alt={fish.name}
-                        className="max-h-[44px] max-w-full object-contain drop-shadow-[0_8px_10px_rgba(136,80,96,0.14)] transition-transform duration-200 group-hover:scale-[1.04]"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-rose-500">{fish.name}</div>
-                    <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-ink/38">{getArchiveCategory(fish)}</div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWishlistFish(fish)}
+                      className="block w-full rounded-[12px] text-center transition-colors hover:bg-rose-50/55 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                      aria-label={`查看${fish.name}详情`}
+                    >
+                      <div className={`relative mx-auto flex h-[46px] w-full items-end justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(fish)}`}>
+                        <img
+                          src={fish.image}
+                          alt={fish.name}
+                          className={`max-h-[44px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(fish)}`}
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-rose-500">{fish.name}</div>
+                      <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-ink/38">{getArchiveCategory(fish)}</div>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -2940,11 +3115,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             }}
             className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
           >
-            <div className="flex h-full min-h-[116px] items-center justify-center rounded-[14px] bg-white p-2">
+            <div className={`flex h-full min-h-[116px] items-center justify-center rounded-[14px] p-2 ${getSpeciesImageSurfaceClass(discoveryFish)}`}>
               <img
                 src={discoveryImageSrc}
                 alt={discoveryFish.name}
-                className="max-h-[104px] w-full object-contain drop-shadow-md"
+                className={`max-h-[104px] w-full object-contain ${getSpeciesImageClass(discoveryFish)}`}
                 referrerPolicy="no-referrer"
                 loading="eager"
                 decoding="async"
@@ -3162,7 +3337,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               <div className="flex -space-x-2">
                 {ownedArchivePreviewItems.map(item => (
                   <span key={item.fish.id} className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white bg-white shadow-sm">
-                    <img src={item.fish.image} alt={item.fish.name} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />
+                    <img src={item.fish.image} alt={item.fish.name} className={`h-full w-full object-contain p-0.5 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                   </span>
                 ))}
               </div>
@@ -3254,13 +3429,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     }}
                     className={`group relative min-w-0 text-center ${canOpenDetail || canOpenSettings ? 'cursor-pointer' : 'cursor-default'}`}
                   >
-                    <div className="relative mx-auto flex h-[52px] w-full items-end justify-center">
+                    <div className={`relative mx-auto flex h-[52px] w-full items-end justify-center rounded-[12px] ${item.fish ? getSpeciesImageSurfaceClass(item.fish) : ''}`}>
                       {item.fish ? (
                         <img
                           src={item.fish.image}
                           alt={item.name}
                           referrerPolicy="no-referrer"
-                          className="max-h-[50px] max-w-full object-contain drop-shadow-[0_8px_10px_rgba(27,77,62,0.12)] transition-transform duration-200 group-hover:scale-[1.04]"
+                          className={`max-h-[50px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(item.fish)}`}
                         />
                       ) : (
                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-accent/70 shadow-sm">
@@ -3320,8 +3495,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             <div className="mt-3 grid grid-cols-3 gap-2">
               {deceasedArchiveItems.slice(0, 12).map(({ record, fish }) => (
                 <div key={record.id} className="min-w-0 rounded-[16px] bg-bg p-2">
-                  <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-[14px] bg-white opacity-70 grayscale">
-                    <img src={fish.image} alt={fish.name} className="max-h-[86%] max-w-[86%] object-contain" referrerPolicy="no-referrer" />
+                  <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-[14px] opacity-70 grayscale ${getSpeciesImageSurfaceClass(fish)}`}>
+                    <img src={fish.image} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/75 px-1.5 py-0.5 text-[9px] font-black text-white">死亡</span>
                   </div>
                   <div className="mt-2 truncate text-[12px] font-black text-ink">{fish.name}</div>
@@ -3463,11 +3638,35 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             <div className="grid gap-4 p-4 pb-24">
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="mb-2 text-[12px] font-black text-ink/55">当前鱼缸摘要</div>
+                {aquariums.length > 1 && (
+                  <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+                    {aquariums.map(aquarium => (
+                      <button
+                        key={aquarium.id}
+                        type="button"
+                        onClick={() => {
+                          setDiagnosisAquariumId(aquarium.id);
+                          setDiagnosisResult(null);
+                          setDiagnosisSaveMessage('');
+                        }}
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
+                          diagnosisTankSummary.aquariumId === aquarium.id
+                            ? 'bg-emerald-700 text-white'
+                            : 'bg-bg text-ink/55 hover:bg-emerald-50 hover:text-emerald-800'
+                        }`}
+                      >
+                        {aquarium.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   {[
+                    { label: '鱼缸', value: diagnosisTankSummary.name },
                     { label: '水体', value: diagnosisTankSummary.water },
                     { label: '温度', value: diagnosisTankSummary.temperature },
                     { label: '水量', value: diagnosisTankSummary.volume },
+                    { label: '尺寸', value: diagnosisTankSummary.dimensions },
                     { label: '最近换水', value: diagnosisTankSummary.waterChange },
                     { label: '最近喂食', value: diagnosisTankSummary.recentFeeding },
                     { label: '最近添加', value: diagnosisTankSummary.recentAddedSpecies },
@@ -3479,7 +3678,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   ))}
                 </div>
                 <div className="mt-2 rounded-[12px] bg-emerald-50 px-2.5 py-2 text-[11px] font-bold leading-relaxed text-emerald-900">
-                  生物：{diagnosisTankSummary.stocked}
+                  当前活体：{diagnosisTankSummary.stocked}
+                </div>
+                <div className="mt-2 rounded-[12px] bg-bg px-2.5 py-2 text-[11px] font-bold leading-relaxed text-ink/60">
+                  设备：{diagnosisTankSummary.equipment}
                 </div>
                 <div className="mt-2 text-[10px] font-bold text-ink/42">
                   可选补充：{diagnosisTankSummary.missing.join(' / ')}
@@ -3489,21 +3691,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               {careDiagnosisContext && (
                 <section className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-3 shadow-sm">
                   <div className="text-[12px] font-black text-emerald-800">来自养护百科：{careDiagnosisContext.title}</div>
-                  <p className="mt-1 text-[11px] font-medium leading-relaxed text-emerald-900/70">{careDiagnosisContext.summary}</p>
-                  {careDiagnosisContext.selectedSymptoms.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {careDiagnosisContext.selectedSymptoms.map(item => (
-                        <span key={item} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {careDiagnosisContext.prepInfo.length > 0 && (
-                    <div className="mt-2 text-[10px] font-bold text-emerald-900/60">
-                      建议补充：{careDiagnosisContext.prepInfo.slice(0, 3).join(' / ')}
-                    </div>
-                  )}
+                  <p className="mt-1 text-[11px] font-medium leading-relaxed text-emerald-900/70">
+                    已帮你带入问题入口。具体处理建议会在完成问答并点击“一键诊断”后生成。
+                  </p>
                 </section>
               )}
 
@@ -3615,7 +3805,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 </section>
               )}
 
-              {diagnosisMode === 'result' && (
+              {diagnosisMode === 'result' && structuredDiagnosis && (
               <>
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
@@ -3661,8 +3851,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
                 {[
                   { title: '依据', items: structuredDiagnosis.evidence },
-                  { title: '先做', items: structuredDiagnosis.actions },
-                  { title: '先不要做', items: structuredDiagnosis.avoid },
+                  { title: '立即处理', items: structuredDiagnosis.actions },
+                  { title: '暂时避免', items: structuredDiagnosis.avoid },
                   { title: '可能原因', items: structuredDiagnosis.reasons },
                   { title: '继续观察', items: structuredDiagnosis.observe },
                 ].map(section => (
@@ -3763,14 +3953,14 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               <>
                 <Button variant="outline" onClick={handleDiagnosisPrevious} className="h-10 rounded-full text-sm font-bold">上一题</Button>
                 <Button onClick={handleDiagnosisNext} disabled={!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
-                  {diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? '生成诊断结果' : '下一题'}
+                  {diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? '一键诊断' : '下一题'}
                 </Button>
               </>
             )}
             {diagnosisMode === 'result' && (
               <>
                 <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">重新诊断</Button>
-                <Button onClick={handleSaveDiagnosisRecord} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">保存本次诊断</Button>
+                <Button onClick={handleSaveDiagnosisRecord} disabled={!structuredDiagnosis} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">保存本次诊断</Button>
               </>
             )}
             {diagnosisMode === 'history' && (
@@ -3998,8 +4188,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         isSelected ? 'border-emerald-300 bg-emerald-50 shadow-sm' : 'border-transparent bg-bg/70 hover:border-emerald-200 hover:bg-white'
                       }`}
                     >
-                      <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[14px] bg-white">
-                        <img src={fish.image} alt={fish.name} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />
+                      <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-[14px] ${getSpeciesImageSurfaceClass(fish)}`}>
+                        <img src={fish.image} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-start justify-between gap-2">
@@ -4057,8 +4247,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       {selectedAddFishDetails.map(item => (
                         <div key={item.fishId} className="grid gap-3 rounded-[16px] bg-bg p-2">
                           <div className="grid grid-cols-[46px_1fr_auto] gap-2">
-                            <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] bg-white">
-                              <img src={item.fish.image} alt={item.fish.name} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />
+                            <span className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] ${getSpeciesImageSurfaceClass(item.fish)}`}>
+                              <img src={item.fish.image} alt={item.fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                             </span>
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-ink">{item.fish.name}</div>
@@ -4201,7 +4391,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 <div className="grid grid-cols-1 gap-3">
                   {aiRecommendations.map(fish => (
                     <div key={fish.id} className="grid grid-cols-[56px_1fr_auto] items-center gap-3 rounded-sm border border-border bg-white p-2 transition-colors hover:border-accent">
-                      <img src={fish.image} alt={fish.name} className="h-14 w-14 rounded-sm bg-bg object-contain p-1" referrerPolicy="no-referrer" />
+                      <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-sm ${getSpeciesImageSurfaceClass(fish)}`}>
+                        <img src={fish.image} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                      </span>
                       <div className="min-w-0">
                         <h4 className="truncate text-sm font-bold text-ink">{fish.name}</h4>
                         <p className="truncate text-[10px] font-medium text-ink/60">{fish.category}</p>
@@ -5089,18 +5281,23 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </DialogContent>
       </Dialog>
 
-      {/* Unified species detail for aquarium entry */}
+      {/* Unified species detail for aquarium and wishlist entries */}
       <SpeciesDetailDialog
-        fish={selectedAqFish?.fish || null}
-        open={!!selectedAqFish}
+        fish={selectedAqFish?.fish || selectedWishlistFish}
+        open={!!selectedAqFish || !!selectedWishlistFish}
         source="aquarium"
         aquariumContext={activeAquarium}
-        imageSrc={selectedAqFish?.fish.image || ''}
+        imageSrc={selectedAqFish?.fish.image || selectedWishlistFish?.image || ''}
         owned={Boolean(selectedAqFish)}
-        inCalculator={selectedAqFish ? selectedAddFishItems.some(item => item.fishId === selectedAqFish.fish.id) : false}
-        inWishlist={selectedAqFish ? wishlistFishIds.has(selectedAqFish.fish.id) : false}
+        inCalculator={(selectedAqFish || selectedWishlistFish) ? selectedAddFishItems.some(item => item.fishId === (selectedAqFish?.fish.id || selectedWishlistFish?.id)) : false}
+        inWishlist={(selectedAqFish || selectedWishlistFish) ? wishlistFishIds.has(selectedAqFish?.fish.id || selectedWishlistFish?.id || '') : false}
         detailFeedback={tankActionMessage}
-        onOpenChange={(open) => !open && setSelectedAqFish(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedAqFish(null);
+            setSelectedWishlistFish(null);
+          }
+        }}
         onAddToCalculator={(fish) => {
           setSelectedAddFishItems(prev => (
             prev.some(item => item.fishId === fish.id)
@@ -5110,7 +5307,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           setTankActionMessage(selectedAddFishItems.some(item => item.fishId === fish.id) ? `已撤回 ${fish.name} 的混养计算选择。` : `已选择 ${fish.name} 参与混养计算。`);
         }}
         onToggleWishlist={(fishId) => toggleWishlist(fishId)}
-        onRecordDeath={(fish) => {
+        onRecordDeath={selectedAqFish ? (fish) => {
           if (!selectedAqFish) return;
           const nextDeceasedRecords = [
             ...deceasedRecords,
@@ -5125,7 +5322,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             handleRemoveFish(selectedAqFish.aqFish.id);
             setSelectedAqFish(null);
           }
-        }}
+        } : undefined}
       />
 
       {/* Legacy fish detail modal is intentionally disabled; aquarium entries now use SpeciesDetailDialog. */}

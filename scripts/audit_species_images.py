@@ -103,6 +103,8 @@ def audit_image(path: Optional[Path]) -> dict:
             "foreground_ratio": "",
             "bbox_fill_ratio": "",
             "largest_component_ratio": "",
+            "foreground_luma": "",
+            "foreground_chroma": "",
             "edge_margin_px": "",
             "edge_touch": "",
             "bbox": "",
@@ -119,6 +121,8 @@ def audit_image(path: Optional[Path]) -> dict:
             "foreground_ratio": "0",
             "bbox_fill_ratio": "0",
             "largest_component_ratio": "0",
+            "foreground_luma": "0",
+            "foreground_chroma": "0",
             "edge_margin_px": "0",
             "edge_touch": "yes",
             "bbox": "",
@@ -149,6 +153,8 @@ def audit_image(path: Optional[Path]) -> dict:
             "foreground_ratio": "0",
             "bbox_fill_ratio": "0",
             "largest_component_ratio": "0",
+            "foreground_luma": "0",
+            "foreground_chroma": "0",
             "edge_margin_px": "0",
             "edge_touch": "yes",
             "bbox": "",
@@ -166,6 +172,16 @@ def audit_image(path: Optional[Path]) -> dict:
     fg_ratio = foreground / total_pixels
     bbox_fill = foreground / bbox_area
     component_ratio = largest_component_ratio(mask)
+    foreground_rgb = arr[:, :, :3][mask].astype(np.float32)
+    foreground_luma = (
+        foreground_rgb[:, 0] * 0.2126
+        + foreground_rgb[:, 1] * 0.7152
+        + foreground_rgb[:, 2] * 0.0722
+    )
+    foreground_chroma = foreground_rgb.max(axis=1) - foreground_rgb.min(axis=1)
+    mean_luma = float(foreground_luma.mean())
+    mean_chroma = float(foreground_chroma.mean())
+    low_contrast_light_subject = mean_luma > 205 and mean_chroma < 42
     h, w = mask.shape
     edge_margin = min(min_x, min_y, w - 1 - max_x, h - 1 - max_y)
     edge_touch = min_x <= 1 or min_y <= 1 or max_x >= w - 2 or max_y >= h - 2
@@ -193,6 +209,10 @@ def audit_image(path: Optional[Path]) -> dict:
         issue = issue or "low_edge_margin"
         crop_safe = "review"
         notes.append(f"主体透明安全边距偏小（{edge_margin}px），小缩略图或3D贴图可能视觉裁切")
+    if low_contrast_light_subject:
+        issue = issue or "low_contrast_light_subject"
+        crop_safe = "review"
+        notes.append("浅色主体在白底上对比不足，App 中可能看起来像身体被抠掉")
 
     return {
         "exists": "yes",
@@ -201,6 +221,8 @@ def audit_image(path: Optional[Path]) -> dict:
         "foreground_ratio": f"{fg_ratio:.4f}",
         "bbox_fill_ratio": f"{bbox_fill:.4f}",
         "largest_component_ratio": f"{component_ratio:.4f}",
+        "foreground_luma": f"{mean_luma:.1f}",
+        "foreground_chroma": f"{mean_chroma:.1f}",
         "edge_margin_px": str(edge_margin),
         "edge_touch": "yes" if edge_touch else "no",
         "bbox": f"{min_x},{min_y},{bbox_w},{bbox_h}",
@@ -238,7 +260,7 @@ def render_html(rows: list[dict], rework_rows: list[dict]) -> None:
             <td><strong>{html.escape(row["name"])}</strong><br><span>{html.escape(row["scientificName"])}</span><br><code>{html.escape(row["id"])}</code></td>
             <td>{html.escape(row["category"])}</td>
             <td><b>{html.escape(row["crop_safe"])}</b><br><span>边距 {html.escape(row["edge_margin_px"])}px</span><br><span>{html.escape(row["bbox"])}</span></td>
-            <td>{html.escape(row["foreground_ratio"])} / {html.escape(row["bbox_fill_ratio"])}<br><span>主体完整度 {html.escape(row["largest_component_ratio"])}</span></td>
+            <td>{html.escape(row["foreground_ratio"])} / {html.escape(row["bbox_fill_ratio"])}<br><span>主体完整度 {html.escape(row["largest_component_ratio"])}</span><br><span>亮度/色差 {html.escape(row.get("foreground_luma", ""))} / {html.escape(row.get("foreground_chroma", ""))}</span></td>
             <td><b>{html.escape(row["issue"] or "ok")}</b><br><span>{html.escape(row["note"])}</span></td>
             <td><code>{html.escape(row["displayImage"])}</code></td>
           </tr>
@@ -346,6 +368,8 @@ def main() -> None:
         "foreground_ratio",
         "bbox_fill_ratio",
         "largest_component_ratio",
+        "foreground_luma",
+        "foreground_chroma",
         "edge_margin_px",
         "edge_touch",
         "bbox",

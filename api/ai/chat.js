@@ -1,22 +1,13 @@
-const json = (body, init = {}) => new Response(JSON.stringify(body), {
-  ...init,
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    ...(init.headers || {}),
-  },
-});
-
 const aiRateLimitWindowMs = 60 * 1000;
 const aiRateLimitMaxRequests = 10;
-const aiRequestTimeoutMs = 20 * 1000;
+const aiRequestTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 20 * 1000);
 const aiRateLimitBuckets = new Map();
 const isConfiguredApiKey = (apiKey) => Boolean(apiKey && apiKey !== 'MY_DEEPSEEK_API_KEY' && apiKey !== 'MY_AI_API_KEY');
 
-const getClientId = (request) => (
-  request.headers.get('CF-Connecting-IP')
-  || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-  || 'unknown'
-);
+const getClientId = (req) => {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwardedFor || req.socket?.remoteAddress || 'unknown';
+};
 
 const checkAiRateLimit = (clientId) => {
   const now = Date.now();
@@ -36,7 +27,7 @@ const checkAiRateLimit = (clientId) => {
   return { allowed: true, retryAfterSeconds: 0 };
 };
 
-// Keep this protocol in sync with server/index.mjs for local and Cloudflare parity.
+// Keep this protocol in sync with server/index.mjs and functions/api/ai/chat.js.
 const buildRiskExplanationPrompt = (context = {}) => {
   const compactContext = JSON.stringify(context, null, 2).slice(0, 12000);
   const system = [
@@ -190,24 +181,39 @@ const fetchWithTimeout = async (url, options, timeoutMs = aiRequestTimeoutMs) =>
   }
 };
 
-export async function onRequestPost({ request, env }) {
-  const rateLimit = checkAiRateLimit(getClientId(request));
-  if (!rateLimit.allowed) {
-    return json(
-      { error: `请求太频繁，请 ${rateLimit.retryAfterSeconds} 秒后再试。` },
-      { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } },
-    );
+const parseBody = (body) => {
+  if (!body) return {};
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return {};
+    }
+  }
+  return body;
+};
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const apiKey = env.AI_API_KEY || env.DEEPSEEK_API_KEY;
-  const aiBaseUrl = (env.AI_BASE_URL || env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
-  const aiModel = env.AI_MODEL || env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
+  const rateLimit = checkAiRateLimit(getClientId(req));
+  if (!rateLimit.allowed) {
+    res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+    return res.status(429).json({ ok: false, error: `请求太频繁，请 ${rateLimit.retryAfterSeconds} 秒后再试。` });
+  }
+
+  const apiKey = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY;
+  const aiBaseUrl = (process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
+  const aiModel = process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
 
   if (!isConfiguredApiKey(apiKey)) {
-    return json({ ok: false, error: 'AI provider is not configured' }, { status: 503 });
+    return res.status(503).json({ ok: false, error: 'AI provider is not configured' });
   }
 
-  const body = await request.json().catch(() => ({}));
+  const body = parseBody(req.body);
   const { task, context } = body;
   const requestInput = task === 'risk_explanation'
     ? buildRiskExplanationPrompt(context)
@@ -217,7 +223,7 @@ export async function onRequestPost({ request, env }) {
   const { messages, system, temperature = 0.4, maxTokens = 1200, thinking = 'disabled' } = requestInput;
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return json(task ? { ok: false, error: 'messages 不能为空。' } : { error: 'messages 不能为空。' }, { status: 400 });
+    return res.status(400).json(task ? { ok: false, error: 'messages 不能为空。' } : { error: 'messages 不能为空。' });
   }
 
   const normalizedMessages = messages
@@ -237,7 +243,7 @@ export async function onRequestPost({ request, env }) {
   };
 
   try {
-    const deepseekResponse = await fetchWithTimeout(`${aiBaseUrl}/chat/completions`, {
+    const aiResponse = await fetchWithTimeout(`${aiBaseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -246,21 +252,21 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify(payload),
     });
 
-    const responseText = await deepseekResponse.text();
-    if (!deepseekResponse.ok) {
-      return json(task ? {
+    const responseText = await aiResponse.text();
+    if (!aiResponse.ok) {
+      return res.status(502).json(task ? {
         ok: false,
         error: `AI 请求失败：${responseText.slice(0, 300)}`,
       } : {
         error: `DeepSeek 请求失败：${responseText.slice(0, 300)}`,
-      }, { status: 502 });
+      });
     }
 
     const data = JSON.parse(responseText);
     const content = data.choices?.[0]?.message?.content || '';
     if (task === 'risk_explanation') {
       const parsed = parseJsonObject(content);
-      return json({
+      return res.json({
         ok: true,
         task: 'risk_explanation',
         data: normalizeRiskExplanationData(parsed),
@@ -268,25 +274,25 @@ export async function onRequestPost({ request, env }) {
     }
     if (task === 'risk_audit') {
       const parsed = parseJsonObject(content);
-      return json({
+      return res.json({
         ok: true,
         task: 'risk_audit',
         data: normalizeRiskAuditData(parsed),
       });
     }
 
-    return json({
+    return res.json({
       content,
       model: data.model || aiModel,
       usage: data.usage,
     });
   } catch (error) {
-    return json(body.task ? {
+    return res.status(500).json(task ? {
       ok: false,
       error: error?.name === 'AbortError' ? 'AI request timed out' : 'AI request failed',
     } : {
       ok: false,
       error: error?.name === 'AbortError' ? 'AI request timed out' : 'AI request failed',
-    }, { status: 500 });
+    });
   }
 }
