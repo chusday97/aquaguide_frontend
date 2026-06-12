@@ -34,13 +34,14 @@ export function StatusSummaryCard({
   actionSlot,
 }: StatusSummaryCardProps) {
   const scoreTone = healthPercent >= 80 ? 'normal' : healthPercent >= 60 ? 'warning' : 'danger';
-  const Icon = scoreTone === 'danger' ? AlertTriangle : CheckCircle2;
-  const barClassName = scoreTone === 'normal' ? 'bg-emerald-500' : scoreTone === 'warning' ? 'bg-amber-500' : 'bg-red-500';
+  const visualTone = status === '风险' ? 'danger' : status === '提醒' ? 'warning' : scoreTone;
+  const Icon = visualTone === 'danger' ? AlertTriangle : CheckCircle2;
+  const barClassName = visualTone === 'normal' ? 'bg-emerald-500' : visualTone === 'warning' ? 'bg-amber-500' : 'bg-red-500';
   const riskTextClassName = status === '风险' ? 'text-red-600' : status === '提醒' ? 'text-amber-700' : 'text-ink/45';
   const cardClassName =
-    scoreTone === 'normal'
+    visualTone === 'normal'
       ? 'border-emerald-100 bg-white text-emerald-700'
-      : scoreTone === 'warning'
+      : visualTone === 'warning'
         ? 'border-amber-100 bg-white text-amber-700'
         : 'border-red-100 bg-white text-red-600';
 

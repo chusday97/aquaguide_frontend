@@ -37,7 +37,7 @@ export function FilterBottomSheet({
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-ink/28 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-sm">
       <button type="button" aria-label="关闭筛选" className="absolute inset-0" onClick={onClose} />
-      <section className="relative z-[121] flex max-h-[82vh] w-full max-w-[430px] flex-col overflow-hidden rounded-t-[26px] border border-white/80 bg-white shadow-[0_-20px_60px_rgba(15,23,42,0.18)]">
+      <section className="relative z-[121] flex max-h-[82vh] w-full max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-t-[26px] border border-white/80 bg-white shadow-[0_-20px_60px_rgba(15,23,42,0.18)]">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/70 px-4 py-3">
           <div className="min-w-0">
             <h2 className="text-[16px] font-black text-ink">{title}</h2>

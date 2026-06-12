@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/species/species.service';
-import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { generateRiskAudit, type RiskAuditData } from '../lib/aiClient';
 import { ImagePreviewModal, type PreviewImage } from './common/ImagePreviewModal';
 
@@ -99,6 +99,13 @@ const getFitStatusClass = (status: FitStatus) => {
   return 'border-sky-100 bg-sky-50 text-sky-700';
 };
 
+const getFitCurrentClass = (status: FitStatus) => {
+  if (status === 'warning') return 'text-amber-700';
+  if (status === 'danger') return 'text-red-600';
+  if (status === 'info') return 'text-sky-700';
+  return 'text-emerald-700';
+};
+
 const getFitStatusLabel = (status: FitStatus) => {
   if (status === 'ok') return '匹配';
   if (status === 'warning') return '需调整';
@@ -129,7 +136,7 @@ const getSpeciesRole = (fish: Fish) => {
   if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
   if (tools.includes('清残饵')) return '底层生物 / 清残饵';
   if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  if (fish.housingMode === '建议单养') return '主题生物 / 单独饲养';
+  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
   return getLifeType(fish) === 'invertebrate' ? '工具生物 / 生态搭配' : '观赏生物 / 鱼缸搭配';
 };
 
@@ -442,6 +449,7 @@ export function SpeciesDetailDialog({
   const selectedFit = useMemo(() => fish ? getSpeciesFitAssessment(fish, aquariumContext) : null, [fish, aquariumContext]);
   const displayFit = useMemo(() => selectedFit ? aggregateRiskResult(selectedFit, aiRiskAudit) : null, [selectedFit, aiRiskAudit]);
   const selectedTaxonomy = fish ? getCareTaxonomyPath(fish) : null;
+  const resolvedImageSrc = fish ? (imageSrc || getSpeciesDisplayImage(fish)) : '';
 
   useEffect(() => {
     let cancelled = false;
@@ -467,7 +475,7 @@ export function SpeciesDetailDialog({
 
   const openPreview = () => {
     if (!fish) return;
-    setPreviewImages([{ src: imageSrc || fish.image, title: fish.name }]);
+    setPreviewImages([{ src: resolvedImageSrc, title: fish.name }]);
     setPreviewIndex(0);
     setIsPreviewOpen(true);
   };
@@ -475,7 +483,7 @@ export function SpeciesDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="modalCard w-[min(640px,calc(100vw-32px))] max-w-[640px] p-0 border-border rounded-[28px]">
+        <DialogContent className="modalCard w-[min(640px,calc(100vw-32px))] max-w-[640px] md:max-w-[700px] lg:max-w-[900px] p-0 border-border rounded-[28px]">
           {fish && displayFit && (
             <div className="flex min-h-0 flex-1 flex-col bg-white">
               <div className="modalBody app-scrollbar-hidden p-0">
@@ -487,7 +495,7 @@ export function SpeciesDetailDialog({
                     className={`flex h-[250px] w-full items-center justify-center rounded-[18px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-3 shadow-sm`}
                     aria-label={`放大查看${fish.name}图片`}
                   >
-                    <img src={imageSrc || fish.image} alt={fish.name} className={`h-[84%] w-[84%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                    <img src={resolvedImageSrc} alt={fish.name} className={`h-[84%] w-[84%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                   </button>
                   <div className="mt-4 min-w-0">
                     <div className="flex items-start justify-between gap-3">
@@ -534,8 +542,12 @@ export function SpeciesDetailDialog({
                     {displayFit.items.filter(item => ['水体类型', '温度', '缸体大小', '水质参数', '设备', '混养'].includes(item.label)).slice(0, 6).map(item => (
                       <div key={item.label} className="rounded-[14px] border border-border bg-bg/45 p-2">
                         <div className="text-[11px] font-black text-ink">{item.label === '缸体大小' ? '空间' : item.label}</div>
-                        <div className="mt-1 line-clamp-1 text-[9px] font-medium text-ink/45">当前：{item.current}</div>
-                        <div className="line-clamp-1 text-[9px] font-medium text-ink/45">需求：{item.requirement}</div>
+                        {item.status !== 'ok' && (
+                          <div className="mt-1 line-clamp-2 text-[9px] font-medium leading-snug text-ink/48">
+                            需求：{item.requirement}
+                            <span className={getFitCurrentClass(item.status)}>（当前：{item.current}）</span>
+                          </div>
+                        )}
                         <span className={`mt-2 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black ${getFitStatusClass(item.status)}`}>{getFitStatusLabel(item.status)}</span>
                       </div>
                     ))}

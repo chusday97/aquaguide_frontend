@@ -7,11 +7,13 @@ import { Component, lazy, Suspense, useEffect, type ErrorInfo, type ReactNode } 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { BookOpen, Droplets, Library } from 'lucide-react';
+import { ToastProvider } from './components/common/ToastProvider';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
 const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
+const Login = lazy(() => import('./pages/Login'));
 
 const createWatermarkedImageSrc = (image: HTMLImageElement) => {
   const width = image.naturalWidth || image.width;
@@ -91,8 +93,8 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
     if (!this.state.error) return this.props.children;
 
     return (
-      <div className="mx-auto flex min-h-[100dvh] max-w-[430px] items-center justify-center bg-[#eef4f1] p-5 text-ink">
-        <div className="w-full rounded-3xl bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+      <div className="mx-auto flex min-h-[100dvh] max-w-[430px] items-center justify-center bg-[#eef4f1] p-5 text-ink md:max-w-none">
+        <div className="w-full max-w-[430px] rounded-3xl bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)] md:max-w-[560px]">
           <div className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
             页面加载异常
           </div>
@@ -118,9 +120,9 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 }
 
 const navItems = [
-  { path: '/aquarium', label: '我的鱼缸', icon: Droplets },
-  { path: '/encyclopedia', label: '图鉴', icon: BookOpen },
-  { path: '/care', label: '养护百科', icon: Library },
+  { path: '/aquarium', label: '我的鱼缸', description: '管理设备与缸内状态', icon: Droplets },
+  { path: '/encyclopedia', label: '图鉴', description: '查找生物与混养计算', icon: BookOpen },
+  { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
 ];
 
 function BottomNavigation() {
@@ -128,31 +130,74 @@ function BottomNavigation() {
   const navigate = useNavigate();
 
   return (
-    <nav className="relative z-50 shrink-0 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
-      <div className="grid grid-cols-3 gap-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.path}
-              type="button"
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => navigate(item.path)}
-              className={cn(
-                "relative flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-bold transition-all",
-                isActive
-                  ? "bg-accent text-white shadow-sm"
-                  : "text-ink/50 hover:bg-accent-light hover:text-accent"
-              )}
-            >
-              <Icon className={cn("mb-1 h-5 w-5", isActive ? "stroke-white" : "")} />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      {/* ── 移动端：底部标签栏 ── */}
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md xl:hidden">
+        <div className="grid grid-cols-3 gap-1">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.path}
+                type="button"
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  "relative flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-bold transition-all",
+                  isActive
+                    ? "bg-accent text-white shadow-sm"
+                    : "text-ink/50 hover:bg-accent-light hover:text-accent"
+                )}
+              >
+                <Icon className={cn("mb-1 h-5 w-5", isActive ? "stroke-white" : "")} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* ── 标准网页端（≥1280px）：顶部全局导航 ── */}
+      <nav className="fixed inset-x-0 top-0 z-50 hidden justify-center px-6 pt-4 xl:flex">
+        <div className="grid h-[72px] w-full max-w-[1280px] grid-cols-[220px_1fr] items-center gap-5 px-1">
+          <div className="min-w-0">
+            <div className="text-[17px] font-black leading-tight text-ink">AquaGuide</div>
+            <div className="mt-0.5 text-[11px] font-bold text-ink/38">水族养护助手</div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.path}
+                type="button"
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  "relative flex h-12 min-w-[178px] items-center justify-center gap-2 rounded-[22px] px-4 text-[13px] font-black transition-colors",
+                  isActive
+                    ? "bg-accent text-white shadow-[0_10px_24px_rgba(27,77,62,0.18)]"
+                    : "bg-white/54 text-ink/52 hover:bg-white/85 hover:text-accent"
+                )}
+              >
+                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-[15px]", isActive ? "bg-white/14 text-white" : "bg-white/70 text-ink/45")}>
+                  <Icon className="h-5 w-5 shrink-0" />
+                </span>
+                <span className="min-w-0 text-left">
+                  <span className="block truncate text-[14px] leading-tight">{item.label}</span>
+                  <span className={cn("mt-0.5 block truncate text-[10px] font-bold leading-tight", isActive ? "text-white/62" : "text-ink/34")}>
+                    {item.description}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+          </div>
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -172,7 +217,9 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <Router>
-        <AppShell />
+        <ToastProvider>
+          <AppShell />
+        </ToastProvider>
       </Router>
     </AppErrorBoundary>
   );
@@ -181,6 +228,7 @@ export default function App() {
 function AppShell() {
   const location = useLocation();
   const isStructurePreview = location.pathname === '/project-structure';
+  const isLogin = location.pathname === '/login';
 
   useEffect(() => {
     const root = document.querySelector('.aquaguide-app');
@@ -234,14 +282,27 @@ function AppShell() {
     );
   }
 
+  if (isLogin) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
-    <div className="aquaguide-app min-h-[100dvh] overflow-x-hidden bg-[#dfe8e5] text-ink md:flex md:items-center md:justify-center md:p-6">
-      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-bg shadow-2xl md:h-[min(100dvh-48px,932px)] md:rounded-[34px] md:border md:border-white/70">
-        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-[calc(12px+env(safe-area-inset-top))]">
-          <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
+    <div className="aquaguide-app flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink">
+      {/* 主内容区：移动端保持居中卡片风格，桌面端占满剩余空间 */}
+      <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl md:max-w-[960px] md:bg-transparent md:shadow-none md:overflow-visible xl:max-w-[1280px]">
+        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))] md:min-h-dvh md:overflow-visible md:px-6 md:pb-[calc(88px+env(safe-area-inset-bottom))] md:pt-6 xl:px-0 xl:pb-10 xl:pt-[116px]">
+          <div className="desktop-canvas mx-auto w-full max-w-full min-w-0 overflow-x-hidden xl:max-w-[1280px]">
             <Suspense fallback={<PageLoading />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/aquarium" replace />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/encyclopedia" element={<Encyclopedia />} />
                 <Route path="/care" element={<CareEncyclopedia />} />
                 <Route path="/aquarium" element={<AquariumManager />} />
@@ -249,9 +310,8 @@ function AppShell() {
             </Suspense>
           </div>
         </main>
-
-        <BottomNavigation />
       </div>
+      <BottomNavigation />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
@@ -12,7 +12,7 @@ import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Searc
 import { DeceasedRecord } from '../types';
 import { askAquaGuideAI, generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
-import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions } from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
@@ -664,7 +664,11 @@ export default function AquariumManager() {
   // New fish form state
   const [fishSearchTerm, setFishSearchTerm] = useState('');
   const [selectedAddFishItems, setSelectedAddFishItems] = useState<Array<{ fishId: string; quantity: number; entryDate: string }>>([]);
-  const [lastAddedFishName, setLastAddedFishName] = useState('');
+  const [addFishSuccess, setAddFishSuccess] = useState<{
+    aquariumName: string;
+    items: Array<{ fishId: string; name: string; quantity: number; entryDate: string; image: string }>;
+  } | null>(null);
+  const [addFishDatePicker, setAddFishDatePicker] = useState<{ fishId: string; month: Date } | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedWaterChangeDate, setSelectedWaterChangeDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -697,6 +701,7 @@ export default function AquariumManager() {
   const [localDataMessage, setLocalDataMessage] = useState('');
   const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const desktopDiscoveryRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const appState = loadAppStateFromStorage();
@@ -1036,6 +1041,17 @@ export default function AquariumManager() {
 
     if (normalizedItems.length === 0) return;
 
+    const successItems = normalizedItems.map(item => {
+      const fish = fishData.find(candidate => candidate.id === item.fishId);
+      return {
+        fishId: item.fishId,
+        name: fish?.name || '生物',
+        image: fish ? getSpeciesDisplayImage(fish) : '',
+        quantity: item.quantity,
+        entryDate: item.entryDate,
+      };
+    });
+
     const updated = aquariums.map(a => {
       if (a.id !== activeId) return a;
 
@@ -1063,13 +1079,28 @@ export default function AquariumManager() {
     });
 
     saveAquariums(updated);
-    setLastAddedFishName(
-      normalizedItems.length === 1
-        ? fishData.find(fish => fish.id === normalizedItems[0].fishId)?.name || '生物'
-        : `${normalizedItems.length} 种生物`
-    );
+    setAddFishSuccess({
+      aquariumName: activeAquarium.name,
+      items: successItems,
+    });
     setSelectedAddFishItems([]);
     setFishSearchTerm('');
+    setAddFishDatePicker(null);
+  };
+
+  const handleViewTankAfterAdd = () => {
+    setIsAddFishOpen(false);
+    setAddFishSuccess(null);
+    window.setTimeout(() => {
+      const target = document.querySelector('.aquarium-archive') || document.querySelector('.aquarium-tank');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  };
+
+  const handleContinueAddFish = () => {
+    setAddFishSuccess(null);
+    setFishSearchTerm('');
+    setAddFishDatePicker(null);
   };
 
   const handleRemoveFish = (fishIdToRemove: string) => {
@@ -1794,8 +1825,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
-  const discoveryImageSrc = discoveryFish?.image || '';
-  const nextDiscoveryImageSrc = nextDiscoveryFish?.image || '';
+  const discoveryImageSrc = discoveryFish ? getSpeciesDisplayImage(discoveryFish) : '';
+  const nextDiscoveryImageSrc = nextDiscoveryFish ? getSpeciesDisplayImage(nextDiscoveryFish) : '';
   const discoveryUsedToday = discoveryState.consumedIds.length;
   const discoveryRemainingToday = Math.max(0, DISCOVERY_DAILY_LIMIT - discoveryUsedToday);
   const isDiscoveryDailyLimitReached = discoveryRemainingToday === 0;
@@ -1817,7 +1848,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       if (!fish) return;
       const preload = new Image();
       preload.decoding = 'async';
-      preload.src = fish.image;
+      preload.src = getSpeciesDisplayImage(fish);
     });
   }, [discoveryImageSrc, discoveryPool, discoveryState.queueIds]);
 
@@ -2040,6 +2071,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     .filter((item): item is { fishId: string; quantity: number; entryDate: string; fish: Fish } => Boolean(item));
   const selectedAddSpeciesCount = selectedAddFishDetails.length;
   const selectedAddTotalQuantity = selectedAddFishItems.reduce((sum, item) => sum + Math.max(1, item.quantity || 1), 0);
+  const todayAddFishDate = format(new Date(), 'yyyy-MM-dd');
+  const formatAddFishDateLabel = (dateValue: string) => {
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '今天';
+    const formatted = format(date, 'yyyy/MM/dd');
+    return dateValue === todayAddFishDate ? `今天 · ${formatted}` : formatted;
+  };
   const updateSelectedAddFishItem = (fishId: string, patch: Partial<{ quantity: number; entryDate: string }>) => {
     setSelectedAddFishItems(prev => prev.map(item => (
       item.fishId === fishId
@@ -2048,7 +2086,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     )));
   };
   const toggleSelectedAddFish = (fish: Fish) => {
-    setLastAddedFishName('');
+    setAddFishSuccess(null);
+    setAddFishDatePicker(null);
     setSelectedAddFishItems(prev => {
       if (prev.some(item => item.fishId === fish.id)) {
         return prev.filter(item => item.fishId !== fish.id);
@@ -2057,7 +2096,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     });
   };
   const handleReAddDeceasedFish = (fish: Fish) => {
-    setLastAddedFishName('');
+    setAddFishSuccess(null);
+    setAddFishDatePicker(null);
     setFishSearchTerm('');
     setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
     setIsAddFishOpen(true);
@@ -2218,7 +2258,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     ...settingsForm,
                     dimensions: { ...(settingsForm.dimensions || {}), [item.key]: e.target.value }
                   })}
-                  className="h-10 rounded-[12px] bg-bg text-sm font-bold"
+                  className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
                 />
               </div>
             ))}
@@ -2262,7 +2302,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               type="number"
               value={settingsForm.targetTemperature || ''}
               onChange={e => setSettingsForm({ ...settingsForm, targetTemperature: e.target.value })}
-              className="h-10 rounded-[12px] bg-bg text-sm font-bold"
+              className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
             />
           </div>
         </ConfigSection>
@@ -2277,7 +2317,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           actionText={isScapeListExpanded ? '收起' : '查看全部'}
           onAction={() => setIsScapeListExpanded(prev => !prev)}
         >
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {visibleScapeOptions.map(option => {
               const currentHardscape = settingsForm.hardscape || [];
               const isSelected = option.type === 'substrate'
@@ -2330,7 +2370,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           actionText={isPlantListExpanded ? '收起' : '查看全部'}
           onAction={() => setIsPlantListExpanded(prev => !prev)}
         >
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {visiblePlantOptions.map(plant => {
               const current = settingsForm.plants || [];
               const isSelected = current.includes(plant.id) || current.includes(plant.name);
@@ -2879,13 +2919,106 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     }] : []),
   ];
   const structuredDiagnosis = diagnosisResult;
+  const scrollToDesktopDiscovery = () => {
+    desktopDiscoveryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
+    <div className="page-frame-wide aquarium-desktop-layout flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
+      <aside className="aquarium-side hidden xl:sticky xl:top-[116px] xl:block">
+        <div className="grid gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsAquariumMenuOpen(prev => !prev)}
+              className="w-full rounded-[22px] bg-accent px-3 py-3 text-left text-white shadow-[0_14px_30px_rgba(27,77,62,0.18)]"
+            >
+              <span className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[15px] bg-white/14">
+                  <Droplets className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] font-black">{activeAquarium?.name || '我的鱼缸'}</span>
+                  <span className="block text-[10px] font-bold text-white/62">{aquariums.length} 个鱼缸</span>
+                </span>
+              </span>
+            </button>
+            {isAquariumMenuOpen && (
+              <div className="absolute left-0 top-[calc(100%+8px)] z-[70] w-[260px] overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-ink/5">
+                <div className="border-b border-border/60 px-3 py-2">
+                  <div className="text-[11px] font-black text-ink">切换鱼缸</div>
+                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">选择当前正在管理的鱼缸</div>
+                </div>
+                <div className="max-h-[240px] overflow-y-auto p-1.5">
+                  {aquariums.map(aq => {
+                    const isActiveAquarium = activeId === aq.id;
+                    return (
+                      <button
+                        key={aq.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveId(aq.id);
+                          setIsAquariumMenuOpen(false);
+                        }}
+                        className={`flex w-full min-w-0 items-center gap-2 rounded-[15px] p-1.5 text-left transition-colors ${
+                          isActiveAquarium ? 'bg-emerald-50' : 'hover:bg-bg'
+                        }`}
+                      >
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          isActiveAquarium ? 'bg-emerald-700 text-white' : 'bg-bg text-ink/45'
+                        }`}>
+                          <Droplets className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[12px] font-black text-ink">{aq.name}</span>
+                          <span className="block text-[9px] font-bold text-ink/42">
+                            {aq.fishes.length > 0 ? `${aq.fishes.length} 种内容` : '暂无生物'}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsWishlistExpanded(prev => !prev)}
+            className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-rose-500 transition-colors hover:bg-white"
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Heart className={`h-4 w-4 ${wishlistFishes.length > 0 ? 'fill-current' : ''}`} />
+                <span className="text-[13px] font-black">种草图鉴</span>
+              </span>
+              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black">{wishlistFishes.length}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={openLocalDataManager}
+            className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-ink/58 transition-colors hover:bg-white hover:text-ink"
+          >
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              <span className="text-[13px] font-black">数据保存提醒</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={scrollToDesktopDiscovery}
+            className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-ink/58 transition-colors hover:bg-white hover:text-accent"
+          >
+            <span className="block text-[13px] font-black">今日种草</span>
+            <span className="mt-0.5 block text-[10px] font-bold text-ink/36">定位到推荐板块</span>
+          </button>
+        </div>
+      </aside>
       {/* Aquarium Tabs */}
-      <section className="order-[0] min-w-0 pb-1 pt-[58px]">
-        <div className="fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-[430px] min-w-0 items-center gap-2 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:top-6 md:rounded-t-[30px] md:pt-2">
-          <div className="relative min-w-0 flex-1">
+      <section className="aquarium-toolbar order-[0] min-w-0 pb-1 pt-[58px] md:pt-0 xl:hidden">
+        <div className="fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-[430px] min-w-0 items-center gap-2 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-0 md:z-40 md:max-w-[760px] md:rounded-[28px] md:border md:border-white/80 md:bg-white/78 md:px-4 md:py-3 md:shadow-sm">
+          <div className="relative min-w-0 flex-1 md:max-w-[360px] md:flex-none">
             <button
               type="button"
               onClick={() => setIsAquariumMenuOpen(prev => !prev)}
@@ -3012,7 +3145,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 还没有种草，滑动“今天想养哪一种”或在图鉴里点心愿按钮。
               </div>
             ) : (
-              <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 bg-[#FBFAF6] px-2.5 py-3">
+              <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 bg-[#FBFAF6] px-2.5 py-3 md:grid-cols-7 lg:grid-cols-8 md:gap-2">
                 {wishlistFishes.map(fish => (
                   <div key={fish.id} className="group relative min-w-0 text-center">
                     <button
@@ -3031,7 +3164,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     >
                       <div className={`relative mx-auto flex h-[46px] w-full items-end justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(fish)}`}>
                         <img
-                          src={fish.image}
+                          src={getSpeciesDisplayImage(fish)}
                           alt={fish.name}
                           className={`max-h-[44px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(fish)}`}
                           referrerPolicy="no-referrer"
@@ -3048,7 +3181,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         )}
       </section>
 
-      <div className="order-[2]">
+      <div className="aquarium-status order-[2]">
         <StatusSummaryCard
           status={tankHealthStatus}
           healthPercent={healthScore}
@@ -3092,7 +3225,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         />
       </div>
 
-      <section className="order-[1] overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm">
+      <section ref={desktopDiscoveryRef} className="aquarium-discovery order-[1] scroll-mt-[116px] overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-[13px] font-black text-ink">今日种草</div>
@@ -3113,7 +3246,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 setSelectedDiscoveryFish(discoveryFish);
               }
             }}
-            className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
+            className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99] xl:desktop-split-card xl:items-start xl:gap-4"
           >
             <div className={`flex h-full min-h-[116px] items-center justify-center rounded-[14px] p-2 ${getSpeciesImageSurfaceClass(discoveryFish)}`}>
               <img
@@ -3138,7 +3271,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 ))}
               </div>
               <p className="mt-2 line-clamp-2 text-[11px] font-bold leading-relaxed text-ink/62">{getDiscoveryPositioning(discoveryFish)}</p>
-              <div className="mt-3 grid grid-cols-2 gap-1.5">
+              <div className="mt-3 grid grid-cols-2 gap-1.5 md:flex md:gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -3189,7 +3322,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         )}
       </section>
 
-      <section className="order-[3] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
+      <section className="aquarium-actions order-[3] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
         <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
@@ -3197,10 +3330,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </section>
 
       {recommendedActionCandidates.length > 0 && (
-      <section className="order-[4] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
+      <section className="aquarium-recommend order-[4] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
         <SectionHeader title="下一步推荐" subtitle={tankActionMessage || nextStepMessage} />
         <div className="mt-3">
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:max-w-[680px]">
             {recommendedActionCandidates.map(action => (
               <ActionCenterCard
                 key={action.id}
@@ -3219,7 +3352,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       )}
 
       {/* Visual Tank Placeholder */}
-      <div className="order-[5] relative h-72 w-full overflow-hidden rounded-[18px] border border-white/80 shadow-sm group">
+      <div className="aquarium-tank order-[5] relative h-72 w-full overflow-hidden rounded-[18px] border border-white/80 shadow-sm group xl:min-h-[560px] xl:h-[calc(100dvh-132px)] xl:max-h-[760px]">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -3313,7 +3446,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </div>
 
       {/* Tank Species Archive */}
-      <section className="order-[6] overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
+      <section className="aquarium-archive order-[6] overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
@@ -3337,7 +3470,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               <div className="flex -space-x-2">
                 {ownedArchivePreviewItems.map(item => (
                   <span key={item.fish.id} className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white bg-white shadow-sm">
-                    <img src={item.fish.image} alt={item.fish.name} className={`h-full w-full object-contain p-0.5 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
+                    <img src={getSpeciesDisplayImage(item.fish)} alt={item.fish.name} className={`h-full w-full object-contain p-0.5 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                   </span>
                 ))}
               </div>
@@ -3432,7 +3565,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     <div className={`relative mx-auto flex h-[52px] w-full items-end justify-center rounded-[12px] ${item.fish ? getSpeciesImageSurfaceClass(item.fish) : ''}`}>
                       {item.fish ? (
                         <img
-                          src={item.fish.image}
+                          src={getSpeciesDisplayImage(item.fish)}
                           alt={item.name}
                           referrerPolicy="no-referrer"
                           className={`max-h-[50px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(item.fish)}`}
@@ -3496,7 +3629,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               {deceasedArchiveItems.slice(0, 12).map(({ record, fish }) => (
                 <div key={record.id} className="min-w-0 rounded-[16px] bg-bg p-2">
                   <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-[14px] opacity-70 grayscale ${getSpeciesImageSurfaceClass(fish)}`}>
-                    <img src={fish.image} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                    <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/75 px-1.5 py-0.5 text-[9px] font-black text-white">死亡</span>
                   </div>
                   <div className="mt-2 truncate text-[12px] font-black text-ink">{fish.name}</div>
@@ -3505,7 +3638,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   <button
                     type="button"
                     onClick={() => handleReAddDeceasedFish(fish)}
-                    className="mt-2 h-7 w-full rounded-full bg-white text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition-colors hover:bg-emerald-50"
+                    className="mt-2 h-7 w-full rounded-full bg-white text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition-colors hover:bg-emerald-50 md:w-auto md:max-w-[200px]"
                   >
                     再次加入
                   </button>
@@ -3556,7 +3689,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </Dialog>
 
       <Dialog open={isLocalDataOpen} onOpenChange={setIsLocalDataOpen}>
-        <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[430px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
+        <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
             <DialogTitle className="text-xl font-black text-ink">数据保存提醒</DialogTitle>
             <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
@@ -3583,7 +3716,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             </div>
           </div>
           <DialogFooter className="shrink-0 border-t border-white bg-white px-4 py-3">
-            <Button type="button" variant="outline" onClick={() => setIsLocalDataOpen(false)} className="h-10 w-full rounded-full text-sm font-bold">
+            <Button type="button" variant="outline" onClick={() => setIsLocalDataOpen(false)} className="h-10 w-full rounded-full text-sm font-bold md:w-fit md:max-w-[220px]">
               关闭
             </Button>
           </DialogFooter>
@@ -3974,7 +4107,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </Dialog>
 
       <Dialog open={isRiskReminderOpen} onOpenChange={setIsRiskReminderOpen}>
-        <DialogContent className="flex max-h-[82dvh] w-[90vw] max-w-[430px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <DialogContent className="flex max-h-[82dvh] w-[90vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
             <DialogTitle className="font-serif text-xl font-bold italic text-ink">全部提醒</DialogTitle>
             <DialogDescription className="text-xs font-medium text-ink/55">
@@ -4030,7 +4163,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               type="button"
               variant="outline"
               onClick={() => setIsRiskReminderOpen(false)}
-              className="h-10 w-full rounded-full text-sm font-bold"
+              className="h-10 w-full rounded-full text-sm font-bold md:w-fit md:max-w-[220px]"
             >
               关闭
             </Button>
@@ -4046,7 +4179,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               2 分钟内你看到以下情况了吗？
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 px-5 py-4">
+          <div className="grid gap-2 px-5 py-4 md:grid-cols-2">
             {['鱼浮在水面', '呼吸明显急促', '趴缸或躲藏', '拒食或抢食异常', '没有明显异常'].map(item => {
               const checked = observationChecks.includes(item);
               return (
@@ -4066,7 +4199,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               );
             })}
           </div>
-          <DialogFooter className="grid grid-cols-2 gap-2 border-t border-border bg-white p-4">
+          <DialogFooter className="grid grid-cols-2 gap-2 border-t border-border bg-white p-4 md:flex md:max-w-[560px] md:gap-2">
             <Button
               variant="outline"
               className="h-10 rounded-full text-sm font-bold"
@@ -4124,7 +4257,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         if (!open) {
           setFishSearchTerm('');
           setSelectedAddFishItems([]);
-          setLastAddedFishName('');
+          setAddFishSuccess(null);
+          setAddFishDatePicker(null);
         }
       }}>
         <DialogContent className="flex h-[88dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[520px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
@@ -4136,23 +4270,45 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="grid gap-4 p-4 pb-24">
-              {lastAddedFishName && (
-                <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3">
-                  <div className="flex items-center gap-2 text-sm font-black text-emerald-700">
-                    <CheckCircle2 className="h-4 w-4" />
-                    已添加到当前鱼缸
+              {addFishSuccess ? (
+                <div className="grid gap-4 rounded-[22px] border border-emerald-100 bg-emerald-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-lg font-black text-emerald-800">已添加到当前鱼缸</div>
+                      <p className="mt-1 text-[12px] font-bold leading-relaxed text-emerald-900/70">
+                        已加入 {addFishSuccess.aquariumName}，你可以回到鱼缸查看，也可以继续添加其他生物。
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 text-[11px] font-medium text-emerald-800/75">{lastAddedFishName} 已加入 {activeAquarium.name}。</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsAddFishOpen(false)} className="h-8 rounded-full bg-white text-[11px] font-black">
+
+                  <div className="grid gap-2">
+                    {addFishSuccess.items.map(item => (
+                      <div key={item.fishId} className="grid grid-cols-[44px_1fr] gap-3 rounded-[16px] bg-white/82 p-2 shadow-sm">
+                        <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-[14px] bg-[#FBFAF6]">
+                          {item.image && <img src={item.image} alt={item.name} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-black text-ink">{item.name} x {item.quantity}</div>
+                          <div className="mt-0.5 text-[11px] font-bold text-ink/48">入缸日期：{formatAddFishDateLabel(item.entryDate)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant="outline" onClick={handleViewTankAfterAdd} className="h-11 rounded-full bg-white text-sm font-black">
                       查看我的鱼缸
                     </Button>
-                    <Button type="button" onClick={() => setLastAddedFishName('')} className="h-8 rounded-full bg-emerald-700 text-[11px] font-black text-white hover:bg-emerald-800">
+                    <Button type="button" onClick={handleContinueAddFish} className="h-11 rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800">
                       继续添加
                     </Button>
                   </div>
                 </div>
-              )}
+              ) : (
+                <>
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
@@ -4167,7 +4323,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   value={fishSearchTerm}
                   onChange={(e) => {
                     setFishSearchTerm(e.target.value);
-                    setLastAddedFishName('');
+                    setAddFishSuccess(null);
+                    setAddFishDatePicker(null);
                   }}
                 />
               </div>
@@ -4189,7 +4346,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       }`}
                     >
                       <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-[14px] ${getSpeciesImageSurfaceClass(fish)}`}>
-                        <img src={fish.image} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                        <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-start justify-between gap-2">
@@ -4244,11 +4401,15 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 {selectedAddSpeciesCount > 0 ? (
                   <>
                     <div className="grid gap-2">
-                      {selectedAddFishDetails.map(item => (
+                      {selectedAddFishDetails.map(item => {
+                        const isDatePickerOpen = addFishDatePicker?.fishId === item.fishId;
+                        const datePickerMonth = isDatePickerOpen ? addFishDatePicker.month : new Date(item.entryDate);
+                        const monthStartOffset = getDay(startOfMonth(datePickerMonth));
+                        return (
                         <div key={item.fishId} className="grid gap-3 rounded-[16px] bg-bg p-2">
                           <div className="grid grid-cols-[46px_1fr_auto] gap-2">
                             <span className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] ${getSpeciesImageSurfaceClass(item.fish)}`}>
-                              <img src={item.fish.image} alt={item.fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
+                              <img src={getSpeciesDisplayImage(item.fish)} alt={item.fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                             </span>
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-ink">{item.fish.name}</div>
@@ -4265,40 +4426,108 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-[1fr_1.15fr] gap-2">
+                          <div className="grid gap-2 md:grid-cols-[0.78fr_1.22fr]">
                             <div className="rounded-[14px] bg-white p-2">
                               <Label className="text-[10px] font-black text-ink/48">数量</Label>
-                              <div className="mt-1 grid h-9 grid-cols-[28px_1fr_28px] items-center gap-1">
-                                <button type="button" onClick={() => updateSelectedAddFishItem(item.fishId, { quantity: item.quantity - 1 })} className="h-7 rounded-full bg-bg text-base font-black text-ink/55">-</button>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  className="h-8 rounded-full border-transparent bg-bg text-center text-[18px] font-black text-ink"
-                                  value={item.quantity}
-                                  onChange={(e) => updateSelectedAddFishItem(item.fishId, { quantity: parseInt(e.target.value) || 1 })}
-                                />
-                                <button type="button" onClick={() => updateSelectedAddFishItem(item.fishId, { quantity: item.quantity + 1 })} className="h-7 rounded-full bg-bg text-base font-black text-emerald-700">+</button>
+                              <div className="mt-1 grid h-10 grid-cols-[34px_1fr_34px] items-center gap-1 rounded-full bg-bg p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateSelectedAddFishItem(item.fishId, { quantity: Math.max(1, item.quantity - 1) })}
+                                  disabled={item.quantity <= 1}
+                                  className="flex h-8 items-center justify-center rounded-full bg-white text-lg font-black text-ink/55 shadow-sm disabled:text-ink/18"
+                                  aria-label={`减少 ${item.fish.name} 数量`}
+                                >
+                                  -
+                                </button>
+                                <div className="text-center text-[20px] font-black text-ink">{item.quantity}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => updateSelectedAddFishItem(item.fishId, { quantity: item.quantity + 1 })}
+                                  className="flex h-8 items-center justify-center rounded-full bg-white text-lg font-black text-emerald-700 shadow-sm"
+                                  aria-label={`增加 ${item.fish.name} 数量`}
+                                >
+                                  +
+                                </button>
                               </div>
                             </div>
                             <div className="rounded-[14px] bg-white p-2">
                               <Label className="text-[10px] font-black text-ink/48">入缸日期</Label>
-                              <div className="mt-1 grid grid-cols-[auto_1fr] items-center gap-1 rounded-full bg-bg px-2">
+                              <button
+                                type="button"
+                                onClick={() => setAddFishDatePicker(prev => (
+                                  prev?.fishId === item.fishId
+                                    ? null
+                                    : { fishId: item.fishId, month: new Date(item.entryDate) }
+                                ))}
+                                className="mt-1 grid h-10 w-full grid-cols-[auto_1fr] items-center gap-1 rounded-full bg-bg px-3 text-left"
+                              >
                                 <Calendar className="h-3.5 w-3.5 text-ink/35" />
-                                <Input
-                                  type="date"
-                                  className="h-8 border-transparent bg-transparent p-0 text-center text-[12px] font-black text-ink"
-                                  value={item.entryDate}
-                                  onChange={(e) => updateSelectedAddFishItem(item.fishId, { entryDate: e.target.value })}
-                                  max={format(new Date(), 'yyyy-MM-dd')}
-                                />
-                              </div>
-                              <div className="mt-1 text-center text-[10px] font-bold text-ink/40">
-                                {item.entryDate === format(new Date(), 'yyyy-MM-dd') ? '今天' : format(new Date(item.entryDate), 'yyyy/MM/dd')}
-                              </div>
+                                <span className="truncate text-center text-[12px] font-black text-ink">{formatAddFishDateLabel(item.entryDate)}</span>
+                              </button>
                             </div>
                           </div>
+
+                          {isDatePickerOpen && (
+                            <div className="rounded-[16px] bg-white p-3 shadow-sm ring-1 ring-emerald-100">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => setAddFishDatePicker({ fishId: item.fishId, month: subMonths(datePickerMonth, 1) })}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink/55"
+                                  aria-label="上个月"
+                                >
+                                  <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <div className="text-sm font-black text-ink">{format(datePickerMonth, 'yyyy年 M月')}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => setAddFishDatePicker({ fishId: item.fishId, month: addMonths(datePickerMonth, 1) })}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink/55 disabled:text-ink/18"
+                                  disabled={startOfMonth(addMonths(datePickerMonth, 1)) > new Date()}
+                                  aria-label="下个月"
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black text-ink/35">
+                                {['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day}>{day}</span>)}
+                              </div>
+                              <div className="mt-1 grid grid-cols-7 gap-1">
+                                {Array.from({ length: monthStartOffset }).map((_, index) => <span key={`empty-${index}`} />)}
+                                {eachDayOfInterval({ start: startOfMonth(datePickerMonth), end: endOfMonth(datePickerMonth) }).map(date => {
+                                  const dateStr = format(date, 'yyyy-MM-dd');
+                                  const isSelected = item.entryDate === dateStr;
+                                  const isToday = isSameDay(date, new Date());
+                                  const isFuture = date > new Date() && !isToday;
+                                  return (
+                                    <button
+                                      key={dateStr}
+                                      type="button"
+                                      disabled={isFuture}
+                                      onClick={() => {
+                                        updateSelectedAddFishItem(item.fishId, { entryDate: dateStr });
+                                        setAddFishDatePicker(null);
+                                      }}
+                                      className={`flex h-8 items-center justify-center rounded-full text-[11px] font-black ${
+                                        isSelected
+                                          ? 'bg-emerald-700 text-white'
+                                          : isToday
+                                            ? 'bg-emerald-50 text-emerald-700'
+                                            : isFuture
+                                              ? 'text-ink/18'
+                                              : 'bg-bg text-ink/62'
+                                      }`}
+                                    >
+                                      {format(date, 'd')}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
 
                     <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-bold leading-relaxed text-emerald-900">
@@ -4328,17 +4557,21 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   </div>
                 )}
               </section>
+                </>
+              )}
             </div>
           </div>
-          <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(27,77,62,0.08)]">
-            <Button variant="outline" className="h-10 rounded-full text-sm font-bold text-ink" onClick={() => setIsAddFishOpen(false)}>取消</Button>
-            <div className="grid gap-1">
-              {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
-              <Button className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35" onClick={handleAddFish} disabled={selectedAddSpeciesCount === 0}>
-                {selectedAddSpeciesCount === 0 ? '请先选择生物' : `添加 ${selectedAddSpeciesCount} 种生物到鱼缸`}
-              </Button>
-            </div>
-          </DialogFooter>
+          {!addFishSuccess && (
+            <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(27,77,62,0.08)]">
+              <Button variant="outline" className="h-10 rounded-full text-sm font-bold text-ink" onClick={() => setIsAddFishOpen(false)}>取消</Button>
+              <div className="grid gap-1">
+                {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
+                <Button className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35" onClick={handleAddFish} disabled={selectedAddSpeciesCount === 0}>
+                  {selectedAddSpeciesCount === 0 ? '请先选择生物' : '确认添加到鱼缸'}
+                </Button>
+              </div>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -4392,7 +4625,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   {aiRecommendations.map(fish => (
                     <div key={fish.id} className="grid grid-cols-[56px_1fr_auto] items-center gap-3 rounded-sm border border-border bg-white p-2 transition-colors hover:border-accent">
                       <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-sm ${getSpeciesImageSurfaceClass(fish)}`}>
-                        <img src={fish.image} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                        <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                       </span>
                       <div className="min-w-0">
                         <h4 className="truncate text-sm font-bold text-ink">{fish.name}</h4>
@@ -4438,7 +4671,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           setWaterChangeFeedback('');
         }
       }}>
-        <DialogContent className="flex h-[86dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[430px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <DialogContent className="flex h-[86dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="text-xl font-black text-ink">换水记录</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
@@ -4832,12 +5065,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                           ...settingsForm,
                           dimensions: { ...(settingsForm.dimensions || {}), [item.key]: e.target.value }
                         })}
-                        className="h-10 rounded-[12px] bg-bg text-sm font-bold"
+                        className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
                       />
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-emerald-50/70 p-3">
+                <div className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-emerald-50/70 p-3 md:flex md:flex-wrap md:gap-2">
                   <div>
                     <div className="text-[10px] font-black text-ink/45">理论容量</div>
                     <div className="mt-1 text-2xl font-black text-ink">{settingsGrossVolumeLiters > 0 ? `${settingsGrossVolumeLiters}L` : '--'}</div>
@@ -4876,7 +5109,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     type="number"
                     value={settingsForm.targetTemperature || ''}
                     onChange={e => setSettingsForm({ ...settingsForm, targetTemperature: e.target.value })}
-                    className="h-10 rounded-[12px] bg-bg text-sm font-bold"
+                    className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
                   />
                 </div>
               </ConfigSection>
@@ -5193,7 +5426,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </Dialog>
 
       <Dialog open={!!selectedDiscoveryFish} onOpenChange={(open) => !open && setSelectedDiscoveryFish(null)}>
-        <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[430px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
+        <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
           {selectedDiscoveryFish && (
             <>
               <DialogHeader className="shrink-0 border-b border-white px-5 pb-3 pt-5">
@@ -5287,7 +5520,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         open={!!selectedAqFish || !!selectedWishlistFish}
         source="aquarium"
         aquariumContext={activeAquarium}
-        imageSrc={selectedAqFish?.fish.image || selectedWishlistFish?.image || ''}
+        imageSrc={selectedAqFish ? getSpeciesDisplayImage(selectedAqFish.fish) : selectedWishlistFish ? getSpeciesDisplayImage(selectedWishlistFish) : ''}
         owned={Boolean(selectedAqFish)}
         inCalculator={(selectedAqFish || selectedWishlistFish) ? selectedAddFishItems.some(item => item.fishId === (selectedAqFish?.fish.id || selectedWishlistFish?.id)) : false}
         inWishlist={(selectedAqFish || selectedWishlistFish) ? wishlistFishIds.has(selectedAqFish?.fish.id || selectedWishlistFish?.id || '') : false}
@@ -5332,7 +5565,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             <ScrollArea className="max-h-[85vh]">
               <div className="h-[180px] md:h-[240px] bg-bg relative border-b border-border">
                 <img 
-                  src={selectedAqFish.fish.image} 
+                  src={getSpeciesDisplayImage(selectedAqFish.fish)} 
                   alt={selectedAqFish.fish.name} 
                   className="object-contain w-full h-full p-4 opacity-95"
                   referrerPolicy="no-referrer"

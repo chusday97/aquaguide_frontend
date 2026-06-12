@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ThreeAquarium } from '../components/ThreeAquarium';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { getSpeciesDisplayImage } from '../lib/speciesVisual';
 
 const getDifficultyLabel = (difficulty: string) => {
   switch (difficulty) {
@@ -103,7 +104,7 @@ export default function Home() {
             return (
               <div key={id} onClick={() => setSelectedFish(fish)} className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors">
-                  <img src={fish.image} alt={fish.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
+                  <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
                 </div>
                 <span className="text-[10px] font-bold text-ink w-16 text-center truncate">{fish.name}</span>
               </div>
@@ -115,7 +116,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-md mx-auto relative pb-20">
+    <div className="flex flex-col gap-4 max-w-md mx-auto relative pb-20 md:max-w-[760px]">
       
       {/* 1. Aquarium Preview */}
       <section className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
@@ -162,7 +163,7 @@ export default function Home() {
               {ownedFishes.length > 0 ? (
                   ownedFishes.slice(0, 3).map((fish, i) => (
                     <div key={i} className={`w-10 h-10 rounded-full overflow-hidden border-[3px] border-[#F4F1EA] shadow-md ${i > 0 ? '-ml-4' : ''}`}>
-                      <img src={fish.image} className="h-full w-full object-contain bg-white p-1" alt="" referrerPolicy="no-referrer" />
+                      <img src={getSpeciesDisplayImage(fish)} className="h-full w-full object-contain bg-white p-1" alt="" referrerPolicy="no-referrer" />
                     </div>
                   ))
                 ) : (

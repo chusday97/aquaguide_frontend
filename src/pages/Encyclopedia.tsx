@@ -23,7 +23,7 @@ import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { ImagePreviewModal, type PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
-import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import {
   evaluateSpeciesForAquarium,
   getCurrentLivestockForAquarium,
@@ -65,24 +65,7 @@ const lifeTypes = [
   { id: 'plant', label: '水草', hint: '前景/中景/浮草' },
 ];
 
-const ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
-  sp_0019: '/species-display/sp_0019_埃及神仙_display_white.png?v=displaycutout_20260601',
-  sp_0175: '/species-display/sp_0175_血钻神仙_display_white.png?v=displaycutout_20260601',
-  sp_0176: '/species-display/sp_0176_黑白大理石神仙_display_white.png?v=displaycutout_20260601',
-  sp_0177: '/species-display/sp_0177_红眼蓝钻神仙_display_white.png?v=displaycutout_20260601',
-  sp_0178: '/species-display/sp_0178_熊猫神仙_display_white.png?v=displaycutout_20260601',
-  sp_0240: '/species-display/sp_0240_白金神仙_长鳍_display_white.png?v=displaycutout_20260601',
-  sp_0241: '/species-display/sp_0241_大理石神仙_球形_display_white.png?v=displaycutout_20260601',
-  sp_0247: '/species-display/sp_0247_蓝钻神仙_球形_display_white.png?v=displaycutout_20260601',
-  sp_0272: '/species-display/sp_0272_长鳍神仙_黑_display_white.png?v=displaycutout_20260601',
-  sp_0388: '/species-display/sp_0388_血钻神仙_改良_display_white.png?v=displaycutout_20260601',
-  sp_0446: '/species-display/sp_0446_神仙鱼_display_white.png?v=displaycutout_20260601',
-};
-
-const getEncyclopediaImage = (fish: Fish) => (
-  ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES[fish.id]
-  || fish.image
-);
+const getEncyclopediaImage = getSpeciesDisplayImage;
 
 const loadDiscoveryState = () => {
   try {
@@ -188,6 +171,19 @@ const getFitStatusClass = (status: 'ok' | 'warning' | 'danger' | 'info') => {
   }
 };
 
+const getFitCurrentClass = (status: 'ok' | 'warning' | 'danger' | 'info') => {
+  switch (status) {
+    case 'warning':
+      return 'text-amber-700';
+    case 'danger':
+      return 'text-red-600';
+    case 'info':
+      return 'text-sky-700';
+    default:
+      return 'text-emerald-700';
+  }
+};
+
 const getFitStatusLabel = (status: 'ok' | 'warning' | 'danger' | 'info') => {
   switch (status) {
     case 'ok':
@@ -230,7 +226,7 @@ const getSpeciesRole = (fish: Fish) => {
   if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
   if (tools.includes('清残饵')) return '底层生物 / 清残饵';
   if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  if (fish.housingMode === '建议单养') return '主题生物 / 单独饲养';
+  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
   return getLifeType(fish) === 'invertebrate' ? '工具生物 / 生态搭配' : '观赏生物 / 鱼缸搭配';
 };
 
@@ -972,16 +968,17 @@ export default function Encyclopedia() {
   const selectedFit = selectedFish ? getSpeciesFitAssessment(selectedFish, referenceAquarium) : null;
   const pendingFit = pendingTankFish ? getSpeciesFitAssessment(pendingTankFish, aquariumSnapshots.find(item => item.id === targetAquariumId) || referenceAquarium) : null;
   const isOverlayOpen = !!selectedFish || !!pendingTankFish || isCategoryDrawerOpen;
+  const atlasModeItems = [
+    { id: 'browse' as const, label: '浏览图鉴', description: '查找生物、分类和适配结果' },
+    { id: 'compatibility' as const, label: '混养计算', description: '选择生物后查看混养风险' },
+  ];
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden pt-[58px]">
+    <div className="page-frame-wide flex min-w-0 flex-col gap-6 overflow-x-hidden pt-[58px] md:pt-0">
       {!isOverlayOpen && (
-      <div className="fixed inset-x-0 top-0 z-[60] mx-auto grid w-full max-w-[430px] grid-cols-2 gap-1 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:top-6 md:rounded-t-[30px] md:pt-2">
+      <div className="fixed inset-x-0 top-0 z-[60] mx-auto grid w-full max-w-[430px] grid-cols-2 gap-1 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-3 md:max-w-[560px] md:rounded-[30px] md:p-2 xl:hidden">
         <div className="col-span-2 grid grid-cols-2 gap-1 rounded-full bg-white/90 p-1 ring-1 ring-border/70">
-        {[
-          { id: 'browse', label: '浏览图鉴' },
-          { id: 'compatibility', label: '混养计算' },
-        ].map(item => (
+        {atlasModeItems.map(item => (
           <button
             key={item.id}
             id={item.id === 'compatibility' ? 'calculator-tab-target' : undefined}
@@ -1017,10 +1014,49 @@ export default function Encyclopedia() {
         </div>
       )}
 
+      <div className="xl:grid xl:grid-cols-[200px_minmax(0,1fr)] xl:items-start xl:gap-5">
+        <aside className="hidden xl:sticky xl:top-[116px] xl:block">
+          <div className="p-0">
+            <div className="grid gap-2">
+              {atlasModeItems.map(item => {
+                const isActive = viewMode === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    id={item.id === 'compatibility' ? 'calculator-tab-target' : undefined}
+                    type="button"
+                    onClick={() => setViewMode(item.id)}
+                    className={`rounded-[20px] px-3 py-3 text-left transition-colors ${
+                      isActive
+                        ? 'bg-accent text-white shadow-[0_12px_26px_rgba(27,77,62,0.18)]'
+                        : 'bg-bg/60 text-ink/56 hover:bg-emerald-50 hover:text-accent'
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[14px] font-black">{item.label}</span>
+                      {item.id === 'compatibility' && calculatorSpeciesIds.length > 0 && (
+                        <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
+                          isActive ? 'bg-white/22 text-white' : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {calculatorSpeciesIds.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className={`mt-1 block text-[10px] font-bold leading-relaxed ${isActive ? 'text-white/64' : 'text-ink/38'}`}>
+                      {item.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+        <div className="min-w-0">
+
       {viewMode === 'browse' ? (
       <div className="flex flex-col gap-5">
-      <div className="order-[1] flex flex-col gap-4">
-        <div className="relative min-w-0">
+      <div className="order-[1] flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-center xl:gap-3 xl:rounded-[22px] xl:border xl:border-white/80 xl:bg-white/82 xl:p-3 xl:shadow-sm">
+        <div className="relative min-w-0 md:mx-auto md:max-w-[560px] xl:mx-0 xl:w-[420px] xl:max-w-[420px] xl:flex-none">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/42" />
           <Input
             placeholder="搜索鱼、虾、螺、水草或用途"
@@ -1041,14 +1077,14 @@ export default function Encyclopedia() {
           </button>
         </div>
 
-        <section className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
+        <section className="mx-auto flex w-full max-w-[720px] flex-col gap-2 xl:mx-0 xl:min-w-0 xl:flex-1 xl:max-w-none">
+          <div className="flex items-center justify-between gap-3 xl:hidden">
             <div>
               <div className="text-[15px] font-black text-ink">快速找</div>
               <div className="mt-0.5 text-[11px] font-bold text-ink/42">先给你 3 个最常用入口。</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             {primaryFunctionFilterOptions.map(label => {
               const isActive = activeFilters.functionTag === label;
               return (
@@ -1082,7 +1118,7 @@ export default function Encyclopedia() {
           </div>
         </section>
 
-        <div className="grid gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm">
+        <div className="mx-auto grid w-full max-w-[960px] gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:basis-full xl:max-w-none">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-[13px] font-black text-ink">
@@ -1130,7 +1166,7 @@ export default function Encyclopedia() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 mt-1">
+        <div className="mt-1 grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
           {pagedFishes.map((fish) => {
             const isOwned = ownedFishIds.has(fish.id);
             const imageClass = isOwned ? 'opacity-100' : 'opacity-90';
@@ -1143,7 +1179,7 @@ export default function Encyclopedia() {
               <div 
                 key={fish.id} 
                 data-species-card
-                className={`rounded-[16px] border bg-white p-2.5 flex flex-col gap-2 transition-colors shadow-sm ${
+                className={`rounded-[16px] border bg-white p-2.5 flex flex-col gap-2 transition-colors shadow-sm md:w-full ${
                   isInCalculator
                     ? 'border-emerald-500 ring-2 ring-emerald-100'
                     : isMarine
@@ -1158,7 +1194,7 @@ export default function Encyclopedia() {
                   onClick={() => setSelectedFish(fish)}
                   aria-label={`查看${fish.name}详情`}
                   data-species-card-image-area
-                  className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border ${
+                  className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border md:min-h-[170px] ${
                   isInCalculator
                     ? `border-emerald-100 bg-emerald-50/18 ${getSpeciesImageSurfaceClass(fish)}`
                     : isMarine
@@ -1211,18 +1247,18 @@ export default function Encyclopedia() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1">
+                <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1 md:flex md:flex-wrap">
                   <button
                     type="button"
                     onClick={() => setSelectedFish(fish)}
-                    className="h-9 rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
+                    className="h-9 rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent md:w-fit md:min-w-[96px]"
                   >
                     详情
                   </button>
                   <button
                     type="button"
                     onClick={(event) => handleAddToCalculator(fish, event.currentTarget)}
-                    className={`h-9 rounded-full text-[11px] font-black ${
+                    className={`h-9 rounded-full text-[11px] font-black md:w-fit md:min-w-[112px] ${
                       isInCalculator
                         ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
                         : 'bg-accent text-white hover:bg-accent/90'
@@ -1238,27 +1274,32 @@ export default function Encyclopedia() {
       </div>
 
       {filteredFishes.length > resultPageSize && (
-        <div className="mt-1 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setResultPage(Math.max(0, currentResultPage - 1))}
-            disabled={currentResultPage === 0}
-            className="flex h-10 items-center justify-center gap-1 rounded-full border border-border bg-white text-[12px] font-black text-ink/62 shadow-sm disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="上一组图鉴"
-          >
-            <ChevronRight className="h-4 w-4 rotate-180" />
-            上一组
-          </button>
-          <button
-            type="button"
-            onClick={() => setResultPage(Math.min(resultPageCount - 1, currentResultPage + 1))}
-            disabled={currentResultPage >= resultPageCount - 1}
-            className="flex h-10 items-center justify-center gap-1 rounded-full border border-border bg-white text-[12px] font-black text-ink/62 shadow-sm disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="下一组图鉴"
-          >
-            下一组
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        <div className="mt-5 flex w-full justify-center">
+          <div className="inline-flex max-w-full flex-col items-center gap-2 rounded-[22px] border border-white/80 bg-white/88 px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:rounded-full sm:px-4">
+            <button
+              type="button"
+              onClick={() => setResultPage(Math.max(0, currentResultPage - 1))}
+              disabled={currentResultPage === 0}
+              className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/28 disabled:shadow-none"
+              aria-label="上一组图鉴"
+            >
+              <ChevronRight className="h-4 w-4 rotate-180" />
+              上一组
+            </button>
+            <div className="min-w-[104px] rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">
+              第 {currentResultPage + 1} / {resultPageCount} 组
+            </div>
+            <button
+              type="button"
+              onClick={() => setResultPage(Math.min(resultPageCount - 1, currentResultPage + 1))}
+              disabled={currentResultPage >= resultPageCount - 1}
+              className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/28 disabled:shadow-none"
+              aria-label="下一组图鉴"
+            >
+              下一组
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1331,6 +1372,8 @@ export default function Encyclopedia() {
           }}
         />
       )}
+        </div>
+      </div>
 
       <SpeciesDetailDialog
         fish={selectedFish}
@@ -1442,8 +1485,12 @@ export default function Encyclopedia() {
                       .map(item => (
                         <div key={item.label} className="rounded-[14px] border border-border bg-bg/45 p-2">
                           <div className="text-[11px] font-black text-ink">{item.label === '缸体大小' ? '空间' : item.label.replace(' / 混养', '')}</div>
-                          <div className="mt-1 line-clamp-1 text-[9px] font-medium text-ink/45">当前：{item.current}</div>
-                          <div className="line-clamp-1 text-[9px] font-medium text-ink/45">需求：{item.requirement}</div>
+                          {item.status !== 'ok' && (
+                            <div className="mt-1 line-clamp-2 text-[9px] font-medium leading-snug text-ink/48">
+                              需求：{item.requirement}
+                              <span className={getFitCurrentClass(item.status)}>（当前：{item.current}）</span>
+                            </div>
+                          )}
                           <span className={`mt-2 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black ${getFitStatusClass(item.status)}`}>
                             {getFitStatusLabel(item.status)}
                           </span>

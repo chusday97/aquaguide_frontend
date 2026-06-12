@@ -6,6 +6,7 @@ import { fishData } from '../data/fishData';
 import { Heart, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { assistantService } from '../modules/assistant/assistant.service';
 import type { AssistantAskOutput } from '../modules/assistant/assistant.schema';
+import { getSpeciesDisplayImage } from '../lib/speciesVisual';
 
 interface Message {
   id: string;
@@ -211,8 +212,8 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-150px)] min-w-0 max-w-full flex-col overflow-x-hidden">
-      <header className="mb-4 flex min-w-0 items-start justify-between gap-3">
+    <div className="page-frame flex min-h-[calc(100dvh-150px)] min-w-0 max-w-full flex-col overflow-x-hidden">
+      <header className="mb-4 flex min-w-0 items-start justify-between gap-3 md:items-center">
         <div className="min-w-0">
           <h1 className="mb-1 font-serif text-[34px] font-bold leading-tight text-ink">AI 养鱼助手</h1>
           <p className="text-xs font-medium text-ink/80">会记住本机里的历史对话，继续追问也能接上上下文。</p>
@@ -229,16 +230,16 @@ export default function AIAssistant() {
         )}
       </header>
       
-      <div className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-border bg-white p-3">
-        <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
-          <div className="flex flex-col gap-4">
+      <div className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-border bg-white p-3 md:flex-row md:gap-4 md:p-4 lg:min-h-[680px]">
+        <ScrollArea className="flex-1 pr-2 md:basis-[66%] md:pr-3" ref={scrollRef}>
+          <div className="flex flex-col gap-4 md:pr-2">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`rounded-sm px-3 py-2 text-[13px] leading-[1.65] ${
+                className={`rounded-sm px-3 py-2 text-[13px] leading-[1.65] md:max-w-[75%] ${
                   message.role === 'user'
-                    ? 'ml-8 border border-border bg-bg text-ink font-medium'
-                    : 'mr-8 border border-accent/10 bg-accent-light/60 text-accent font-bold'
+                    ? 'ml-8 border border-border bg-bg text-ink font-medium md:ml-auto'
+                    : 'mr-8 border border-accent/10 bg-accent-light/60 text-accent font-bold md:mr-auto'
                 }`}
               >
                 {message.role === 'user' ? (
@@ -261,9 +262,9 @@ export default function AIAssistant() {
                               type="button"
                               onClick={() => addToWishlist(speciesId)}
                               disabled={isAdded}
-                              className="flex items-center gap-2 rounded-sm border border-accent/15 bg-white px-2.5 py-2 text-left transition-colors hover:border-accent disabled:cursor-default disabled:bg-accent/5"
+                              className="flex items-center gap-2 rounded-sm border border-accent/15 bg-white px-2.5 py-2 text-left transition-colors hover:border-accent disabled:cursor-default disabled:bg-accent/5 md:max-w-[360px]"
                             >
-                              <img src={species.image} alt={species.name} className="h-9 w-12 shrink-0 object-contain" loading="lazy" />
+                              <img src={getSpeciesDisplayImage(species)} alt={species.name} className="h-9 w-12 shrink-0 object-contain" loading="lazy" />
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate text-[12px] font-black text-ink">{species.name}</span>
                                 <span className="block truncate text-[10px] font-bold text-ink/50">{species.category}</span>
@@ -290,15 +291,15 @@ export default function AIAssistant() {
           </div>
         </ScrollArea>
         
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-2 md:basis-[34%] md:justify-between md:border-l md:border-border/70 md:pl-4">
           {messages.length === 1 && (
-            <div className="flex flex-wrap gap-2 mb-1">
+            <div className="mb-1 flex flex-wrap gap-2 md:max-w-[280px]">
               {SUGGESTED_QUESTIONS.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(q)}
                   disabled={isLoading}
-                  className="flex items-center rounded-sm border border-border bg-bg px-3 py-1.5 text-[11px] font-medium text-ink/80 transition-colors hover:border-accent hover:text-accent"
+                  className="flex items-center rounded-sm border border-border bg-bg px-3 py-1.5 text-[11px] font-medium text-ink/80 transition-colors hover:border-accent hover:text-accent md:w-fit md:max-w-[280px]"
                 >
                   <Sparkles className="w-3 h-3 mr-1 opacity-50" />
                   {q}
@@ -308,16 +309,16 @@ export default function AIAssistant() {
           )}
           <form 
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-            className="flex gap-2"
+            className="flex gap-2 md:flex-col"
           >
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="输入您的问题..."
               disabled={isLoading}
-              className="h-auto flex-1 rounded-none border-border p-2.5 text-xs font-medium text-ink shadow-none placeholder:text-ink/50 focus-visible:ring-1 focus-visible:ring-accent"
+              className="h-auto flex-1 rounded-none border-border p-2.5 text-xs font-medium text-ink shadow-none placeholder:text-ink/50 focus-visible:ring-1 focus-visible:ring-accent md:desktop-input-limit"
             />
-            <Button type="submit" disabled={!input.trim() || isLoading} className="h-auto rounded-none bg-accent px-4 text-xs font-bold text-white hover:bg-accent/90">
+            <Button type="submit" disabled={!input.trim() || isLoading} className="h-auto rounded-none bg-accent px-4 text-xs font-bold text-white hover:bg-accent/90 md:desktop-action-fit">
               发送
             </Button>
           </form>

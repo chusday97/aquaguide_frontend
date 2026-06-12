@@ -44,7 +44,7 @@ export function ActionCenterCard({
     <button
       type="button"
       onClick={onAction}
-      className={`flex min-h-[118px] flex-col justify-between rounded-[18px] border p-3 text-left shadow-sm transition-transform active:scale-[0.98] ${toneClassName[tone]} ${
+      className={`flex min-h-[118px] flex-col justify-between rounded-[18px] border p-3 text-left shadow-sm transition-transform active:scale-[0.98] md:max-w-[320px] ${toneClassName[tone]} ${
         size === 'tool' ? 'min-h-[92px]' : ''
       }`}
     >

@@ -4,23 +4,9 @@ import { Input } from '@/components/ui/input';
 import { fishData } from '../data/fishData';
 import type { Fish } from '../types';
 import { getCareTaxonomyPath } from '../modules/species/species.service';
-import { getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 
-const DISPLAY_IMAGE_OVERRIDES: Record<string, string> = {
-  sp_0019: '/species-display/sp_0019_埃及神仙_display_white.png?v=displaycutout_20260601',
-  sp_0175: '/species-display/sp_0175_血钻神仙_display_white.png?v=displaycutout_20260601',
-  sp_0176: '/species-display/sp_0176_黑白大理石神仙_display_white.png?v=displaycutout_20260601',
-  sp_0177: '/species-display/sp_0177_红眼蓝钻神仙_display_white.png?v=displaycutout_20260601',
-  sp_0178: '/species-display/sp_0178_熊猫神仙_display_white.png?v=displaycutout_20260601',
-  sp_0240: '/species-display/sp_0240_白金神仙_长鳍_display_white.png?v=displaycutout_20260601',
-  sp_0241: '/species-display/sp_0241_大理石神仙_球形_display_white.png?v=displaycutout_20260601',
-  sp_0247: '/species-display/sp_0247_蓝钻神仙_球形_display_white.png?v=displaycutout_20260601',
-  sp_0272: '/species-display/sp_0272_长鳍神仙_黑_display_white.png?v=displaycutout_20260601',
-  sp_0388: '/species-display/sp_0388_血钻神仙_改良_display_white.png?v=displaycutout_20260601',
-  sp_0446: '/species-display/sp_0446_神仙鱼_display_white.png?v=displaycutout_20260601',
-};
-
-const getDisplayImage = (fish: Fish) => DISPLAY_IMAGE_OVERRIDES[fish.id] || fish.image;
+const getDisplayImage = getSpeciesDisplayImage;
 
 type CompatibilityRiskLevel = 'empty' | 'low' | 'medium' | 'high';
 type ResultModal = null | 'adjustment' | 'conflictDetail';
@@ -480,7 +466,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
 
   return (
     <>
-    <section className="overflow-hidden rounded-[18px] border border-border bg-white shadow-sm">
+    <section className="page-frame overflow-hidden rounded-[18px] border border-border bg-white shadow-sm">
       <div className={`border-b px-4 py-4 ${meta.tone}`}>
         <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -504,8 +490,8 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
         )}
       </div>
 
-      <div className="grid gap-3 p-3 pb-8">
-        <section className="rounded-[16px] bg-white/75 p-3">
+      <div className="grid gap-3 p-3 pb-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)] lg:items-start">
+        <section className="rounded-[16px] bg-white/75 p-3 lg:col-start-1">
           <div className="mb-2 text-[12px] font-black text-ink">添加生物</div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/45" />
@@ -553,7 +539,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
             </div>
             <div className="relative -mx-3 min-w-0 max-w-[calc(100vw-32px)] overflow-hidden">
               <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 bg-gradient-to-l from-white/75 to-transparent" />
-              <div className="app-scrollbar-hidden flex w-full min-w-0 snap-x snap-mandatory gap-2 overflow-x-scroll overflow-y-hidden overscroll-x-contain px-3 pb-1 pr-10 touch-pan-x [-webkit-overflow-scrolling:touch]">
+              <div className="app-scrollbar-hidden flex w-full min-w-0 snap-x snap-mandatory gap-2 overflow-x-scroll overflow-y-hidden overscroll-x-contain px-3 pb-1 pr-10 touch-pan-x [-webkit-overflow-scrolling:touch] lg:grid lg:grid-cols-[repeat(auto-fit,minmax(82px,1fr))] lg:overflow-visible lg:pr-3">
               {commonPreviewSpecies.map(fish => {
                 const taxonomy = getCareTaxonomyPath(fish);
                 return (
@@ -598,7 +584,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
           </div>
         </section>
 
-        <section className="rounded-[16px] bg-white/75 p-3">
+        <section className="rounded-[16px] bg-white/75 p-3 lg:col-start-2 lg:row-start-1">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <div className="text-[12px] font-black text-ink">{selectedTitle}</div>
@@ -636,7 +622,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
             )}
         </section>
 
-        <section className={selectedCount >= 2 ? `rounded-[16px] border p-3 ${meta.tone}` : 'rounded-[16px] bg-bg px-3 py-3'}>
+        <section className={selectedCount >= 2 ? `rounded-[16px] border p-3 lg:col-span-2 ${meta.tone}` : 'rounded-[16px] bg-bg px-3 py-3 lg:col-span-2'}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-[12px] font-black">计算结果</span>
             <span className="text-[10px] font-bold opacity-70">{selectedCount} 种生物</span>

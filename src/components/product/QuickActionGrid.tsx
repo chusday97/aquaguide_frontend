@@ -31,13 +31,13 @@ const activeToneClassName: Record<NonNullable<QuickActionItem['tone']>, string> 
 
 export function QuickActionGrid({ actions }: QuickActionGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-2 xl:desktop-card-grid xl:gap-3">
       {actions.map(action => (
         <button
           key={action.label}
           type="button"
           onClick={action.onClick}
-          className={`grid min-h-[50px] grid-cols-[30px_1fr] items-center gap-2 rounded-[16px] px-3 py-2 text-left shadow-sm transition-colors ${
+          className={`grid min-h-[50px] grid-cols-[30px_1fr] items-center gap-2 rounded-[16px] px-3 py-2 text-left shadow-sm transition-colors xl:min-h-[56px] xl:max-w-[220px] ${
             action.active ? activeToneClassName[action.tone || 'muted'] : toneClassName[action.tone || 'muted']
           }`}
         >

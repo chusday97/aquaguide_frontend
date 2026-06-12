@@ -1117,6 +1117,7 @@ export default function CareEncyclopedia() {
   const [isCarouselHovering, setIsCarouselHovering] = useState(false);
   const [flyingFavorites, setFlyingFavorites] = useState<FlyingFavorite[]>([]);
   const carouselDraggedRef = useRef(false);
+  const recommendationCarouselRef = useRef<HTMLDivElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const favoriteShelfRef = useRef<HTMLButtonElement | null>(null);
   const careCardRef = useRef<HTMLDivElement | null>(null);
@@ -1142,6 +1143,15 @@ export default function CareEncyclopedia() {
     }, 4000);
     return () => window.clearInterval(timer);
   }, [careRecommendations.length, carouselDragStart, carouselPausedUntil, isCarouselHovering]);
+
+  useEffect(() => {
+    const node = recommendationCarouselRef.current;
+    if (!node || careRecommendations.length === 0) return;
+    const normalizedIndex = activeBannerIndex % careRecommendations.length;
+    const card = node.querySelectorAll<HTMLElement>('[data-care-recommend-card]')[normalizedIndex];
+    if (!card) return;
+    node.scrollTo({ left: card.offsetLeft - node.offsetLeft, behavior: 'smooth' });
+  }, [activeBannerIndex, careRecommendations.length]);
 
   const pauseCarousel = () => {
     setCarouselPausedUntil(Date.now() + 6000);
@@ -1393,8 +1403,26 @@ export default function CareEncyclopedia() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden pb-24">
-      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm">
+    <div className="page-frame-wide flex min-w-0 flex-col gap-3 overflow-x-hidden pb-24 xl:grid xl:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)] xl:items-start xl:gap-4">
+      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:hidden">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
+            <p className="mt-1 text-[12px] font-medium text-ink/55">按问题快速查找养护方法</p>
+          </div>
+          <button
+            type="button"
+            ref={favoriteShelfRef}
+            onClick={() => setIsFavoritesOpen(true)}
+            className="shrink-0 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
+          >
+            我的收藏{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
+            <ChevronRight className="ml-0.5 inline h-3.5 w-3.5" />
+          </button>
+        </div>
+      </section>
+
+      <section className="hidden rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-1 xl:block">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
@@ -1414,7 +1442,7 @@ export default function CareEncyclopedia() {
 
       {!searchTerm.trim() && (
         <>
-          <section className="overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
+          <section className="overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-1">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-ink">为当前鱼缸推荐</div>
@@ -1423,6 +1451,7 @@ export default function CareEncyclopedia() {
               <span className="shrink-0 rounded-full bg-bg px-2.5 py-1 text-[10px] font-black text-ink/42">左右滑动查看更多</span>
             </div>
             <div
+              ref={recommendationCarouselRef}
               className="app-scrollbar-hidden -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1"
               onScroll={(event) => {
                 const node = event.currentTarget;
@@ -1434,7 +1463,7 @@ export default function CareEncyclopedia() {
                 <article
                   key={topic.id}
                   data-care-recommend-card
-                  className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5"
+                  className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 xl:min-w-full xl:max-w-full xl:grid-cols-[42%_1fr] xl:gap-3"
                 >
                   <button
                     type="button"
@@ -1451,7 +1480,7 @@ export default function CareEncyclopedia() {
                     <button
                       type="button"
                       onClick={() => openCareDetail(topic.id)}
-                      className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white"
+                      className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white xl:desktop-action-fit"
                     >
                       查看内容
                     </button>
@@ -1476,22 +1505,22 @@ export default function CareEncyclopedia() {
         </>
       )}
 
-      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm">
+      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-2 xl:row-start-1">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="搜索：水浑、浮头、不吃食、死鱼、怀孕、过水"
-            className="h-10 rounded-full border-border bg-bg pl-9 text-[13px] font-medium text-ink placeholder:text-ink/36"
+            className="h-10 rounded-full border-border bg-bg pl-9 text-[13px] font-medium text-ink placeholder:text-ink/36 xl:desktop-input-limit"
           />
         </div>
       </section>
 
       {!searchTerm.trim() && (
-        <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm">
+        <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-2 xl:row-start-2">
           <div className="mb-2 text-[15px] font-black text-ink">我现在想处理什么？</div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-2 xl:gap-3">
             {careCategoryEntrances.map(item => {
               const Icon = item.icon;
               const selected = activeCategory === item.filter;
@@ -1518,7 +1547,7 @@ export default function CareEncyclopedia() {
         </section>
       )}
 
-      <section ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3">
+      <section ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 xl:col-span-2">
         <div className="flex items-start justify-between gap-3 px-1">
           <div className="min-w-0">
             <div className="text-[15px] font-black text-ink">
@@ -1542,19 +1571,21 @@ export default function CareEncyclopedia() {
             </button>
           )}
         </div>
-        {filteredTopics.map(topic => (
-          <CareArticleCard
-            key={topic.id}
-            topic={topic}
-            favorite={Boolean(favorites[topic.id])}
-            onClick={() => openCareDetail(topic.id)}
-            onToggleFavorite={(source) => toggleFavorite(topic, source)}
-          />
-        ))}
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {filteredTopics.map(topic => (
+            <CareArticleCard
+              key={topic.id}
+              topic={topic}
+              favorite={Boolean(favorites[topic.id])}
+              onClick={() => openCareDetail(topic.id)}
+              onToggleFavorite={(source) => toggleFavorite(topic, source)}
+            />
+          ))}
+        </div>
       </section>
 
       {filteredTopics.length === 0 && (
-        <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50">
+        <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50 xl:col-start-2">
           {careViewMode === 'favorites'
             ? '还没有收藏的养护问题。看到常用问题时，点文章右上角爱心就会加入这里。'
             : '没有找到相关内容，可以试试：水浑、浮头、过水、换水、死鱼。'}
@@ -1562,7 +1593,7 @@ export default function CareEncyclopedia() {
       )}
 
       <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && setSelectedTopic(null)}>
-        <DialogContent className="w-[92vw] max-w-[560px] overflow-hidden rounded-[24px] border-border p-0">
+        <DialogContent className="modalCardWide w-[92vw] max-w-[560px] overflow-hidden rounded-[24px] border-border p-0 md:max-w-[900px]">
           {selectedTopic && (
             <CareArticleDetail
               key={selectedTopic.id}
@@ -1586,7 +1617,7 @@ export default function CareEncyclopedia() {
       </Dialog>
 
       <Dialog open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen}>
-        <DialogContent className="flex max-h-[82dvh] w-[92vw] max-w-[430px] flex-col overflow-hidden rounded-[24px] border-border bg-bg p-0">
+        <DialogContent className="flex max-h-[82dvh] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[24px] border-border bg-bg p-0">
           <div className="shrink-0 border-b border-white bg-white px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -1929,14 +1960,14 @@ function CareArticleCard({
       >
         <Heart className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
       </button>
-      <button type="button" onClick={onClick} className="grid min-h-[136px] w-full grid-cols-[120px_1fr] gap-3.5 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1">
-        <span data-care-card-image>
+      <button type="button" onClick={onClick} className="grid min-h-[136px] w-full grid-cols-[120px_1fr] gap-3.5 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1 xl:desktop-split-card xl:items-start xl:gap-4">
+        <span data-care-card-image className="xl:flex xl:h-full xl:items-center xl:justify-center">
           <CareImage topic={topic} className="h-[120px] w-[120px] rounded-[16px] max-[360px]:h-[180px] max-[360px]:w-full" />
         </span>
         <span className="min-w-0 pr-8 max-[360px]:pr-0">
           <span className="line-clamp-2 block text-[15px] font-black leading-snug text-ink">{getDisplayTitle(topic)}</span>
           <span className="mt-1.5 line-clamp-2 block text-[12px] font-medium leading-relaxed text-ink/56">{topic.summary}</span>
-          <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white">
+          <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white xl:desktop-action-fit">
             查看内容
           </span>
         </span>
@@ -2144,7 +2175,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
               ))}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:desktop-card-grid md:gap-3">
             {[
               { label: '鱼缸', value: targetAquarium?.name || '未选择' },
               { label: '容量', value: targetAquarium ? `${volumeLiters}L` : '未设置' },
@@ -2462,7 +2493,7 @@ function CareArticleDetail({
   return (
     <div className="flex max-h-[88vh] flex-col bg-white">
       <div ref={scrollRef} className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="p-4 pb-32 pt-8">
+        <div className="mx-auto max-w-[680px] p-4 pb-32 pt-8 md:max-w-[700px]">
           <button type="button" onClick={onPreview} data-care-detail-hero className="block w-full" aria-label={`查看${topic.title}大图`}>
             <CareImage topic={topic} className="h-[260px] w-full rounded-[20px]" showPreviewHint />
           </button>
@@ -2651,11 +2682,11 @@ function CareArticleDetail({
       </div>
 
       <div className="shrink-0 border-t border-border bg-white/95 p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-2">
+        <div className="grid gap-2 md:mx-auto md:max-w-[700px] md:grid-cols-[auto_auto] md:justify-end">
           <Button
             type="button"
             onClick={(event) => handlePrimaryCta(event.currentTarget)}
-            className="h-11 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800"
+            className="h-11 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800 md:w-fit md:min-w-[180px] md:max-w-[240px]"
           >
             {primaryCtaLabel}
             <ChevronRight className="ml-1 h-4 w-4" />
@@ -2664,12 +2695,12 @@ function CareArticleDetail({
             type="button"
             variant="outline"
             onClick={handleSecondaryCta}
-            className="h-10 w-full rounded-full border-emerald-100 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50"
+            className="h-10 w-full rounded-full border-emerald-100 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 md:w-fit md:min-w-[160px] md:max-w-[220px]"
           >
             {secondaryLabel}
           </Button>
           {ctaFeedback && (
-            <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700">
+            <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700 md:col-span-2">
               {ctaFeedback}
             </div>
           )}
@@ -2678,7 +2709,7 @@ function CareArticleDetail({
 
       {reminderSheet && (
         <div className="fixed inset-0 z-[1200] flex items-end justify-center bg-black/30 px-4 pb-4" onClick={() => setReminderSheet(null)}>
-          <div className="w-full max-w-[430px] rounded-[24px] bg-white p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-[430px] md:max-w-[600px] rounded-[24px] bg-white p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[17px] font-black text-ink">{reminderSheet.title}</div>

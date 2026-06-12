@@ -33,6 +33,69 @@ ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES = {
     "sp_0446": "/species-display/sp_0446_神仙鱼_display_white.png?v=displayfix_20260510",
 }
 
+VISIBILITY_IMAGE_OVERRIDE_IDS = {
+    "sp_0117",
+    "sp_0132",
+    "sp_0146",
+    "sp_0148",
+    "sp_0156",
+    "sp_0160",
+    "sp_0169",
+    "sp_0171",
+    "sp_0174",
+    "sp_0207",
+    "sp_0214",
+    "sp_0217",
+    "sp_0220",
+    "sp_0223",
+    "sp_0224",
+    "sp_0226",
+    "sp_0229",
+    "sp_0231",
+    "sp_0232",
+    "sp_0233",
+    "sp_0235",
+    "sp_0236",
+    "sp_0240",
+    "sp_0242",
+    "sp_0246",
+    "sp_0252",
+    "sp_0254",
+    "sp_0256",
+    "sp_0263",
+    "sp_0264",
+    "sp_0270",
+    "sp_0271",
+    "sp_0281",
+    "sp_0284",
+    "sp_0288",
+    "sp_0294",
+    "sp_0338",
+    "sp_0341",
+    "sp_0358",
+    "sp_0360",
+    "sp_0375",
+    "sp_0377",
+    "sp_0378",
+    "sp_0379",
+    "sp_0380",
+    "sp_0381",
+    "sp_0382",
+    "sp_0383",
+    "sp_0384",
+    "sp_0385",
+    "sp_0389",
+    "sp_0393",
+    "sp_0399",
+    "sp_0409",
+    "sp_0414",
+    "sp_0415",
+    "sp_0418",
+    "sp_0421",
+    "sp_0452",
+    "sp_0458",
+}
+
 KNOWN_MANUAL_ISSUES = {}
 
 KNOWN_MANUAL_ISSUES_BY_KEY = {
@@ -55,10 +118,14 @@ def image_path(public_url: str) -> Optional[Path]:
 
 
 def display_image_for(fish: dict) -> str:
-    # Keep this aligned with src/pages/Encyclopedia.tsx: only explicit, known-good
-    # display overrides are used. Do not invent /species-display paths that may
-    # not exist, otherwise the app can show blank cards.
-    return ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES.get(fish.get("id", ""), fish.get("image", ""))
+    # Keep this aligned with src/lib/speciesVisual.ts so the audit checks the
+    # image the app actually renders, not only the raw data source.
+    fish_id = fish.get("id", "")
+    if fish_id in ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES:
+        return ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES[fish_id]
+    if fish_id in VISIBILITY_IMAGE_OVERRIDE_IDS:
+        return f"/species-image-overrides/{fish_id}.png?v=visibility_20260611"
+    return fish.get("image", "")
 
 
 def manual_issue_for(fish: dict) -> dict:
