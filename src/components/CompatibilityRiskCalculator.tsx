@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronRight, Search, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { fishData } from '../data/fishData';
-import type { Fish } from '../types';
+import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/speciesFitEngine';
+import { evaluateTankCompatibility, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
 
 const getDisplayImage = getSpeciesDisplayImage;
 
-type CompatibilityRiskLevel = 'empty' | 'low' | 'medium' | 'high';
+type CompatibilityRiskLevel = 'empty' | TankCompatibilityStatus;
 type ResultModal = null | 'adjustment' | 'conflictDetail';
+type SelectedCompatibilityItem = { species: Fish; quantity: number };
 
 const parseNumericRange = (value: string) => {
   const normalized = value.replace(/－/g, '-').replace(/~|～|至|到/g, '-');
@@ -34,87 +37,131 @@ const getCompatibilityWaterType = (fish: Fish) => {
 
 const getRiskMeta = (level: CompatibilityRiskLevel) => {
   switch (level) {
-    case 'high':
-      return { label: '高风险', tone: 'border-red-200 bg-red-50 text-red-600', iconTone: 'bg-red-500 text-white' };
-    case 'medium':
-      return { label: '中风险', tone: 'border-amber-200 bg-amber-50 text-amber-700', iconTone: 'bg-amber-500 text-white' };
-    case 'low':
-      return { label: '低风险', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', iconTone: 'bg-emerald-500 text-white' };
+    case 'not_recommended':
+      return { label: '不建议加入', tone: 'border-red-200 bg-red-50 text-red-600', iconTone: 'bg-red-500 text-white' };
+    case 'caution':
+      return { label: '谨慎尝试', tone: 'border-amber-200 bg-amber-50 text-amber-700', iconTone: 'bg-amber-500 text-white' };
+    case 'insufficient_data':
+      return { label: '信息不足', tone: 'border-sky-200 bg-sky-50 text-sky-700', iconTone: 'bg-sky-500 text-white' };
+    case 'compatible':
+      return { label: '适合', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', iconTone: 'bg-emerald-500 text-white' };
     default:
       return { label: '待添加', tone: 'border-border bg-white text-ink/55', iconTone: 'bg-bg text-ink/45' };
   }
 };
 
-const calculateRisk = (species: Fish[]) => {
-  if (species.length === 0) {
+const mapRulesToText = (rules: TankCompatibilityResult['blockingRules']) => rules.map(rule => rule.evidence || rule.title);
+
+const getQuantity = (value?: number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 1;
+};
+
+const dedupeRules = (rules: TankCompatibilityResult['passedRules']) => {
+  const seen = new Set<string>();
+  return rules.filter(rule => {
+    const key = `${rule.code}::${rule.title}::${rule.evidence}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const getWorstStatus = (results: TankCompatibilityResult[]): TankCompatibilityStatus => {
+  if (results.some(item => item.status === 'not_recommended')) return 'not_recommended';
+  if (results.some(item => item.status === 'caution')) return 'caution';
+  if (results.some(item => item.status === 'insufficient_data')) return 'insufficient_data';
+  return 'compatible';
+};
+
+const mergeCompatibilityResults = (results: TankCompatibilityResult[], pairLabel: string): TankCompatibilityResult => {
+  const status = getWorstStatus(results);
+  const blockingRules = dedupeRules(results.flatMap(item => item.blockingRules));
+  const warningRules = dedupeRules(results.flatMap(item => item.warningRules));
+  const missingData = dedupeRules(results.flatMap(item => item.missingData));
+  const passedRules = dedupeRules(results.flatMap(item => item.passedRules));
+  const suggestions = Array.from(new Set(results.flatMap(item => item.suggestions))).slice(0, 5);
+  const riskLevel = status === 'not_recommended'
+    ? 'high'
+    : status === 'insufficient_data'
+      ? 'unknown'
+      : status === 'caution'
+        ? warningRules.some(rule => rule.severity === 'medium' || rule.severity === 'high') || blockingRules.length > 0 ? 'medium' : 'low'
+        : 'none';
+  const summary = status === 'not_recommended'
+    ? blockingRules[0]?.evidence || `${pairLabel} 当前条件下不建议混养。`
+    : status === 'insufficient_data'
+      ? missingData[0]?.evidence || `${pairLabel} 资料不足，暂时无法可靠判断。`
+      : status === 'caution'
+        ? warningRules[0]?.evidence || `${pairLabel} 可以尝试，但需要先处理风险项。`
+        : `${pairLabel} 当前条件下未发现明确阻断风险。`;
+
+  return {
+    status,
+    riskLevel,
+    summary,
+    passedRules,
+    warningRules,
+    blockingRules,
+    missingData,
+    suggestions,
+    metadata: {
+      ruleVersion: results[0]?.metadata.ruleVersion || 'tank-compatibility-v1',
+      speciesDataVersion: results[0]?.metadata.speciesDataVersion || 'local-fish-data-v1',
+      calculatedAt: new Date().toISOString(),
+    },
+  };
+};
+
+const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | null) => {
+  if (items.length === 0) {
     return {
       level: 'empty' as CompatibilityRiskLevel,
       reasons: [],
       nextSteps: [],
+      ruleResult: null as TankCompatibilityResult | null,
     };
   }
 
-  if (species.length === 1) {
+  if (items.length === 1) {
     return {
       level: 'empty' as CompatibilityRiskLevel,
       reasons: [],
       nextSteps: [],
+      ruleResult: null as TankCompatibilityResult | null,
     };
   }
 
-  const highReasons: string[] = [];
-  const mediumReasons: string[] = [];
-  const waterTypes = new Set(species.map(getCompatibilityWaterType));
-  const hasSmall = species.some(item => item.size === 'Small');
-  const hasLarge = species.some(item => item.size === 'Large');
-  const aggressiveSpecies = species.filter(item => item.temperament === 'Aggressive');
-  const territorialSpecies = species.filter(item => item.temperament === 'Territorial');
-  const singleHousingSpecies = species.filter(item => item.housingMode === '建议单养');
-  const cautiousHousingSpecies = species.filter(item => item.housingMode === '谨慎混养');
-  const hardSpecies = species.filter(item => item.difficulty === 'Hard');
-
-  if (waterTypes.size > 1) highReasons.push('存在淡水与海水/珊瑚类生物混养，水体类型不兼容。');
-  if (singleHousingSpecies.length > 0) highReasons.push(`${singleHousingSpecies.map(item => item.name).join('、')} 标记为建议单养，不适合作为默认混养对象。`);
-  if (aggressiveSpecies.length > 0 && species.length > aggressiveSpecies.length) highReasons.push(`${aggressiveSpecies.map(item => item.name).join('、')} 性情偏凶，和温和或小型生物同缸有攻击风险。`);
-  if (hasSmall && hasLarge) highReasons.push('小型和大型生物同缸，存在被追逐、吞食或抢食风险。');
-
-  for (let i = 0; i < species.length; i += 1) {
-    for (let j = i + 1; j < species.length; j += 1) {
-      const current = species[i];
-      const next = species[j];
-      if (!rangesOverlap(parseNumericRange(current.waterTemperature), parseNumericRange(next.waterTemperature))) {
-        highReasons.push(`${current.name} 与 ${next.name} 的适宜水温没有明显重叠。`);
-      }
-      if (!rangesOverlap(parseNumericRange(current.phLevel), parseNumericRange(next.phLevel))) {
-        mediumReasons.push(`${current.name} 与 ${next.name} 的 pH 区间差异较大，需要先稳定水质。`);
-      }
-    }
-  }
-
-  if (territorialSpecies.length > 0) mediumReasons.push(`${territorialSpecies.map(item => item.name).join('、')} 有领地意识，需要更多躲避物和空间。`);
-  if (cautiousHousingSpecies.length > 0) mediumReasons.push(`${cautiousHousingSpecies.map(item => item.name).join('、')} 标记为谨慎混养，建议先少量试养观察。`);
-  if (hardSpecies.length > 0) mediumReasons.push(`${hardSpecies.map(item => item.name).join('、')} 饲养难度较高，对水质波动更敏感。`);
-
-  const dedupedHigh = Array.from(new Set(highReasons));
-  const dedupedMedium = Array.from(new Set(mediumReasons));
-  const level: CompatibilityRiskLevel = dedupedHigh.length > 0 ? 'high' : dedupedMedium.length > 0 ? 'medium' : 'low';
-  const nextSteps = level === 'high'
-    ? ['建议先分缸或更换搭配对象。', '如果一定要尝试，先确认成体体长、缸体尺寸、躲避物和投喂层位。', '新鱼入缸后至少隔离观察 7 天。']
-    : level === 'medium'
-      ? ['先把水温、pH 和过滤能力调到交集区间。', '增加水草、沉木、石缝等躲避空间。', '前 48 小时重点观察追逐、夹鳍、拒食和抢食。']
-      : ['基础条件匹配，可以进入下一步配置数量、缸体尺寸和入缸顺序。', '仍建议先少量加入，稳定后再补充群体数量。'];
+  const evaluations = items.map((item, index) => evaluateTankCompatibility({
+    tank,
+    existingSpecies: items
+      .filter((_, itemIndex) => itemIndex !== index)
+      .map(existing => ({ species: existing.species, record: { quantity: existing.quantity } })),
+    candidateSpecies: item.species,
+    candidateQuantity: item.quantity,
+  }));
+  const pairLabel = items.map(item => `${item.species.name}×${item.quantity}`).join(' × ');
+  const ruleResult = mergeCompatibilityResults(evaluations, pairLabel);
+  const level: CompatibilityRiskLevel = ruleResult.status;
+  const reasons = [
+    ...mapRulesToText(ruleResult.blockingRules),
+    ...mapRulesToText(ruleResult.warningRules),
+    ...mapRulesToText(ruleResult.missingData),
+  ];
 
   return {
     level,
-    reasons: level === 'low' ? ['当前组合未发现明显水质、体型或性情冲突。'] : [...dedupedHigh, ...dedupedMedium].slice(0, 5),
-    nextSteps,
+    reasons: level === 'compatible' ? ['当前组合未发现明显水质、体型或性情冲突。'] : reasons.slice(0, 5),
+    nextSteps: ruleResult.suggestions,
+    ruleResult,
   };
 };
 
 const getRiskConclusion = (level: CompatibilityRiskLevel, species: Fish[], reasons: string[]) => {
   if (species.length < 2) return '';
-  if (level === 'high') return '不建议直接混养，先移除高风险对象。';
-  if (level === 'medium') return '可以尝试，但需要调整环境并观察。';
+  if (level === 'not_recommended') return '当前条件下不建议加入，先移除阻断风险。';
+  if (level === 'insufficient_data') return '信息不足，暂时无法可靠判断。';
+  if (level === 'caution') return '可以尝试，但需要调整环境并观察。';
   return '可以尝试混养，入缸后继续观察。';
 };
 
@@ -134,54 +181,25 @@ const getConflictTags = (species: Fish[], reasons: string[]) => {
   return Array.from(tags).slice(0, 6);
 };
 
-const getMainConflicts = (species: Fish[]) => {
-  if (species.length < 2) return [];
-  const conflicts: { key: string; pair: string; reason: string }[] = [];
-  const addConflict = (a: Fish, b: Fish, reason: string) => {
-    const key = [a.id, b.id].sort().join('-');
-    if (!conflicts.some(item => item.key === `${key}:${reason}`)) {
-      conflicts.push({ key: `${key}:${reason}`, pair: `${a.name} × ${b.name}`, reason });
-    }
-  };
-
-  for (let i = 0; i < species.length; i += 1) {
-    for (let j = i + 1; j < species.length; j += 1) {
-      const current = species[i];
-      const next = species[j];
-      const currentSingle = current.housingMode === '建议单养';
-      const nextSingle = next.housingMode === '建议单养';
-      const currentAggressive = current.temperament === 'Aggressive';
-      const nextAggressive = next.temperament === 'Aggressive';
-      const currentLarge = current.size === 'Large';
-      const nextLarge = next.size === 'Large';
-      const currentSmall = current.size === 'Small';
-      const nextSmall = next.size === 'Small';
-
-      if (getCompatibilityWaterType(current) !== getCompatibilityWaterType(next)) {
-        addConflict(current, next, '水体类型不同，不能作为默认同缸组合。');
-      } else if (currentSingle || nextSingle) {
-        addConflict(current, next, `${currentSingle && nextSingle ? '两者' : currentSingle ? current.name : next.name}更适合单独饲养。`);
-      } else if ((currentAggressive && !nextAggressive) || (nextAggressive && !currentAggressive)) {
-        addConflict(current, next, `${currentAggressive ? current.name : next.name}性情偏凶，可能追咬或压制同缸生物。`);
-      } else if ((currentLarge && nextSmall) || (nextLarge && currentSmall)) {
-        addConflict(current, next, '体型差异大，可能出现追咬或捕食。');
-      } else if (!rangesOverlap(parseNumericRange(current.waterTemperature), parseNumericRange(next.waterTemperature))) {
-        addConflict(current, next, '适宜水温没有明显重叠。');
-      } else if (!rangesOverlap(parseNumericRange(current.phLevel), parseNumericRange(next.phLevel))) {
-        addConflict(current, next, 'pH 区间差异较大，需要先稳定水质。');
-      } else if (current.temperament === 'Territorial' || next.temperament === 'Territorial') {
-        addConflict(current, next, '存在领地意识，需要更大空间和躲避物。');
-      } else if (current.housingMode === '谨慎混养' || next.housingMode === '谨慎混养') {
-        addConflict(current, next, '属于谨慎混养组合，建议先少量试养观察。');
-      }
-    }
-  }
-
-  return conflicts.slice(0, 3);
+const getMainConflicts = (result: ReturnType<typeof calculateRisk>, species: Fish[]) => {
+  if (species.length < 2 || !result.ruleResult) return [];
+  const ruleItems = [
+    ...result.ruleResult.blockingRules,
+    ...result.ruleResult.warningRules,
+    ...result.ruleResult.missingData,
+  ];
+  const pair = species.map(item => item.name).join(' × ');
+  return ruleItems.slice(0, 3).map((rule, index) => ({
+    key: `${rule.code}-${index}`,
+    pair,
+    reason: rule.evidence || rule.title,
+  }));
 };
 
-const getActionHints = (level: CompatibilityRiskLevel, species: Fish[]) => {
-  if (level === 'high') {
+const getActionHints = (result: ReturnType<typeof calculateRisk>, species: Fish[]) => {
+  const level = result.level;
+  if (result.ruleResult?.suggestions.length) return result.ruleResult.suggestions.slice(0, 3);
+  if (level === 'not_recommended') {
     const single = species.find(item => item.housingMode === '建议单养');
     const aggressive = species.find(item => item.temperament === 'Aggressive');
     const removeName = single?.name || aggressive?.name || species[species.length - 1]?.name;
@@ -191,7 +209,7 @@ const getActionHints = (level: CompatibilityRiskLevel, species: Fish[]) => {
       '新生物入缸前隔离观察 7 天。',
     ];
   }
-  if (level === 'medium') {
+  if (level === 'caution' || level === 'insufficient_data') {
     return [
       '增加水草、沉木或石缝，降低追逐压力。',
       '确认水温和 pH 有交集后再入缸。',
@@ -255,7 +273,7 @@ function CompatibilityBottomSheet({
   };
   const conflicts = mainConflicts.length > 0 ? mainConflicts : [fallbackConflict];
   const primaryConflict = conflicts[0];
-  const sheetTitle = isAdjustment ? '混养调整建议' : '冲突详情';
+  const sheetTitle = isAdjustment ? '调整建议' : '混养提醒';
 
   return (
     <div className="fixed inset-0 z-[230] flex items-end justify-center">
@@ -288,7 +306,7 @@ function CompatibilityBottomSheet({
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-[18px] font-black text-ink">{sheetTitle}</h3>
-              <p className="mt-0.5 text-[11px] font-bold text-ink/45">根据当前已选 {selectedSpecies.length} 种生物生成。</p>
+              <p className="mt-0.5 text-[11px] font-bold text-ink/45">{isAdjustment ? '只看现在能做什么。' : '看清是哪组生物需要谨慎。'}</p>
             </div>
             <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink/55">
               <X className="h-4 w-4" />
@@ -325,11 +343,11 @@ function CompatibilityBottomSheet({
             <div className="grid gap-3">
               {conflicts.map(conflict => (
                 <section key={conflict.key} className="rounded-[18px] bg-white p-3 shadow-sm">
-                  <div className="text-[10px] font-black text-ink/42">主要冲突</div>
+                  <div className="text-[10px] font-black text-ink/42">提醒对象</div>
                   <div className="mt-1 text-[15px] font-black text-ink">{conflict.pair}</div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <div className="rounded-[14px] bg-bg px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/42">冲突类型</div>
+                      <div className="text-[10px] font-black text-ink/42">为什么提醒</div>
                       <div className="mt-1 text-[12px] font-black text-ink">{getConflictType(conflict.reason)}</div>
                     </div>
                     <div className={`rounded-[14px] border px-3 py-2 ${meta.tone}`}>
@@ -341,9 +359,9 @@ function CompatibilityBottomSheet({
                 </section>
               ))}
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">解决方案</div>
+                <div className="text-[13px] font-black text-ink">现在怎么做</div>
                 <div className="mt-2 grid gap-2">
-                  {actionHints.slice(0, 4).map(step => (
+                  {actionHints.slice(0, 3).map(step => (
                     <div key={step} className="rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">{step}</div>
                   ))}
                 </div>
@@ -352,11 +370,11 @@ function CompatibilityBottomSheet({
           )}
         </div>
 
-        <div className="fixed bottom-0 left-1/2 z-20 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-2 border-t border-white bg-white/95 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur">
-          <button type="button" onClick={onAccept} className="h-10 rounded-full bg-emerald-700 text-[13px] font-black text-white">
-            采纳调整建议
+        <div className="modalFooter fixed bottom-0 left-1/2 z-20 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-2 border-t border-white bg-white/95 backdrop-blur">
+          <button type="button" onClick={onAccept} className="rounded-full bg-emerald-700 text-[13px] font-black text-white">
+            我知道了
           </button>
-          <button type="button" onClick={onEdit} className="h-10 rounded-full border border-border bg-white text-[13px] font-black text-ink/62">
+          <button type="button" onClick={onEdit} className="rounded-full border border-border bg-white text-[13px] font-black text-ink/62">
             返回修改组合
           </button>
         </div>
@@ -376,6 +394,8 @@ type CompatibilityRiskCalculatorProps = {
   onSpeciesIdsChange?: (ids: string[]) => void;
   onBrowseAtlas?: () => void;
   preferredSpeciesIds?: string[];
+  aquariums?: Aquarium[];
+  activeAquariumId?: string;
 };
 
 const commonPreviewNames = ['红绿灯', '宝莲灯', '黑壳虾', '极火虾', '斑马螺', '咖啡鼠', '白云金丝', '孔雀鱼'];
@@ -386,12 +406,42 @@ const getCommonPreviewSpecies = () => (
     .filter((fish): fish is Fish => Boolean(fish))
 );
 
-export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, onBrowseAtlas, preferredSpeciesIds = [] }: CompatibilityRiskCalculatorProps = {}) {
+const getAquariumLabel = (aquarium?: Aquarium | null) => {
+  if (!aquarium) return '未选择鱼缸';
+  const volume = getAquariumVolumeLiters(aquarium);
+  return `${aquarium.name || '我的鱼缸'} · ${volume ? `${volume}L` : '容量待补充'} · ${aquarium.waterType === 'Saltwater' ? '海水' : '淡水'}`;
+};
+
+export function CompatibilityRiskCalculator({
+  speciesIds,
+  onSpeciesIdsChange,
+  onBrowseAtlas,
+  preferredSpeciesIds = [],
+  aquariums = [],
+  activeAquariumId = '',
+}: CompatibilityRiskCalculatorProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSpeciesIds, setInternalSpeciesIds] = useState<string[]>([]);
   const [resultFeedback, setResultFeedback] = useState('');
   const [activeModal, setActiveModal] = useState<ResultModal>(null);
+  const [selectedAquariumId, setSelectedAquariumId] = useState(activeAquariumId || aquariums[0]?.id || '');
   const activeSpeciesIds = speciesIds ?? internalSpeciesIds;
+  const [selectedQuantitiesById, setSelectedQuantitiesById] = useState<Record<string, number>>({});
+  const selectedAquarium = useMemo(() => (
+    aquariums.find(aquarium => aquarium.id === (selectedAquariumId || activeAquariumId))
+    || aquariums.find(aquarium => aquarium.id === activeAquariumId)
+    || aquariums[0]
+    || null
+  ), [activeAquariumId, aquariums, selectedAquariumId]);
+  const currentLivestock = useMemo(() => getCurrentLivestockForAquarium(selectedAquarium, fishData), [selectedAquarium]);
+  const currentQuantityBySpeciesId = useMemo(() => currentLivestock.reduce<Record<string, number>>((next, item) => {
+    if (item.species?.id) next[item.species.id] = getQuantity(item.record?.quantity);
+    return next;
+  }, {}), [currentLivestock]);
+  const missingLivestockCount = useMemo(() => {
+    if (!selectedAquarium?.fishes?.length) return 0;
+    return selectedAquarium.fishes.filter(item => !fishData.some(fish => fish.id === item.fishId)).length;
+  }, [selectedAquarium]);
   const updateSpeciesIds = (updater: string[] | ((prev: string[]) => string[])) => {
     const next = typeof updater === 'function' ? updater(activeSpeciesIds) : updater;
     if (onSpeciesIdsChange) onSpeciesIdsChange(next);
@@ -402,13 +452,52 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
     () => activeSpeciesIds.map(id => fishData.find(fish => fish.id === id)).filter(Boolean) as Fish[],
     [activeSpeciesIds]
   );
-  const result = useMemo(() => calculateRisk(selectedSpecies), [selectedSpecies]);
+  const selectedItems = useMemo(() => selectedSpecies.map(species => ({
+    species,
+    quantity: selectedQuantitiesById[species.id] || currentQuantityBySpeciesId[species.id] || 1,
+  })), [currentQuantityBySpeciesId, selectedQuantitiesById, selectedSpecies]);
+  const result = useMemo(() => calculateRisk(selectedItems, selectedAquarium), [selectedAquarium, selectedItems]);
   const meta = getRiskMeta(result.level);
   const riskConclusion = getRiskConclusion(result.level, selectedSpecies, result.reasons);
   const conflictTags = getConflictTags(selectedSpecies, result.reasons);
-  const mainConflicts = useMemo(() => getMainConflicts(selectedSpecies), [selectedSpecies]);
-  const actionHints = useMemo(() => getActionHints(result.level, selectedSpecies), [result.level, selectedSpecies]);
+  const mainConflicts = useMemo(() => getMainConflicts(result, selectedSpecies), [result, selectedSpecies]);
+  const actionHints = useMemo(() => getActionHints(result, selectedSpecies), [result, selectedSpecies]);
+  const ruleEvidence = useMemo(() => {
+    const ruleResult = result.ruleResult;
+    if (!ruleResult) return null;
+    return {
+      passed: ruleResult.passedRules.slice(0, 3),
+      risks: [...ruleResult.blockingRules, ...ruleResult.warningRules].slice(0, 3),
+      missing: ruleResult.missingData.slice(0, 3),
+    };
+  }, [result.ruleResult]);
   const commonPreviewSpecies = useMemo(() => {
+    if (selectedAquarium) {
+      const ownedIds = new Set(currentLivestock.map(item => item.species?.id).filter(Boolean));
+      const evaluated = fishData
+        .filter(fish => !activeSpeciesIds.includes(fish.id))
+        .filter(fish => !ownedIds.has(fish.id))
+        .map(fish => ({
+          fish,
+          evaluation: evaluateTankCompatibility({
+            tank: selectedAquarium,
+            existingSpecies: currentLivestock.map(item => ({
+              species: item.species,
+              record: { quantity: item.record.quantity },
+            })),
+            candidateSpecies: fish,
+            candidateQuantity: 1,
+          }),
+        }))
+        .filter(item => item.evaluation.status !== 'not_recommended')
+        .sort((a, b) => {
+          const rank = { compatible: 0, caution: 1, insufficient_data: 2, not_recommended: 3 } as Record<TankCompatibilityStatus, number>;
+          return rank[a.evaluation.status] - rank[b.evaluation.status] || a.fish.name.localeCompare(b.fish.name, 'zh-Hans-CN');
+        })
+        .map(item => item.fish)
+        .slice(0, 8);
+      if (evaluated.length > 0) return evaluated;
+    }
     const preferredSpecies = Array.from(new Set(preferredSpeciesIds))
       .map(id => fishData.find(fish => fish.id === id))
       .filter((fish): fish is Fish => Boolean(fish))
@@ -417,7 +506,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
       .filter(fish => !activeSpeciesIds.includes(fish.id))
       .filter(fish => !preferredSpecies.some(item => item.id === fish.id));
     return (preferredSpecies.length > 0 ? preferredSpecies : fallbackSpecies).slice(0, 8);
-  }, [activeSpeciesIds, preferredSpeciesIds]);
+  }, [activeSpeciesIds, currentLivestock, preferredSpeciesIds, selectedAquarium]);
   const selectedCount = selectedSpecies.length;
   const statusLabel = selectedCount === 0
     ? '未开始'
@@ -445,22 +534,38 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
 
   const addSpecies = (fish: Fish) => {
     updateSpeciesIds(prev => prev.includes(fish.id) ? prev : [...prev, fish.id]);
+    setSelectedQuantitiesById(prev => prev[fish.id] ? prev : { ...prev, [fish.id]: 1 });
     setSearchTerm('');
   };
+  const importAquariumLivestock = () => {
+    const livestockIds = currentLivestock.map(item => item.species?.id).filter(Boolean) as string[];
+    updateSpeciesIds(prev => Array.from(new Set([...prev, ...livestockIds])));
+    setSelectedQuantitiesById(prev => {
+      const next = { ...prev };
+      currentLivestock.forEach(item => {
+        if (item.species?.id) next[item.species.id] = getQuantity(item.record?.quantity);
+      });
+      return next;
+    });
+    setResultFeedback(livestockIds.length > 0
+      ? `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`
+      : '当前鱼缸暂无可导入的活体生物。');
+  };
   const handlePrimaryResultAction = () => {
-    if (result.level === 'high') {
+    if (result.level === 'not_recommended') {
       updateSpeciesIds([]);
+      setSelectedQuantitiesById({});
       setResultFeedback('已返回重新选择，可以重新搜索搭配对象。');
       return;
     }
-    if (result.level === 'medium') {
+    if (result.level === 'caution' || result.level === 'insufficient_data') {
       setActiveModal('adjustment');
       return;
     }
     setResultFeedback('当前暂不支持从混养计算直接批量加入，请回到图鉴详情逐个确认添加。');
   };
   const handleSecondaryResultAction = () => {
-    if (result.level === 'low') return;
+    if (result.level === 'compatible') return;
     setActiveModal('conflictDetail');
   };
 
@@ -471,7 +576,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
         <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${meta.iconTone}`}>
-            {result.level === 'low' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+            {result.level === 'compatible' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-[14px] font-black text-ink">混养风险计算</h2>
@@ -492,6 +597,61 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
 
       <div className="grid gap-3 p-3 pb-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)] lg:items-start">
         <section className="rounded-[16px] bg-white/75 p-3 lg:col-start-1">
+          <div className="mb-3 rounded-[16px] border border-emerald-100 bg-emerald-50/45 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[12px] font-black text-ink">按鱼缸计算</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/45">导入真实缸内活体，不会修改鱼缸数据。</div>
+              </div>
+              <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">
+                {currentLivestock.length} 种活体
+              </span>
+            </div>
+            {aquariums.length > 1 ? (
+              <label className="mt-2 flex h-10 items-center gap-2 rounded-[13px] bg-white px-3 text-[11px] font-black text-ink/70">
+                <span className="shrink-0 text-ink/42">鱼缸</span>
+                <select
+                  value={selectedAquarium?.id || ''}
+                  onChange={(event) => setSelectedAquariumId(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-[12px] font-black outline-none"
+                >
+                  {aquariums.map(aquarium => (
+                    <option key={aquarium.id} value={aquarium.id}>{getAquariumLabel(aquarium)}</option>
+                  ))}
+                </select>
+                <ChevronDown className="h-3.5 w-3.5 text-ink/35" />
+              </label>
+            ) : (
+              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/58">{getAquariumLabel(selectedAquarium)}</div>
+            )}
+            {currentLivestock.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {currentLivestock.slice(0, 6).map(item => (
+                  <span key={item.species?.id || item.record?.fishId || item.species?.name} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-ink/62">
+                    {item.species?.name || '未知生物'} × {item.record?.quantity || 1}
+                  </span>
+                ))}
+                {currentLivestock.length > 6 && <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-ink/42">+{currentLivestock.length - 6}</span>}
+              </div>
+            ) : (
+              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/45">
+                当前鱼缸暂无活体，推荐会使用新手友好候选。
+              </div>
+            )}
+            {missingLivestockCount > 0 && (
+              <div className="mt-2 text-[10px] font-bold text-amber-700">
+                有 {missingLivestockCount} 条旧记录缺少图鉴数据，已跳过。
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={importAquariumLivestock}
+              disabled={currentLivestock.length === 0}
+              className="mt-3 h-10 w-full rounded-full bg-emerald-700 text-[12px] font-black text-white disabled:bg-ink/10 disabled:text-ink/35"
+            >
+              导入该鱼缸生物计算
+            </button>
+          </div>
           <div className="mb-2 text-[12px] font-black text-ink">添加生物</div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/45" />
@@ -533,8 +693,8 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
           <div className="mt-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
-                <div className="text-[12px] font-black text-ink">常用生物预览</div>
-                <div className="mt-0.5 text-[10px] font-bold text-ink/42">左右滑动，点卡片直接加入计算。</div>
+                <div className="text-[12px] font-black text-ink">推荐候选</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/42">根据当前鱼缸和缸内生物筛选，点卡片加入计算。</div>
               </div>
             </div>
             <div className="relative -mx-3 min-w-0 max-w-[calc(100vw-32px)] overflow-hidden">
@@ -591,7 +751,10 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
                 <div className={`mt-0.5 text-[10px] font-bold ${selectedCount >= 2 ? 'text-emerald-700' : 'text-ink/42'}`}>{selectedHint}</div>
               </div>
               {selectedSpecies.length > 0 && (
-                <button type="button" onClick={() => updateSpeciesIds([])} className="text-[10px] font-bold text-ink/45 hover:text-ink">
+                <button type="button" onClick={() => {
+                  updateSpeciesIds([]);
+                  setSelectedQuantitiesById({});
+                }} className="text-[10px] font-bold text-ink/45 hover:text-ink">
                   清空
                 </button>
               )}
@@ -607,7 +770,14 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
                     <button
                       type="button"
                       aria-label={`移除${fish.name}`}
-                      onClick={() => updateSpeciesIds(prev => prev.filter(id => id !== fish.id))}
+                      onClick={() => {
+                        updateSpeciesIds(prev => prev.filter(id => id !== fish.id));
+                        setSelectedQuantitiesById(prev => {
+                          const next = { ...prev };
+                          delete next[fish.id];
+                          return next;
+                        });
+                      }}
                       className="absolute right-1.5 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-ink/40 shadow-sm hover:text-red-500"
                     >
                       <X className="h-3 w-3" />
@@ -640,17 +810,60 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
                   <span className="text-[13px] font-black text-ink">{riskConclusion}</span>
                 </div>
                 <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/64">
-                  {result.level === 'high'
+                  {result.level === 'not_recommended'
                     ? `当前组合有 ${Math.max(mainConflicts.length, 1)} 个明显冲突对象，建议先重新选择。`
-                    : result.level === 'medium'
+                    : result.level === 'caution'
                       ? '先调整空间、躲避物和入缸顺序，再考虑尝试。'
-                      : '条件接近，可以少量加入并观察。'}
+                      : result.level === 'insufficient_data'
+                        ? '当前资料不足，先补充鱼缸和物种信息后再判断。'
+                        : '条件接近，可以少量加入并观察。'}
                 </p>
               </div>
 
               {resultFeedback && (
                 <div className="mb-3 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
                   {resultFeedback}
+                </div>
+              )}
+
+              {ruleEvidence && (
+                <div className="mb-3 rounded-[14px] bg-white/70 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[10px] font-black text-ink/45">系统判断依据</div>
+                    <div className="text-[9px] font-black text-ink/38">AI 仅负责解释</div>
+                  </div>
+                  <div className="mt-2 grid gap-2">
+                    {ruleEvidence.risks.length > 0 && (
+                      <div className="rounded-[12px] border border-amber-100 bg-amber-50/60 px-2.5 py-2">
+                        <div className="text-[11px] font-black text-amber-700">风险 / 阻断规则</div>
+                        <div className="mt-1 space-y-1">
+                          {ruleEvidence.risks.map(rule => (
+                            <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {ruleEvidence.missing.length > 0 && (
+                      <div className="rounded-[12px] border border-sky-100 bg-sky-50/60 px-2.5 py-2">
+                        <div className="text-[11px] font-black text-sky-700">缺失信息</div>
+                        <div className="mt-1 space-y-1">
+                          {ruleEvidence.missing.map(rule => (
+                            <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {ruleEvidence.passed.length > 0 && (
+                      <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/60 px-2.5 py-2">
+                        <div className="text-[11px] font-black text-emerald-700">已通过规则</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {ruleEvidence.passed.map(rule => (
+                            <span key={`${rule.code}-${rule.title}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{rule.title}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -691,27 +904,27 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
                 </div>
               </div>
 
-              <div className={`mt-3 grid gap-2 ${result.level === 'low' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <div className={`mt-3 grid gap-2 ${result.level === 'compatible' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 <button
                   type="button"
                   onClick={handlePrimaryResultAction}
                   className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
-                    result.level === 'high'
+                    result.level === 'not_recommended'
                       ? 'bg-red-600 text-white hover:bg-red-700'
-                      : result.level === 'medium'
+                      : result.level === 'caution' || result.level === 'insufficient_data'
                         ? 'bg-amber-600 text-white hover:bg-amber-700'
                         : 'bg-emerald-700 text-white hover:bg-emerald-800'
                   }`}
                 >
-                  {result.level === 'low' ? '加入当前鱼缸' : result.level === 'medium' ? '查看调整建议' : '重新选择'}
+                  {result.level === 'compatible' ? '加入当前鱼缸' : result.level === 'not_recommended' ? '重新选择' : '查看调整建议'}
                 </button>
-                {result.level !== 'low' && (
+                {result.level !== 'compatible' && (
                   <button
                     type="button"
                     onClick={handleSecondaryResultAction}
                     className="rounded-full bg-white/75 px-3 py-1.5 text-center text-[11px] font-black text-ink/65 transition-colors hover:bg-white"
                   >
-                    {result.level === 'medium' ? '查看冲突详情' : '查看冲突详情'}
+                    查看混养提醒
                   </button>
                 )}
               </div>
@@ -732,7 +945,7 @@ export function CompatibilityRiskCalculator({ speciesIds, onSpeciesIdsChange, on
       selectedSpecies={selectedSpecies}
       onAccept={() => {
         setActiveModal(null);
-        setResultFeedback('已采纳调整建议，请按建议完善环境并观察。');
+        setResultFeedback('已确认混养提醒，可以继续调整组合。');
       }}
       onEdit={() => {
         setActiveModal(null);
