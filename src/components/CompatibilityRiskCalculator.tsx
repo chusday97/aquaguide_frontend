@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { fishData } from '../data/fishData';
 import type { Aquarium, Fish } from '../types';
@@ -288,6 +288,7 @@ function CompatibilityBottomSheet({
   mainConflicts,
   actionHints,
   selectedSpecies,
+  acceptLabel = '我知道了',
   onAccept,
   onEdit,
 }: {
@@ -300,6 +301,7 @@ function CompatibilityBottomSheet({
   mainConflicts: ReturnType<typeof getMainConflicts>;
   actionHints: string[];
   selectedSpecies: Fish[];
+  acceptLabel?: string;
   onAccept: () => void;
   onEdit: () => void;
 }) {
@@ -412,7 +414,7 @@ function CompatibilityBottomSheet({
 
         <div className="modalFooter fixed bottom-0 left-1/2 z-20 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-2 border-t border-white bg-white/95 backdrop-blur">
           <button type="button" onClick={onAccept} className="rounded-full bg-emerald-700 text-[13px] font-black text-white">
-            我知道了
+            {acceptLabel}
           </button>
           <button type="button" onClick={onEdit} className="rounded-full border border-border bg-white text-[13px] font-black text-ink/62">
             返回修改组合
@@ -433,6 +435,7 @@ type CompatibilityRiskCalculatorProps = {
   speciesIds?: string[];
   onSpeciesIdsChange?: (ids: string[]) => void;
   onBrowseAtlas?: () => void;
+  onAddToAquarium?: (items: { fishId: string; quantity: number }[]) => void | Promise<{ message?: string } | void>;
   preferredSpeciesIds?: string[];
   aquariums?: Aquarium[];
   activeAquariumId?: string;
@@ -456,6 +459,7 @@ export function CompatibilityRiskCalculator({
   speciesIds,
   onSpeciesIdsChange,
   onBrowseAtlas,
+  onAddToAquarium,
   preferredSpeciesIds = [],
   aquariums = [],
   activeAquariumId = '',
@@ -468,6 +472,10 @@ export function CompatibilityRiskCalculator({
   const [showRuleDetails, setShowRuleDetails] = useState(false);
   const activeSpeciesIds = speciesIds ?? internalSpeciesIds;
   const [selectedQuantitiesById, setSelectedQuantitiesById] = useState<Record<string, number>>({});
+  const [selectedAddableSpeciesIds, setSelectedAddableSpeciesIds] = useState<string[]>([]);
+  const [addedSpeciesIds, setAddedSpeciesIds] = useState<string[]>([]);
+  const [isAddingToAquarium, setIsAddingToAquarium] = useState(false);
+  const [confirmingCautionAdd, setConfirmingCautionAdd] = useState(false);
   const selectedAquarium = useMemo(() => (
     aquariums.find(aquarium => aquarium.id === (selectedAquariumId || activeAquariumId))
     || aquariums.find(aquarium => aquarium.id === activeAquariumId)
@@ -507,6 +515,27 @@ export function CompatibilityRiskCalculator({
     () => getSpeciesActionGroups(result, selectedSpecies, currentQuantityBySpeciesId),
     [currentQuantityBySpeciesId, result, selectedSpecies]
   );
+  const addableSpecies = useMemo(() => (
+    result.level === 'not_recommended' || result.level === 'insufficient_data'
+      ? []
+      : speciesActionGroups.keep
+  ), [result.level, speciesActionGroups.keep]);
+  const addableSpeciesIds = useMemo(() => addableSpecies.map(fish => fish.id), [addableSpecies]);
+  const addableSpeciesKey = addableSpeciesIds.join('|');
+  const addedSpeciesKey = addedSpeciesIds.join('|');
+  const pendingAddableSpecies = useMemo(() => addableSpecies.filter(fish => (
+    selectedAddableSpeciesIds.includes(fish.id) && !addedSpeciesIds.includes(fish.id)
+  )), [addableSpecies, addedSpeciesIds, selectedAddableSpeciesIds]);
+  useEffect(() => {
+    setSelectedAddableSpeciesIds(prev => {
+      const stillValid = prev.filter(id => addableSpeciesIds.includes(id) && !addedSpeciesIds.includes(id));
+      const defaultSelected = addableSpeciesIds.filter(id => !addedSpeciesIds.includes(id));
+      return Array.from(new Set([...stillValid, ...defaultSelected]));
+    });
+  }, [addableSpeciesKey, addedSpeciesKey]);
+  useEffect(() => {
+    setAddedSpeciesIds(prev => prev.filter(id => activeSpeciesIds.includes(id)));
+  }, [activeSpeciesIds]);
   const ruleEvidence = useMemo(() => {
     const ruleResult = result.ruleResult;
     if (!ruleResult) return null;
@@ -596,6 +625,42 @@ export function CompatibilityRiskCalculator({
       ? `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`
       : '当前鱼缸暂无可导入的活体生物。');
   };
+  const performAddToAquarium = async () => {
+    if (isAddingToAquarium) return;
+    if (!selectedAquarium) {
+      setResultFeedback('请先选择一个鱼缸，再添加生物。');
+      return;
+    }
+    if (!onAddToAquarium) {
+      setResultFeedback('当前页面还没有接入鱼缸添加功能。');
+      return;
+    }
+    if (pendingAddableSpecies.length === 0) {
+      setResultFeedback('没有可加入的新增生物，或已全部加入。');
+      return;
+    }
+
+    const items = pendingAddableSpecies.map(fish => ({
+      fishId: fish.id,
+      quantity: Math.max(1, selectedQuantitiesById[fish.id] || 1),
+    }));
+
+    setIsAddingToAquarium(true);
+    try {
+      const response = await onAddToAquarium(items);
+      const addedIds = pendingAddableSpecies.map(fish => fish.id);
+      const names = pendingAddableSpecies.map(fish => fish.name).join('、');
+      setAddedSpeciesIds(prev => Array.from(new Set([...prev, ...addedIds])));
+      setSelectedAddableSpeciesIds(prev => prev.filter(id => !addedIds.includes(id)));
+      setResultFeedback(response?.message || `已加入 ${pendingAddableSpecies.length} 种生物到当前鱼缸：${names}。`);
+    } catch (error) {
+      setResultFeedback(error instanceof Error ? error.message : '添加失败，请稍后重试。');
+    } finally {
+      setIsAddingToAquarium(false);
+      setConfirmingCautionAdd(false);
+      setActiveModal(null);
+    }
+  };
   const handlePrimaryResultAction = () => {
     if (result.level === 'not_recommended') {
       updateSpeciesIds([]);
@@ -603,11 +668,17 @@ export function CompatibilityRiskCalculator({
       setResultFeedback('已返回重新选择，可以重新搜索搭配对象。');
       return;
     }
-    if (result.level === 'caution' || result.level === 'insufficient_data') {
+    if (result.level === 'insufficient_data') {
+      setResultFeedback('当前信息不足，建议先补充鱼缸参数后再添加。');
       setActiveModal('adjustment');
       return;
     }
-    setResultFeedback('当前暂不支持从混养计算直接批量加入，请回到图鉴详情逐个确认添加。');
+    if (result.level === 'caution') {
+      setConfirmingCautionAdd(true);
+      setActiveModal('adjustment');
+      return;
+    }
+    void performAddToAquarium();
   };
   const handleSecondaryResultAction = () => {
     if (result.level === 'compatible') return;
@@ -922,16 +993,48 @@ export function CompatibilityRiskCalculator({
 
                 {speciesActionGroups.keep.length > 0 && (
                   <div className="mb-2 rounded-[14px] border border-emerald-100 bg-emerald-50/80 p-2.5">
-                    <div className="mb-2 text-[10px] font-black text-emerald-700">可保留的新增物种</div>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="text-[10px] font-black text-emerald-700">可加入的新生物</div>
+                      <div className="text-[9px] font-bold text-emerald-700/70">可取消勾选</div>
+                    </div>
                     <div className="flex flex-wrap gap-2">
-                      {speciesActionGroups.keep.map(fish => (
-                        <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1.5 pr-3 shadow-sm">
+                      {speciesActionGroups.keep.map(fish => {
+                        const alreadyAdded = addedSpeciesIds.includes(fish.id);
+                        const selectedForAdd = selectedAddableSpeciesIds.includes(fish.id) && !alreadyAdded;
+                        const quantity = Math.max(1, selectedQuantitiesById[fish.id] || 1);
+                        return (
+                        <button
+                          type="button"
+                          key={fish.id}
+                          disabled={alreadyAdded || result.level === 'insufficient_data'}
+                          onClick={() => {
+                            setSelectedAddableSpeciesIds(prev => (
+                              prev.includes(fish.id)
+                                ? prev.filter(id => id !== fish.id)
+                                : [...prev, fish.id]
+                            ));
+                          }}
+                          className={`flex items-center gap-2 rounded-full py-1 pl-1.5 pr-3 text-left shadow-sm transition ${
+                            alreadyAdded
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : selectedForAdd
+                                ? 'bg-white ring-2 ring-emerald-400'
+                                : 'bg-white/65 opacity-70'
+                          }`}
+                        >
                           <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-emerald-50">
                             <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                           </span>
-                          <span className="max-w-[108px] truncate text-[11px] font-black text-ink">{fish.name}</span>
-                        </div>
-                      ))}
+                          <span className="grid min-w-0">
+                            <span className="max-w-[108px] truncate text-[11px] font-black text-ink">{fish.name}</span>
+                            <span className="text-[9px] font-bold text-ink/45">{alreadyAdded ? '已加入' : `x${quantity}`}</span>
+                          </span>
+                          {!alreadyAdded && (
+                            <span className={`ml-0.5 h-3.5 w-3.5 rounded-full border ${selectedForAdd ? 'border-emerald-600 bg-emerald-600' : 'border-ink/20 bg-white'}`} />
+                          )}
+                        </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1020,15 +1123,23 @@ export function CompatibilityRiskCalculator({
                 <button
                   type="button"
                   onClick={handlePrimaryResultAction}
+                  disabled={isAddingToAquarium}
                   className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
                     result.level === 'not_recommended'
                       ? 'bg-red-600 text-white hover:bg-red-700'
                       : result.level === 'caution' || result.level === 'insufficient_data'
                         ? 'bg-amber-600 text-white hover:bg-amber-700'
                         : 'bg-emerald-700 text-white hover:bg-emerald-800'
-                  }`}
+                  } disabled:bg-ink/20 disabled:text-ink/40`}
                 >
-                  {result.level === 'compatible' ? '加入当前鱼缸' : result.level === 'not_recommended' ? '重新选择' : '查看调整建议'}
+                  {isAddingToAquarium && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
+                  {result.level === 'compatible'
+                    ? '添加选中的新生物'
+                    : result.level === 'not_recommended'
+                      ? '重新选择'
+                      : result.level === 'insufficient_data'
+                        ? '先补充信息'
+                        : '按提醒添加选中生物'}
                 </button>
                 {result.level !== 'compatible' && (
                   <button
@@ -1047,7 +1158,10 @@ export function CompatibilityRiskCalculator({
     </section>
     <CompatibilityBottomSheet
       activeModal={activeModal}
-      onClose={() => setActiveModal(null)}
+      onClose={() => {
+        setConfirmingCautionAdd(false);
+        setActiveModal(null);
+      }}
       result={result}
       meta={meta}
       riskConclusion={riskConclusion}
@@ -1055,7 +1169,12 @@ export function CompatibilityRiskCalculator({
       mainConflicts={mainConflicts}
       actionHints={actionHints}
       selectedSpecies={selectedSpecies}
+      acceptLabel={confirmingCautionAdd ? '确认添加' : '我知道了'}
       onAccept={() => {
+        if (confirmingCautionAdd) {
+          void performAddToAquarium();
+          return;
+        }
         setActiveModal(null);
         setResultFeedback('已确认混养提醒，可以继续调整组合。');
       }}

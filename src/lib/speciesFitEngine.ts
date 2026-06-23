@@ -114,14 +114,15 @@ const hasEquipment = (aquarium: Aquarium | null | undefined, keyword: string) =>
   return text.toLowerCase().includes(keyword.toLowerCase());
 };
 
-const getCompatibilityRisk = (species: Fish, currentLivestock: Array<{ species: Fish; record?: { quantity?: number } }>): SpeciesFitItem | null => {
-  if (currentLivestock.length === 0) return null;
+const getCompatibilityRisk = (species: Fish, currentLivestock: Array<{ species?: Fish; record?: { quantity?: number } }>): SpeciesFitItem | null => {
+  const validLivestock = currentLivestock.filter((item): item is { species: Fish; record?: { quantity?: number } } => Boolean(item?.species?.id));
+  if (validLivestock.length === 0) return null;
   const speciesText = textOf(species);
   const selectedIsSmall = species.size === 'Small';
   const selectedIsLongFin = /长鳍|蝶尾|神仙|斗鱼|孔雀/i.test(speciesText);
-  const predator = currentLivestock.find(item => (
-    item.species.temperament === 'Aggressive'
-    || item.species.size === 'Large'
+  const predator = validLivestock.find(item => (
+    item.species?.temperament === 'Aggressive'
+    || item.species?.size === 'Large'
     || /掠食|捕食|吞食|大型|龙鱼|雷龙|地图|雀鳝|魟|鳗/i.test(textOf(item.species))
   ));
   if (predator && selectedIsSmall) {
@@ -133,7 +134,7 @@ const getCompatibilityRisk = (species: Fish, currentLivestock: Array<{ species: 
     };
   }
 
-  const nipper = currentLivestock.find(item => /虎皮|黑裙|红十字|彩裙|玫瑰鲫|啄鳍|追咬/i.test(textOf(item.species)));
+  const nipper = validLivestock.find(item => /虎皮|黑裙|红十字|彩裙|玫瑰鲫|啄鳍|追咬/i.test(textOf(item.species)));
   if (nipper && selectedIsLongFin) {
     return {
       type: 'fin_nipping_risk',
@@ -143,7 +144,7 @@ const getCompatibilityRisk = (species: Fish, currentLivestock: Array<{ species: 
     };
   }
 
-  const territorial = currentLivestock.find(item => item.species.temperament === 'Territorial' || item.species.housingMode === '建议单养');
+  const territorial = validLivestock.find(item => item.species?.temperament === 'Territorial' || item.species?.housingMode === '建议单养');
   if (territorial && (species.temperament === 'Territorial' || species.housingMode === '建议单养')) {
     return {
       type: 'territorial_conflict',

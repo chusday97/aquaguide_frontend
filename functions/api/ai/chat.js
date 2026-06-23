@@ -11,6 +11,7 @@ const aiRateLimitMaxRequests = 10;
 const aiRequestTimeoutMs = 20 * 1000;
 const aiRateLimitBuckets = new Map();
 const isConfiguredApiKey = (apiKey) => Boolean(apiKey && apiKey !== 'MY_DEEPSEEK_API_KEY' && apiKey !== 'MY_AI_API_KEY');
+const pickConfiguredApiKey = (...keys) => keys.find(isConfiguredApiKey) || '';
 
 const getClientId = (request) => (
   request.headers.get('CF-Connecting-IP')
@@ -53,6 +54,7 @@ const buildRiskExplanationPrompt = (context = {}) => {
     '',
     '必须返回这个 JSON 结构：',
     JSON.stringify({
+      statusRestatement: context?.finalStatus || context?.riskResult?.status || context?.ruleResult?.status || '必须和系统状态一致',
       summary: '一句话总结当前风险',
       reasons: [
         {
@@ -122,6 +124,41 @@ const buildRiskAuditPrompt = (context = {}) => {
   return { system, messages: [{ role: 'user', content: user }], temperature: 0.15, maxTokens: 1100, thinking: 'disabled' };
 };
 
+const buildRecommendationAssistPrompt = (context = {}) => {
+  const compactContext = JSON.stringify(context, null, 2).slice(0, 15000);
+  const system = [
+    '你是 AquaGuide 的缸内生物推荐解释助手。',
+    '本地规则已经完成安全过滤。你只能基于 safeCandidates、adjustableCandidates、blockedSummary 和 ruleFacts 做偏好解析、候选排序解释和分阶段加入计划。',
+    '你不能创建数据库不存在的生物，不能把 hardBlock 或 blockedSummary 里的生物加回候选。',
+    '你不能修改 canAdd、风险等级、适配结论，也不能把未知兼容性当成安全。',
+    '如果信息不足，只能提出 questions，不能编造鱼缸里不存在的生物或设备。',
+    '输出必须是合法 JSON，不要 Markdown，不要代码块，不要额外解释。',
+  ].join('\n');
+  const user = [
+    '请根据下面本地规则结果，为用户生成推荐解释和分阶段加入计划。',
+    '返回 JSON 必须符合这个结构：',
+    JSON.stringify({
+      structuredPreference: {
+        experience: 'beginner',
+        maintenance: 'low',
+        visualStyle: ['群游', '低维护'],
+        keywords: ['灯鱼', '虾'],
+      },
+      ranking: [
+        { speciesId: 'species-id', reason: '为什么这个候选更符合偏好' },
+      ],
+      explanations: ['一句用户能理解的推荐理由'],
+      stagedPlan: ['第一周先加入少量候选并观察'],
+      questions: ['如果缺少信息，询问一个关键问题'],
+    }, null, 2),
+    '',
+    'context:',
+    compactContext,
+  ].join('\n');
+
+  return { system, messages: [{ role: 'user', content: user }], temperature: 0.2, maxTokens: 1000, thinking: 'disabled' };
+};
+
 const parseJsonObject = (text) => {
   try {
     return JSON.parse(text);
@@ -133,6 +170,7 @@ const parseJsonObject = (text) => {
 };
 
 const normalizeRiskExplanationData = (data) => ({
+  statusRestatement: typeof data?.statusRestatement === 'string' ? data.statusRestatement : undefined,
   summary: typeof data?.summary === 'string' ? data.summary : '已根据系统规则生成风险说明。',
   reasons: Array.isArray(data?.reasons)
     ? data.reasons.slice(0, 5).map(item => ({
@@ -180,6 +218,32 @@ const normalizeRiskAuditData = (data) => {
   };
 };
 
+const normalizeRecommendationAssistData = (data) => ({
+  structuredPreference: data?.structuredPreference && typeof data.structuredPreference === 'object'
+    ? {
+      experience: typeof data.structuredPreference.experience === 'string' ? data.structuredPreference.experience : undefined,
+      maintenance: typeof data.structuredPreference.maintenance === 'string' ? data.structuredPreference.maintenance : undefined,
+      visualStyle: Array.isArray(data.structuredPreference.visualStyle) ? data.structuredPreference.visualStyle.filter(item => typeof item === 'string').slice(0, 5) : [],
+      keywords: Array.isArray(data.structuredPreference.keywords) ? data.structuredPreference.keywords.filter(item => typeof item === 'string').slice(0, 8) : [],
+    }
+    : {},
+  ranking: Array.isArray(data?.ranking)
+    ? data.ranking.slice(0, 8).map(item => ({
+      speciesId: typeof item?.speciesId === 'string' ? item.speciesId : '',
+      reason: typeof item?.reason === 'string' ? item.reason : '符合本地规则候选。',
+    })).filter(item => item.speciesId)
+    : [],
+  explanations: Array.isArray(data?.explanations)
+    ? data.explanations.filter(item => typeof item === 'string').slice(0, 5)
+    : [],
+  stagedPlan: Array.isArray(data?.stagedPlan)
+    ? data.stagedPlan.filter(item => typeof item === 'string').slice(0, 5)
+    : [],
+  questions: Array.isArray(data?.questions)
+    ? data.questions.filter(item => typeof item === 'string').slice(0, 3)
+    : [],
+});
+
 const fetchWithTimeout = async (url, options, timeoutMs = aiRequestTimeoutMs) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -199,7 +263,7 @@ export async function onRequestPost({ request, env }) {
     );
   }
 
-  const apiKey = env.AI_API_KEY || env.DEEPSEEK_API_KEY;
+  const apiKey = pickConfiguredApiKey(env.AI_API_KEY, env.DEEPSEEK_API_KEY);
   const aiBaseUrl = (env.AI_BASE_URL || env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
   const aiModel = env.AI_MODEL || env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
 
@@ -213,7 +277,9 @@ export async function onRequestPost({ request, env }) {
     ? buildRiskExplanationPrompt(context)
     : task === 'risk_audit'
       ? buildRiskAuditPrompt(context)
-      : body;
+      : task === 'recommendation_assist'
+        ? buildRecommendationAssistPrompt(context)
+        : body;
   const { messages, system, temperature = 0.4, maxTokens = 1200, thinking = 'disabled' } = requestInput;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -272,6 +338,14 @@ export async function onRequestPost({ request, env }) {
         ok: true,
         task: 'risk_audit',
         data: normalizeRiskAuditData(parsed),
+      });
+    }
+    if (task === 'recommendation_assist') {
+      const parsed = parseJsonObject(content);
+      return json({
+        ok: true,
+        task: 'recommendation_assist',
+        data: normalizeRecommendationAssistData(parsed),
       });
     }
 

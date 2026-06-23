@@ -23,6 +23,7 @@ export interface RiskExplanationSuggestion {
 }
 
 export interface RiskExplanationData {
+  statusRestatement?: string;
   summary: string;
   reasons: RiskExplanationReason[];
   suggestions: RiskExplanationSuggestion[];
@@ -54,7 +55,25 @@ export interface RiskAuditData {
   fallback?: boolean;
 }
 
+export interface RecommendationAssistData {
+  structuredPreference: {
+    experience?: string;
+    maintenance?: string;
+    visualStyle?: string[];
+    keywords?: string[];
+  };
+  ranking: Array<{
+    speciesId: string;
+    reason: string;
+  }>;
+  explanations: string[];
+  stagedPlan: string[];
+  questions: string[];
+  fallback?: boolean;
+}
+
 const fallbackRiskExplanation: RiskExplanationData = {
+  statusRestatement: 'unknown',
   summary: '暂时无法生成 AI 分析',
   reasons: [{
     title: '请先参考系统规则结果',
@@ -75,11 +94,20 @@ const fallbackRiskAudit: RiskAuditData = {
   additionalRiskLevel: 'none',
   missingRisks: [],
   uncertainItems: [{
-    title: 'AI 补充检查暂不可用',
+    title: 'AI 解读暂不可用',
     reason: '当前结果以系统规则为准，AI 失败不会影响本地适配判断。',
   }],
-  userFacingSummary: 'AI 补充检查暂不可用，当前结果以系统规则为准。',
+  userFacingSummary: 'AI 解读暂不可用，当前结果以系统规则为准。',
   suggestions: [],
+  fallback: true,
+};
+
+const fallbackRecommendationAssist: RecommendationAssistData = {
+  structuredPreference: {},
+  ranking: [],
+  explanations: ['AI 辅助暂不可用，当前推荐已按本地规则排序。'],
+  stagedPlan: ['先选择 1 个候选进入模拟', '确认负载和风险后再少量加入', '加入后观察 3-7 天'],
+  questions: [],
   fallback: true,
 };
 
@@ -109,6 +137,7 @@ export const askAquaGuideAI = async ({
 };
 
 const normalizeRiskExplanation = (data: Partial<RiskExplanationData> | undefined): RiskExplanationData => ({
+  statusRestatement: typeof data?.statusRestatement === 'string' ? data.statusRestatement : undefined,
   summary: typeof data?.summary === 'string' && data.summary.trim() ? data.summary : fallbackRiskExplanation.summary,
   reasons: Array.isArray(data?.reasons) ? data.reasons.map(item => ({
     title: typeof item?.title === 'string' ? item.title : '风险原因',
@@ -122,6 +151,18 @@ const normalizeRiskExplanation = (data: Partial<RiskExplanationData> | undefined
   nextSteps: Array.isArray(data?.nextSteps) ? data.nextSteps.filter(step => typeof step === 'string') : fallbackRiskExplanation.nextSteps,
   disclaimer: '最终判断以系统规则结果为准',
 });
+
+const getExpectedRiskExplanationStatus = (context: unknown) => {
+  if (!context || typeof context !== 'object') return '';
+  const value = (context as {
+    finalStatus?: unknown;
+    riskResult?: { status?: unknown };
+    ruleResult?: { status?: unknown };
+  }).finalStatus
+    ?? (context as { riskResult?: { status?: unknown } }).riskResult?.status
+    ?? (context as { ruleResult?: { status?: unknown } }).ruleResult?.status;
+  return typeof value === 'string' ? value : '';
+};
 
 const normalizeRiskAudit = (data: Partial<RiskAuditData> | undefined): RiskAuditData => {
   const level = ['none', 'low', 'medium', 'high'].includes(String(data?.additionalRiskLevel))
@@ -151,6 +192,30 @@ const normalizeRiskAudit = (data: Partial<RiskAuditData> | undefined): RiskAudit
   };
 };
 
+const normalizeRecommendationAssist = (data: Partial<RecommendationAssistData> | undefined): RecommendationAssistData => ({
+  structuredPreference: typeof data?.structuredPreference === 'object' && data.structuredPreference
+    ? {
+      experience: typeof data.structuredPreference.experience === 'string' ? data.structuredPreference.experience : undefined,
+      maintenance: typeof data.structuredPreference.maintenance === 'string' ? data.structuredPreference.maintenance : undefined,
+      visualStyle: Array.isArray(data.structuredPreference.visualStyle) ? data.structuredPreference.visualStyle.filter(item => typeof item === 'string') : [],
+      keywords: Array.isArray(data.structuredPreference.keywords) ? data.structuredPreference.keywords.filter(item => typeof item === 'string') : [],
+    }
+    : {},
+  ranking: Array.isArray(data?.ranking) ? data.ranking.map(item => ({
+    speciesId: typeof item?.speciesId === 'string' ? item.speciesId : '',
+    reason: typeof item?.reason === 'string' ? item.reason : '本地规则候选。',
+  })).filter(item => item.speciesId).slice(0, 8) : [],
+  explanations: Array.isArray(data?.explanations)
+    ? data.explanations.filter(item => typeof item === 'string').slice(0, 5)
+    : fallbackRecommendationAssist.explanations,
+  stagedPlan: Array.isArray(data?.stagedPlan)
+    ? data.stagedPlan.filter(item => typeof item === 'string').slice(0, 5)
+    : fallbackRecommendationAssist.stagedPlan,
+  questions: Array.isArray(data?.questions)
+    ? data.questions.filter(item => typeof item === 'string').slice(0, 3)
+    : [],
+});
+
 export const generateRiskExplanation = async (context: unknown): Promise<RiskExplanationData> => {
   try {
     const response = await fetch('/api/ai/chat', {
@@ -175,7 +240,15 @@ export const generateRiskExplanation = async (context: unknown): Promise<RiskExp
       return fallbackRiskExplanation;
     }
 
-    return normalizeRiskExplanation(payload.data);
+    const normalized = normalizeRiskExplanation(payload.data);
+    const expectedStatus = getExpectedRiskExplanationStatus(context);
+    if (expectedStatus && normalized.statusRestatement && normalized.statusRestatement !== expectedStatus) {
+      return {
+        ...fallbackRiskExplanation,
+        summary: 'AI 解读与系统结论不一致，已改用本地说明。',
+      };
+    }
+    return normalized;
   } catch {
     return fallbackRiskExplanation;
   }
@@ -204,5 +277,31 @@ export const generateRiskAudit = async (context: unknown): Promise<RiskAuditData
     return normalizeRiskAudit(payload.data);
   } catch {
     return fallbackRiskAudit;
+  }
+};
+
+export const generateRecommendationAssist = async (context: unknown): Promise<RecommendationAssistData> => {
+  try {
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task: 'recommendation_assist',
+        context,
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      return fallbackRecommendationAssist;
+    }
+
+    if (payload?.task !== 'recommendation_assist') {
+      return fallbackRecommendationAssist;
+    }
+
+    return normalizeRecommendationAssist(payload.data);
+  } catch {
+    return fallbackRecommendationAssist;
   }
 };

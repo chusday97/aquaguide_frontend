@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Aquarium, Fish } from '../../types';
+import type { TankCompatibilityRule, TankCompatibilityStatus } from '../../lib/tankCompatibilityEngine';
 import { aquariumSchema } from '../aquarium/aquarium.schema';
 import { fishSchema } from '../species/species.schema';
 
@@ -15,6 +16,32 @@ export const recommendationItemSchema = z.object({
   confidence: z.enum(['low', 'medium', 'high']).default('medium'),
   riskLevel: z.enum(['low', 'medium', 'high']).default('medium'),
   canAdd: z.boolean().default(true),
+  compatibilityStatus: z.enum(['compatible', 'caution', 'not_recommended', 'insufficient_data']).optional(),
+  ruleSummary: z.string().optional(),
+  passedRules: z.array(z.object({
+    code: z.string(),
+    title: z.string(),
+    evidence: z.string(),
+    severity: z.enum(['info', 'low', 'medium', 'high']),
+  })).optional(),
+  warningRules: z.array(z.object({
+    code: z.string(),
+    title: z.string(),
+    evidence: z.string(),
+    severity: z.enum(['info', 'low', 'medium', 'high']),
+  })).optional(),
+  blockingRules: z.array(z.object({
+    code: z.string(),
+    title: z.string(),
+    evidence: z.string(),
+    severity: z.enum(['info', 'low', 'medium', 'high']),
+  })).optional(),
+  missingData: z.array(z.object({
+    code: z.string(),
+    title: z.string(),
+    evidence: z.string(),
+    severity: z.enum(['info', 'low', 'medium', 'high']),
+  })).optional(),
 });
 
 export const recommendationOutputSchema = z.object({
@@ -73,6 +100,12 @@ export type RecommendationItem = {
   confidence: 'low' | 'medium' | 'high';
   riskLevel: 'low' | 'medium' | 'high';
   canAdd: boolean;
+  compatibilityStatus?: TankCompatibilityStatus;
+  ruleSummary?: string;
+  passedRules?: TankCompatibilityRule[];
+  warningRules?: TankCompatibilityRule[];
+  blockingRules?: TankCompatibilityRule[];
+  missingData?: TankCompatibilityRule[];
 };
 export type RecommendationOutput = { items: RecommendationItem[] };
 export type DiscoveryDeckState = {
@@ -114,4 +147,102 @@ export type CompatibleRecommendationInput = {
   aquarium: Aquarium;
   speciesPool: Fish[];
   limit?: number;
+};
+
+export type RecommendationMode = 'empty_tank' | 'existing_livestock';
+export type LoadStatus = 'relaxed' | 'moderate' | 'near_limit' | 'over_limit';
+export type CandidateStatus = 'direct' | 'adjustable' | 'blocked';
+
+export type UserPreference = {
+  experience?: 'beginner' | 'intermediate' | 'advanced';
+  maintenance?: 'low' | 'balanced' | 'high';
+  visualStyle?: string[];
+  keywords?: string[];
+  naturalLanguage?: string;
+};
+
+export type TankLoadModel = {
+  currentLoad: number;
+  capacity: number;
+  loadRate: number;
+  status: LoadStatus;
+  remainingCapacity: number;
+};
+
+export type AquariumProfile = {
+  id: string;
+  name: string;
+  mode: RecommendationMode;
+  volumeLiters: number;
+  effectiveVolumeLiters: number;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
+  waterType: string;
+  temperature: number | null;
+  equipment: string[];
+  substrate: string;
+  plants: string[];
+  hardscape: string[];
+  livestock: Array<{
+    speciesId: string;
+    name: string;
+    quantity: number;
+    category: string;
+    size?: string;
+    temperament?: string;
+  }>;
+  load: TankLoadModel;
+  waterLayers: Record<string, number>;
+  missingData: string[];
+  availableNiches: string[];
+};
+
+export type RecommendationCandidate = {
+  speciesId: string;
+  name: string;
+  status: CandidateStatus;
+  recommendedQuantity: number;
+  fitScore: number;
+  reason: string;
+  risks: string[];
+  requiredAdjustments: string[];
+  confidence: 'low' | 'medium' | 'high';
+  loadAfterAdd: number;
+};
+
+export type EmptyTankPlan = {
+  id: string;
+  name: string;
+  audience: string;
+  species: Array<{ speciesId: string; name: string; quantity: number }>;
+  maintenanceLevel: '低' | '中' | '高';
+  estimatedLoadRate: number;
+  strengths: string[];
+  cautions: string[];
+};
+
+export type SimulationResult = {
+  candidate: RecommendationCandidate;
+  quantity: number;
+  beforeLoadRate: number;
+  afterLoadRate: number;
+  waterLayerChange: Record<string, number>;
+  compatibilityChange: string[];
+  equipmentStillFits: boolean;
+  newRisks: string[];
+  conclusion: string;
+};
+
+export type SmartRecommendationOutput = {
+  mode: RecommendationMode;
+  profile: AquariumProfile;
+  direct: RecommendationCandidate[];
+  adjustable: RecommendationCandidate[];
+  blocked: RecommendationCandidate[];
+  emptyPlans: EmptyTankPlan[];
+  blockedSummary: string[];
+  needsMoreInfo: boolean;
+  infoRequests: string[];
+  localSummary: string;
 };
