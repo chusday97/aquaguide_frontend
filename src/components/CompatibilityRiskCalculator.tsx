@@ -13,6 +13,11 @@ const getDisplayImage = getSpeciesDisplayImage;
 type CompatibilityRiskLevel = 'empty' | TankCompatibilityStatus;
 type ResultModal = null | 'adjustment' | 'conflictDetail';
 type SelectedCompatibilityItem = { species: Fish; quantity: number };
+type SpeciesActionGroup = {
+  keep: Fish[];
+  remove: Fish[];
+  existing: Fish[];
+};
 
 const parseNumericRange = (value: string) => {
   const normalized = value.replace(/－/g, '-').replace(/~|～|至|到/g, '-');
@@ -222,6 +227,41 @@ const getActionHints = (result: ReturnType<typeof calculateRisk>, species: Fish[
   ];
 };
 
+const getSpeciesActionGroups = (
+  result: ReturnType<typeof calculateRisk>,
+  species: Fish[],
+  currentQuantityBySpeciesId: Record<string, number>
+): SpeciesActionGroup => {
+  const existing = species.filter(item => currentQuantityBySpeciesId[item.id]);
+  const candidateSpecies = species.filter(item => !currentQuantityBySpeciesId[item.id]);
+
+  if (result.level !== 'not_recommended') {
+    return {
+      keep: candidateSpecies,
+      remove: [],
+      existing,
+    };
+  }
+
+  const ruleText = [
+    ...(result.ruleResult?.blockingRules || []),
+    ...(result.ruleResult?.warningRules || []),
+  ].map(rule => `${rule.title} ${rule.evidence}`).join(' ');
+  const namedRiskSpecies = candidateSpecies.filter(item => ruleText.includes(item.name));
+  const remove = namedRiskSpecies.length > 0
+    ? namedRiskSpecies
+    : candidateSpecies.length > 0
+      ? [candidateSpecies[candidateSpecies.length - 1]]
+      : species.slice(-1);
+  const removeIds = new Set(remove.map(item => item.id));
+
+  return {
+    keep: candidateSpecies.filter(item => !removeIds.has(item.id)),
+    remove,
+    existing: existing.filter(item => !removeIds.has(item.id)),
+  };
+};
+
 const getConflictType = (reason: string) => {
   if (reason.includes('水体')) return '水体类型';
   if (reason.includes('pH')) return '水质差异';
@@ -425,6 +465,7 @@ export function CompatibilityRiskCalculator({
   const [resultFeedback, setResultFeedback] = useState('');
   const [activeModal, setActiveModal] = useState<ResultModal>(null);
   const [selectedAquariumId, setSelectedAquariumId] = useState(activeAquariumId || aquariums[0]?.id || '');
+  const [showRuleDetails, setShowRuleDetails] = useState(false);
   const activeSpeciesIds = speciesIds ?? internalSpeciesIds;
   const [selectedQuantitiesById, setSelectedQuantitiesById] = useState<Record<string, number>>({});
   const selectedAquarium = useMemo(() => (
@@ -462,6 +503,10 @@ export function CompatibilityRiskCalculator({
   const conflictTags = getConflictTags(selectedSpecies, result.reasons);
   const mainConflicts = useMemo(() => getMainConflicts(result, selectedSpecies), [result, selectedSpecies]);
   const actionHints = useMemo(() => getActionHints(result, selectedSpecies), [result, selectedSpecies]);
+  const speciesActionGroups = useMemo(
+    () => getSpeciesActionGroups(result, selectedSpecies, currentQuantityBySpeciesId),
+    [currentQuantityBySpeciesId, result, selectedSpecies]
+  );
   const ruleEvidence = useMemo(() => {
     const ruleResult = result.ruleResult;
     if (!ruleResult) return null;
@@ -826,83 +871,150 @@ export function CompatibilityRiskCalculator({
                 </div>
               )}
 
+              <div className="mb-3 rounded-[16px] bg-white/78 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[12px] font-black text-ink">下一步处理</div>
+                    <div className="text-[10px] font-bold text-ink/42">先处理生物组合，再看详细依据。</div>
+                  </div>
+                  {conflictTags.length > 0 && (
+                    <div className="flex max-w-[52%] flex-wrap justify-end gap-1">
+                      {conflictTags.slice(0, 3).map(item => (
+                        <span key={item} className="rounded-full bg-amber-50 px-2 py-1 text-[9px] font-black text-amber-700">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {speciesActionGroups.remove.length > 0 && (
+                  <div className="mb-2 rounded-[14px] border border-red-100 bg-red-50/80 p-2.5">
+                    <div className="mb-2 text-[10px] font-black text-red-600">建议先移除 / 更换</div>
+                    <div className="flex flex-wrap gap-2">
+                      {speciesActionGroups.remove.map(fish => (
+                        <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1.5 pr-2 shadow-sm">
+                          <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-red-50">
+                            <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                          </span>
+                          <span className="max-w-[92px] truncate text-[11px] font-black text-ink">{fish.name}</span>
+                          <button
+                            type="button"
+                            aria-label={`从混养计算移除${fish.name}`}
+                            onClick={() => {
+                              updateSpeciesIds(prev => prev.filter(id => id !== fish.id));
+                              setSelectedQuantitiesById(prev => {
+                                const next = { ...prev };
+                                delete next[fish.id];
+                                return next;
+                              });
+                              setResultFeedback(`已从组合中移除 ${fish.name}。`);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {speciesActionGroups.keep.length > 0 && (
+                  <div className="mb-2 rounded-[14px] border border-emerald-100 bg-emerald-50/80 p-2.5">
+                    <div className="mb-2 text-[10px] font-black text-emerald-700">可保留的新增物种</div>
+                    <div className="flex flex-wrap gap-2">
+                      {speciesActionGroups.keep.map(fish => (
+                        <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1.5 pr-3 shadow-sm">
+                          <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-emerald-50">
+                            <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                          </span>
+                          <span className="max-w-[108px] truncate text-[11px] font-black text-ink">{fish.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {speciesActionGroups.existing.length > 0 && (
+                  <div className="rounded-[14px] border border-border/70 bg-bg/70 p-2.5">
+                    <div className="mb-2 text-[10px] font-black text-ink/45">缸内原有物种</div>
+                    <div className="flex flex-wrap gap-2">
+                      {speciesActionGroups.existing.map(fish => (
+                        <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white/85 py-1 pl-1.5 pr-3">
+                          <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-bg">
+                            <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                          </span>
+                          <span className="max-w-[108px] truncate text-[11px] font-black text-ink/62">{fish.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {actionHints.length > 0 && (
+                  <div className="mt-3 rounded-[12px] bg-white/70 px-3 py-2 text-[11px] font-bold leading-relaxed text-ink/62">
+                    {actionHints[0]}
+                  </div>
+                )}
+              </div>
+
               {ruleEvidence && (
-                <div className="mb-3 rounded-[14px] bg-white/70 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-black text-ink/45">系统判断依据</div>
-                    <div className="text-[9px] font-black text-ink/38">AI 仅负责解释</div>
-                  </div>
-                  <div className="mt-2 grid gap-2">
-                    {ruleEvidence.risks.length > 0 && (
-                      <div className="rounded-[12px] border border-amber-100 bg-amber-50/60 px-2.5 py-2">
-                        <div className="text-[11px] font-black text-amber-700">风险 / 阻断规则</div>
-                        <div className="mt-1 space-y-1">
-                          {ruleEvidence.risks.map(rule => (
-                            <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                          ))}
+                <div className="mb-3 overflow-hidden rounded-[14px] border border-white/70 bg-white/45 backdrop-blur">
+                  <button
+                    type="button"
+                    onClick={() => setShowRuleDetails(prev => !prev)}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+                  >
+                    <span>
+                      <span className="block text-[11px] font-black text-ink/55">具体判定依据</span>
+                      <span className="block text-[9px] font-bold text-ink/35">半透明折叠显示，AI 仅负责解释</span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 text-ink/35 transition-transform ${showRuleDetails ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showRuleDetails && (
+                    <div className="grid gap-2 border-t border-white/70 px-3 pb-3 pt-2">
+                      {ruleEvidence.risks.length > 0 && (
+                        <div className="rounded-[12px] border border-amber-100 bg-amber-50/60 px-2.5 py-2">
+                          <div className="text-[11px] font-black text-amber-700">风险 / 阻断规则</div>
+                          <div className="mt-1 space-y-1">
+                            {ruleEvidence.risks.map(rule => (
+                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {ruleEvidence.missing.length > 0 && (
-                      <div className="rounded-[12px] border border-sky-100 bg-sky-50/60 px-2.5 py-2">
-                        <div className="text-[11px] font-black text-sky-700">缺失信息</div>
-                        <div className="mt-1 space-y-1">
-                          {ruleEvidence.missing.map(rule => (
-                            <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                          ))}
+                      )}
+                      {ruleEvidence.missing.length > 0 && (
+                        <div className="rounded-[12px] border border-sky-100 bg-sky-50/60 px-2.5 py-2">
+                          <div className="text-[11px] font-black text-sky-700">缺失信息</div>
+                          <div className="mt-1 space-y-1">
+                            {ruleEvidence.missing.map(rule => (
+                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {ruleEvidence.passed.length > 0 && (
-                      <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/60 px-2.5 py-2">
-                        <div className="text-[11px] font-black text-emerald-700">已通过规则</div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {ruleEvidence.passed.map(rule => (
-                            <span key={`${rule.code}-${rule.title}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{rule.title}</span>
-                          ))}
+                      )}
+                      {ruleEvidence.passed.length > 0 && (
+                        <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/60 px-2.5 py-2">
+                          <div className="text-[11px] font-black text-emerald-700">已通过规则</div>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ruleEvidence.passed.map(rule => (
+                              <span key={`${rule.code}-${rule.title}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{rule.title}</span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                      {(mainConflicts.length > 0 ? mainConflicts : []).map(conflict => (
+                        <div key={conflict.key} className="rounded-[12px] border border-border/70 bg-white/75 px-2.5 py-2">
+                          <div className="text-[11px] font-black text-ink">{conflict.pair}</div>
+                          <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{conflict.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-
-              <div id="compat-main-conflicts" className="mb-3 rounded-[14px] bg-white/65 p-3">
-                <div className="mb-2 text-[10px] font-black text-ink/45">主要冲突</div>
-                <div className="space-y-2">
-                  {(mainConflicts.length > 0 ? mainConflicts : [{ key: 'low-fit', pair: selectedSpecies.map(item => item.name).join(' × '), reason: '未发现明显对象冲突，仍建议少量加入并观察。' }]).map(conflict => (
-                    <div key={conflict.key} className="rounded-[12px] border border-border/70 bg-white px-2.5 py-2">
-                      <div className="text-[12px] font-black text-ink">{conflict.pair}</div>
-                      <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-relaxed text-ink/62">{conflict.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {conflictTags.length > 0 && (
-                <div className="mb-3 rounded-[14px] bg-white/60 p-2">
-                  <div className="mb-1.5 text-[10px] font-black text-ink/42">涉及风险</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {conflictTags.map(item => (
-                      <span key={item} className="rounded-full border border-border/70 bg-white px-2 py-1 text-[10px] font-black text-ink/58">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div id="compat-next-steps" className="mt-3 rounded-[12px] bg-white/65 p-2">
-                <div className="mb-1 text-[10px] font-black text-ink/45">下一步建议</div>
-                <div className="space-y-1">
-                  {actionHints.slice(0, 3).map(step => (
-                    <div key={step} className="flex gap-1.5 text-[11px] font-medium leading-relaxed text-ink/70">
-                      <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-current" />
-                      <span>{step}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               <div className={`mt-3 grid gap-2 ${result.level === 'compatible' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 <button
