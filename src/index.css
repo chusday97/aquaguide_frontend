@@ -34,7 +34,82 @@ body,
   overflow-x: hidden;
 }
 
-/* ── 平板端（768-1279px）：自然滚动，但不启用桌面工作台 ── */
+.desktop-too-narrow {
+  display: none;
+}
+
+.aquaguide-app.desktop-shell-active {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.aquaguide-app.desktop-shell-active .desktop-sidebar {
+  display: flex !important;
+}
+
+.aquaguide-app.desktop-shell-active .app-main-shell {
+  position: fixed;
+  inset-block: 0;
+  left: calc(var(--desktop-sidebar-width, 280px) + var(--desktop-content-gap, 18px));
+  right: 0;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: none;
+}
+
+.aquaguide-app.desktop-shell-active .desktop-workspace-scroll {
+  height: 100dvh;
+  width: 100%;
+  padding: 24px var(--desktop-content-gap, 18px) 12px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.aquaguide-app.desktop-shell-active .desktop-workspace-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.aquaguide-app.desktop-shell-active .desktop-canvas {
+  width: min(100%, var(--desktop-canvas-width, 1280px)) !important;
+  max-width: var(--desktop-canvas-width, 1280px) !important;
+  min-width: 0;
+  min-height: 100%;
+  margin-inline: auto;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+.aquaguide-app.desktop-shell-active .md\:hidden {
+  display: none !important;
+}
+
+.aquaguide-app.desktop-shell-active .md\:block {
+  display: block !important;
+}
+
+.aquaguide-app.desktop-shell-active .md\:flex {
+  display: flex !important;
+}
+
+.aquaguide-app.desktop-shell-active .md\:grid {
+  display: grid !important;
+}
+
+.aquaguide-app.desktop-shell-active .aquarium-side,
+.aquaguide-app.desktop-shell-active .aquarium-toolbar {
+  display: none !important;
+}
+
+/* ── 非手机端（≥768px）：启用工作台布局 ── */
 @media (min-width: 768px) {
   html,
   body,
@@ -126,21 +201,59 @@ body,
   }
 }
 
-/* ── 标准网页端（≥1280px）：顶部导航 + 1280 工作台画布 ── */
-@media (min-width: 1280px) {
+/* ── 桌面/平板工作台（≥768px）：固定侧栏 + 右侧独立滚动 ── */
+@media (min-width: 768px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   :root {
     --desktop-canvas-width: 1280px;
-    --desktop-gap: 24px;
-    --desktop-top-nav-height: 76px;
+    --desktop-gap: 18px;
+    --desktop-sidebar-width: 280px;
+    --desktop-content-gap: clamp(12px, 1.25vw, 18px);
   }
 
   .app-main-shell {
-    max-width: var(--desktop-canvas-width);
+    position: fixed;
+    inset-block: 0;
+    left: calc(var(--desktop-sidebar-width) + var(--desktop-content-gap));
+    right: 0;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    transition: left 180ms ease;
   }
 
   .desktop-canvas {
-    width: min(var(--desktop-canvas-width), 100%);
-    max-width: var(--desktop-canvas-width);
+    width: min(100%, var(--desktop-canvas-width)) !important;
+    min-width: 0;
+    max-width: var(--desktop-canvas-width) !important;
+    min-height: 100%;
+    margin-inline: auto;
+    overflow: visible !important;
+    transform: none !important;
+    transform-origin: initial;
+    will-change: auto;
+  }
+
+  .desktop-too-narrow {
+    display: none;
+    position: fixed;
+    inset-block: 0;
+    left: calc(var(--desktop-sidebar-width) + var(--desktop-content-gap));
+    right: 0;
+    z-index: 55;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(223, 232, 229, 0.92);
+    backdrop-filter: blur(10px);
   }
 
   .page-frame {
@@ -149,6 +262,24 @@ body,
 
   .page-frame-wide {
     max-width: var(--desktop-canvas-width);
+  }
+
+  .desktop-workspace-scroll {
+    height: 100dvh;
+    width: 100%;
+    padding-inline: var(--desktop-content-gap) !important;
+    padding-block: 24px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .desktop-workspace-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   .desktop-card-grid {

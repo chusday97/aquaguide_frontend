@@ -3,10 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, lazy, Suspense, useEffect, type ErrorInfo, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { BookOpen, Droplets, Library } from 'lucide-react';
+import {
+  Activity,
+  BookOpen,
+  ChevronLeft,
+  Database,
+  Droplets,
+  Heart,
+  Library,
+  LogIn,
+} from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
@@ -125,6 +134,40 @@ const navItems = [
   { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
 ];
 
+const desktopSubMenus = {
+  '/encyclopedia': [
+    { id: 'browse', label: '浏览图鉴', description: '查找生物和分类', icon: BookOpen, hash: '#browse' },
+    { id: 'compatibility', label: '混养计算', description: '选择生物看风险', icon: Activity, hash: '#compatibility' },
+  ],
+} as const;
+
+const readJsonCount = (key: string) => {
+  try {
+    const fallback = key === 'aqua_care_favorites' ? '{}' : '[]';
+    const value = JSON.parse(localStorage.getItem(key) || fallback);
+    if (Array.isArray(value)) return value.length;
+    if (value && typeof value === 'object') return Object.keys(value).length;
+  } catch {
+    return 0;
+  }
+  return 0;
+};
+
+const hasStoredAuthSession = () => {
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('sb-') && key.includes('auth-token')) {
+        const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+        if (parsed?.currentSession?.access_token || parsed?.access_token) return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
 function BottomNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -132,7 +175,7 @@ function BottomNavigation() {
   return (
     <>
       {/* ── 移动端：底部标签栏 ── */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md xl:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md md:hidden">
         <div className="grid grid-cols-3 gap-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -158,46 +201,263 @@ function BottomNavigation() {
         </div>
       </nav>
 
-      {/* ── 标准网页端（≥1280px）：顶部全局导航 ── */}
-      <nav className="fixed inset-x-0 top-0 z-50 hidden justify-center px-6 pt-4 xl:flex">
-        <div className="grid h-[72px] w-full max-w-[1280px] grid-cols-[220px_1fr] items-center gap-5 px-1">
-          <div className="min-w-0">
-            <div className="text-[17px] font-black leading-tight text-ink">AquaGuide</div>
-            <div className="mt-0.5 text-[11px] font-bold text-ink/38">水族养护助手</div>
-          </div>
-          <div className="flex items-center justify-end gap-2">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.path}
-                type="button"
-                aria-current={isActive ? 'page' : undefined}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  "relative flex h-12 min-w-[178px] items-center justify-center gap-2 rounded-[22px] px-4 text-[13px] font-black transition-colors",
-                  isActive
-                    ? "bg-accent text-white shadow-[0_10px_24px_rgba(27,77,62,0.18)]"
-                    : "bg-white/54 text-ink/52 hover:bg-white/85 hover:text-accent"
-                )}
-              >
-                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-[15px]", isActive ? "bg-white/14 text-white" : "bg-white/70 text-ink/45")}>
-                  <Icon className="h-5 w-5 shrink-0" />
-                </span>
-                <span className="min-w-0 text-left">
-                  <span className="block truncate text-[14px] leading-tight">{item.label}</span>
-                  <span className={cn("mt-0.5 block truncate text-[10px] font-bold leading-tight", isActive ? "text-white/62" : "text-ink/34")}>
-                    {item.description}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-          </div>
-        </div>
-      </nav>
     </>
+  );
+}
+
+function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activePath = navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
+  const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
+  const [hasSession, setHasSession] = useState(false);
+  const activeMenu = useMemo(() => {
+    if (activePath === '/encyclopedia') return [...desktopSubMenus['/encyclopedia']];
+    return [];
+  }, [activePath]);
+
+  const fixedUtilityItems = useMemo(() => [
+    {
+      id: 'species-wishlist',
+      label: `种草图鉴${favoriteCounts.species ? ` ${favoriteCounts.species}` : ''}`,
+      description: favoriteCounts.species ? '查看已收藏生物' : '暂无收藏生物',
+      icon: Heart,
+      path: '/encyclopedia',
+      hash: '#wishlist',
+    },
+    {
+      id: 'care-favorites',
+      label: `养护收藏${favoriteCounts.care ? ` ${favoriteCounts.care}` : ''}`,
+      description: favoriteCounts.care ? '查看收藏文章' : '暂无收藏文章',
+      icon: Library,
+      path: '/care',
+      hash: '#care-favorites',
+    },
+  ], [favoriteCounts]);
+
+  useEffect(() => {
+    const refreshCounts = () => {
+      setFavoriteCounts({
+        species: readJsonCount('wishlistFishIds'),
+        care: readJsonCount('aqua_care_favorites'),
+      });
+      setHasSession(hasStoredAuthSession());
+    };
+    refreshCounts();
+    window.addEventListener('storage', refreshCounts);
+    window.addEventListener('focus', refreshCounts);
+    const timer = window.setInterval(refreshCounts, 1200);
+    return () => {
+      window.removeEventListener('storage', refreshCounts);
+      window.removeEventListener('focus', refreshCounts);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const handlePrimaryNav = (path: string) => {
+    navigate(path);
+  };
+
+  const handleSubNav = (hash: string) => {
+    navigate(`${activePath}${hash}`);
+    window.setTimeout(() => {
+      const target = document.getElementById(hash.replace('#', ''));
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
+  const handleUtilityNav = (path: string, hash: string) => {
+    navigate(`${path}${hash}`);
+    window.setTimeout(() => {
+      const target = document.getElementById(hash.replace('#', ''));
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
+  return (
+    <aside
+      aria-label="AquaGuide 桌面导航"
+      className={cn(
+        'desktop-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-white/70 bg-[#F8FAF8]/95 shadow-[18px_0_48px_rgba(27,77,62,0.08)] backdrop-blur-xl md:flex',
+        collapsed ? 'w-[76px]' : 'w-[280px]'
+      )}
+    >
+      <div className="flex min-h-0 w-full flex-col">
+        <div className={cn('flex shrink-0 items-center gap-3 px-4 pb-5 pt-5', collapsed && 'justify-center px-2')}>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-emerald-700 to-emerald-500 text-white shadow-[0_12px_26px_rgba(27,77,62,0.22)]">
+            <Droplets className="h-6 w-6" />
+          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <div className="text-[19px] font-black leading-tight text-ink">AquaGuide</div>
+              <div className="mt-0.5 text-[12px] font-bold text-ink/42">水族养护助手</div>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="absolute -right-4 top-7 flex h-9 w-9 items-center justify-center rounded-full border border-white bg-white text-ink/50 shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-colors hover:text-accent"
+          aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+        >
+          <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+        </button>
+
+        <nav className="min-h-0 flex-1 px-3 pb-4">
+          <div className="grid gap-2">
+            {navItems.map((item) => {
+              const isActive = activePath === item.path;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => handlePrimaryNav(item.path)}
+                  title={collapsed ? item.label : undefined}
+                  className={cn(
+                    'flex min-h-[58px] w-full items-center gap-3 rounded-[20px] px-3 text-left transition-colors',
+                    collapsed && 'justify-center px-2',
+                    isActive
+                      ? 'bg-accent text-white shadow-[0_14px_28px_rgba(27,77,62,0.18)]'
+                      : 'text-ink/58 hover:bg-white hover:text-accent'
+                  )}
+                >
+                  <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px]', isActive ? 'bg-white/15 text-white' : 'bg-white text-ink/46')}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  {!collapsed && (
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-black leading-tight">{item.label}</span>
+                      <span className={cn('mt-1 block truncate text-[10px] font-bold leading-tight', isActive ? 'text-white/65' : 'text-ink/36')}>
+                        {item.description}
+                      </span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeMenu.length > 0 && (
+          <div className={cn('mt-6 border-t border-ink/6 pt-4', collapsed && 'mt-4 pt-3')}>
+            <div className="grid gap-1.5">
+              {activeMenu.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.hash === item.hash;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={collapsed ? item.label : undefined}
+                    onClick={() => handleSubNav(item.hash)}
+                    className={cn(
+                      'flex min-h-[50px] items-center gap-3 rounded-[16px] px-3 text-left transition-colors',
+                      collapsed && 'justify-center px-2',
+                      isActive
+                        ? 'bg-white text-accent shadow-sm ring-1 ring-emerald-100'
+                        : 'text-ink/55 hover:bg-white/80 hover:text-accent'
+                    )}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" />
+                    {!collapsed && (
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[9px] font-bold leading-tight text-ink/34">{item.description}</span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          )}
+        </nav>
+
+        {!collapsed && (
+          <div className="shrink-0 border-t border-ink/6 px-5 py-4">
+            <div className="mb-3 grid gap-2">
+              {fixedUtilityItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path && location.hash === item.hash;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleUtilityNav(item.path, item.hash)}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left shadow-sm transition-colors',
+                      isActive
+                        ? 'bg-white text-accent ring-1 ring-emerald-100'
+                        : 'bg-white/75 text-ink/55 hover:bg-white hover:text-accent'
+                    )}
+                  >
+                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px]', isActive ? 'bg-emerald-50 text-accent' : 'bg-white text-ink/48')}>
+                      <Icon className="h-4.5 w-4.5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
+                      <span className="mt-0.5 block truncate text-[10px] font-bold leading-tight text-ink/42">{item.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="mb-3 flex w-full items-center gap-3 rounded-[18px] bg-emerald-50 px-3 py-3 text-left text-accent shadow-sm transition-colors hover:bg-emerald-100"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-white">
+                <LogIn className="h-4.5 w-4.5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-black leading-tight">{hasSession ? '已登录' : '登录'}</span>
+                <span className="mt-0.5 block text-[10px] font-bold leading-tight text-ink/42">{hasSession ? '管理账号' : '同步数据'}</span>
+              </span>
+            </button>
+            <div className="flex items-start gap-2 rounded-[18px] bg-white/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-ink/45 shadow-sm">
+              <Database className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+              数据保存在当前浏览器，切换设备前请先同步或导出。
+            </div>
+            <div className="mt-3 text-[10px] font-black text-ink/28">AquaGuide v1.0</div>
+          </div>
+        )}
+        {collapsed && (
+          <div className="grid shrink-0 gap-2 border-t border-ink/6 px-3 py-4">
+            {fixedUtilityItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path && location.hash === item.hash;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  title={item.label}
+                  onClick={() => handleUtilityNav(item.path, item.hash)}
+                  className={cn(
+                    'relative flex h-11 w-full items-center justify-center rounded-[16px] shadow-sm transition-colors',
+                    isActive ? 'bg-white text-accent ring-1 ring-emerald-100' : 'bg-white/75 text-ink/50 hover:bg-white hover:text-accent'
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  {(item.id === 'species-wishlist' ? favoriteCounts.species : favoriteCounts.care) > 0 && (
+                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
+                  )}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              title={hasSession ? '已登录' : '登录'}
+              onClick={() => navigate('/login')}
+              className="flex h-11 w-full items-center justify-center rounded-[16px] bg-emerald-50 text-accent shadow-sm transition-colors hover:bg-emerald-100"
+            >
+              <LogIn className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -229,6 +489,34 @@ function AppShell() {
   const location = useLocation();
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
+  const [isPhoneShell, setIsPhoneShell] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('aquaguide_desktop_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const isDesktopShell = !isPhoneShell;
+  const desktopShellStyle = useMemo(() => ({
+    '--desktop-sidebar-width': isDesktopSidebarCollapsed ? '76px' : '280px',
+  }) as CSSProperties, [isDesktopSidebarCollapsed]);
+
+  const toggleDesktopSidebar = () => {
+    setIsDesktopSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('aquaguide_desktop_sidebar_collapsed', String(next));
+      } catch {
+        // localStorage can be unavailable in private contexts.
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const root = document.querySelector('.aquaguide-app');
@@ -271,6 +559,19 @@ function AppShell() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const phoneMedia = window.matchMedia('(max-width: 767px)');
+    const sync = () => {
+      setIsPhoneShell(phoneMedia.matches);
+    };
+    sync();
+    phoneMedia.addEventListener('change', sync);
+    return () => {
+      phoneMedia.removeEventListener('change', sync);
+    };
+  }, []);
+
   if (isStructurePreview) {
     return (
       <Suspense fallback={<PageLoading />}>
@@ -294,11 +595,29 @@ function AppShell() {
   }
 
   return (
-    <div className="aquaguide-app flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink">
+    <div
+      className={cn(
+        'aquaguide-app flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink md:h-[100dvh] md:overflow-hidden',
+        isDesktopShell ? 'desktop-shell-active' : 'phone-shell-active',
+      )}
+      style={desktopShellStyle}
+    >
+      <DesktopSidebar collapsed={isDesktopSidebarCollapsed} onToggleCollapsed={toggleDesktopSidebar} />
+      <div className="desktop-too-narrow" role="status" aria-live="polite">
+        <div className="rounded-[28px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-accent">
+            <ChevronLeft className="h-5 w-5" />
+          </div>
+          <div className="text-lg font-black text-ink">当前窗口太窄</div>
+          <p className="mt-2 text-sm font-bold leading-6 text-ink/55">
+            桌面工作台需要更多横向空间。请放大窗口，或收起左侧栏后继续使用。
+          </p>
+        </div>
+      </div>
       {/* 主内容区：移动端保持居中卡片风格，桌面端占满剩余空间 */}
-      <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl md:max-w-[960px] md:bg-transparent md:shadow-none md:overflow-visible xl:max-w-[1280px]">
-        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))] md:min-h-dvh md:overflow-visible md:px-6 md:pb-[calc(88px+env(safe-area-inset-bottom))] md:pt-6 xl:px-0 xl:pb-10 xl:pt-[116px]">
-          <div className="desktop-canvas mx-auto w-full max-w-full min-w-0 overflow-x-hidden xl:max-w-[1280px]">
+      <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl md:mx-0 md:h-[100dvh] md:max-w-none md:bg-transparent md:shadow-none md:overflow-hidden">
+        <main className="app-scrollbar-hidden desktop-workspace-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))] md:h-[100dvh] md:min-h-0 md:px-6 md:pb-3 md:pt-6">
+          <div className="desktop-canvas mx-auto w-full max-w-full min-w-0 overflow-x-hidden md:overflow-visible">
             <Suspense fallback={<PageLoading />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/aquarium" replace />} />
@@ -311,7 +630,7 @@ function AppShell() {
           </div>
         </main>
       </div>
-      <BottomNavigation />
+      {isPhoneShell && <BottomNavigation />}
     </div>
   );
 }
