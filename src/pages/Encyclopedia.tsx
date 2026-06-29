@@ -1015,6 +1015,77 @@ export default function Encyclopedia() {
     setTargetAquariumId('');
   };
 
+  const addCompatibilitySpeciesToAquarium = async (items: { fishId: string; quantity: number }[]) => {
+    const appState = loadAppStateFromStorage();
+    const aquariums: Aquarium[] = appState.aquariums.length > 0
+      ? appState.aquariums
+      : JSON.parse(localStorage.getItem('aquariums') || '[]');
+    if (!Array.isArray(aquariums) || aquariums.length === 0) {
+      throw new Error('请先在“我的鱼缸”页面创建一个鱼缸。');
+    }
+
+    const activeId = currentAquarium?.id || targetAquariumId || appState.currentAquariumId || aquariums[0].id;
+    const activeAquarium = aquariums.find(item => item.id === activeId) || aquariums[0];
+    const normalizedItems = items
+      .filter(item => fishData.some(fish => fish.id === item.fishId))
+      .map(item => ({
+        fishId: item.fishId,
+        quantity: Math.max(1, Number(item.quantity) || 1),
+      }));
+
+    if (normalizedItems.length === 0) {
+      throw new Error('没有可加入当前鱼缸的新增生物。');
+    }
+
+    const now = new Date().toISOString();
+    const updatedAquariums = aquariums.map(aquarium => {
+      if (aquarium.id !== activeAquarium.id) return aquarium;
+      const nextFishes = [...aquarium.fishes];
+
+      normalizedItems.forEach(item => {
+        const existingIndex = nextFishes.findIndex(record => record.fishId === item.fishId);
+        if (existingIndex >= 0) {
+          nextFishes[existingIndex] = {
+            ...nextFishes[existingIndex],
+            quantity: (nextFishes[existingIndex].quantity || 1) + item.quantity,
+          };
+          return;
+        }
+
+        nextFishes.push({
+          id: Math.random().toString(36).substring(2, 9),
+          fishId: item.fishId,
+          quantity: item.quantity,
+          entryDate: now,
+          lastWaterChangeDate: now,
+        });
+      });
+
+      return { ...aquarium, fishes: nextFishes };
+    });
+
+    localStorage.setItem('aquariums', JSON.stringify(updatedAquariums));
+    patchLocalAppState({ aquariums: updatedAquariums, currentAquariumId: activeAquarium.id });
+
+    const updatedActiveAquarium = updatedAquariums.find(item => item.id === activeAquarium.id) || activeAquarium;
+    setCurrentAquarium(updatedActiveAquarium);
+    setTargetAquariumId(activeAquarium.id);
+    setOwnedFishIds(prev => {
+      const next = new Set(prev);
+      normalizedItems.forEach(item => next.add(item.fishId));
+      return next;
+    });
+
+    const addedNames = normalizedItems
+      .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
+      .filter(Boolean)
+      .join('、');
+    const message = `已加入 ${normalizedItems.length} 种生物到 ${activeAquarium.name}${addedNames ? `：${addedNames}` : ''}。`;
+    setLastAddedToTankMessage(message);
+    setCalculatorFeedback(message);
+    return { message };
+  };
+
   const handleAddToTank = (fish: Fish) => {
     const appState = loadAppStateFromStorage();
     const aquariums: Aquarium[] = appState.aquariums.length > 0
@@ -1741,6 +1812,7 @@ export default function Encyclopedia() {
           preferredSpeciesIds={Array.from(ownedFishIds)}
           aquariums={aquariumSnapshots}
           activeAquariumId={currentAquarium?.id || targetAquariumId}
+          onAddToAquarium={addCompatibilitySpeciesToAquarium}
           onBrowseAtlas={() => {
             setViewMode('browse');
             window.requestAnimationFrame(() => {
