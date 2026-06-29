@@ -763,13 +763,17 @@ export default function AquariumManager() {
     return () => window.clearInterval(timer);
   }, [diagnosisFullText]);
 
+  const syncWishlistFishIds = (next: Set<string>) => {
+    setWishlistFishIds(next);
+    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+    patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+  };
+
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-    patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+    syncWishlistFishIds(next);
   };
 
   useEffect(() => {
@@ -2040,8 +2044,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     if (output.addedWishlistId) {
       const next = new Set(wishlistFishIds);
       next.add(output.addedWishlistId);
-      setWishlistFishIds(next);
-      localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+      syncWishlistFishIds(next);
     }
 
     setDiscoveryMessage(output.message);
@@ -2049,6 +2052,18 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     setDiscoveryDragX(0);
     saveDiscoveryState(output.state);
     setDiscoveryState(output.state);
+  };
+
+  const handleAquariumSpeciesSelect = (fishId: string | null) => {
+    setActive3DSpecies(fishId);
+    if (!fishId) return;
+
+    const aqFish = activeAquarium.fishes.find(item => item.fishId === fishId);
+    const fish = fishData.find(item => item.id === fishId);
+    if (!aqFish || !fish) return;
+
+    setSelectedWishlistFish(null);
+    setSelectedAqFish({ fish, aqFish });
   };
 
   const handleDiscoveryPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -3382,13 +3397,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           conclusion={statusConclusion}
           meta={<TagPill tone={todayTaskCount > 0 ? 'warning' : 'normal'}>{todayTaskCount > 0 ? `今日 ${todayTaskCount} 项待处理` : '今日无紧急任务'}</TagPill>}
           actionSlot={hasPriorityRisk ? (
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 text-[12px] font-black leading-snug text-ink/72">
+            <div className="space-y-2">
+              <div className="grid gap-1.5">
+                <div className="text-[11px] font-black leading-relaxed text-ink/72">
                   {riskReminderCount} 条提醒：先观察是否浮头、急促呼吸或趴缸
                 </div>
                 {priorityTaskStatus.observeBreathing && (
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">
+                  <span className="w-fit rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">
                     {priorityTaskStatus.observeBreathing}
                   </span>
                 )}
@@ -3397,7 +3412,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 <Button
                   type="button"
                   onClick={() => setIsObservationOpen(true)}
-                  className="h-8 rounded-full bg-emerald-700 px-3 text-[11px] font-black text-white shadow-none hover:bg-emerald-800"
+                  className="h-10 min-w-0 rounded-full bg-emerald-700 px-2 text-[12px] font-black text-white shadow-none hover:bg-emerald-800"
                 >
                   开始观察
                 </Button>
@@ -3405,7 +3420,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   type="button"
                   variant="outline"
                   onClick={() => setIsRiskReminderOpen(true)}
-                  className="h-8 rounded-full border-ink/10 bg-white px-3 text-[11px] font-black text-ink/70"
+                  className="h-10 min-w-0 rounded-full border-ink/10 bg-white px-2 text-[12px] font-black text-ink/70"
                 >
                   全部提醒
                 </Button>
@@ -3554,7 +3569,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           <ThreeAquarium
             aquarium={activeAquarium}
             activeSpecies={active3DSpecies}
-            onSpeciesSelect={setActive3DSpecies}
+            onSpeciesSelect={handleAquariumSpeciesSelect}
           />
         </Suspense>
         
@@ -3932,7 +3947,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               <ThreeAquarium
                 aquarium={activeAquarium}
                 activeSpecies={active3DSpecies}
-                onSpeciesSelect={setActive3DSpecies}
+                onSpeciesSelect={handleAquariumSpeciesSelect}
               />
             </Suspense>
             <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-1.5 pointer-events-none">

@@ -46,7 +46,7 @@ export function StatusSummaryCard({
         : 'border-red-100 bg-white text-red-600';
 
   return (
-    <section className={`overflow-hidden rounded-[18px] border p-4 shadow-sm ${cardClassName}`}>
+    <section className={`overflow-visible rounded-[18px] border p-4 shadow-sm ${cardClassName}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

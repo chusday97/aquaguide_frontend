@@ -612,13 +612,17 @@ export default function Encyclopedia() {
     setWishlistFishIds(loadWishlistIds());
   }, []);
 
+  const syncWishlistFishIds = (next: Set<string>) => {
+    setWishlistFishIds(next);
+    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+    patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+  };
+
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-    patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+    syncWishlistFishIds(next);
   };
 
   const encyclopediaCatalog = useMemo(
@@ -698,8 +702,7 @@ export default function Encyclopedia() {
     if (output.addedWishlistId) {
       const next = new Set(wishlistFishIds);
       next.add(output.addedWishlistId);
-      setWishlistFishIds(next);
-      localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+      syncWishlistFishIds(next);
     }
     setDiscoveryMessage(output.message);
     setDiscoveryDragStartX(null);

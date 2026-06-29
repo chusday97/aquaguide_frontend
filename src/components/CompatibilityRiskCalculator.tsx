@@ -194,11 +194,22 @@ const getMainConflicts = (result: ReturnType<typeof calculateRisk>, species: Fis
     ...result.ruleResult.missingData,
   ];
   const pair = species.map(item => item.name).join(' × ');
-  return ruleItems.slice(0, 3).map((rule, index) => ({
-    key: `${rule.code}-${index}`,
-    pair,
-    reason: rule.evidence || rule.title,
-  }));
+  const grouped = new Map<string, { key: string; pair: string; reason: string; reasons: string[] }>();
+
+  ruleItems.forEach((rule, index) => {
+    const reason = rule.evidence || rule.title;
+    const item = grouped.get(pair) || {
+      key: `conflict-${index}`,
+      pair,
+      reason,
+      reasons: [],
+    };
+    if (!item.reasons.includes(reason)) item.reasons.push(reason);
+    item.reason = item.reasons[0] || reason;
+    grouped.set(pair, item);
+  });
+
+  return Array.from(grouped.values()).slice(0, 3);
 };
 
 const getActionHints = (result: ReturnType<typeof calculateRisk>, species: Fish[]) => {
@@ -387,17 +398,28 @@ function CompatibilityBottomSheet({
                 <section key={conflict.key} className="rounded-[18px] bg-white p-3 shadow-sm">
                   <div className="text-[10px] font-black text-ink/42">提醒对象</div>
                   <div className="mt-1 text-[15px] font-black text-ink">{conflict.pair}</div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(conflict.reasons || [conflict.reason]).map(reason => (
+                      <span key={reason} className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-600">
+                        {getConflictType(reason)}
+                      </span>
+                    ))}
+                  </div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <div className="rounded-[14px] bg-bg px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/42">为什么提醒</div>
-                      <div className="mt-1 text-[12px] font-black text-ink">{getConflictType(conflict.reason)}</div>
+                      <div className="text-[10px] font-black text-ink/42">风险数量</div>
+                      <div className="mt-1 text-[12px] font-black text-ink">{(conflict.reasons || [conflict.reason]).length} 项需要确认</div>
                     </div>
                     <div className={`rounded-[14px] border px-3 py-2 ${meta.tone}`}>
                       <div className="text-[10px] font-black opacity-60">风险等级</div>
                       <div className="mt-1 text-[12px] font-black">{meta.label}</div>
                     </div>
                   </div>
-                  <p className="mt-2 rounded-[14px] bg-bg px-3 py-2 text-[12px] font-medium leading-relaxed text-ink/64">{conflict.reason}</p>
+                  <div className="mt-2 grid gap-1.5 rounded-[14px] bg-bg px-3 py-2">
+                    {(conflict.reasons || [conflict.reason]).slice(0, 3).map(reason => (
+                      <p key={reason} className="text-[12px] font-medium leading-relaxed text-ink/64">{reason}</p>
+                    ))}
+                  </div>
                 </section>
               ))}
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
