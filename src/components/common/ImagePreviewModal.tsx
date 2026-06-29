@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 export type PreviewImage = {
@@ -40,16 +41,23 @@ export function ImagePreviewModal({ images, index, open, onClose, onIndexChange 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canNavigate, images.length, onClose, onIndexChange, open, safeIndex]);
 
-  if (!open || !image) return null;
+  const portalTarget = typeof document === 'undefined' ? null : document.body;
+
+  if (!open || !image || !portalTarget) return null;
 
   const goPrevious = () => onIndexChange((safeIndex - 1 + images.length) % images.length);
   const goNext = () => onIndexChange((safeIndex + 1) % images.length);
 
-  return (
-    <div className="fixed inset-0 z-[240] flex items-center justify-center bg-black/82 p-3 pb-[calc(12px+env(safe-area-inset-bottom))]" role="dialog" aria-modal="true">
+  return createPortal(
+    <div
+      className="fixed inset-0 isolate flex items-center justify-center bg-black/82 p-4 pb-[calc(16px+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(24px+env(safe-area-inset-bottom))]"
+      style={{ zIndex: 2147483647 }}
+      role="dialog"
+      aria-modal="true"
+    >
       <button type="button" aria-label="关闭图片预览" className="absolute inset-0 cursor-default" onClick={onClose} />
 
-      <div className="relative z-10 flex h-full max-h-[92dvh] w-full max-w-[900px] flex-col overflow-hidden rounded-[22px] bg-neutral-950 shadow-2xl">
+      <div className="relative z-10 flex h-full max-h-[92dvh] w-full max-w-[min(1100px,calc(100vw-48px))] flex-col overflow-hidden rounded-[22px] bg-neutral-950 shadow-2xl">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2 text-white">
           <div className="min-w-0">
             <div className="truncate text-sm font-black">{image.title}</div>
@@ -114,6 +122,7 @@ export function ImagePreviewModal({ images, index, open, onClose, onIndexChange 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 }
