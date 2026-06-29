@@ -10,11 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
 import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2, CheckCircle2 } from 'lucide-react';
 import { DeceasedRecord } from '../types';
-import { askAquaGuideAI, generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
+import { askAquaGuideAI, generateRecommendationAssist, generateRiskExplanation, type RecommendationAssistData, type RiskExplanationData } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions } from '../modules/species/species.service';
-import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
+import type { DiscoveryDeckState, RecommendationCandidate, RecommendationMode, SimulationResult, SmartRecommendationOutput } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
 import { buildDiagnosisResult } from '../modules/diagnosis/diagnosis.rules';
 import {
@@ -624,6 +624,13 @@ export default function AquariumManager() {
   const [isAquariumMenuOpen, setIsAquariumMenuOpen] = useState(false);
   const [isAddFishOpen, setIsAddFishOpen] = useState(false);
   const [isRecommendOpen, setIsRecommendOpen] = useState(false);
+  const [isSmartRecommendOpen, setIsSmartRecommendOpen] = useState(false);
+  const [smartRecommendMode, setSmartRecommendMode] = useState<RecommendationMode>('existing_livestock');
+  const [smartPreference, setSmartPreference] = useState('新手友好 低维护');
+  const [smartAiAssist, setSmartAiAssist] = useState<RecommendationAssistData | null>(null);
+  const [isSmartAiLoading, setIsSmartAiLoading] = useState(false);
+  const [smartSimulation, setSmartSimulation] = useState<SimulationResult | null>(null);
+  const [smartAddQuantity, setSmartAddQuantity] = useState(1);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   const [selectedAqFish, setSelectedAqFish] = useState<{fish: Fish, aqFish: AquariumFish} | null>(null);
@@ -657,6 +664,8 @@ export default function AquariumManager() {
   const [activeSettingsPanel, setActiveSettingsPanel] = useState<'size' | 'parameters' | 'substrate' | 'plants' | 'lighting' | 'equipment' | null>(null);
   const [isPlantListExpanded, setIsPlantListExpanded] = useState(false);
   const [isScapeListExpanded, setIsScapeListExpanded] = useState(false);
+  const settingsBodyRef = useRef<HTMLDivElement | null>(null);
+  const settingPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   // 3D Highlight state
   const [active3DSpecies, setActive3DSpecies] = useState<string | null>(null);
@@ -814,13 +823,44 @@ export default function AquariumManager() {
     setIsLocalDataOpen(true);
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash === '#local-data') {
+      openLocalDataManager();
+    }
+  }, []);
+
   const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {
     setSettingsForm(activeAquarium);
-    setIsPlantListExpanded(false);
-    setIsScapeListExpanded(false);
+    setIsPlantListExpanded(panel === 'plants');
+    setIsScapeListExpanded(panel === 'substrate');
     setActiveSettingsPanel(panel);
     setIsSettingsOpen(true);
   };
+
+  const openSettingsPanel = (panel: NonNullable<typeof activeSettingsPanel>) => {
+    const nextPanel = activeSettingsPanel === panel ? null : panel;
+    setActiveSettingsPanel(nextPanel);
+    if (panel === 'plants') setIsPlantListExpanded(true);
+    if (panel === 'substrate') setIsScapeListExpanded(true);
+    if (!nextPanel) return;
+    window.setTimeout(() => {
+      const body = settingsBodyRef.current;
+      const target = settingPanelRefs.current[panel];
+      if (!body || !target) return;
+      body.scrollTo({ top: Math.max(0, target.offsetTop - 10), behavior: 'smooth' });
+    }, 80);
+  };
+
+  useEffect(() => {
+    if (!isSettingsOpen || !activeSettingsPanel) return;
+    window.setTimeout(() => {
+      const body = settingsBodyRef.current;
+      const target = settingPanelRefs.current[activeSettingsPanel];
+      if (!body || !target) return;
+      body.scrollTo({ top: Math.max(0, target.offsetTop - 10), behavior: 'smooth' });
+    }, 140);
+  }, [activeSettingsPanel, isSettingsOpen]);
 
   const handleExportLocalData = () => {
     setLocalDataText(exportLocalAppState());
@@ -1086,6 +1126,60 @@ export default function AquariumManager() {
     setSelectedAddFishItems([]);
     setFishSearchTerm('');
     setAddFishDatePicker(null);
+  };
+
+  const handleAddCompatibilitySpeciesToTank = async (items: { fishId: string; quantity: number }[]) => {
+    if (!activeAquarium) {
+      throw new Error('请先选择当前鱼缸。');
+    }
+
+    const entryDate = format(new Date(), 'yyyy-MM-dd');
+    const normalizedItems = items
+      .filter(item => fishData.some(fish => fish.id === item.fishId))
+      .map(item => ({
+        fishId: item.fishId,
+        quantity: Math.max(1, item.quantity || 1),
+        entryDate,
+      }));
+
+    if (normalizedItems.length === 0) {
+      throw new Error('没有可加入当前鱼缸的生物。');
+    }
+
+    const updated = aquariums.map(a => {
+      if (a.id !== activeId) return a;
+
+      const nextFishes = [...a.fishes];
+      normalizedItems.forEach(item => {
+        const existingIndex = nextFishes.findIndex(f => f.fishId === item.fishId);
+        if (existingIndex >= 0) {
+          nextFishes[existingIndex] = {
+            ...nextFishes[existingIndex],
+            quantity: (nextFishes[existingIndex].quantity || 1) + item.quantity,
+          };
+          return;
+        }
+
+        nextFishes.push({
+          id: Math.random().toString(36).substring(2, 9),
+          fishId: item.fishId,
+          quantity: item.quantity,
+          entryDate: new Date(item.entryDate).toISOString(),
+          lastWaterChangeDate: new Date(item.entryDate).toISOString(),
+        });
+      });
+
+      return { ...a, fishes: nextFishes };
+    });
+
+    saveAquariums(updated);
+    const addedNames = normalizedItems
+      .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
+      .filter(Boolean)
+      .join('、');
+    const message = `已加入 ${normalizedItems.length} 种生物到当前鱼缸${addedNames ? `：${addedNames}` : ''}。`;
+    setTankActionMessage(message);
+    return { message };
   };
 
   const handleViewTankAfterAdd = () => {
@@ -1414,6 +1508,87 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     } finally {
       setIsRecommending(false);
     }
+  };
+
+  const openSmartRecommendation = (mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank') => {
+    setSmartRecommendMode(mode);
+    setSmartSimulation(null);
+    setSmartAiAssist(null);
+    setSmartAddQuantity(1);
+    setIsSmartRecommendOpen(true);
+  };
+
+  const handleRecommendationAssist = async () => {
+    setIsSmartAiLoading(true);
+    const assist = await generateRecommendationAssist({
+      mode: smartRecommendation.mode,
+      aquariumProfile: smartRecommendation.profile,
+      safeCandidates: smartRecommendation.direct,
+      adjustableCandidates: smartRecommendation.adjustable,
+      blockedSummary: smartRecommendation.blockedSummary,
+      userPreference: { naturalLanguage: smartPreference },
+      ruleFacts: {
+        source: 'AquaGuide local recommendation v2',
+        hardFilteredCandidateIds: Array.from(smartCandidateIds),
+        aiCannotAddBlockedSpecies: true,
+      },
+    });
+    setSmartAiAssist(assist);
+    setIsSmartAiLoading(false);
+  };
+
+  const openSmartSimulation = (candidate: RecommendationCandidate) => {
+    const simulation = recommendationService.simulateSmartAdd({
+      candidate,
+      quantity: candidate.recommendedQuantity,
+      profile: smartRecommendation.profile,
+      speciesPool: fishData,
+    });
+    setSmartSimulation(simulation);
+    setSmartAddQuantity(candidate.recommendedQuantity);
+  };
+
+  const updateSmartSimulationQuantity = (quantity: number) => {
+    if (!smartSimulation) return;
+    const nextQuantity = Math.max(1, quantity);
+    setSmartAddQuantity(nextQuantity);
+    setSmartSimulation(recommendationService.simulateSmartAdd({
+      candidate: smartSimulation.candidate,
+      quantity: nextQuantity,
+      profile: smartRecommendation.profile,
+      speciesPool: fishData,
+    }));
+  };
+
+  const confirmSmartSimulationAdd = () => {
+    if (!activeAquarium || !smartSimulation) return;
+    const species = fishData.find(item => item.id === smartSimulation.candidate.speciesId);
+    if (!species) return;
+    const now = new Date().toISOString();
+    const updated = aquariums.map(aquarium => {
+      if (aquarium.id !== activeId) return aquarium;
+      const nextFishes = [...aquarium.fishes];
+      const existingIndex = nextFishes.findIndex(item => item.fishId === species.id);
+      if (existingIndex >= 0) {
+        nextFishes[existingIndex] = {
+          ...nextFishes[existingIndex],
+          quantity: (nextFishes[existingIndex].quantity || 1) + smartAddQuantity,
+        };
+      } else {
+        nextFishes.push({
+          id: Math.random().toString(36).substring(2, 9),
+          fishId: species.id,
+          quantity: smartAddQuantity,
+          entryDate: now,
+          lastWaterChangeDate: now,
+        });
+      }
+      return { ...aquarium, fishes: nextFishes };
+    });
+    saveAquariums(updated);
+    setTankActionMessage(`已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
+    setSmartSimulation(null);
+    setIsSmartRecommendOpen(false);
   };
 
   const diagnosisIconMap = {
@@ -1919,6 +2094,20 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const recommendations = recommendationItems
     .map(item => fishData.find(fish => fish.id === item.speciesId))
     .filter(Boolean) as Fish[];
+  const smartRecommendation: SmartRecommendationOutput = recommendationService.recommendSmartForAquarium({
+    aquarium: activeAquarium,
+    speciesPool: fishData,
+    mode: smartRecommendMode,
+    preference: {
+      experience: smartPreference.includes('新手') ? 'beginner' : 'intermediate',
+      maintenance: smartPreference.includes('低维护') ? 'low' : 'balanced',
+      naturalLanguage: smartPreference,
+    },
+  });
+  const smartCandidateIds = new Set([
+    ...smartRecommendation.direct,
+    ...smartRecommendation.adjustable,
+  ].map(candidate => candidate.speciesId));
   const wishlistFishes = Array.from(wishlistFishIds)
     .map(id => fishData.find(fish => fish.id === id))
     .filter(Boolean) as Fish[];
@@ -2707,16 +2896,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     || (activeAquarium.plants?.length || 0) > 0
     || (activeAquarium.hardscape?.length || 0) > 0
   );
-  const matchedBuildTemplate = tankBuildTemplates.find(template => (
-    template.substrate === activeAquarium.substrate
-    && template.plants.some(plant => activeAquarium.plants?.includes(plant))
-  ));
   const configSummaryText = isBasicConfigComplete
     ? `${activeAquarium.dimensions?.length}x${activeAquarium.dimensions?.width}x${activeAquarium.dimensions?.height}cm · ${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${activeAquarium.targetTemperature}℃`
     : '先确认尺寸、水体、温度和设备。';
-  const buildPlanSummaryText = hasAppliedBuildPlan
-    ? `${matchedBuildTemplate?.name || '当前方案'} 已应用，可查看或重新调整。`
-    : '选择模板，快速配置底砂、水草、硬景和设备。';
   const hasFishLikeSpecies = currentFishesDetails.some(fish => ['freshwaterFish', 'saltwaterFish', 'reptile'].includes(getLifeType(fish)));
   const hasOnlyInvertebrates = hasStockedAnimals && !hasFishLikeSpecies && currentFishesDetails.some(fish => getLifeType(fish) === 'invertebrate');
   const tankHealthStatus: AquariumHealthStatus = healthScore < 60 || conflicts.length > 0 ? '风险' : healthScore < 80 || isChangeOverdue || daysUntilChange <= 1 ? '提醒' : '正常';
@@ -2792,28 +2974,28 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           id: 'setupAquarium',
           title: '完善鱼缸配置',
           status: '建议处理' as ActionCenterStatus,
-          description: '先确认尺寸、水体、温度和设备，让后续建议更准确。',
+          description: '补齐尺寸、温度和设备。',
           actionText: '去设置',
           icon: <Settings className="h-4 w-4" />,
           onAction: () => openAquariumSettings(),
           tone: 'warning' as const,
         }] : []),
         ...(isBasicConfigComplete ? [{
-          id: 'applyTemplate',
-          title: hasAppliedBuildPlan ? '当前方案已应用' : '可以套用搭建方案',
+          id: 'buildPlan',
+          title: hasAppliedBuildPlan ? '查看当前方案' : '选择搭建方案',
           status: hasAppliedBuildPlan ? '已完成' as ActionCenterStatus : '观察' as ActionCenterStatus,
-          description: buildPlanSummaryText,
-          actionText: hasAppliedBuildPlan ? '查看 / 更换' : '选方案',
+          description: hasAppliedBuildPlan ? '可更换或调整方案。' : '先确定底床、设备和生物上限。',
+          actionText: hasAppliedBuildPlan ? '查看方案' : '选方案',
           icon: <Layers3 className="h-4 w-4" />,
           onAction: () => setIsBuildPlanOpen(true),
         }] : []),
       ].slice(0, 1);
   const nextStepMessage = !hasStockedAnimals
     ? isBasicConfigComplete && hasAppliedBuildPlan
-      ? '当前方案已应用，可查看或更换；添加生物请用常用操作。'
+      ? '当前只保留一个最该做的动作。'
       : isBasicConfigComplete
-        ? '鱼缸基础配置已完成，可选择搭建方案或添加生物。'
-        : '当前鱼缸暂无生物，建议先完成配置或套用搭建方案。'
+        ? '先选一个安全搭建方向。'
+        : '先把基础配置补齐。'
     : todayTaskCount > 0
       ? `今天有 ${todayTaskCount} 项建议处理。`
       : '今天暂无紧急任务，可以正常观察。';
@@ -2865,6 +3047,14 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       icon: <Plus className="h-4 w-4" />,
       onClick: () => setIsAddFishOpen(true),
       tone: tankHealthStatus === '风险' ? 'muted' as const : 'normal' as const,
+    },
+    {
+      id: 'smartRecommend',
+      label: '智能推荐',
+      description: '按当前鱼缸筛选',
+      icon: <Sparkles className="h-4 w-4" />,
+      onClick: () => openSmartRecommendation(),
+      tone: 'normal' as const,
     },
     {
       id: 'viewRecords',
@@ -2925,7 +3115,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
   return (
     <div className="page-frame-wide aquarium-desktop-layout flex min-w-0 flex-col gap-4 overflow-x-hidden text-[13px] leading-relaxed">
-      <aside className="aquarium-side hidden xl:sticky xl:top-[116px] xl:block">
+      <aside className="aquarium-side hidden">
         <div className="grid gap-2">
           <div className="relative">
             <button
@@ -3016,7 +3206,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </div>
       </aside>
       {/* Aquarium Tabs */}
-      <section className="aquarium-toolbar order-[0] min-w-0 pb-1 pt-[58px] md:pt-0 xl:hidden">
+      <section className="aquarium-toolbar order-[0] min-w-0 pb-1 pt-[58px] md:pt-0 md:hidden">
         <div className="fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-[430px] min-w-0 items-center gap-2 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-0 md:z-40 md:max-w-[760px] md:rounded-[28px] md:border md:border-white/80 md:bg-white/78 md:px-4 md:py-3 md:shadow-sm">
           <div className="relative min-w-0 flex-1 md:max-w-[360px] md:flex-none">
             <button
@@ -3181,7 +3371,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         )}
       </section>
 
-      <div className="aquarium-status order-[2]">
+      <div id="tank-status" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
           status={tankHealthStatus}
           healthPercent={healthScore}
@@ -3225,7 +3415,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         />
       </div>
 
-      <section ref={desktopDiscoveryRef} className="aquarium-discovery order-[1] scroll-mt-[116px] overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm">
+      <section id="today-discovery" ref={desktopDiscoveryRef} className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-[13px] font-black text-ink">今日种草</div>
@@ -3246,7 +3436,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 setSelectedDiscoveryFish(discoveryFish);
               }
             }}
-            className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99] xl:desktop-split-card xl:items-start xl:gap-4"
+            className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99] md:desktop-split-card md:items-start md:gap-4"
           >
             <div className={`flex h-full min-h-[116px] items-center justify-center rounded-[14px] p-2 ${getSpeciesImageSurfaceClass(discoveryFish)}`}>
               <img
@@ -3271,11 +3461,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 ))}
               </div>
               <p className="mt-2 line-clamp-2 text-[11px] font-bold leading-relaxed text-ink/62">{getDiscoveryPositioning(discoveryFish)}</p>
-              <div className="mt-3 grid grid-cols-2 gap-1.5 md:flex md:gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-1.5">
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-8 rounded-full border-border bg-white text-[11px] font-black text-ink/62"
+                  className="h-8 min-w-0 rounded-full border-border bg-white px-2 text-[11px] font-black text-ink/62"
                   onClick={(event) => {
                     event.stopPropagation();
                     advanceDiscoveryCard('skip');
@@ -3285,7 +3475,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 </Button>
                 <Button
                   type="button"
-                  className={`h-8 rounded-full text-[11px] font-black ${
+                  className={`h-8 min-w-0 rounded-full px-2 text-[11px] font-black ${
                     wishlistFishIds.has(discoveryFish.id)
                       ? 'bg-rose-50 text-rose-500 hover:bg-rose-100'
                       : 'bg-rose-500 text-white hover:bg-rose-600'
@@ -3322,7 +3512,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         )}
       </section>
 
-      <section className="aquarium-actions order-[3] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
+      <section id="quick-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
@@ -3330,10 +3520,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </section>
 
       {recommendedActionCandidates.length > 0 && (
-      <section className="aquarium-recommend order-[4] overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm">
-        <SectionHeader title="下一步推荐" subtitle={tankActionMessage || nextStepMessage} />
+      <section id="next-actions" className="aquarium-recommend order-[4] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
+        <SectionHeader title="下一步行动" subtitle={tankActionMessage || nextStepMessage} />
         <div className="mt-3">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:max-w-[680px]">
+          <div className="grid grid-cols-1 gap-2">
             {recommendedActionCandidates.map(action => (
               <ActionCenterCard
                 key={action.id}
@@ -3344,6 +3534,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 icon={action.icon}
                 onAction={action.onAction}
                 tone={action.tone}
+                size="tool"
               />
             ))}
           </div>
@@ -3352,7 +3543,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       )}
 
       {/* Visual Tank Placeholder */}
-      <div className="aquarium-tank order-[5] relative h-72 w-full overflow-hidden rounded-[18px] border border-white/80 shadow-sm group xl:min-h-[560px] xl:h-[calc(100dvh-132px)] xl:max-h-[760px]">
+      <div id="tank-overview" className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -3446,7 +3637,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </div>
 
       {/* Tank Species Archive */}
-      <section className="aquarium-archive order-[6] overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
+      <section id="tank-archive" className="aquarium-archive order-[6] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
@@ -3724,12 +3915,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </Dialog>
 
       <Dialog open={isTankPreviewOpen} onOpenChange={setIsTankPreviewOpen}>
-        <DialogContent className="h-[86vh] w-[94vw] max-w-[920px] overflow-hidden rounded-sm border-border p-0">
+        <DialogContent className="h-[92dvh] w-[96vw] max-w-[1180px] overflow-hidden rounded-[24px] border-border p-0 md:h-[calc(100dvh-24px)] md:w-[calc(100vw-32px)] md:max-w-[1480px]">
           <DialogHeader className="sr-only">
             <DialogTitle>鱼缸全屏预览</DialogTitle>
             <DialogDescription>放大查看当前鱼缸 3D 画面。</DialogDescription>
           </DialogHeader>
-          <div className="relative h-full w-full bg-[#DDEAE8]">
+          <div className="grid h-full w-full bg-[#DDEAE8] md:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="relative min-h-0">
             <Suspense
               fallback={
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -3751,6 +3943,54 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || '25'}°C · 约{tankVolumeLiters}L
               </div>
             </div>
+            </div>
+            <aside className="hidden min-h-0 border-l border-white/70 bg-white/78 p-4 backdrop-blur md:block">
+              <div className="text-[18px] font-black text-ink">{activeAquarium.name}</div>
+              <div className="mt-1 text-[12px] font-bold text-ink/48">沉浸式鱼缸视图</div>
+              <div className="mt-4 grid gap-2">
+                {[
+                  `${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${activeAquarium.targetTemperature || '25'}°C`,
+                  `${activeAquarium.dimensions?.length || 60}x${activeAquarium.dimensions?.width || 40}x${activeAquarium.dimensions?.height || 40}cm · 约${tankVolumeLiters}L`,
+                  `${activeAquarium.fishes.length} 条记录 · ${totalStockedQuantity} 只/条活体`,
+                ].map(item => (
+                  <div key={item} className="rounded-[16px] bg-white px-3 py-2 text-[12px] font-black text-ink/70 shadow-sm">
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 text-[13px] font-black text-ink">镜头切换</div>
+              <div className="app-scrollbar-hidden mt-2 grid max-h-[48dvh] gap-2 overflow-y-auto">
+                {Array.from(new Set(activeAquarium.fishes.map(f => f.fishId))).map(fishId => {
+                  const fishInfo = fishData.find(fish => fish.id === fishId);
+                  if (!fishInfo) return null;
+                  const isActive = active3DSpecies === fishId;
+                  const quantity = activeAquarium.fishes.filter(item => item.fishId === fishId).reduce((sum, item) => sum + (item.quantity || 1), 0);
+                  return (
+                    <button
+                      key={fishId}
+                      type="button"
+                      onClick={() => setActive3DSpecies(isActive ? null : fishId)}
+                      className={`grid grid-cols-[42px_1fr] items-center gap-2 rounded-[16px] border p-2 text-left transition-colors ${
+                        isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-border bg-white text-ink/64 hover:border-emerald-100'
+                      }`}
+                    >
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(fishInfo)}`}>
+                        <img src={getSpeciesDisplayImage(fishInfo)} alt={fishInfo.name} className={`max-h-9 max-w-9 object-contain ${getSpeciesImageClass(fishInfo)}`} referrerPolicy="no-referrer" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[12px] font-black">{fishInfo.name}</span>
+                        <span className="block text-[10px] font-bold opacity-55">{quantity} 只/条</span>
+                      </span>
+                    </button>
+                  );
+                })}
+                {activeAquarium.fishes.length === 0 && (
+                  <div className="rounded-[16px] border border-dashed border-border bg-white px-3 py-5 text-center text-[12px] font-bold text-ink/42">
+                    还没有活体生物。
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
         </DialogContent>
       </Dialog>
@@ -4199,7 +4439,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               );
             })}
           </div>
-          <DialogFooter className="grid grid-cols-2 gap-2 border-t border-border bg-white p-4 md:flex md:max-w-[560px] md:gap-2">
+          <DialogFooter className="grid grid-cols-2 gap-2 border-t border-border bg-white md:flex md:gap-2">
             <Button
               variant="outline"
               className="h-10 rounded-full text-sm font-bold"
@@ -4664,6 +4904,269 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isSmartRecommendOpen} onOpenChange={(open) => {
+        setIsSmartRecommendOpen(open);
+        if (!open) {
+          setSmartSimulation(null);
+          setSmartAiAssist(null);
+        }
+      }}>
+        <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[920px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
+          <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
+              <Sparkles className="h-5 w-5 text-accent" />
+              缸内生物智能推荐
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
+              系统规则先筛安全边界，AI 只做解释和排序辅助。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="grid gap-4">
+              <div className="grid gap-2 rounded-[20px] bg-bg p-2 sm:grid-cols-2">
+                {[
+                  { id: 'existing_livestock' as RecommendationMode, title: '已有生物推荐', desc: '基于当前缸内生物补充' },
+                  { id: 'empty_tank' as RecommendationMode, title: '空缸搭配', desc: '生成完整组合方案' },
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => {
+                      setSmartRecommendMode(mode.id);
+                      setSmartSimulation(null);
+                      setSmartAiAssist(null);
+                    }}
+                    className={`rounded-[16px] px-4 py-3 text-left transition-colors ${
+                      smartRecommendMode === mode.id ? 'bg-accent text-white shadow-sm' : 'bg-white text-ink hover:bg-white/80'
+                    }`}
+                  >
+                    <span className="block text-sm font-black">{mode.title}</span>
+                    <span className={`mt-1 block text-[11px] font-bold ${smartRecommendMode === mode.id ? 'text-white/68' : 'text-ink/45'}`}>{mode.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid gap-3 rounded-[20px] border border-emerald-100 bg-emerald-50/60 p-4 md:grid-cols-[1fr_auto] md:items-center">
+                <div>
+                  <div className="text-sm font-black text-ink">当前鱼缸画像</div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-accent">负载 {smartRecommendation.profile.load.loadRate}%</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-ink/58">剩余 {smartRecommendation.profile.load.remainingCapacity} 负载</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-ink/58">已有 {smartRecommendation.profile.livestock.length} 种活体</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-ink/58">可补水层 {smartRecommendation.profile.availableNiches.length || 0} 个</span>
+                  </div>
+                </div>
+                <div className="rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold text-ink/62">
+                  {smartRecommendation.localSummary}
+                </div>
+              </div>
+
+              <div className="grid gap-2 rounded-[18px] border border-border/70 bg-white p-3">
+                <Label className="text-[12px] font-black text-ink">偏好关键词</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['新手友好', '低维护', '群游', '清洁工具', '草缸友好'].map(keyword => (
+                    <button
+                      key={keyword}
+                      type="button"
+                      onClick={() => setSmartPreference(prev => prev.includes(keyword) ? prev.replace(keyword, '').trim() : `${prev} ${keyword}`.trim())}
+                      className={`rounded-full border px-3 py-1.5 text-[11px] font-black ${
+                        smartPreference.includes(keyword) ? 'border-accent bg-emerald-50 text-accent' : 'border-border bg-white text-ink/55'
+                      }`}
+                    >
+                      {keyword}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  value={smartPreference}
+                  onChange={event => setSmartPreference(event.target.value)}
+                  className="h-10 rounded-full bg-bg text-sm font-bold"
+                  placeholder="例如：想要低维护、颜色明显、适合新手"
+                />
+              </div>
+
+              {smartRecommendation.needsMoreInfo && (
+                <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                  推荐前建议先补充：{smartRecommendation.infoRequests.join('、')}。
+                </div>
+              )}
+
+              {smartRecommendation.mode === 'empty_tank' && smartRecommendation.emptyPlans.length > 0 && (
+                <section className="grid gap-3">
+                  <div className="text-sm font-black text-ink">空缸组合方案</div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {smartRecommendation.emptyPlans.map(plan => (
+                      <div key={plan.id} className="rounded-[20px] border border-border/70 bg-bg/45 p-4">
+                        <div className="text-base font-black text-ink">{plan.name}</div>
+                        <div className="mt-1 text-[11px] font-bold text-ink/50">{plan.audience}</div>
+                        <div className="mt-3 space-y-1.5">
+                          {plan.species.map(item => (
+                            <div key={item.speciesId} className="flex justify-between rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-ink/62">
+                              <span>{item.name}</span>
+                              <span>x{item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 text-[11px] font-bold text-ink/50">预计负载 {plan.estimatedLoadRate}% · 维护 {plan.maintenanceLevel}</div>
+                        <Button
+                          type="button"
+                          className="mt-3 h-9 w-full rounded-full bg-accent text-xs font-black text-white"
+                          onClick={() => {
+                            const first = plan.species[0];
+                            const candidate = [...smartRecommendation.direct, ...smartRecommendation.adjustable].find(item => item.speciesId === first.speciesId);
+                            if (candidate) openSmartSimulation({ ...candidate, recommendedQuantity: first.quantity });
+                          }}
+                        >
+                          加入模拟鱼缸
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {smartRecommendation.mode === 'existing_livestock' && (
+                <section className="grid gap-4">
+                  {[
+                    { title: '可以直接加入', items: smartRecommendation.direct, tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+                    { title: '调整后可以加入', items: smartRecommendation.adjustable, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
+                    { title: '不建议加入', items: smartRecommendation.blocked, tone: 'text-rose-700 bg-rose-50 border-rose-100' },
+                  ].map(group => (
+                    <div key={group.title} className="grid gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-black text-ink">{group.title}</h4>
+                        <span className="text-[11px] font-black text-ink/38">{group.items.length} 个</span>
+                      </div>
+                      {group.items.length === 0 ? (
+                        <div className="rounded-[16px] border border-dashed border-border bg-bg/50 px-4 py-3 text-xs font-bold text-ink/45">
+                          暂无候选。
+                        </div>
+                      ) : (
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {group.items.map(candidate => {
+                            const fish = fishData.find(item => item.id === candidate.speciesId);
+                            return (
+                              <button
+                                key={candidate.speciesId}
+                                type="button"
+                                disabled={candidate.status === 'blocked'}
+                                onClick={() => openSmartSimulation(candidate)}
+                                className="grid grid-cols-[64px_1fr] gap-3 rounded-[18px] border border-border/70 bg-white p-3 text-left shadow-sm transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                <span className={`flex h-16 w-16 items-center justify-center rounded-[16px] ${fish ? getSpeciesImageSurfaceClass(fish) : 'bg-bg'}`}>
+                                  {fish && <img src={getSpeciesDisplayImage(fish)} alt={candidate.name} className={`max-h-14 max-w-14 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />}
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="flex items-center justify-between gap-2">
+                                    <span className="truncate text-sm font-black text-ink">{candidate.name}</span>
+                                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${group.tone}`}>
+                                      {candidate.status === 'direct' ? '可加入' : candidate.status === 'adjustable' ? '需调整' : '不建议'}
+                                    </span>
+                                  </span>
+                                  <span className="mt-1 block text-[11px] font-bold text-ink/52">建议 x{candidate.recommendedQuantity} · 适配 {candidate.fitScore}</span>
+                                  <span className="mt-1 line-clamp-2 block text-[11px] font-medium leading-relaxed text-ink/55">{candidate.reason}</span>
+                                  {(candidate.risks[0] || candidate.requiredAdjustments[0]) && (
+                                    <span className="mt-1 block truncate text-[10px] font-black text-amber-700">
+                                      {candidate.risks[0] || candidate.requiredAdjustments[0]}
+                                    </span>
+                                  )}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              {smartRecommendation.blockedSummary.length > 0 && (
+                <div className="rounded-[18px] border border-rose-100 bg-rose-50 p-4 text-xs font-bold leading-relaxed text-rose-700">
+                  {smartRecommendation.blockedSummary.slice(0, 3).map(item => <div key={item}>• {item}</div>)}
+                </div>
+              )}
+
+              <div className="rounded-[18px] border border-border/70 bg-bg/45 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-black text-ink">AI 辅助说明</div>
+                    <div className="mt-1 text-[11px] font-bold text-ink/45">不改变系统安全结论，只解释排序和加入节奏。</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isSmartAiLoading}
+                    onClick={handleRecommendationAssist}
+                    className="h-9 rounded-full px-3 text-xs font-black"
+                  >
+                    {isSmartAiLoading ? '生成中...' : '生成解释'}
+                  </Button>
+                </div>
+                {(smartAiAssist?.explanations.length || smartAiAssist?.stagedPlan.length) ? (
+                  <div className="mt-3 grid gap-2 text-xs font-bold leading-relaxed text-ink/62">
+                    {[...(smartAiAssist?.explanations || []), ...(smartAiAssist?.stagedPlan || [])].slice(0, 5).map(item => <div key={item}>• {item}</div>)}
+                  </div>
+                ) : (
+                  <div className="mt-3 text-xs font-bold text-ink/42">未生成时，页面使用本地规则推荐。</div>
+                )}
+              </div>
+
+              {smartSimulation && (
+                <div className="rounded-[22px] border border-accent/20 bg-emerald-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-ink">模拟添加：{smartSimulation.candidate.name}</div>
+                      <div className="mt-1 text-[11px] font-bold text-ink/55">{smartSimulation.conclusion}</div>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1">
+                      <button type="button" onClick={() => updateSmartSimulationQuantity(smartAddQuantity - 1)} className="h-7 w-7 rounded-full bg-bg text-sm font-black">-</button>
+                      <span className="min-w-8 text-center text-sm font-black">{smartAddQuantity}</span>
+                      <button type="button" onClick={() => updateSmartSimulationQuantity(smartAddQuantity + 1)} className="h-7 w-7 rounded-full bg-emerald-50 text-sm font-black text-accent">+</button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-[16px] bg-white px-3 py-2">
+                      <div className="text-[10px] font-black text-ink/38">添加前负载</div>
+                      <div className="text-xl font-black text-ink">{smartSimulation.beforeLoadRate}%</div>
+                    </div>
+                    <div className="rounded-[16px] bg-white px-3 py-2">
+                      <div className="text-[10px] font-black text-ink/38">添加后负载</div>
+                      <div className="text-xl font-black text-accent">{smartSimulation.afterLoadRate}%</div>
+                    </div>
+                    <div className="rounded-[16px] bg-white px-3 py-2">
+                      <div className="text-[10px] font-black text-ink/38">设备支持</div>
+                      <div className="text-sm font-black text-ink">{smartSimulation.equipmentStillFits ? '仍满足' : '需确认'}</div>
+                    </div>
+                  </div>
+                  {smartSimulation.newRisks.length > 0 && (
+                    <div className="mt-3 rounded-[16px] bg-white px-3 py-2 text-[11px] font-bold text-amber-700">
+                      {smartSimulation.newRisks.slice(0, 3).join(' / ')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="shrink-0 border-t border-border/70 bg-white px-6 pb-[calc(20px+env(safe-area-inset-bottom))] pt-4">
+            {smartSimulation ? (
+              <div className="grid w-full gap-2 sm:grid-cols-[1fr_1fr]">
+                <Button type="button" variant="outline" onClick={() => setSmartSimulation(null)} className="h-11 rounded-full text-sm font-black">
+                  取消模拟
+                </Button>
+                <Button type="button" onClick={confirmSmartSimulationAdd} className="h-11 rounded-full bg-accent text-sm font-black text-white">
+                  确认加入当前鱼缸
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" onClick={() => setIsSmartRecommendOpen(false)} className="ml-auto h-11 rounded-full px-6 text-sm font-black">
+                关闭
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCalendarOpen} onOpenChange={(open) => {
         setIsCalendarOpen(open);
         if (open) {
@@ -4988,7 +5491,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
       {/* Settings Modal */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="flex h-[90dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <DialogContent className="flex h-[90dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[760px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="text-xl font-black text-ink">鱼缸设置</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
@@ -5007,16 +5510,16 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               ))}
             </div>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div ref={settingsBodyRef} className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
             <div className="grid gap-5 p-4 pb-7">
               <section className="grid gap-2">
                 {settingItems.map(item => {
                   const isActive = activeSettingsPanel === item.id;
                   return (
-                    <div key={item.id} className="grid gap-2">
+                    <div key={item.id} ref={node => { settingPanelRefs.current[item.id] = node; }} className="grid scroll-mt-4 gap-2">
                       <button
                         type="button"
-                        onClick={() => setActiveSettingsPanel(isActive ? null : item.id)}
+                        onClick={() => openSettingsPanel(item.id)}
                         className={`flex items-center justify-between gap-3 rounded-[16px] border bg-white px-3 py-3 text-left shadow-sm transition-colors ${
                           isActive ? 'border-accent/40 ring-2 ring-accent-light' : 'border-white hover:border-accent/25'
                         }`}
@@ -5365,13 +5868,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               )}
             </div>
           </div>
-          <DialogFooter className="shrink-0 border-t border-white bg-white/90 px-4 py-3">
-            <Button variant="outline" onClick={() => setIsSettingsOpen(false)} className="h-10 rounded-full text-sm font-bold">取消</Button>
+          <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 md:px-6">
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)} className="h-10 min-w-[112px] rounded-full text-sm font-bold">取消</Button>
             <Button onClick={() => {
               const updated = aquariums.map(a => a.id === activeId ? { ...a, ...settingsForm } : a);
               saveAquariums(updated);
               setIsSettingsOpen(false);
-            }} className="h-10 rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">保存设置</Button>
+            }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">保存设置</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

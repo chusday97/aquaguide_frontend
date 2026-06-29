@@ -53,7 +53,7 @@ export function StatusSummaryCard({
             <TagPill tone={statusTone[status]}>{status}</TagPill>
             {meta}
           </div>
-          <p className="mt-3 text-[17px] font-black leading-snug text-ink">{conclusion}</p>
+          <p className="mt-3 text-[16px] font-black leading-snug text-ink [text-wrap:pretty] md:text-[16px]">{conclusion}</p>
         </div>
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
           <Icon className="h-7 w-7" />
@@ -62,7 +62,7 @@ export function StatusSummaryCard({
 
       <div className="mt-4 grid grid-cols-[76px_1fr] items-end gap-3">
         <div>
-          <div className="text-[30px] font-black leading-none tracking-[-0.04em] text-ink">{healthPercent}%</div>
+          <div className="text-[30px] font-black leading-none text-ink md:text-[28px]">{healthPercent}%</div>
           <div className="mt-1 text-[10px] font-black text-ink/45">健康度</div>
         </div>
         <div className="pb-1">
@@ -97,9 +97,9 @@ function StatusMetric({ icon, label, value }: { icon?: ReactNode; label: string;
     <div className="min-w-0 rounded-sm bg-white/70 px-2 py-2">
       <div className="flex items-center gap-1 text-[9px] font-black text-ink/42">
         {icon}
-        <span>{label}</span>
+        <span className="whitespace-nowrap">{label}</span>
       </div>
-      <div className="mt-1 truncate text-[11px] font-black text-ink">{value}</div>
+      <div className="mt-1 break-words text-[10px] font-black leading-snug text-ink [overflow-wrap:anywhere] md:text-[11px]">{value}</div>
     </div>
   );
 }

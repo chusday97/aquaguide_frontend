@@ -31,23 +31,23 @@ const activeToneClassName: Record<NonNullable<QuickActionItem['tone']>, string> 
 
 export function QuickActionGrid({ actions }: QuickActionGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-2 xl:desktop-card-grid xl:gap-3">
+    <div className="desktop-card-grid grid grid-cols-2 gap-2 md:grid-cols-2 md:gap-2">
       {actions.map(action => (
         <button
           key={action.label}
           type="button"
           onClick={action.onClick}
-          className={`grid min-h-[50px] grid-cols-[30px_1fr] items-center gap-2 rounded-[16px] px-3 py-2 text-left shadow-sm transition-colors xl:min-h-[56px] xl:max-w-[220px] ${
+          className={`grid min-h-[78px] min-w-0 grid-cols-[38px_minmax(0,1fr)] items-center gap-2 rounded-[16px] px-3 py-2.5 text-left shadow-sm transition-colors md:min-h-[82px] ${
             action.active ? activeToneClassName[action.tone || 'muted'] : toneClassName[action.tone || 'muted']
           }`}
         >
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm ${action.active ? 'bg-white/18 text-white' : 'bg-white/75'}`}>
+          <span className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ${action.active ? 'bg-white/18 text-white' : 'bg-white/75'}`}>
             {action.icon}
           </span>
           <span className="min-w-0">
-            <span className="block text-[12px] font-black leading-tight">{action.label}</span>
+            <span className="block whitespace-normal text-[12px] font-black leading-snug text-current [overflow-wrap:anywhere] md:text-[13px]">{action.label}</span>
             {action.description && (
-              <span className="mt-0.5 block truncate text-[9px] font-medium opacity-60">{action.description}</span>
+              <span className="mt-0.5 block text-[9px] font-medium leading-snug opacity-60 md:text-[10px]">{action.description}</span>
             )}
           </span>
         </button>

@@ -14,7 +14,6 @@ import {
   Droplets,
   Heart,
   Library,
-  LogIn,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 
@@ -153,21 +152,6 @@ const readJsonCount = (key: string) => {
   return 0;
 };
 
-const hasStoredAuthSession = () => {
-  try {
-    for (let index = 0; index < localStorage.length; index += 1) {
-      const key = localStorage.key(index);
-      if (key?.startsWith('sb-') && key.includes('auth-token')) {
-        const parsed = JSON.parse(localStorage.getItem(key) || '{}');
-        if (parsed?.currentSession?.access_token || parsed?.access_token) return true;
-      }
-    }
-  } catch {
-    return false;
-  }
-  return false;
-};
-
 function BottomNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -210,7 +194,6 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
   const navigate = useNavigate();
   const activePath = navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
   const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
-  const [hasSession, setHasSession] = useState(false);
   const activeMenu = useMemo(() => {
     if (activePath === '/encyclopedia') return [...desktopSubMenus['/encyclopedia']];
     return [];
@@ -241,7 +224,6 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
         species: readJsonCount('wishlistFishIds'),
         care: readJsonCount('aqua_care_favorites'),
       });
-      setHasSession(hasStoredAuthSession());
     };
     refreshCounts();
     window.addEventListener('storage', refreshCounts);
@@ -403,19 +385,6 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                 );
               })}
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="mb-3 flex w-full items-center gap-3 rounded-[18px] bg-emerald-50 px-3 py-3 text-left text-accent shadow-sm transition-colors hover:bg-emerald-100"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-white">
-                <LogIn className="h-4.5 w-4.5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[13px] font-black leading-tight">{hasSession ? '已登录' : '登录'}</span>
-                <span className="mt-0.5 block text-[10px] font-bold leading-tight text-ink/42">{hasSession ? '管理账号' : '同步数据'}</span>
-              </span>
-            </button>
             <div className="flex items-start gap-2 rounded-[18px] bg-white/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-ink/45 shadow-sm">
               <Database className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
               数据保存在当前浏览器，切换设备前请先同步或导出。
@@ -446,14 +415,6 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                 </button>
               );
             })}
-            <button
-              type="button"
-              title={hasSession ? '已登录' : '登录'}
-              onClick={() => navigate('/login')}
-              className="flex h-11 w-full items-center justify-center rounded-[16px] bg-emerald-50 text-accent shadow-sm transition-colors hover:bg-emerald-100"
-            >
-              <LogIn className="h-5 w-5" />
-            </button>
           </div>
         )}
       </div>

@@ -129,7 +129,7 @@ export default function ProjectStructurePreview() {
 
         <section className="mt-6 rounded-[30px] border border-[#1f2a2414] bg-[#fffdf8] p-6 shadow-xl shadow-[#1f2a240d]">
           <SectionTitle icon={Layers3} title="功能 Modules" desc="后续业务功能应该从这里对外暴露。" />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 md:grid-cols-3">
             {modules.map((module) => (
               <div key={module.name} className="rounded-3xl border border-[#1f2a2414] bg-white p-5">
                 <div className="flex items-center justify-between gap-3">

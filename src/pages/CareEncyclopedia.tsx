@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent, ReactNode, RefObject } from 'react';
+import { useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -1092,9 +1093,12 @@ const buildStepDiagnosisResult = ({
 };
 
 export default function CareEncyclopedia() {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
   const [highFrequencyFilter, setHighFrequencyFilter] = useState('全部');
+  const [careWorkspacePage, setCareWorkspacePage] = useState<'home' | 'content'>('home');
+  const [careResultPage, setCareResultPage] = useState(0);
   const [selectedTopic, setSelectedTopic] = useState<CareTopic | null>(null);
   const [checkedActions, setCheckedActions] = useState<string[]>([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -1121,6 +1125,7 @@ export default function CareEncyclopedia() {
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const favoriteShelfRef = useRef<HTMLButtonElement | null>(null);
   const careCardRef = useRef<HTMLDivElement | null>(null);
+  const careSearchRef = useRef<HTMLElement | null>(null);
   const contentListRef = useRef<HTMLElement | null>(null);
 
   const appStateSnapshot = useMemo(() => loadAppStateFromStorage(), []);
@@ -1134,6 +1139,32 @@ export default function CareEncyclopedia() {
     ? `${aquariumVolumeLiters || '未设'}L · ${activeAquarium.targetTemperature || 25}°C · ${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · 已有 ${(activeAquarium.fishes || []).length} 种生物`
     : '还没有当前鱼缸数据，先显示通用养护推荐';
   const careRecommendations = useMemo(() => getCareRecommendations(activeAquarium, careTopicsData), [activeAquarium]);
+
+  useEffect(() => {
+    if (!location.hash) return;
+    if (location.hash === '#care-favorites') {
+      setCareViewMode('favorites');
+      setCareWorkspacePage('content');
+      setSearchTerm('');
+      setActiveCategory('全部');
+      setCareResultPage(0);
+      window.setTimeout(() => {
+        contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+      return;
+    }
+    if (location.hash === '#care-content') {
+      contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (location.hash === '#care-search' || location.hash === '#care-diagnosis') {
+      careSearchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (location.hash === '#care-recommendations') {
+      recommendationCarouselRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash]);
 
   useEffect(() => {
     if (careRecommendations.length <= 1) return;
@@ -1165,6 +1196,8 @@ export default function CareEncyclopedia() {
   const handleSelectCareCategory = (filter: string) => {
     setActiveCategory(filter);
     setCareViewMode('all');
+    setCareWorkspacePage('content');
+    setCareResultPage(0);
     window.requestAnimationFrame(() => {
       contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -1242,6 +1275,18 @@ export default function CareEncyclopedia() {
     });
   }, [activeCategory, careViewMode, favorites, searchTerm]);
 
+  const careResultPageSize = 4;
+  const careResultPageCount = Math.max(1, Math.ceil(filteredTopics.length / careResultPageSize));
+  const currentCareResultPage = Math.min(careResultPage, careResultPageCount - 1);
+  const pagedCareTopics = filteredTopics.slice(
+    currentCareResultPage * careResultPageSize,
+    currentCareResultPage * careResultPageSize + careResultPageSize,
+  );
+
+  useEffect(() => {
+    setCareResultPage(0);
+  }, [activeCategory, careViewMode, searchTerm]);
+
   const highFrequencyTopics = useMemo(() => {
     const baseIds = [
       'guide_new_fish_acclimation',
@@ -1293,6 +1338,20 @@ export default function CareEncyclopedia() {
       ? '全部问题'
       : activeCategory;
   const favoriteCount = Object.keys(favorites).length;
+  const careListTitle = searchTerm.trim()
+    ? `搜索结果：“${searchTerm.trim()}” · 共 ${filteredTopics.length} 篇`
+    : careViewMode === 'favorites'
+      ? `我的收藏 · 共 ${filteredTopics.length} 篇`
+      : activeCategory !== '全部'
+        ? `${activeCategory} · 共 ${filteredTopics.length} 篇`
+        : '养护知识';
+  const careListSubtitle = searchTerm.trim()
+    ? '已按标题、简介、分类和关键词筛选。'
+    : careViewMode === 'favorites'
+      ? '这里收纳你常用的养护文章。'
+      : activeCategory !== '全部'
+        ? `当前分类：${activeCategory}`
+        : '按问题浏览常用养护方法。';
 
   const openPreview = (topic: CareTopic) => {
     const image = getCareImage(topic);
@@ -1403,8 +1462,8 @@ export default function CareEncyclopedia() {
   };
 
   return (
-    <div className="page-frame-wide flex min-w-0 flex-col gap-3 overflow-x-hidden pb-24 xl:grid xl:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)] xl:items-start xl:gap-4">
-      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:hidden">
+    <div className="page-frame-wide flex min-w-0 flex-col gap-3 overflow-x-hidden pb-24 md:grid md:grid-cols-[minmax(390px,460px)_minmax(0,1fr)] md:items-start md:gap-4">
+      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
@@ -1422,7 +1481,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      <section className="hidden rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-1 xl:block">
+      <section className="hidden rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
@@ -1440,9 +1499,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      {!searchTerm.trim() && (
-        <>
-          <section className="overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-1">
+      <section id="care-recommendations" className={`scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1 md:row-start-1 ${(!searchTerm.trim() && careWorkspacePage === 'home') ? '' : 'hidden md:block'}`}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-ink">为当前鱼缸推荐</div>
@@ -1452,7 +1509,7 @@ export default function CareEncyclopedia() {
             </div>
             <div
               ref={recommendationCarouselRef}
-              className="app-scrollbar-hidden -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1"
+              className="app-scrollbar-hidden -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 md:overflow-hidden"
               onScroll={(event) => {
                 const node = event.currentTarget;
                 const cardWidth = node.querySelector<HTMLElement>('[data-care-recommend-card]')?.offsetWidth || node.clientWidth;
@@ -1463,7 +1520,7 @@ export default function CareEncyclopedia() {
                 <article
                   key={topic.id}
                   data-care-recommend-card
-                  className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 xl:min-w-full xl:max-w-full xl:grid-cols-[42%_1fr] xl:gap-3"
+                  className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:min-w-full md:max-w-full md:grid-cols-[42%_1fr] md:gap-3"
                 >
                   <button
                     type="button"
@@ -1480,7 +1537,7 @@ export default function CareEncyclopedia() {
                     <button
                       type="button"
                       onClick={() => openCareDetail(topic.id)}
-                      className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white xl:desktop-action-fit"
+                      className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white md:desktop-action-fit"
                     >
                       查看内容
                     </button>
@@ -1501,26 +1558,26 @@ export default function CareEncyclopedia() {
                 </button>
               ))}
             </div>
-          </section>
-        </>
-      )}
+      </section>
 
-      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-2 xl:row-start-1">
+      <section id="care-search" ref={careSearchRef} className="scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
           <Input
             value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            onChange={(event) => {
+              setSearchTerm(event.target.value);
+              setCareWorkspacePage(event.target.value.trim() ? 'content' : careWorkspacePage);
+            }}
             placeholder="搜索：水浑、浮头、不吃食、死鱼、怀孕、过水"
-            className="h-10 rounded-full border-border bg-bg pl-9 text-[13px] font-medium text-ink placeholder:text-ink/36 xl:desktop-input-limit"
+            className="h-10 rounded-full border-border bg-bg pl-9 text-[13px] font-medium text-ink placeholder:text-ink/36 md:desktop-input-limit"
           />
         </div>
       </section>
 
-      {!searchTerm.trim() && (
-        <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm xl:col-start-2 xl:row-start-2">
+      <section className={`${searchTerm.trim() ? 'hidden md:block' : ''} rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1`}>
           <div className="mb-2 text-[15px] font-black text-ink">我现在想处理什么？</div>
-          <div className="grid grid-cols-2 gap-2 xl:grid-cols-2 xl:gap-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-2 md:gap-3">
             {careCategoryEntrances.map(item => {
               const Icon = item.icon;
               const selected = activeCategory === item.filter;
@@ -1544,35 +1601,35 @@ export default function CareEncyclopedia() {
               );
             })}
           </div>
-        </section>
-      )}
+      </section>
 
-      <section ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 xl:col-span-2">
-        <div className="flex items-start justify-between gap-3 px-1">
+      <section id="care-content" ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 md:col-start-2 md:row-start-1 md:row-span-5">
+        <div className="rounded-[18px] border border-white/80 bg-white px-4 py-3 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[15px] font-black text-ink">
-              {searchTerm.trim() ? `搜索结果：“${searchTerm.trim()}” · 共 ${filteredTopics.length} 篇` : '全部内容'}
+              {careListTitle}
             </div>
-            {!searchTerm.trim() && activeCategory !== '全部' && (
-              <div className="mt-0.5 text-[11px] font-bold text-ink/45">当前分类：{activeCategory} · {filteredTopics.length} 篇内容</div>
-            )}
+            <div className="mt-0.5 text-[11px] font-bold text-ink/45">{careListSubtitle}</div>
           </div>
-          {(activeCategory !== '全部' || searchTerm.trim()) && (
+          {(activeCategory !== '全部' || searchTerm.trim() || careViewMode === 'favorites') && (
             <button
               type="button"
               onClick={() => {
                 setActiveCategory('全部');
                 setCareViewMode('all');
                 setSearchTerm('');
+                setCareWorkspacePage('home');
               }}
               className="shrink-0 rounded-full bg-bg px-3 py-1.5 text-[11px] font-black text-emerald-700"
             >
-              {searchTerm.trim() ? '清空搜索' : '清除筛选'}
+              {searchTerm.trim() ? '清空搜索' : careViewMode === 'favorites' ? '查看全部' : '清除筛选'}
             </button>
           )}
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {filteredTopics.map(topic => (
+        <div className="grid grid-cols-1 gap-3">
+          {pagedCareTopics.map(topic => (
             <CareArticleCard
               key={topic.id}
               topic={topic}
@@ -1582,10 +1639,33 @@ export default function CareEncyclopedia() {
             />
           ))}
         </div>
+        {filteredTopics.length > careResultPageSize && (
+          <div className="flex items-center justify-center gap-2 rounded-[18px] bg-white/80 px-3 py-3 shadow-sm">
+            <button
+              type="button"
+              disabled={currentCareResultPage === 0}
+              onClick={() => setCareResultPage(page => Math.max(0, page - 1))}
+              className="h-9 rounded-full border border-border bg-white px-4 text-[12px] font-black text-ink/65 disabled:opacity-35"
+            >
+              上一页
+            </button>
+            <span className="rounded-full bg-emerald-50 px-3 py-2 text-[12px] font-black text-emerald-800">
+              第 {currentCareResultPage + 1} / {careResultPageCount} 页
+            </span>
+            <button
+              type="button"
+              disabled={currentCareResultPage >= careResultPageCount - 1}
+              onClick={() => setCareResultPage(page => Math.min(careResultPageCount - 1, page + 1))}
+              className="h-9 rounded-full border border-border bg-white px-4 text-[12px] font-black text-ink/65 disabled:opacity-35"
+            >
+              下一页
+            </button>
+          </div>
+        )}
       </section>
 
       {filteredTopics.length === 0 && (
-        <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50 xl:col-start-2">
+        <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50 md:col-start-2">
           {careViewMode === 'favorites'
             ? '还没有收藏的养护问题。看到常用问题时，点文章右上角爱心就会加入这里。'
             : '没有找到相关内容，可以试试：水浑、浮头、过水、换水、死鱼。'}
@@ -1775,7 +1855,7 @@ export default function CareEncyclopedia() {
                   </div>
                 )}
               </div>
-              <div className="sticky bottom-0 grid shrink-0 grid-cols-2 gap-2 border-t border-[#EEF2E8] bg-white px-5 py-3 pb-[calc(20px+env(safe-area-inset-bottom))]">
+              <div className="modalFooter sticky bottom-0 grid shrink-0 grid-cols-2 gap-2 border-t border-[#EEF2E8] bg-white">
                 <Button
                   type="button"
                   variant="outline"
@@ -1960,14 +2040,14 @@ function CareArticleCard({
       >
         <Heart className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
       </button>
-      <button type="button" onClick={onClick} className="grid min-h-[136px] w-full grid-cols-[120px_1fr] gap-3.5 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1 xl:desktop-split-card xl:items-start xl:gap-4">
-        <span data-care-card-image className="xl:flex xl:h-full xl:items-center xl:justify-center">
-          <CareImage topic={topic} className="h-[120px] w-[120px] rounded-[16px] max-[360px]:h-[180px] max-[360px]:w-full" />
+      <button type="button" onClick={onClick} className="grid min-h-[132px] w-full grid-cols-[112px_1fr] gap-3 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1">
+        <span data-care-card-image>
+          <CareImage topic={topic} className="h-[112px] w-[112px] rounded-[16px] max-[360px]:h-[180px] max-[360px]:w-full" />
         </span>
         <span className="min-w-0 pr-8 max-[360px]:pr-0">
           <span className="line-clamp-2 block text-[15px] font-black leading-snug text-ink">{getDisplayTitle(topic)}</span>
           <span className="mt-1.5 line-clamp-2 block text-[12px] font-medium leading-relaxed text-ink/56">{topic.summary}</span>
-          <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white xl:desktop-action-fit">
+          <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white md:desktop-action-fit">
             查看内容
           </span>
         </span>
@@ -2681,7 +2761,7 @@ function CareArticleDetail({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-white/95 p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
+      <div className="modalFooter shrink-0 border-t border-border bg-white/95 shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
         <div className="grid gap-2 md:mx-auto md:max-w-[700px] md:grid-cols-[auto_auto] md:justify-end">
           <Button
             type="button"

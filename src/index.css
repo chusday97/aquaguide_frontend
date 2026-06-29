@@ -283,12 +283,12 @@ body,
   }
 
   .desktop-card-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .desktop-fixed-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: start;
     gap: 0.875rem;
   }
@@ -307,28 +307,66 @@ body,
     max-width: 1180px;
   }
 
+  .atlas-sticky-toolbar {
+    position: sticky;
+    top: -24px;
+    z-index: 80;
+    isolation: isolate;
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding: 36px 12px 16px;
+    background: #dfe8e5;
+    backdrop-filter: none;
+    box-shadow: 0 22px 34px rgba(27, 77, 62, 0.12);
+  }
+
+  .atlas-sticky-toolbar::before {
+    content: "";
+    position: absolute;
+    inset: -96px -48px -22px -48px;
+    z-index: -1;
+    background: #dfe8e5;
+    box-shadow: 0 18px 30px rgba(27, 77, 62, 0.08);
+  }
+
+  .atlas-result-summary {
+    align-items: center;
+  }
+
+  .atlas-inline-pager {
+    justify-self: center;
+  }
+
   .aquarium-desktop-layout {
     display: grid;
-    grid-template-columns: 170px 670px 390px;
+    grid-template-columns: minmax(300px, 0.95fr) minmax(380px, 1fr) minmax(300px, 0.95fr);
+    grid-template-rows: 250px minmax(430px, auto);
     grid-template-areas:
-      "side tank discovery"
-      "side tank status"
-      "side tank actions"
-      "side archive recommend";
-    gap: 1rem;
-    align-items: start;
+      "status actions discovery"
+      "tank tank tank";
+    gap: 18px;
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: calc(100dvh - 48px);
+    height: auto;
+    min-width: 1030px;
+    overflow: visible;
   }
 
   .aquarium-side {
-    grid-area: side;
+    display: none !important;
   }
 
   .aquarium-toolbar {
+    display: none !important;
     grid-area: toolbar;
   }
 
   .aquarium-tank {
     grid-area: tank;
+    z-index: 0;
+    height: min(58dvh, 620px) !important;
+    min-height: 430px !important;
   }
 
   .aquarium-discovery {
@@ -345,11 +383,91 @@ body,
 
   .aquarium-recommend {
     grid-area: recommend;
+    display: none;
   }
 
   .aquarium-archive {
     grid-area: archive;
+    display: none;
   }
+
+  .aquarium-status,
+  .aquarium-actions,
+  .aquarium-recommend,
+  .aquarium-discovery {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .aquarium-status > section,
+  .aquarium-actions,
+  .aquarium-recommend,
+  .aquarium-discovery {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .aquarium-status > section,
+  .aquarium-actions,
+  .aquarium-discovery {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .aquarium-actions .desktop-card-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .aquarium-actions .desktop-card-grid > button {
+    max-width: none;
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 0.35rem;
+    padding-inline: 0.55rem;
+  }
+
+  .aquarium-actions .desktop-card-grid > button > span:first-child {
+    width: 30px;
+    height: 30px;
+  }
+
+  .aquarium-recommend button {
+    min-height: 96px;
+  }
+
+  .aquarium-discovery [role="button"] {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .aquarium-discovery img {
+    max-height: 96px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --desktop-content-gap: 10px;
+  }
+
+  .desktop-workspace-scroll {
+    padding-inline: 12px !important;
+    padding-block: 16px !important;
+  }
+
+  .desktop-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
 }
 
 * {
@@ -451,6 +569,7 @@ body::-webkit-scrollbar {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding: 20px 24px;
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -468,8 +587,53 @@ body::-webkit-scrollbar {
 
 .modalFooter {
   flex: 0 0 auto;
-  padding: 12px 20px 20px;
-  background: linear-gradient(to top, #fff 0%, #fff 72%, rgba(255, 255, 255, 0.86) 100%);
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 !important;
+  padding: 16px max(24px, 4vw) calc(24px + env(safe-area-inset-bottom)) !important;
+  background: linear-gradient(to top, #fff 0%, #fff 76%, rgba(255, 255, 255, 0.9) 100%);
+  border-top: 1px solid rgba(27, 77, 62, 0.08);
+  box-shadow: 0 -12px 28px rgba(27, 77, 62, 0.08);
+}
+
+[role="dialog"] > .modalFooter,
+[data-slot="dialog-content"] .modalFooter,
+[data-slot="dialog-footer"].modalFooter {
+  padding-left: max(24px, 4vw) !important;
+  padding-right: max(24px, 4vw) !important;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+}
+
+.modalFooter button,
+[data-slot="dialog-footer"] button {
+  min-height: 44px;
+}
+
+@media (min-width: 768px) {
+  .modalFooter,
+  [role="dialog"] > .modalFooter,
+  [data-slot="dialog-content"] .modalFooter,
+  [data-slot="dialog-footer"].modalFooter {
+    padding-left: 32px !important;
+    padding-right: 32px !important;
+    padding-bottom: calc(26px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .modalFooter,
+  [role="dialog"] > .modalFooter,
+  [data-slot="dialog-content"] .modalFooter,
+  [data-slot="dialog-footer"].modalFooter {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .modalFooter > button,
+  [data-slot="dialog-footer"] > button {
+    min-width: 0;
+  }
 }
 
 body.modal-open {

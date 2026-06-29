@@ -44,8 +44,8 @@ export function ActionCenterCard({
     <button
       type="button"
       onClick={onAction}
-      className={`flex min-h-[118px] flex-col justify-between rounded-[18px] border p-3 text-left shadow-sm transition-transform active:scale-[0.98] md:max-w-[320px] ${toneClassName[tone]} ${
-        size === 'tool' ? 'min-h-[92px]' : ''
+      className={`flex min-h-[118px] min-w-0 flex-col justify-between rounded-[18px] border p-3 text-left shadow-sm transition-transform active:scale-[0.98] ${toneClassName[tone]} ${
+        size === 'tool' ? 'min-h-[104px] md:max-w-none' : 'md:max-w-none'
       }`}
     >
       <span className="flex items-start justify-between gap-2">
@@ -57,10 +57,10 @@ export function ActionCenterCard({
         </span>
       </span>
       <span className="mt-3 min-w-0">
-        <span className="block text-[13px] font-black leading-tight">{title}</span>
-        <span className="mt-1 line-clamp-2 block text-[10px] font-medium leading-relaxed opacity-65">{description}</span>
+        <span className="block whitespace-normal text-[13px] font-black leading-tight [overflow-wrap:anywhere]">{title}</span>
+        <span className="mt-1 block text-[10px] font-medium leading-relaxed opacity-65">{description}</span>
       </span>
-      <span className="mt-3 text-[11px] font-black opacity-80">{actionText}</span>
+      <span className="mt-3 whitespace-normal text-[11px] font-black leading-tight opacity-80 [overflow-wrap:anywhere]">{actionText}</span>
     </button>
   );
 }
