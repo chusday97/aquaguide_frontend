@@ -267,7 +267,10 @@ const getSpeciesFilterTags = (fish: Fish) => {
   const isExplicitMarine = isSaltwaterSpecies(fish) || environment === '海水' || /海水|珊瑚|海葵|水母|marine|reef|coral|anemone|jellyfish/i.test(text);
   const isPlant = lifeType === 'plant' || fish.category.includes('水草') || taxonomy.waterType.includes('水草');
   const isHardscape = lifeType === 'hardscape';
-  const isFish = lifeType === 'freshwaterFish' || lifeType === 'saltwaterFish';
+  const fishLikeText = `${fish.name} ${fish.category} ${role} ${taxonomy.variety}`;
+  const isFish = lifeType === 'freshwaterFish'
+    || lifeType === 'saltwaterFish'
+    || /鱼|灯科|短鲷|慈鲷|斗鱼|孔雀|玛丽|月光|鼠鱼|鳉|鲤科|鲈形|鲶|鳅/.test(fishLikeText);
   const secondaryCategory = getSecondaryCategory(fish);
   const role = getSpeciesRole(fish);
   const isLivestock = !isPlant && !isHardscape && !/底砂|设备|造景|硬景|沉木|石/.test(text);
@@ -276,7 +279,7 @@ const getSpeciesFilterTags = (fish: Fish) => {
     || lifeType === 'coral'
     || secondaryCategory === '水母'
     || secondaryCategory === '海葵'
-    || /鱼|虾|螺|龟|蟹|贝|珊瑚|海葵|水母|观赏|主角|搭配/.test(`${fish.category} ${role} ${fish.name}`)
+    || /珊瑚|海葵|水母|观赏|主角|搭配/.test(`${fish.category} ${role} ${fish.name}`)
   );
   const temperatureTheme = getFishTemperatureTheme(fish.waterTemperature);
 
@@ -566,6 +569,7 @@ export default function Encyclopedia() {
   const [isMoreFilterOpen, setIsMoreFilterOpen] = useState(false);
   const [draftFunctionTag, setDraftFunctionTag] = useState<string | null>(null);
   const [draftEnvironment, setDraftEnvironment] = useState<string | null>(null);
+  const [filterSheetMessage, setFilterSheetMessage] = useState('');
   const [filterUsage, setFilterUsage] = useState<FilterUsageState>(() => loadFilterUsage());
   const [activeFilterGroup, setActiveFilterGroup] = useState<'life' | 'size' | 'housing' | 'water' | 'difficulty' | 'temperament'>('life');
   const [currentAquarium, setCurrentAquarium] = useState<Aquarium | null>(null);
@@ -1214,6 +1218,7 @@ export default function Encyclopedia() {
       setViewMode('browse');
       setDraftFunctionTag(activeFilters.functionTag);
       setDraftEnvironment(activeFilters.environment);
+      setFilterSheetMessage('');
       setIsMoreFilterOpen(true);
     }
   }, [location.hash]);
@@ -2315,18 +2320,24 @@ export default function Encyclopedia() {
       <FilterBottomSheet
         open={isMoreFilterOpen}
         title="更多条件"
-        subtitle="完整条件都在这里，页面上方只保留最常用入口。"
+        subtitle={filterSheetMessage || '完整条件都在这里，页面上方只保留最常用入口。'}
         groups={[
           {
             title: '想找什么',
             selected: draftFunctionTag,
-            onSelect: (label) => setDraftFunctionTag(label === '全部' ? null : label),
+            onSelect: (label) => {
+              setFilterSheetMessage('');
+              setDraftFunctionTag(label === '全部' ? null : label);
+            },
             options: functionFilterOptions.map(label => makeFilterOption(label, { functionTag: label === '全部' ? null : label })),
           },
           {
             title: '鱼缸环境',
             selected: draftEnvironment,
-            onSelect: (label) => setDraftEnvironment(label === '全部' ? null : label),
+            onSelect: (label) => {
+              setFilterSheetMessage('');
+              setDraftEnvironment(label === '全部' ? null : label);
+            },
             options: environmentFilterOptions.map(label => makeFilterOption(
               label,
               { environment: label === '全部' ? null : label },
@@ -2340,13 +2351,19 @@ export default function Encyclopedia() {
           {
             title: '饲养难度',
             selected: difficultyFilterOptions.includes(draftFunctionTag || '') ? draftFunctionTag : null,
-            onSelect: (label) => setDraftFunctionTag(label === '全部' ? null : label),
+            onSelect: (label) => {
+              setFilterSheetMessage('');
+              setDraftFunctionTag(label === '全部' ? null : label);
+            },
             options: difficultyFilterOptions.map(label => makeFilterOption(label, { functionTag: label === '全部' ? null : label })),
           },
           {
             title: '混养倾向',
             selected: housingFilterOptions.includes(draftFunctionTag || '') ? draftFunctionTag : null,
-            onSelect: (label) => setDraftFunctionTag(label === '全部' ? null : label),
+            onSelect: (label) => {
+              setFilterSheetMessage('');
+              setDraftFunctionTag(label === '全部' ? null : label);
+            },
             options: housingFilterOptions.map(label => makeFilterOption(label, { functionTag: label === '全部' ? null : label })),
           },
         ]}
@@ -2354,11 +2371,26 @@ export default function Encyclopedia() {
         onReset={() => {
           setDraftFunctionTag(null);
           setDraftEnvironment(null);
+          setFilterSheetMessage('');
           setActiveFilters(emptyActiveFilters);
           setSearchTerm('');
           setIsMoreFilterOpen(false);
         }}
         onApply={() => {
+          const nextCount = getFilteredSpecies(
+            allFishes,
+            {
+              keyword: '',
+              functionTag: draftFunctionTag,
+              environment: draftEnvironment,
+            },
+            fitEvaluations,
+            compatibilityEvaluations
+          ).length;
+          if (nextCount === 0) {
+            setFilterSheetMessage('当前组合暂无结果，可以减少一个条件再试。');
+            return;
+          }
           if (draftFunctionTag) recordFilterUsage(draftFunctionTag);
           if (draftEnvironment) recordFilterUsage(draftEnvironment);
           setActiveFilters(prev => ({
