@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, MoreHorizontal, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Aquarium, Fish } from '../types';
@@ -603,11 +603,10 @@ export function SpeciesDetailDialog({
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-4 gap-2 rounded-[18px] border border-border bg-white p-2 shadow-sm">
+                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-[18px] border border-border bg-white p-2 shadow-sm">
                     {[
                       { label: inCalculator ? '已选择' : '混养计算', icon: Calculator, active: inCalculator, action: () => onAddToCalculator(fish) },
                       { label: inWishlist ? '已种草' : '加入种草', icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
-                      { label: inWishlist ? '已收藏' : '收藏', icon: Heart, active: inWishlist, action: () => onToggleWishlist(fish.id) },
                       onRecordDeath ? { label: '记录死亡', icon: Skull, active: false, action: () => onRecordDeath(fish) } : null,
                     ].filter(Boolean).map(item => {
                       const actionItem = item as { label: string; icon: typeof Calculator; active: boolean; action: () => void };
@@ -718,7 +717,7 @@ export function SpeciesDetailDialog({
 
                       <details className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                          AI 解读
+                          规则解释（AI 可选）
                           <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
                         </summary>
                         {aiExplanationLoading ? (
@@ -809,7 +808,7 @@ export function SpeciesDetailDialog({
                       {detailFeedback && onGoCalculator && <button type="button" className="ml-2 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={onGoCalculator}>去计算</button>}
                     </div>
                   )}
-                </div>
+                      </div>
               </div>
 
               <div className="modalFooter border-t border-border bg-white/95 px-6 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4">
@@ -930,14 +929,6 @@ export function SpeciesDetailDialog({
                         }
                       </Button>
                     ) : null}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" className={`h-9 rounded-full text-xs font-black ${inCalculator ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border text-ink/65'}`} onClick={() => onAddToCalculator(fish)}>
-                        {inCalculator ? '已选择' : '加入混养计算'}
-                      </Button>
-                      <Button variant="outline" className={`h-9 rounded-full text-xs font-black ${inWishlist ? 'border-rose-200 bg-rose-50 text-rose-500' : 'border-border text-ink/65'}`} onClick={() => onToggleWishlist(fish.id)}>
-                        {inWishlist ? <Heart className="mr-1 h-4 w-4 fill-current" /> : <HeartOff className="mr-1 h-4 w-4" />}{inWishlist ? '已种草' : '加入种草'}
-                      </Button>
-                    </div>
                     {detailFeedback && (
                       <div className="flex items-center justify-between gap-2 rounded-[14px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
                         <span>{detailFeedback}</span>
@@ -1003,11 +994,11 @@ export function SpeciesDetailDialog({
                     </div>
                   </details>
 
-                  <section className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-[13px] font-black text-ink">AI 解读</h3>
+                  <details className="rounded-[16px] border border-border bg-white/70 p-3 shadow-sm">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
+                      <h3 className="text-[13px] font-black text-ink">规则解释（AI 可选）</h3>
                       <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
-                    </div>
+                    </summary>
                     {aiExplanationLoading ? (
                       <p className="mt-2 text-[11px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
                     ) : aiExplanation?.fallback ? (
@@ -1038,7 +1029,7 @@ export function SpeciesDetailDialog({
                         </Button>
                       </div>
                     )}
-                  </section>
+                  </details>
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">喂养与养护<ChevronRight className="h-4 w-4 text-ink/38" /></summary>
@@ -1047,7 +1038,7 @@ export function SpeciesDetailDialog({
                         <div className="text-[10px] font-black text-ink/42">喂食</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{fish.feedingProfile?.recommendedFoods || fish.diet}</p>
                         <p className="mt-1 text-[11px] font-bold text-ink/48">{fish.feedingProfile?.feedingFrequency || '少量投喂，避免残饵。'}</p>
-                      </div>
+                </div>
                       <div className="rounded-[12px] bg-bg p-2">
                         <div className="text-[10px] font-black text-ink/42">换水 / 环境</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">约 {fish.waterChangeCycle} 天 · {fish.waterTemperature} · pH {fish.phLevel}</p>
@@ -1059,14 +1050,6 @@ export function SpeciesDetailDialog({
                     </div>
                   </details>
 
-                  {onRecordDeath && (
-                    <details className="rounded-[16px] border border-border bg-bg/45 p-3">
-                      <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-black text-ink/55"><MoreHorizontal className="h-4 w-4" /> 更多低频操作</summary>
-                      <Button variant="outline" className="mt-3 h-9 w-full rounded-full border-border text-xs font-black text-ink/55" onClick={() => onRecordDeath(fish)}>
-                        <Skull className="mr-1 h-4 w-4" /> 记录死亡
-                      </Button>
-                    </details>
-                  )}
                 </div>
               </div>
             </div>

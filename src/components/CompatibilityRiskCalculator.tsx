@@ -703,7 +703,7 @@ export function CompatibilityRiskCalculator({
     void performAddToAquarium();
   };
   const handleSecondaryResultAction = () => {
-    if (result.level === 'compatible') return;
+    if (result.level !== 'caution') return;
     setActiveModal('conflictDetail');
   };
 
@@ -1141,7 +1141,7 @@ export function CompatibilityRiskCalculator({
                 </div>
               )}
 
-              <div className={`mt-3 grid gap-2 ${result.level === 'compatible' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <div className={`mt-3 grid gap-2 ${result.level === 'caution' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <button
                   type="button"
                   onClick={handlePrimaryResultAction}
@@ -1163,13 +1163,13 @@ export function CompatibilityRiskCalculator({
                         ? '先补充信息'
                         : '按提醒添加选中生物'}
                 </button>
-                {result.level !== 'compatible' && (
+                {result.level === 'caution' && (
                   <button
                     type="button"
                     onClick={handleSecondaryResultAction}
                     className="rounded-full bg-white/75 px-3 py-1.5 text-center text-[11px] font-black text-ink/65 transition-colors hover:bg-white"
                   >
-                    查看混养提醒
+                    查看提醒依据
                   </button>
                 )}
               </div>
