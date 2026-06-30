@@ -55,6 +55,108 @@ const parseDimension = (value: string | undefined, fallback: number) => {
   return Number.isFinite(parsed) ? clamp(parsed / 10, 3.8, 12) : fallback;
 };
 
+const useDocumentVisible = () => {
+  const [visible, setVisible] = useState(() => (typeof document === 'undefined' ? true : document.visibilityState === 'visible'));
+
+  useEffect(() => {
+    const handleVisibilityChange = () => setVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return visible;
+};
+
+const useIsMobileViewport = () => {
+  const [isMobile, setIsMobile] = useState(() => (
+    typeof window === 'undefined' ? false : window.matchMedia('(max-width: 767px)').matches
+  ));
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleChange = () => setIsMobile(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return isMobile;
+};
+
+const useElementInView = (ref: React.RefObject<HTMLElement | null>) => {
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.01 },
+    );
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return inView;
+};
+
+function CappedRenderLoop({ active, fps }: { active: boolean; fps: number }) {
+  const invalidate = useThree((state) => state.invalidate);
+  const frameRef = useRef<number | null>(null);
+  const lastRenderRef = useRef(0);
+
+  useEffect(() => {
+    if (!active) {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+      return;
+    }
+
+    const frameInterval = 1000 / fps;
+    const tick = (now: number) => {
+      if (now - lastRenderRef.current >= frameInterval) {
+        lastRenderRef.current = now;
+        invalidate();
+      }
+      frameRef.current = requestAnimationFrame(tick);
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
+  }, [active, fps, invalidate]);
+
+  return null;
+}
+
+function RendererLifecycle() {
+  const { gl, scene } = useThree();
+
+  useEffect(() => () => {
+    scene.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      mesh.geometry?.dispose?.();
+      const material = mesh.material;
+      if (Array.isArray(material)) {
+        material.forEach((item) => item.dispose?.());
+      } else {
+        material?.dispose?.();
+      }
+    });
+    gl.dispose();
+  }, [gl, scene]);
+
+  return null;
+}
+
 function CameraRig({ targetPosition }: { targetPosition: THREE.Vector3 | null }) {
   const { camera } = useThree();
 
@@ -889,12 +991,19 @@ function Backdrop({ length, width, height, isSaltwater }: { length: number; widt
 }
 
 export function ThreeAquarium({ aquarium, activeSpecies, onSpeciesSelect }: ThreeAquariumProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const length = parseDimension(aquarium.dimensions?.length, 6);
   const width = parseDimension(aquarium.dimensions?.width, 4);
   const height = parseDimension(aquarium.dimensions?.height, 4);
   const isSaltwater = aquarium.waterType === 'Saltwater';
   const equipment = aquarium.equipment || { filter: '瀑布过滤', heater: true, oxygen: false, light: isSaltwater ? '海水灯' : '普通灯' };
   const [targetPos, setTargetPos] = useState<THREE.Vector3 | null>(null);
+  const documentVisible = useDocumentVisible();
+  const isInView = useElementInView(containerRef);
+  const isMobileViewport = useIsMobileViewport();
+  const canRender = documentVisible && isInView;
+  const renderFps = isMobileViewport ? 24 : 30;
+  const maxPixelRatio = isMobileViewport ? 1.25 : 1.5;
 
   const allSwimFishes = useMemo<SwimItem[]>(() => {
     const items: SwimItem[] = [];
@@ -932,14 +1041,17 @@ export function ThreeAquarium({ aquarium, activeSpecies, onSpeciesSelect }: Thre
   }, [activeSpecies]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#eef7f5]" style={{ touchAction: 'none' }}>
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-[#eef7f5]" style={{ touchAction: 'none' }}>
       <Canvas
         shadows
-        dpr={[1, 1.75]}
+        frameloop="demand"
+        dpr={[1, maxPixelRatio]}
         camera={{ position: [length * 0.78, height * 0.42, width * 1.45], fov: 42 }}
         gl={{ antialias: true, alpha: true }}
         onPointerMissed={() => onSpeciesSelect?.(null)}
       >
+        <CappedRenderLoop active={canRender} fps={renderFps} />
+        <RendererLifecycle />
         <fog attach="fog" args={[isSaltwater ? '#dff8ff' : '#e9f6f1', 7, 18]} />
         <color attach="background" args={[isSaltwater ? '#eefcff' : '#f4fbf8']} />
 

@@ -1529,6 +1529,8 @@ export default function Encyclopedia() {
                       src={getEncyclopediaImage(fish)}
                       alt={group.groupName}
                       data-species-image
+                      loading="lazy"
+                      decoding="async"
                       className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${getSpeciesImageClass(fish)}`}
                       referrerPolicy="no-referrer"
                     />
@@ -1557,6 +1559,8 @@ export default function Encyclopedia() {
                             <img
                               src={getEncyclopediaImage(variant)}
                               alt=""
+                              loading="lazy"
+                              decoding="async"
                               className={`max-h-[84%] max-w-[84%] object-contain ${getSpeciesImageClass(variant)}`}
                               referrerPolicy="no-referrer"
                             />
@@ -1658,6 +1662,8 @@ export default function Encyclopedia() {
                     src={getEncyclopediaImage(fish)} 
                     alt={fish.name} 
                     data-species-image
+                    loading="lazy"
+                    decoding="async"
                     className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${imageClass} ${getSpeciesImageClass(fish)}`}
                     referrerPolicy="no-referrer"
                   />
@@ -1853,6 +1859,8 @@ export default function Encyclopedia() {
                     <img
                       src={getEncyclopediaImage(selectedGroupVariant)}
                       alt={selectedGroupVariant.name}
+                      loading="lazy"
+                      decoding="async"
                       className={`max-h-[260px] max-w-full object-contain ${getSpeciesImageClass(selectedGroupVariant)}`}
                       referrerPolicy="no-referrer"
                     />
@@ -1897,6 +1905,8 @@ export default function Encyclopedia() {
                                 <img
                                   src={getEncyclopediaImage(variant)}
                                   alt=""
+                                  loading="lazy"
+                                  decoding="async"
                                   className={`max-h-[84%] max-w-[84%] object-contain ${getSpeciesImageClass(variant)}`}
                                   referrerPolicy="no-referrer"
                                 />
