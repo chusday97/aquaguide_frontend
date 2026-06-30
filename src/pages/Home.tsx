@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ThreeAquarium } from '../components/ThreeAquarium';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { getSpeciesDisplayImage } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageSurfaceClass, getSpeciesImageClass } from '../lib/speciesVisual';
 
 const getDifficultyLabel = (difficulty: string) => {
   switch (difficulty) {
@@ -104,7 +104,7 @@ export default function Home() {
             return (
               <div key={id} onClick={() => setSelectedFish(fish)} className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent group-hover:border-rose-300 transition-colors">
-                  <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
+                  <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageSurfaceClass(fish)} ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                 </div>
                 <span className="text-[10px] font-bold text-ink w-16 text-center truncate">{fish.name}</span>
               </div>
@@ -163,7 +163,7 @@ export default function Home() {
               {ownedFishes.length > 0 ? (
                   ownedFishes.slice(0, 3).map((fish, i) => (
                     <div key={i} className={`w-10 h-10 rounded-full overflow-hidden border-[3px] border-[#F4F1EA] shadow-md ${i > 0 ? '-ml-4' : ''}`}>
-                      <img src={getSpeciesDisplayImage(fish)} className="h-full w-full object-contain bg-white p-1" alt="" referrerPolicy="no-referrer" />
+                      <img src={getSpeciesDisplayImage(fish)} className={`h-full w-full object-contain p-1 ${getSpeciesImageSurfaceClass(fish)} ${getSpeciesImageClass(fish)}`} alt="" referrerPolicy="no-referrer" />
                     </div>
                   ))
                 ) : (
@@ -208,7 +208,7 @@ export default function Home() {
                   return (
                     <div key={record.id} className="flex flex-col items-center gap-1">
                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 grayscale opacity-80 bg-bg/50">
-                        <img src={fishInfo.image} alt={fishInfo.name} className="h-full w-full object-contain bg-white p-1" referrerPolicy="no-referrer" />
+                        <img src={getSpeciesDisplayImage(fishInfo)} alt={fishInfo.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageSurfaceClass(fishInfo)} ${getSpeciesImageClass(fishInfo)}`} referrerPolicy="no-referrer" />
                       </div>
                       <div className="text-[10px] text-ink/70 font-medium">
                         {new Date(record.date).toLocaleDateString()}
@@ -229,9 +229,9 @@ export default function Home() {
           <ScrollArea className="max-h-[85vh]">
             <div className="h-[180px] md:h-[240px] bg-bg relative border-b border-border">
               <img 
-                src={selectedFish.image} 
+                src={getSpeciesDisplayImage(selectedFish)} 
                 alt={selectedFish.name} 
-                className="h-full w-full object-contain bg-white p-4 opacity-95"
+                className={`h-full w-full object-contain p-4 opacity-95 ${getSpeciesImageSurfaceClass(selectedFish)} ${getSpeciesImageClass(selectedFish)}`}
                 referrerPolicy="no-referrer"
               />
             </div>

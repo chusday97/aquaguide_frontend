@@ -94,6 +94,7 @@ VISIBILITY_IMAGE_OVERRIDE_IDS = {
     "sp_0421",
     "sp_0452",
     "sp_0458",
+    "sp_0459",
 }
 
 KNOWN_MANUAL_ISSUES = {}

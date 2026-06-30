@@ -3598,7 +3598,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   className={`flex items-center gap-1.5 p-1 rounded transition-colors text-left ${isActive ? 'bg-accent/10 border-accent/30 border text-accent' : 'hover:bg-white/50 border border-transparent blur-0'}`}
                   onClick={() => setActive3DSpecies(isActive ? null : uId)}
                 >
-                  <img src={fishInfo.image} alt={fishInfo.name} className="w-4 h-4 rounded-full object-contain bg-white/80" />
+                  <img src={getSpeciesDisplayImage(fishInfo)} alt={fishInfo.name} className={`w-4 h-4 rounded-full object-contain ${getSpeciesImageSurfaceClass(fishInfo)} ${getSpeciesImageClass(fishInfo)}`} />
                   <div className="flex flex-col flex-1 truncate">
                     <span className="text-[10px] font-bold truncate pr-1 whitespace-nowrap leading-none">{fishInfo.name}</span>
                   </div>
@@ -5955,9 +5955,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 <div className="rounded-[20px] bg-white p-4">
                   <div className="flex h-44 items-center justify-center rounded-[18px] bg-[#FBFAF6]">
                     <img
-                      src={selectedDiscoveryFish.image}
+                      src={getSpeciesDisplayImage(selectedDiscoveryFish)}
                       alt={selectedDiscoveryFish.name}
-                      className="h-full w-full object-contain p-4 drop-shadow-md"
+                      className={`h-full w-full object-contain p-4 ${getSpeciesImageSurfaceClass(selectedDiscoveryFish)} ${getSpeciesImageClass(selectedDiscoveryFish)}`}
                       referrerPolicy="no-referrer"
                     />
                   </div>
