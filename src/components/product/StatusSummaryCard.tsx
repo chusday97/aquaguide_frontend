@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
-import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Clock3, Send, Waves } from 'lucide-react';
-import { Button } from '../ui/button';
+import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Clock3, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { TagPill, type TagPillTone } from './TagPill';
 
 export type AquariumStatusLevel = 'normal' | 'needs_attention' | 'urgent' | 'insufficient_data';
@@ -166,7 +165,7 @@ export function StatusSummaryCard({
           <div key={item.title} className="min-w-0 rounded-[14px] bg-white/70 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="text-[10px] font-black text-ink/45">{item.title}</div>
-              <TagPill tone={item.tone}>{item.tone === 'normal' ? '已记录' : item.tone === 'danger' ? '需处理' : '需确认'}</TagPill>
+              <TagPill tone={item.tone}>{item.tone === 'normal' ? '已记录' : item.tone === 'danger' || item.tone === 'warning' ? '需处理' : '需确认'}</TagPill>
             </div>
             <div className="mt-1 text-[12px] font-black leading-snug text-ink [overflow-wrap:anywhere]">{item.value}</div>
             {item.note && <div className="mt-1 text-[10px] font-bold leading-snug text-ink/45">{item.note}</div>}
@@ -184,7 +183,7 @@ export function StatusSummaryCard({
             <ClipboardList className="h-4 w-4 text-emerald-700" />
             为什么建议今天处理？
           </span>
-          <span className="text-[11px] font-black text-ink/45">{showDetails ? '收起' : '展开'}</span>
+          <span className="text-[11px] font-black text-ink/45">{showDetails ? '收起步骤' : '查看完整步骤'}</span>
         </button>
         {showDetails && (
           <div className="mt-3 space-y-3">
