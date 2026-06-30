@@ -34,6 +34,7 @@ ENCYCLOPEDIA_DISPLAY_IMAGE_OVERRIDES = {
 }
 
 VISIBILITY_IMAGE_OVERRIDE_IDS = {
+    "sp_0062",
     "sp_0117",
     "sp_0132",
     "sp_0146",
@@ -74,6 +75,7 @@ VISIBILITY_IMAGE_OVERRIDE_IDS = {
     "sp_0341",
     "sp_0358",
     "sp_0360",
+    "sp_0362",
     "sp_0375",
     "sp_0377",
     "sp_0378",

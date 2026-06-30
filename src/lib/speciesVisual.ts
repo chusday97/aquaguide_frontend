@@ -15,6 +15,7 @@ const displayImageOverrides: Record<string, string> = {
 };
 
 const visibilityOverrideIds = new Set([
+  'sp_0062',
   'sp_0117',
   'sp_0132',
   'sp_0146',
@@ -55,6 +56,7 @@ const visibilityOverrideIds = new Set([
   'sp_0341',
   'sp_0358',
   'sp_0360',
+  'sp_0362',
   'sp_0375',
   'sp_0377',
   'sp_0378',
