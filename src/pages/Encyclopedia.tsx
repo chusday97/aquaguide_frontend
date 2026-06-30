@@ -263,6 +263,7 @@ const getSpeciesFilterTags = (fish: Fish) => {
   const taxonomy = getCareTaxonomyPath(fish);
   const lifeType = getLifeType(fish);
   const environment = getSpeciesEnvironment(fish);
+  const role = getSpeciesRole(fish);
   const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.housingMode || ''} ${fish.housingReason || ''} ${tools.join(' ')} ${taxonomy.waterType} ${taxonomy.variety}`;
   const isExplicitMarine = isSaltwaterSpecies(fish) || environment === '海水' || /海水|珊瑚|海葵|水母|marine|reef|coral|anemone|jellyfish/i.test(text);
   const isPlant = lifeType === 'plant' || fish.category.includes('水草') || taxonomy.waterType.includes('水草');
@@ -272,7 +273,6 @@ const getSpeciesFilterTags = (fish: Fish) => {
     || lifeType === 'saltwaterFish'
     || /鱼|灯科|短鲷|慈鲷|斗鱼|孔雀|玛丽|月光|鼠鱼|鳉|鲤科|鲈形|鲶|鳅/.test(fishLikeText);
   const secondaryCategory = getSecondaryCategory(fish);
-  const role = getSpeciesRole(fish);
   const isLivestock = !isPlant && !isHardscape && !/底砂|设备|造景|硬景|沉木|石/.test(text);
   const isOrnamental = isLivestock && (
     isFish
