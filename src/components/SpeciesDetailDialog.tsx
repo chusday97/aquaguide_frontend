@@ -459,7 +459,6 @@ export function SpeciesDetailDialog({
   const [aiExplanationLoading, setAiExplanationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'environment' | 'compatibility' | 'care'>('environment');
   const [activeMetric, setActiveMetric] = useState<FitDimension | null>(null);
-  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
   const [inlineFeedback, setInlineFeedback] = useState('');
   const selectedFit = useMemo(() => fish ? getSpeciesFitAssessment(fish, aquariumContext) : null, [fish, aquariumContext]);
   const displayFit = selectedFit;
@@ -476,7 +475,6 @@ export function SpeciesDetailDialog({
     if (!open) return;
     setActiveTab('environment');
     setActiveMetric(null);
-    setIsMoreActionsOpen(false);
     setInlineFeedback('');
   }, [open, fish?.id]);
 
@@ -603,6 +601,32 @@ export function SpeciesDetailDialog({
                         <p className="mt-3 line-clamp-1 text-[12px] font-bold leading-relaxed text-ink/62">{getSpeciesRole(fish)}</p>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-4 gap-2 rounded-[18px] border border-border bg-white p-2 shadow-sm">
+                    {[
+                      { label: inCalculator ? '已选择' : '混养计算', icon: Calculator, active: inCalculator, action: () => onAddToCalculator(fish) },
+                      { label: inWishlist ? '已种草' : '加入种草', icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
+                      { label: inWishlist ? '已收藏' : '收藏', icon: Heart, active: inWishlist, action: () => onToggleWishlist(fish.id) },
+                      onRecordDeath ? { label: '记录死亡', icon: Skull, active: false, action: () => onRecordDeath(fish) } : null,
+                    ].filter(Boolean).map(item => {
+                      const actionItem = item as { label: string; icon: typeof Calculator; active: boolean; action: () => void };
+                      const Icon = actionItem.icon;
+                      return (
+                        <button
+                          key={actionItem.label}
+                          type="button"
+                          onClick={actionItem.action}
+                          aria-pressed={actionItem.active}
+                          className={`flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] border px-1 text-[10px] font-black transition-colors ${
+                            actionItem.active ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-border bg-white text-ink/62 hover:border-accent/25 hover:bg-bg'
+                          }`}
+                        >
+                          <Icon className={`h-5 w-5 ${actionItem.active ? 'text-emerald-600' : 'text-accent'}`} />
+                          <span className="max-w-full truncate">{actionItem.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 border-b border-border">
@@ -779,31 +803,6 @@ export function SpeciesDetailDialog({
                     </div>
                   )}
 
-                  <section className="mt-4 rounded-[20px] border border-border bg-white p-3 shadow-sm">
-                    <button type="button" className="flex w-full items-center justify-center gap-2 text-[13px] font-black text-ink/70" onClick={() => setIsMoreActionsOpen(prev => !prev)}>
-                      更多操作 <ChevronRight className={`h-4 w-4 transition-transform ${isMoreActionsOpen ? '-rotate-90' : 'rotate-90'}`} />
-                    </button>
-                    {isMoreActionsOpen && (
-                      <div className="mt-3 grid grid-cols-4 divide-x divide-border overflow-hidden rounded-[16px] border border-border">
-                        {[
-                          { label: '混养计算', icon: Calculator, action: () => onAddToCalculator(fish) },
-                          { label: inWishlist ? '已种草' : '加入种草', icon: inWishlist ? Heart : HeartOff, action: () => onToggleWishlist(fish.id) },
-                          { label: '建缸要求', icon: Info, action: () => setInlineFeedback('建缸要求已在环境指标中展示，可优先完善待补充项。') },
-                          { label: '收藏', icon: Heart, action: () => onToggleWishlist(fish.id) },
-                        ].map(item => {
-                          const Icon = item.icon;
-                          return (
-                            <button key={item.label} type="button" onClick={item.action} className="flex min-h-[72px] flex-col items-center justify-center gap-1 bg-white px-1 text-[11px] font-bold text-ink/60 hover:bg-bg">
-                              <Icon className="h-5 w-5 text-accent" />
-                              {item.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {onRecordDeath && <button type="button" className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border text-[12px] font-black text-ink/55" onClick={() => onRecordDeath(fish)}><Skull className="h-4 w-4" /> 记录死亡</button>}
-                  </section>
-
                   {(detailFeedback || inlineFeedback) && (
                     <div className="mt-3 rounded-[14px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] font-bold text-emerald-800">
                       {detailFeedback || inlineFeedback}
@@ -922,7 +921,7 @@ export function SpeciesDetailDialog({
                             : displayFit.status === 'conflictRisk'
                               ? '查看风险后确认添加'
                               : displayFit.status === 'setupNeeded'
-                                ? displayFit.isEmptyTank ? '查看建缸要求' : '调整后加入'
+                                ? displayFit.isEmptyTank ? '完善鱼缸环境' : '调整后加入'
                                 : displayFit.status === 'unsuitable'
                                   ? '先配置鱼缸环境'
                                   : displayFit.status === 'needConfirmation'
