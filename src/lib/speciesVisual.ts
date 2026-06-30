@@ -84,7 +84,7 @@ const paleBodyPattern = /白金|白子|白化|雪白|白玉|白云|白裙|玻璃
 
 export const getSpeciesDisplayImage = (fish: Pick<Fish, 'id' | 'image'>) => (
   displayImageOverrides[fish.id]
-  || (visibilityOverrideIds.has(fish.id) ? `/species-image-overrides/${fish.id}.png?v=visibility_20260611` : fish.image)
+  || (visibilityOverrideIds.has(fish.id) ? `/species-image-overrides/${fish.id}.png?v=visibility_20260630_v2` : fish.image)
 );
 
 export const hasLowContrastSpeciesImage = (fish: Pick<Fish, 'name' | 'scientificName' | 'image'>) => (
@@ -93,7 +93,7 @@ export const hasLowContrastSpeciesImage = (fish: Pick<Fish, 'name' | 'scientific
 
 export const getSpeciesImageSurfaceClass = (fish: Pick<Fish, 'name' | 'scientificName' | 'image'>) => (
   hasLowContrastSpeciesImage(fish)
-    ? 'bg-emerald-950/[0.03]'
+    ? 'bg-emerald-950/[0.05]'
     : 'bg-transparent'
 );
 
