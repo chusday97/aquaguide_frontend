@@ -1,0 +1,66 @@
+# AquaGuide 交互流程体验与改进建议报告
+
+本报告通过 Playwright 模拟真实用户，对线上运行的 AquaGuide 应用进行端到端的交互体验与流程跑通。我们在测试过程中截取了高分辨率图像，用以还原真实的用户使用场景，并深入排查了交互设计中的痛点和技术漏洞。
+
+---
+
+## 一、 交互流程跑通还原 (Interaction Step-by-Step)
+
+### 1. 图鉴首页 (Encyclopedia Home)
+我们在进入图鉴首页时，UI 以精美的卡片布局呈现。在顶部的“每日发现”模块中，用户可以通过卡牌滑动来获取随机的生物知识科普，有效降低了图鉴本身密集排版的无趣感。
+![图鉴首页](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step1_encyclopedia_home.png)
+
+### 2. 生物搜索 (Species Search)
+当我们在主搜索栏中输入“白金”时，图鉴即时响应并展现出了包含“白金红鼻剪刀”、“白金胡子 (大帆)”、“白金半月斗鱼”在内的白金系列生物卡片。
+此前由于抠图过度导致身体全空心的问题已通过 BFS 还原算法修复，白金鱼类的身体轮廓、纹理均已正常呈现，背景也被柔和的淡色阴影底托卡片包裹。
+![生物搜索](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step2_search_platinum.png)
+
+### 3. 详情弹窗 (Species Detail Dialog)
+点击“白金红鼻剪刀”卡片后，详情弹窗弹出。弹窗展示了生物的系统化喂食画像、水质参数区间、混养提示与繁殖指南。白色主体的质感在弹窗阴影框中得到了完好保留。
+![详情弹窗](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step3_species_detail.png)
+
+### 4. 混养计算器首屏 (Compatibility Calculator)
+切换到 `#compatibility` 页面，进入混养计算器。计算器提供了搜索入口以及基于当前缸体自动推荐候选的轮播横条。
+![混养计算器](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step4_compatibility_calculator.png)
+
+### 5. 混养结果计算 (Calculation Results)
+我们在计算器中添加了“白金红鼻剪刀”和“黑壳虾”。由于天使鱼/剪刀鱼对虾类有吞食风险，引擎瞬间给出了“谨慎尝试”的安全评级，并列出了潜在的冲突点（体型差异、捕食风险），同时提示了优化建议。
+![混养结果](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step5_compatibility_result.png)
+
+### 6. 我的鱼缸主页 (Aquarium Home)
+最后我们访问了鱼缸管理主页。该页面成功挂载了 3D 渲染画布，并在侧边栏展示了当前设备参数。
+![鱼缸主页](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step6_aquarium_home.png)
+
+---
+
+## 二、 交互层面的问题与痛点 (UX Deficiencies)
+
+我们在跑通上述交互时，发现了以下 5 个急需改善的体验漏洞：
+
+### 1. 跨域调用失败阻塞气象组件 (CORS Block on Location Fetch)
+- **现象**：在 `/aquarium` 页面加载时，控制台抛出严重的跨域安全错误：
+  ```
+  [Browser Error]: Access to fetch at 'https://ipapi.co/json/' from origin 'https://aquaguide-frontend.pages.dev' has been blocked by CORS policy.
+  ```
+- **痛点**：由于第三方地理定位 API 限制了来自 Pages 托管域名的请求，导致在生产环境下无法自动获取用户的当前城市，导致天气联动预警功能降级失效。
+- **建议**：替换为支持 CORS 的 IP 地理位置 API（如 `https://ip-api.com/json/` 且支持 HTTP/HTTPS，或在后端处理该定位请求）。
+
+### 2. 搜索没有无结果反馈 (Search Zero-State Feedback)
+- **现象**：当在图鉴主搜索框中输入任何不存在的字符（如 `"abcxyz"`）并点击搜索时，图鉴只是默默清空了卡片列表，呈现出一片空白，没有任何“未找到匹配生物”的提示信息。
+- **痛点**：用户会误以为是网络未加载出来，或者程序卡死，体验极度不友好。
+- **建议**：在列表为空时，展示一个生动的 Empty 状态插画，提示“没有找到对应生物，可以尝试搜索别的分类哦~”并提供“清除搜索词”的快捷按钮。
+
+### 3. 计算器添加生物的检索动效缺失 (Calculator Add Action Feedback)
+- **现象**：在混养计算器输入框中搜索鱼类并点击“加入”按钮时，点击瞬间没有按钮置灰、防抖处理或成功的动效反馈。
+- **痛点**：用户无法直观确认生物是否已经被加进后台计算了，很容易连点多次导致同一种鱼的数量叠加过载。
+- **建议**：点击“加入”后，将“加入”文字变为绿色的“已加入”或在底部弹出一个小型的 Toast 反馈。
+
+### 4. 详情弹窗返回阻断 (Detail Dialog Escape Issue on Mobile)
+- **现象**：在移动端竖屏状态下，详情弹窗几乎占满了整个屏幕，但除了右上角的微小 `X` 关闭按钮外，用户双击空白处或向下滑动无法关闭弹窗。
+- **痛点**：单手握持手机时，难以触碰到顶部微小的 `X` 按钮，导致返回上一页的操作变得极为费力。
+- **建议**：详情弹窗支持“向下滑动关闭”的手势（Swipe-down to dismiss），或者在底部补充一个宽体“返回”按钮。
+
+### 5. 3D 渲染首次加载没有骨架屏/Loading 占位图 (No Skeleton for 3D View)
+- **现象**：在“我的鱼缸”页面首次载入时，由于 Three.js 资源很大，三维画布区域会有一段长达 2-3 秒的黑底/空灰区。
+- **痛点**：无视觉占位导致用户在这个阶段以为网页发生了渲染崩溃。
+- **建议**：为 Three 视口增加一个磨砂玻璃质感的骨架屏或鱼缸加载动画（Lottie/Spinner），待 Canvas 挂载并完成 WebGL 编译后再渐现（Fade-in）3D 场景。
