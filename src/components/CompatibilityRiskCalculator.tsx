@@ -7,12 +7,20 @@ import { getCareTaxonomyPath } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/speciesFitEngine';
 import { evaluateTankCompatibility, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
+import { evaluateCompatibilityDecision, type CompatibilityItem } from '../modules/knowledge/compatibilityKnowledge';
+import type { CompatibilityDecision } from '../modules/knowledge/knowledge.types';
 
 const getDisplayImage = getSpeciesDisplayImage;
 
 type CompatibilityRiskLevel = 'empty' | TankCompatibilityStatus;
 type ResultModal = null | 'adjustment' | 'conflictDetail';
 type SelectedCompatibilityItem = { species: Fish; quantity: number };
+type MainConflict = {
+  key: string;
+  pair: string;
+  reason: string;
+  reasons: string[];
+};
 type SpeciesActionGroup = {
   keep: Fish[];
   remove: Fish[];
@@ -62,62 +70,6 @@ const getQuantity = (value?: number) => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 1;
 };
 
-const dedupeRules = (rules: TankCompatibilityResult['passedRules']) => {
-  const seen = new Set<string>();
-  return rules.filter(rule => {
-    const key = `${rule.code}::${rule.title}::${rule.evidence}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-
-const getWorstStatus = (results: TankCompatibilityResult[]): TankCompatibilityStatus => {
-  if (results.some(item => item.status === 'not_recommended')) return 'not_recommended';
-  if (results.some(item => item.status === 'caution')) return 'caution';
-  if (results.some(item => item.status === 'insufficient_data')) return 'insufficient_data';
-  return 'compatible';
-};
-
-const mergeCompatibilityResults = (results: TankCompatibilityResult[], pairLabel: string): TankCompatibilityResult => {
-  const status = getWorstStatus(results);
-  const blockingRules = dedupeRules(results.flatMap(item => item.blockingRules));
-  const warningRules = dedupeRules(results.flatMap(item => item.warningRules));
-  const missingData = dedupeRules(results.flatMap(item => item.missingData));
-  const passedRules = dedupeRules(results.flatMap(item => item.passedRules));
-  const suggestions = Array.from(new Set(results.flatMap(item => item.suggestions))).slice(0, 5);
-  const riskLevel = status === 'not_recommended'
-    ? 'high'
-    : status === 'insufficient_data'
-      ? 'unknown'
-      : status === 'caution'
-        ? warningRules.some(rule => rule.severity === 'medium' || rule.severity === 'high') || blockingRules.length > 0 ? 'medium' : 'low'
-        : 'none';
-  const summary = status === 'not_recommended'
-    ? blockingRules[0]?.evidence || `${pairLabel} 当前条件下不建议混养。`
-    : status === 'insufficient_data'
-      ? missingData[0]?.evidence || `${pairLabel} 资料不足，暂时无法可靠判断。`
-      : status === 'caution'
-        ? warningRules[0]?.evidence || `${pairLabel} 可以尝试，但需要先处理风险项。`
-        : `${pairLabel} 当前条件下未发现明确阻断风险。`;
-
-  return {
-    status,
-    riskLevel,
-    summary,
-    passedRules,
-    warningRules,
-    blockingRules,
-    missingData,
-    suggestions,
-    metadata: {
-      ruleVersion: results[0]?.metadata.ruleVersion || 'tank-compatibility-v1',
-      speciesDataVersion: results[0]?.metadata.speciesDataVersion || 'local-fish-data-v1',
-      calculatedAt: new Date().toISOString(),
-    },
-  };
-};
-
 const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | null) => {
   if (items.length === 0) {
     return {
@@ -125,6 +77,7 @@ const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | nul
       reasons: [],
       nextSteps: [],
       ruleResult: null as TankCompatibilityResult | null,
+      decision: null as CompatibilityDecision | null,
     };
   }
 
@@ -134,19 +87,19 @@ const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | nul
       reasons: [],
       nextSteps: [],
       ruleResult: null as TankCompatibilityResult | null,
+      decision: null as CompatibilityDecision | null,
     };
   }
 
-  const evaluations = items.map((item, index) => evaluateTankCompatibility({
+  const decision = evaluateCompatibilityDecision({
     tank,
-    existingSpecies: items
-      .filter((_, itemIndex) => itemIndex !== index)
-      .map(existing => ({ species: existing.species, record: { quantity: existing.quantity } })),
-    candidateSpecies: item.species,
-    candidateQuantity: item.quantity,
-  }));
-  const pairLabel = items.map(item => `${item.species.name}×${item.quantity}`).join(' × ');
-  const ruleResult = mergeCompatibilityResults(evaluations, pairLabel);
+    items: items.map<CompatibilityItem>(item => ({
+      species: item.species,
+      quantity: item.quantity,
+      origin: 'candidate',
+    })),
+  });
+  const ruleResult = decision.aggregateResult;
   const level: CompatibilityRiskLevel = ruleResult.status;
   const reasons = [
     ...mapRulesToText(ruleResult.blockingRules),
@@ -159,6 +112,7 @@ const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | nul
     reasons: level === 'compatible' ? ['当前组合未发现明显水质、体型或性情冲突。'] : reasons.slice(0, 5),
     nextSteps: ruleResult.suggestions,
     ruleResult,
+    decision,
   };
 };
 
@@ -186,8 +140,25 @@ const getConflictTags = (species: Fish[], reasons: string[]) => {
   return Array.from(tags).slice(0, 6);
 };
 
-const getMainConflicts = (result: ReturnType<typeof calculateRisk>, species: Fish[]) => {
+const getMainConflicts = (result: ReturnType<typeof calculateRisk>, species: Fish[]): MainConflict[] => {
   if (species.length < 2 || !result.ruleResult) return [];
+  if (result.decision?.pairResults.length) {
+    return result.decision.pairResults
+      .filter(pair => pair.primaryReason || pair.secondaryReasons.length > 0)
+      .map((pair, index) => {
+        const reasons = [
+          pair.primaryReason?.evidence,
+          ...pair.secondaryReasons.map(reason => reason.evidence),
+        ].filter((item): item is string => Boolean(item));
+        return {
+          key: pair.pairId || `pair-${index}`,
+          pair: `${pair.speciesA.name} × ${pair.speciesB.name}`,
+          reason: reasons[0] || '该组合需要进一步观察。',
+          reasons: Array.from(new Set(reasons)).slice(0, 3),
+        };
+      })
+      .slice(0, 3);
+  }
   const ruleItems = [
     ...result.ruleResult.blockingRules,
     ...result.ruleResult.warningRules,
@@ -309,7 +280,7 @@ function CompatibilityBottomSheet({
   meta: ReturnType<typeof getRiskMeta>;
   riskConclusion: string;
   conflictTags: string[];
-  mainConflicts: ReturnType<typeof getMainConflicts>;
+  mainConflicts: MainConflict[];
   actionHints: string[];
   selectedSpecies: Fish[];
   acceptLabel?: string;
@@ -319,10 +290,12 @@ function CompatibilityBottomSheet({
   if (!activeModal) return null;
 
   const isAdjustment = activeModal === 'adjustment';
-  const fallbackConflict = {
+  const fallbackReason = result.reasons[0] || '未发现明显对象冲突，仍建议少量加入并观察。';
+  const fallbackConflict: MainConflict = {
     key: 'summary-conflict',
     pair: selectedSpecies.map(item => item.name).join(' × ') || '当前组合',
-    reason: result.reasons[0] || '未发现明显对象冲突，仍建议少量加入并观察。',
+    reason: fallbackReason,
+    reasons: [fallbackReason],
   };
   const conflicts = mainConflicts.length > 0 ? mainConflicts : [fallbackConflict];
   const primaryConflict = conflicts[0];
@@ -674,7 +647,7 @@ export function CompatibilityRiskCalculator({
       const names = pendingAddableSpecies.map(fish => fish.name).join('、');
       setAddedSpeciesIds(prev => Array.from(new Set([...prev, ...addedIds])));
       setSelectedAddableSpeciesIds(prev => prev.filter(id => !addedIds.includes(id)));
-      setResultFeedback(response?.message || `已加入 ${pendingAddableSpecies.length} 种生物到当前鱼缸：${names}。`);
+      setResultFeedback((response && 'message' in response && response.message) || `已加入 ${pendingAddableSpecies.length} 种生物到当前鱼缸：${names}。`);
     } catch (error) {
       setResultFeedback(error instanceof Error ? error.message : '添加失败，请稍后重试。');
     } finally {

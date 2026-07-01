@@ -8,6 +8,7 @@ import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/s
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
+import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
 import { ImagePreviewModal, type PreviewImage } from './common/ImagePreviewModal';
 
 type FitStatus = 'ok' | 'warning' | 'danger' | 'info';
@@ -182,7 +183,7 @@ const getSpeciesRole = (fish: Fish) => {
   if (getSecondaryCareType(fish) === '水母') return '观赏生物 / 特殊缸体';
   if (getSecondaryCareType(fish) === '海葵') return '观赏生物 / 海水特殊养护';
   if (taxonomy.waterType.includes('水草') || fish.category.includes('水草')) return '水草造景 / 环境植物';
-  if (fish.housingMode === '建议单养' || fish.housingMode === '单独饲养') return '观赏主角 / 建议单养';
+  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
   if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
   if (tools.includes('清残饵')) return '底层生物 / 清残饵';
   if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
@@ -190,74 +191,7 @@ const getSpeciesRole = (fish: Fish) => {
 };
 
 const getSexIdentificationGuide = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.housingMode || ''}`;
-  const lifeType = getLifeType(fish);
-  const isPlantLike = lifeType === 'plant' || /水草|草|植物/.test(text);
-  const isCoralLike = /珊瑚|海葵|水母/.test(text);
-  const isSnailLike = /螺|蜗牛|Neritina|Pomacea|Planorbarius/i.test(text);
-  const isShrimpLike = /虾|Neocaridina|Caridina|Amano/i.test(text);
-
-  if (isPlantLike) {
-    return {
-      title: '不适用公母判断',
-      summary: '水草按株型、叶色和生长状态判断，不做公母区分。',
-      points: ['看新芽和根系是否健康', '观察叶片是否黄叶或烂叶', '重点确认光照、底床和二氧化碳需求'],
-    };
-  }
-
-  if (isCoralLike || isSnailLike) {
-    return {
-      title: '外观难以稳定区分',
-      summary: '该类生物通常不建议只靠外观判断公母。',
-      points: ['优先看活性、伸展和摄食状态', '繁殖或配对需要更长时间观察', '购买时可向商家确认来源和性别信息'],
-    };
-  }
-
-  if (isShrimpLike) {
-    return {
-      title: '虾类公母判断',
-      summary: '成熟母虾通常腹部更宽，抱卵时更容易识别。',
-      points: ['母虾腹甲较宽，体型常略大', '背部可能可见卵巢色块', '公虾体型更修长，颜色可能略淡'],
-    };
-  }
-
-  if (/孔雀|玛丽|月光|剑尾|鳉|Guppy|Poecilia|Xiphophorus/i.test(text)) {
-    return {
-      title: '胎生鱼公母判断',
-      summary: '成熟个体可重点看臀鳍形态和体型。',
-      points: ['公鱼臀鳍更尖，常呈交接器形态', '公鱼颜色和尾鳍通常更鲜艳', '母鱼腹部更圆，体型更饱满'],
-    };
-  }
-
-  if (/斗鱼|Betta/i.test(text)) {
-    return {
-      title: '斗鱼公母判断',
-      summary: '斗鱼主要看鳍型、体色和腹部卵点。',
-      points: ['公鱼鳍更长，展示性更强', '母鱼体型较短圆，可能有白色卵点', '短鳍品系需要结合泡巢和行为观察'],
-    };
-  }
-
-  if (/短鲷|慈鲷|神仙|七彩|鹦鹉|Apistogramma|Cichlid|Pterophyllum|Discus/i.test(text)) {
-    return {
-      title: '慈鲷类公母判断',
-      summary: '多数需要结合体色、背鳍和领地行为判断。',
-      points: ['公鱼体色更强，背鳍或尾鳍延伸更明显', '母鱼繁殖期腹部更圆，体色可能转黄', '未成熟个体外观差异不稳定'],
-    };
-  }
-
-  if (/灯|脂鲤|Tetra|Rasbora|Barb|Danio/i.test(text)) {
-    return {
-      title: '小型群游鱼公母判断',
-      summary: '群游鱼通常差异较细，成熟后才更明显。',
-      points: ['母鱼腹部更圆，体型略宽', '公鱼体色或鳍色可能更鲜艳', '建议观察群体状态，不建议单靠一眼判断'],
-    };
-  }
-
-  return {
-    title: '通用公母判断',
-    summary: '该物种缺少稳定外观规则，建议结合成熟度和行为观察。',
-    points: ['成熟个体比幼体更容易判断', '母鱼常腹部更圆，公鱼常色彩或鳍型更明显', '繁殖前行为、追逐和占区表现可作为辅助依据'],
-  };
+  return buildSpeciesKnowledgeProfile(fish).knowledge.sexIdentification;
 };
 
 const getSecondaryCareType = (fish: Fish) => {
