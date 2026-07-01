@@ -10,7 +10,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameDay } from 'date-fns';
 import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2, CheckCircle2 } from 'lucide-react';
 import { DeceasedRecord } from '../types';
-import { askAquaGuideAI, generateRecommendationAssist, generateRiskExplanation, type RecommendationAssistData, type RiskExplanationData } from '../lib/aiClient';
+import {
+  askAquaGuideAI,
+  generateRecommendationAssist,
+  generateRiskExplanation,
+  generateTankBuildCopilot,
+  type RecommendationAssistData,
+  type RiskExplanationData,
+  type TankBuildCopilotData,
+} from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions } from '../modules/species/species.service';
@@ -30,6 +38,7 @@ import {
   normalizeDiscoveryState,
   recommendationService,
 } from '../modules/recommendation/recommendation.service';
+import { buildTankCopilotContext } from '../modules/copilot/tankBuildCopilot';
 import { weatherService } from '../services/weather/weather.service';
 import type { LocalWeatherOutput } from '../services/weather/weather.schema';
 import {
@@ -631,6 +640,11 @@ export default function AquariumManager() {
   const [isSmartAiLoading, setIsSmartAiLoading] = useState(false);
   const [smartSimulation, setSmartSimulation] = useState<SimulationResult | null>(null);
   const [smartAddQuantity, setSmartAddQuantity] = useState(1);
+  const [isTankCopilotOpen, setIsTankCopilotOpen] = useState(false);
+  const [tankCopilotGoal, setTankCopilotGoal] = useState('');
+  const [tankCopilotResult, setTankCopilotResult] = useState<TankBuildCopilotData | null>(null);
+  const [isTankCopilotLoading, setIsTankCopilotLoading] = useState(false);
+  const [tankCopilotError, setTankCopilotError] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   const [selectedAqFish, setSelectedAqFish] = useState<{fish: Fish, aqFish: AquariumFish} | null>(null);
@@ -1621,6 +1635,55 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     setSmartAiAssist(null);
     setSmartAddQuantity(1);
     setIsSmartRecommendOpen(true);
+  };
+
+  const openTankBuildCopilot = () => {
+    setTankCopilotError('');
+    setTankCopilotResult(null);
+    setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? '基于当前鱼缸规划下一步安全搭配' : '新手小型淡水缸'));
+    setIsTankCopilotOpen(true);
+  };
+
+  const handleTankCopilotGenerate = async (goalOverride?: string) => {
+    const nextGoal = (goalOverride ?? tankCopilotGoal).trim();
+    if (!nextGoal) {
+      setTankCopilotError('先写一句目标，例如“新手小型淡水缸”。');
+      return;
+    }
+
+    setTankCopilotGoal(nextGoal);
+    setTankCopilotError('');
+    setIsTankCopilotLoading(true);
+    const context = buildTankCopilotContext({
+      aquarium: activeAquarium,
+      userGoal: nextGoal,
+      smartRecommendation,
+    });
+    const result = await generateTankBuildCopilot(context);
+    setTankCopilotResult(result);
+    setTankCopilotError(result.fallback ? 'AI 暂不可用，已显示本地规则方案。' : '');
+    setIsTankCopilotLoading(false);
+  };
+
+  const handleTankCopilotNextAction = () => {
+    if (!tankCopilotResult) {
+      void handleTankCopilotGenerate();
+      return;
+    }
+
+    if (tankCopilotResult.nextAction.type === 'complete_tank_info') {
+      setIsTankCopilotOpen(false);
+      openAquariumSettings('parameters');
+      return;
+    }
+
+    if (tankCopilotResult.nextAction.type === 'view_candidates' || tankCopilotResult.nextAction.type === 'simulate_plan') {
+      setIsTankCopilotOpen(false);
+      openSmartRecommendation(activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank');
+      return;
+    }
+
+    setIsTankCopilotOpen(false);
   };
 
   const handleRecommendationAssist = async () => {
@@ -3247,10 +3310,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     },
     {
       id: 'smartRecommend',
-      label: '智能推荐',
-      description: '按当前鱼缸筛选',
+      label: 'AI 建缸规划',
+      description: '先理解目标再筛方案',
       icon: <Sparkles className="h-4 w-4" />,
-      onClick: () => openSmartRecommendation(),
+      onClick: () => openTankBuildCopilot(),
       tone: 'normal' as const,
     },
     {
@@ -5067,6 +5130,186 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </div>
           <DialogFooter>
             <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsRecommendOpen(false)}>关闭</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTankCopilotOpen} onOpenChange={setIsTankCopilotOpen}>
+        <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[780px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
+          <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
+              <Sparkles className="h-5 w-5 text-accent" />
+              AI 建缸规划
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
+              AI 理解目标，本地规则筛安全边界；不会直接改鱼缸数据。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="space-y-4">
+              <section className="rounded-[20px] border border-border bg-bg/70 p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-black text-ink">你想建什么样的缸？</div>
+                    <div className="text-[11px] font-bold text-ink/45">
+                      当前参考：{activeAquarium.name} · {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || 25}°C
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-ink/45">
+                    最多 3 步到方案
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={tankCopilotGoal}
+                    onChange={(event) => {
+                      setTankCopilotGoal(event.target.value);
+                      setTankCopilotError('');
+                    }}
+                    placeholder="例如：新手小型淡水缸、低维护草缸、虾缸"
+                    className="h-11 rounded-full border-border bg-white px-4 text-sm font-bold"
+                  />
+                  <Button
+                    type="button"
+                    className="h-11 shrink-0 rounded-full bg-accent px-5 text-sm font-black text-white"
+                    disabled={isTankCopilotLoading}
+                    onClick={() => void handleTankCopilotGenerate()}
+                  >
+                    {isTankCopilotLoading ? '生成中...' : '生成方案'}
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {['新手小型淡水缸', '低维护草缸', '虾缸', '观赏鱼群游缸'].map(goal => (
+                    <button
+                      key={goal}
+                      type="button"
+                      className="rounded-full border border-border bg-white px-3 py-1.5 text-[11px] font-black text-ink/58 hover:border-accent/40 hover:text-accent"
+                      onClick={() => void handleTankCopilotGenerate(goal)}
+                    >
+                      {goal}
+                    </button>
+                  ))}
+                </div>
+                {tankCopilotError && (
+                  <div className="mt-3 rounded-[14px] bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+                    {tankCopilotError}
+                  </div>
+                )}
+              </section>
+
+              {tankCopilotResult ? (
+                <>
+                  <section className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
+                    <div className="text-sm font-black text-accent">方案结论</div>
+                    <p className="mt-2 text-sm font-bold leading-relaxed text-ink">
+                      {tankCopilotResult.reply}
+                    </p>
+                    {tankCopilotResult.missingQuestions.length > 0 && (
+                      <div className="mt-3 rounded-[16px] bg-white/80 p-3">
+                        <div className="text-xs font-black text-amber-700">需要先确认</div>
+                        <div className="mt-2 grid gap-1.5 text-xs font-bold text-ink/65">
+                          {tankCopilotResult.missingQuestions.map(question => (
+                            <div key={question}>• {question}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  {tankCopilotResult.planSummary.length > 0 && (
+                    <section className="rounded-[20px] border border-border bg-white p-4">
+                      <div className="text-sm font-black text-ink">规划重点</div>
+                      <div className="mt-3 grid gap-2">
+                        {tankCopilotResult.planSummary.map(item => (
+                          <div key={item} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {tankCopilotResult.safeCandidates.length > 0 && (
+                    <section className="rounded-[20px] border border-border bg-white p-4">
+                      <div className="text-sm font-black text-ink">候选生物</div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {tankCopilotResult.safeCandidates.map(candidate => (
+                          <div key={`${candidate.speciesId || candidate.name}-${candidate.name}`} className="rounded-[16px] bg-bg p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="truncate text-sm font-black text-ink">{candidate.name}</div>
+                              {candidate.recommendedQuantity && (
+                                <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-accent">
+                                  x{candidate.recommendedQuantity}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-relaxed text-ink/50">
+                              {candidate.reason}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="rounded-[20px] border border-border bg-white p-4">
+                    <div className="text-sm font-black text-ink">下一步动作</div>
+                    <div className="mt-3 grid gap-2">
+                      {tankCopilotResult.recommendedActions.length > 0
+                        ? tankCopilotResult.recommendedActions.map(action => (
+                          <div key={action} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
+                            {action}
+                          </div>
+                        ))
+                        : (
+                          <div className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/55">
+                            先完善鱼缸信息，再查看本地规则候选。
+                          </div>
+                        )}
+                    </div>
+                    {tankCopilotResult.blockedReasons.length > 0 && (
+                      <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
+                        <summary className="cursor-pointer">查看不建议方向</summary>
+                        <div className="mt-2 grid gap-1.5">
+                          {tankCopilotResult.blockedReasons.map(reason => (
+                            <div key={reason}>• {reason}</div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <section className="rounded-[20px] border border-dashed border-border bg-white p-5 text-center">
+                  <div className="text-sm font-black text-ink">还没有生成方案</div>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-ink/45">
+                    输入一个目标后，系统会先用本地规则筛掉不安全方向，再让 AI 组织成可执行方案。
+                  </p>
+                </section>
+              )}
+
+              <div className="rounded-[16px] bg-bg px-4 py-3 text-[11px] font-bold leading-relaxed text-ink/45">
+                系统结论由规则生成，AI 负责理解目标、解释方案和生成行动建议。
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="shrink-0 border-t border-border/70 px-5 pb-5 pt-4 sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full px-6 text-sm font-black"
+              onClick={() => setIsTankCopilotOpen(false)}
+            >
+              关闭
+            </Button>
+            <Button
+              type="button"
+              className="h-11 rounded-full bg-accent px-6 text-sm font-black text-white"
+              disabled={isTankCopilotLoading}
+              onClick={handleTankCopilotNextAction}
+            >
+              {tankCopilotResult ? tankCopilotResult.nextAction.label : isTankCopilotLoading ? '生成中...' : '生成建缸方案'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

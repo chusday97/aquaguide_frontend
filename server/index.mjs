@@ -176,6 +176,51 @@ const buildRecommendationAssistPrompt = (context = {}) => {
   return { system, messages: [{ role: 'user', content: user }], temperature: 0.2, maxTokens: 1000, thinking: 'disabled' };
 };
 
+const buildTankCopilotPrompt = (context = {}) => {
+  const compactContext = JSON.stringify(context, null, 2).slice(0, 15000);
+  const system = [
+    '你是 AquaGuide 的 AI 建缸规划 Copilot。',
+    '你的任务是理解用户想建什么缸，识别缺失信息，并把本地规则工具已经筛出的安全候选组织成可执行方案。',
+    '你不能重新判断 canAdd，不能覆盖风险等级，不能把 blockedReasons 中的生物重新加入推荐。',
+    '你不能编造数据库不存在的生物、鱼缸设备或用户没有提供的数据。',
+    '你只能基于 context.aquariumSummary、context.toolResults 和 context.ruleFacts 工作。',
+    '如果缺失信息较多，最多追问 3 个关键问题，不要直接生成确定推荐。',
+    '输出必须是合法 JSON，不要 Markdown，不要代码块，不要额外解释。',
+  ].join('\n');
+  const user = [
+    '请为用户生成一个建缸规划 Copilot 回复。回复必须可执行、简短，并尊重本地规则结果。',
+    '返回 JSON 必须符合这个结构：',
+    JSON.stringify({
+      reply: '一句话回应用户目标',
+      missingQuestions: ['最多 3 个需要补充的问题'],
+      planSummary: ['方案重点 1', '方案重点 2'],
+      recommendedActions: ['下一步动作 1', '下一步动作 2'],
+      safeCandidates: [
+        {
+          speciesId: 'species-id',
+          name: '候选生物名',
+          status: 'compatible',
+          recommendedQuantity: 6,
+          reason: '为什么适合这个方案',
+        },
+      ],
+      blockedReasons: ['不建议方向或生物的原因'],
+      nextAction: {
+        type: 'complete_tank_info',
+        label: '完善鱼缸信息',
+      },
+    }, null, 2),
+    '',
+    'nextAction.type 只能是 complete_tank_info、view_candidates、simulate_plan、none。',
+    'safeCandidates 只能来自 context.toolResults.safeCandidates 或 adjustableCandidates。',
+    '',
+    'context:',
+    compactContext,
+  ].join('\n');
+
+  return { system, messages: [{ role: 'user', content: user }], temperature: 0.2, maxTokens: 1100, thinking: 'disabled' };
+};
+
 const parseJsonObject = (text) => {
   try {
     return JSON.parse(text);
@@ -261,6 +306,51 @@ const normalizeRecommendationAssistData = (data) => ({
     : [],
 });
 
+const normalizeTankCopilotData = (data) => {
+  const allowedActions = new Set(['complete_tank_info', 'view_candidates', 'simulate_plan', 'none']);
+  const allowedStatus = new Set(['compatible', 'caution', 'insufficient_data']);
+  const nextActionType = allowedActions.has(data?.nextAction?.type) ? data.nextAction.type : 'none';
+
+  return {
+    reply: typeof data?.reply === 'string' && data.reply.trim()
+      ? data.reply
+      : '我会先按本地规则检查鱼缸条件，再给出可执行建缸方案。',
+    missingQuestions: Array.isArray(data?.missingQuestions)
+      ? data.missingQuestions.filter(item => typeof item === 'string').slice(0, 3)
+      : [],
+    planSummary: Array.isArray(data?.planSummary)
+      ? data.planSummary.filter(item => typeof item === 'string').slice(0, 5)
+      : [],
+    recommendedActions: Array.isArray(data?.recommendedActions)
+      ? data.recommendedActions.filter(item => typeof item === 'string').slice(0, 5)
+      : [],
+    safeCandidates: Array.isArray(data?.safeCandidates)
+      ? data.safeCandidates.slice(0, 6).map(item => ({
+        speciesId: typeof item?.speciesId === 'string' ? item.speciesId : '',
+        name: typeof item?.name === 'string' ? item.name : '候选生物',
+        status: allowedStatus.has(item?.status) ? item.status : 'compatible',
+        recommendedQuantity: Number.isFinite(Number(item?.recommendedQuantity)) ? Math.max(1, Number(item.recommendedQuantity)) : undefined,
+        reason: typeof item?.reason === 'string' ? item.reason : '符合本地规则候选。',
+      })).filter(item => item.speciesId || item.name)
+      : [],
+    blockedReasons: Array.isArray(data?.blockedReasons)
+      ? data.blockedReasons.filter(item => typeof item === 'string').slice(0, 5)
+      : [],
+    nextAction: {
+      type: nextActionType,
+      label: typeof data?.nextAction?.label === 'string' && data.nextAction.label.trim()
+        ? data.nextAction.label
+        : nextActionType === 'complete_tank_info'
+          ? '完善鱼缸信息'
+          : nextActionType === 'view_candidates'
+            ? '查看候选生物'
+            : nextActionType === 'simulate_plan'
+              ? '加入模拟鱼缸'
+              : '我知道了',
+    },
+  };
+};
+
 const fetchWithTimeout = async (url, options, timeoutMs = aiRequestTimeoutMs) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -292,7 +382,9 @@ app.post('/api/ai/chat', async (req, res) => {
       ? buildRiskAuditPrompt(context)
       : task === 'recommendation_assist'
         ? buildRecommendationAssistPrompt(context)
-        : req.body || {};
+        : task === 'build_tank_copilot'
+          ? buildTankCopilotPrompt(context)
+          : req.body || {};
 
   const { messages, system, temperature = 0.4, maxTokens = 1200, thinking = 'disabled' } = requestInput;
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -359,6 +451,14 @@ app.post('/api/ai/chat', async (req, res) => {
         ok: true,
         task: 'recommendation_assist',
         data: normalizeRecommendationAssistData(parsed),
+      });
+    }
+    if (task === 'build_tank_copilot') {
+      const parsed = parseJsonObject(content);
+      return res.json({
+        ok: true,
+        task: 'build_tank_copilot',
+        data: normalizeTankCopilotData(parsed),
       });
     }
 

@@ -72,6 +72,30 @@ export interface RecommendationAssistData {
   fallback?: boolean;
 }
 
+export type TankBuildNextActionType = 'complete_tank_info' | 'view_candidates' | 'simulate_plan' | 'none';
+
+export interface TankBuildCopilotCandidate {
+  speciesId?: string;
+  name: string;
+  status?: 'compatible' | 'caution' | 'insufficient_data';
+  recommendedQuantity?: number;
+  reason: string;
+}
+
+export interface TankBuildCopilotData {
+  reply: string;
+  missingQuestions: string[];
+  planSummary: string[];
+  recommendedActions: string[];
+  safeCandidates: TankBuildCopilotCandidate[];
+  blockedReasons: string[];
+  nextAction: {
+    type: TankBuildNextActionType;
+    label: string;
+  };
+  fallback?: boolean;
+}
+
 const fallbackRiskExplanation: RiskExplanationData = {
   statusRestatement: 'unknown',
   summary: '暂时无法生成 AI 分析',
@@ -108,6 +132,20 @@ const fallbackRecommendationAssist: RecommendationAssistData = {
   explanations: ['AI 辅助暂不可用，当前推荐已按本地规则排序。'],
   stagedPlan: ['先选择 1 个候选进入模拟', '确认负载和风险后再少量加入', '加入后观察 3-7 天'],
   questions: [],
+  fallback: true,
+};
+
+const fallbackTankBuildCopilot: TankBuildCopilotData = {
+  reply: 'AI 暂不可用，但可以继续使用本地规则生成基础方案。',
+  missingQuestions: [],
+  planSummary: ['先补齐鱼缸尺寸、水温、过滤和加热信息。'],
+  recommendedActions: ['完善鱼缸信息后，再查看本地规则筛选出的候选生物。'],
+  safeCandidates: [],
+  blockedReasons: [],
+  nextAction: {
+    type: 'complete_tank_info',
+    label: '完善鱼缸信息',
+  },
   fallback: true,
 };
 
@@ -216,6 +254,53 @@ const normalizeRecommendationAssist = (data: Partial<RecommendationAssistData> |
     : [],
 });
 
+const normalizeTankBuildCopilot = (data: Partial<TankBuildCopilotData> | undefined): TankBuildCopilotData => {
+  const allowedActions: TankBuildNextActionType[] = ['complete_tank_info', 'view_candidates', 'simulate_plan', 'none'];
+  const rawActionType = data?.nextAction?.type;
+  const actionType = allowedActions.includes(rawActionType as TankBuildNextActionType)
+    ? rawActionType as TankBuildNextActionType
+    : 'none';
+
+  return {
+    reply: typeof data?.reply === 'string' && data.reply.trim() ? data.reply : fallbackTankBuildCopilot.reply,
+    missingQuestions: Array.isArray(data?.missingQuestions)
+      ? data.missingQuestions.filter(item => typeof item === 'string').slice(0, 3)
+      : [],
+    planSummary: Array.isArray(data?.planSummary)
+      ? data.planSummary.filter(item => typeof item === 'string').slice(0, 5)
+      : fallbackTankBuildCopilot.planSummary,
+    recommendedActions: Array.isArray(data?.recommendedActions)
+      ? data.recommendedActions.filter(item => typeof item === 'string').slice(0, 5)
+      : fallbackTankBuildCopilot.recommendedActions,
+    safeCandidates: Array.isArray(data?.safeCandidates)
+      ? data.safeCandidates.map(item => ({
+        speciesId: typeof item?.speciesId === 'string' ? item.speciesId : undefined,
+        name: typeof item?.name === 'string' ? item.name : '候选生物',
+        status: ['compatible', 'caution', 'insufficient_data'].includes(String(item?.status))
+          ? item.status
+          : 'compatible',
+        recommendedQuantity: Number.isFinite(Number(item?.recommendedQuantity)) ? Math.max(1, Number(item.recommendedQuantity)) : undefined,
+        reason: typeof item?.reason === 'string' ? item.reason : '符合本地规则候选。',
+      })).slice(0, 6)
+      : [],
+    blockedReasons: Array.isArray(data?.blockedReasons)
+      ? data.blockedReasons.filter(item => typeof item === 'string').slice(0, 5)
+      : [],
+    nextAction: {
+      type: actionType,
+      label: typeof data?.nextAction?.label === 'string' && data.nextAction.label.trim()
+        ? data.nextAction.label
+        : actionType === 'complete_tank_info'
+          ? '完善鱼缸信息'
+          : actionType === 'view_candidates'
+            ? '查看候选生物'
+            : actionType === 'simulate_plan'
+              ? '加入模拟鱼缸'
+              : '我知道了',
+    },
+  };
+};
+
 export const generateRiskExplanation = async (context: unknown): Promise<RiskExplanationData> => {
   try {
     const response = await fetch('/api/ai/chat', {
@@ -303,5 +388,31 @@ export const generateRecommendationAssist = async (context: unknown): Promise<Re
     return normalizeRecommendationAssist(payload.data);
   } catch {
     return fallbackRecommendationAssist;
+  }
+};
+
+export const generateTankBuildCopilot = async (context: unknown): Promise<TankBuildCopilotData> => {
+  try {
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task: 'build_tank_copilot',
+        context,
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      return fallbackTankBuildCopilot;
+    }
+
+    if (payload?.task !== 'build_tank_copilot') {
+      return fallbackTankBuildCopilot;
+    }
+
+    return normalizeTankBuildCopilot(payload.data);
+  } catch {
+    return fallbackTankBuildCopilot;
   }
 };
