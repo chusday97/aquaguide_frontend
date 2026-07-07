@@ -124,6 +124,14 @@ const getRiskConclusion = (level: CompatibilityRiskLevel, species: Fish[], reaso
   return '可以尝试混养，入缸后继续观察。';
 };
 
+const getResultNextAction = (level: CompatibilityRiskLevel) => {
+  if (level === 'not_recommended') return '先移除下方红色对象，再重新计算组合。';
+  if (level === 'insufficient_data') return '先补充缺失信息，再决定是否加入。';
+  if (level === 'caution') return '只保留下方勾选对象，添加前确认提醒。';
+  if (level === 'compatible') return '可添加下方勾选的新生物到当前鱼缸。';
+  return '先选择至少 2 种生物。';
+};
+
 const getConflictTags = (species: Fish[], reasons: string[]) => {
   if (species.length < 2) return [];
   const tags = new Set<string>();
@@ -143,20 +151,30 @@ const getConflictTags = (species: Fish[], reasons: string[]) => {
 const getMainConflicts = (result: ReturnType<typeof calculateRisk>, species: Fish[]): MainConflict[] => {
   if (species.length < 2 || !result.ruleResult) return [];
   if (result.decision?.pairResults.length) {
-    return result.decision.pairResults
+    const grouped = new Map<string, MainConflict>();
+    result.decision.pairResults
       .filter(pair => pair.primaryReason || pair.secondaryReasons.length > 0)
-      .map((pair, index) => {
+      .forEach((pair, index) => {
+        const pairName = `${pair.speciesA.name} × ${pair.speciesB.name}`;
         const reasons = [
           pair.primaryReason?.evidence,
           ...pair.secondaryReasons.map(reason => reason.evidence),
         ].filter((item): item is string => Boolean(item));
-        return {
+        const item = grouped.get(pairName) || {
           key: pair.pairId || `pair-${index}`,
-          pair: `${pair.speciesA.name} × ${pair.speciesB.name}`,
+          pair: pairName,
           reason: reasons[0] || '该组合需要进一步观察。',
-          reasons: Array.from(new Set(reasons)).slice(0, 3),
+          reasons: [],
         };
-      })
+        reasons.forEach(reason => {
+          if (!item.reasons.includes(reason)) item.reasons.push(reason);
+        });
+        item.reason = item.reasons[0] || item.reason;
+        grouped.set(pairName, item);
+      });
+
+    return Array.from(grouped.values())
+      .map(item => ({ ...item, reasons: item.reasons.slice(0, 3) }))
       .slice(0, 3);
   }
   const ruleItems = [
@@ -920,15 +938,7 @@ export function CompatibilityRiskCalculator({
                   </span>
                   <span className="text-[13px] font-black text-ink">{riskConclusion}</span>
                 </div>
-                <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/64">
-                  {result.level === 'not_recommended'
-                    ? `当前组合有 ${Math.max(mainConflicts.length, 1)} 个明显冲突对象，建议先重新选择。`
-                    : result.level === 'caution'
-                      ? '先调整空间、躲避物和入缸顺序，再考虑尝试。'
-                      : result.level === 'insufficient_data'
-                        ? '当前资料不足，先补充鱼缸和物种信息后再判断。'
-                        : '条件接近，可以少量加入并观察。'}
-                </p>
+                <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/64">{getResultNextAction(result.level)}</p>
               </div>
 
               {resultFeedback && (
