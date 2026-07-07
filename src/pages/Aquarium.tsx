@@ -624,6 +624,19 @@ type CareDiagnosisContext = {
   prepInfo: string[];
 };
 
+const loadWishlistFishIds = () => {
+  try {
+    const appState = loadAppStateFromStorage();
+    const legacyIds = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
+    return new Set<string>([
+      ...(Array.isArray(appState.wishlist) ? appState.wishlist : []),
+      ...(Array.isArray(legacyIds) ? legacyIds : []),
+    ]);
+  } catch {
+    return new Set<string>();
+  }
+};
+
 export default function AquariumManager() {
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -701,7 +714,7 @@ export default function AquariumManager() {
   const [aiRecommendations, setAiRecommendations] = useState<Fish[]>([]);
   const [aiReasoning, setAiReasoning] = useState<string>('');
 
-  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(new Set());
+  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistFishIds());
   const [isWishlistExpanded, setIsWishlistExpanded] = useState(false);
   const [discoveryState, setDiscoveryState] = useState<DiscoveryDeckState>(() => loadDiscoveryState());
   const [discoveryDragStartX, setDiscoveryDragStartX] = useState<number | null>(null);
@@ -788,6 +801,18 @@ export default function AquariumManager() {
     patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
     window.dispatchEvent(new Event('aquaguide:favorites-changed'));
   };
+
+  useEffect(() => {
+    const refreshWishlist = () => setWishlistFishIds(loadWishlistFishIds());
+    window.addEventListener('aquaguide:favorites-changed', refreshWishlist);
+    window.addEventListener('storage', refreshWishlist);
+    window.addEventListener('focus', refreshWishlist);
+    return () => {
+      window.removeEventListener('aquaguide:favorites-changed', refreshWishlist);
+      window.removeEventListener('storage', refreshWishlist);
+      window.removeEventListener('focus', refreshWishlist);
+    };
+  }, []);
 
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
@@ -2206,9 +2231,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       state: discoveryState,
     });
 
-    if (output.addedWishlistId) {
+    const addedWishlistId = output.addedWishlistId || (action === 'interest' ? discoveryFish.id : null);
+    if (addedWishlistId) {
       const next = new Set(wishlistFishIds);
-      next.add(output.addedWishlistId);
+      next.add(addedWishlistId);
       syncWishlistFishIds(next);
     }
 

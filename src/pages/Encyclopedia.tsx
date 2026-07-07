@@ -623,6 +623,18 @@ export default function Encyclopedia() {
     window.dispatchEvent(new Event('aquaguide:favorites-changed'));
   };
 
+  useEffect(() => {
+    const refreshWishlist = () => setWishlistFishIds(loadWishlistIds());
+    window.addEventListener('aquaguide:favorites-changed', refreshWishlist);
+    window.addEventListener('storage', refreshWishlist);
+    window.addEventListener('focus', refreshWishlist);
+    return () => {
+      window.removeEventListener('aquaguide:favorites-changed', refreshWishlist);
+      window.removeEventListener('storage', refreshWishlist);
+      window.removeEventListener('focus', refreshWishlist);
+    };
+  }, []);
+
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
     if (next.has(id)) next.delete(id);
@@ -704,9 +716,10 @@ export default function Encyclopedia() {
       state: discoveryState,
     });
 
-    if (output.addedWishlistId) {
+    const addedWishlistId = output.addedWishlistId || (action === 'interest' ? discoveryFish.id : null);
+    if (addedWishlistId) {
       const next = new Set(wishlistFishIds);
-      next.add(output.addedWishlistId);
+      next.add(addedWishlistId);
       syncWishlistFishIds(next);
     }
     setDiscoveryMessage(output.message);
