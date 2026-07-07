@@ -657,9 +657,14 @@ export function SpeciesDetailDialog({
                         {aiExplanationLoading ? (
                           <p className="mt-3 text-[12px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
                         ) : aiExplanation?.fallback ? (
-                          <p className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/60">AI 解读暂不可用，当前结果以系统规则为准。</p>
+                          <p className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/60">
+                            AI 暂不可用，当前显示本地模板说明；系统结论仍由规则生成。
+                          </p>
                         ) : aiExplanation ? (
                           <div className="mt-3 grid gap-2">
+                            <div className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+                              模型回复 · 不改变系统结论
+                            </div>
                             <p className="rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/65">{aiExplanation.summary}</p>
                             {aiExplanation.reasons.slice(0, 3).map(item => (
                               <div key={`${item.title}-${item.detail}`} className="rounded-[12px] border border-sky-100 bg-sky-50/70 p-3">
@@ -936,9 +941,14 @@ export function SpeciesDetailDialog({
                     {aiExplanationLoading ? (
                       <p className="mt-2 text-[11px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
                     ) : aiExplanation?.fallback ? (
-                      <p className="mt-2 rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/60">AI 解读暂不可用，当前结果以系统规则为准。</p>
+                      <p className="mt-2 rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/60">
+                        AI 暂不可用，当前显示本地模板说明；系统结论仍由规则生成。
+                      </p>
                     ) : aiExplanation ? (
                       <div className="mt-2 grid gap-2">
+                        <div className="w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">
+                          模型回复 · 不改变系统结论
+                        </div>
                         <p className="rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/65">
                           {aiExplanation.summary}
                         </p>

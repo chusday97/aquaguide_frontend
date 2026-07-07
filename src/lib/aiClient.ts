@@ -11,6 +11,17 @@ interface AskAiOptions {
   thinking?: 'enabled' | 'disabled';
 }
 
+export type AiTaskName = 'risk_explanation' | 'risk_audit' | 'recommendation_assist' | 'build_tank_copilot';
+export type AiResponseSource = 'model' | 'fallback';
+export type AiFailureReason = 'not_configured' | 'network' | 'timeout' | 'invalid_json' | 'status_mismatch' | 'unknown';
+
+export interface AiResultMeta {
+  source?: AiResponseSource;
+  failureReason?: AiFailureReason;
+  task?: AiTaskName;
+  generatedAt?: string;
+}
+
 export interface RiskExplanationReason {
   title: string;
   detail: string;
@@ -22,7 +33,7 @@ export interface RiskExplanationSuggestion {
   detail: string;
 }
 
-export interface RiskExplanationData {
+export interface RiskExplanationData extends AiResultMeta {
   statusRestatement?: string;
   summary: string;
   reasons: RiskExplanationReason[];
@@ -45,7 +56,7 @@ export interface RiskAuditUncertainItem {
   reason: string;
 }
 
-export interface RiskAuditData {
+export interface RiskAuditData extends AiResultMeta {
   hasAdditionalRisk: boolean;
   additionalRiskLevel: 'none' | 'low' | 'medium' | 'high';
   missingRisks: RiskAuditMissingRisk[];
@@ -55,7 +66,7 @@ export interface RiskAuditData {
   fallback?: boolean;
 }
 
-export interface RecommendationAssistData {
+export interface RecommendationAssistData extends AiResultMeta {
   structuredPreference: {
     experience?: string;
     maintenance?: string;
@@ -82,7 +93,7 @@ export interface TankBuildCopilotCandidate {
   reason: string;
 }
 
-export interface TankBuildCopilotData {
+export interface TankBuildCopilotData extends AiResultMeta {
   reply: string;
   missingQuestions: string[];
   planSummary: string[];
@@ -152,6 +163,37 @@ const fallbackTankBuildCopilot: TankBuildCopilotData = {
 export const getAiUnavailableMessage = () => (
   'AI 后端还没有配置 API Key。请在项目根目录创建 .env.local，并写入 AI_API_KEY=你的Key，然后重启 npm run dev。'
 );
+
+const withAiMeta = <T extends { fallback?: boolean }>(
+  data: T,
+  task: AiTaskName,
+  source: AiResponseSource,
+  failureReason?: AiFailureReason,
+): T & Required<Pick<AiResultMeta, 'source' | 'task' | 'generatedAt'>> & Pick<AiResultMeta, 'failureReason'> => ({
+  ...data,
+  source,
+  failureReason,
+  task,
+  generatedAt: new Date().toISOString(),
+  fallback: source === 'fallback',
+});
+
+const failureReasonFromResponse = (response: Response, payload: { error?: unknown } = {}): AiFailureReason => {
+  const message = typeof payload.error === 'string' ? payload.error.toLowerCase() : '';
+  if (response.status === 503 || message.includes('not configured') || message.includes('api key')) return 'not_configured';
+  if (response.status === 504 || message.includes('timeout') || message.includes('timed out')) return 'timeout';
+  if (message.includes('json')) return 'invalid_json';
+  if (response.status === 502) return 'network';
+  return 'unknown';
+};
+
+const failureReasonFromError = (error: unknown): AiFailureReason => {
+  if (error && typeof error === 'object' && 'name' in error && (error as { name?: unknown }).name === 'AbortError') return 'timeout';
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  if (message.includes('json')) return 'invalid_json';
+  if (message.includes('failed to fetch') || message.includes('network')) return 'network';
+  return 'unknown';
+};
 
 export const askAquaGuideAI = async ({
   messages,
@@ -314,28 +356,28 @@ export const generateRiskExplanation = async (context: unknown): Promise<RiskExp
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      return {
+      return withAiMeta({
         ...fallbackRiskExplanation,
         summary: '暂时无法生成 AI 分析',
         reasons: fallbackRiskExplanation.reasons,
-      };
+      }, 'risk_explanation', 'fallback', failureReasonFromResponse(response, payload));
     }
 
     if (payload?.task !== 'risk_explanation') {
-      return fallbackRiskExplanation;
+      return withAiMeta(fallbackRiskExplanation, 'risk_explanation', 'fallback', 'invalid_json');
     }
 
     const normalized = normalizeRiskExplanation(payload.data);
     const expectedStatus = getExpectedRiskExplanationStatus(context);
     if (expectedStatus && normalized.statusRestatement && normalized.statusRestatement !== expectedStatus) {
-      return {
+      return withAiMeta({
         ...fallbackRiskExplanation,
         summary: 'AI 解读与系统结论不一致，已改用本地说明。',
-      };
+      }, 'risk_explanation', 'fallback', 'status_mismatch');
     }
-    return normalized;
-  } catch {
-    return fallbackRiskExplanation;
+    return withAiMeta(normalized, 'risk_explanation', 'model');
+  } catch (error) {
+    return withAiMeta(fallbackRiskExplanation, 'risk_explanation', 'fallback', failureReasonFromError(error));
   }
 };
 
@@ -352,16 +394,16 @@ export const generateRiskAudit = async (context: unknown): Promise<RiskAuditData
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      return fallbackRiskAudit;
+      return withAiMeta(fallbackRiskAudit, 'risk_audit', 'fallback', failureReasonFromResponse(response, payload));
     }
 
     if (payload?.task !== 'risk_audit') {
-      return fallbackRiskAudit;
+      return withAiMeta(fallbackRiskAudit, 'risk_audit', 'fallback', 'invalid_json');
     }
 
-    return normalizeRiskAudit(payload.data);
-  } catch {
-    return fallbackRiskAudit;
+    return withAiMeta(normalizeRiskAudit(payload.data), 'risk_audit', 'model');
+  } catch (error) {
+    return withAiMeta(fallbackRiskAudit, 'risk_audit', 'fallback', failureReasonFromError(error));
   }
 };
 
@@ -378,16 +420,16 @@ export const generateRecommendationAssist = async (context: unknown): Promise<Re
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      return fallbackRecommendationAssist;
+      return withAiMeta(fallbackRecommendationAssist, 'recommendation_assist', 'fallback', failureReasonFromResponse(response, payload));
     }
 
     if (payload?.task !== 'recommendation_assist') {
-      return fallbackRecommendationAssist;
+      return withAiMeta(fallbackRecommendationAssist, 'recommendation_assist', 'fallback', 'invalid_json');
     }
 
-    return normalizeRecommendationAssist(payload.data);
-  } catch {
-    return fallbackRecommendationAssist;
+    return withAiMeta(normalizeRecommendationAssist(payload.data), 'recommendation_assist', 'model');
+  } catch (error) {
+    return withAiMeta(fallbackRecommendationAssist, 'recommendation_assist', 'fallback', failureReasonFromError(error));
   }
 };
 
@@ -404,15 +446,15 @@ export const generateTankBuildCopilot = async (context: unknown): Promise<TankBu
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      return fallbackTankBuildCopilot;
+      return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', failureReasonFromResponse(response, payload));
     }
 
     if (payload?.task !== 'build_tank_copilot') {
-      return fallbackTankBuildCopilot;
+      return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', 'invalid_json');
     }
 
-    return normalizeTankBuildCopilot(payload.data);
-  } catch {
-    return fallbackTankBuildCopilot;
+    return withAiMeta(normalizeTankBuildCopilot(payload.data), 'build_tank_copilot', 'model');
+  } catch (error) {
+    return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', failureReasonFromError(error));
   }
 };

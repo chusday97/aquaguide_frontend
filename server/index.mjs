@@ -12,6 +12,7 @@ dotenv.config({ path: path.join(rootDir, '.env') });
 const app = express();
 
 const port = Number(process.env.PORT || process.env.API_PORT || 8787);
+const aiProvider = 'deepseek';
 const aiBaseUrl = (process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
 const aiModel = process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
 const aiRateLimitWindowMs = 60 * 1000;
@@ -49,9 +50,11 @@ app.use(express.json({ limit: '3mb' }));
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    aiProvider: 'deepseek',
+    provider: aiProvider,
+    aiProvider,
     model: aiModel,
     configured: Boolean(pickConfiguredApiKey(process.env.AI_API_KEY, process.env.DEEPSEEK_API_KEY)),
+    timeoutMs: aiRequestTimeoutMs,
   });
 });
 
@@ -361,6 +364,14 @@ const fetchWithTimeout = async (url, options, timeoutMs = aiRequestTimeoutMs) =>
   }
 };
 
+const aiFailureReasonFromError = (error) => {
+  if (error?.name === 'AbortError') return 'timeout';
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('json') || message.includes('unexpected')) return 'invalid_json';
+  if (message.includes('fetch') || message.includes('network') || message.includes('econn')) return 'network';
+  return 'unknown';
+};
+
 app.post('/api/ai/chat', async (req, res) => {
   const rateLimit = checkAiRateLimit(getClientId(req));
   if (!rateLimit.allowed) {
@@ -372,7 +383,7 @@ app.post('/api/ai/chat', async (req, res) => {
 
   const apiKey = pickConfiguredApiKey(process.env.AI_API_KEY, process.env.DEEPSEEK_API_KEY);
   if (!isConfiguredApiKey(apiKey)) {
-    return res.status(503).json({ ok: false, error: 'AI provider is not configured' });
+    return res.status(503).json({ ok: false, error: 'AI provider is not configured', failureReason: 'not_configured' });
   }
 
   const { task, context } = req.body || {};
@@ -422,8 +433,10 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.status(502).json(task ? {
         ok: false,
         error: `AI 请求失败：${responseText.slice(0, 300)}`,
+        failureReason: 'network',
       } : {
         error: `DeepSeek 请求失败：${responseText.slice(0, 300)}`,
+        failureReason: 'network',
       });
     }
 
@@ -434,6 +447,8 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.json({
         ok: true,
         task: 'risk_explanation',
+        source: 'model',
+        generatedAt: new Date().toISOString(),
         data: normalizeRiskExplanationData(parsed),
       });
     }
@@ -442,6 +457,8 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.json({
         ok: true,
         task: 'risk_audit',
+        source: 'model',
+        generatedAt: new Date().toISOString(),
         data: normalizeRiskAuditData(parsed),
       });
     }
@@ -450,6 +467,8 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.json({
         ok: true,
         task: 'recommendation_assist',
+        source: 'model',
+        generatedAt: new Date().toISOString(),
         data: normalizeRecommendationAssistData(parsed),
       });
     }
@@ -458,6 +477,8 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.json({
         ok: true,
         task: 'build_tank_copilot',
+        source: 'model',
+        generatedAt: new Date().toISOString(),
         data: normalizeTankCopilotData(parsed),
       });
     }
@@ -469,10 +490,12 @@ app.post('/api/ai/chat', async (req, res) => {
     });
   } catch (error) {
     console.error('DeepSeek proxy error:', error);
+    const failureReason = aiFailureReasonFromError(error);
     res.status(500).json(task ? {
       ok: false,
       error: error?.name === 'AbortError' ? 'AI request timed out' : 'AI request failed',
-    } : { ok: false, error: error?.name === 'AbortError' ? 'AI request timed out' : 'AI request failed' });
+      failureReason,
+    } : { ok: false, error: error?.name === 'AbortError' ? 'AI request timed out' : 'AI request failed', failureReason });
   }
 });
 
