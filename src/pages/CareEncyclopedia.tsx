@@ -99,6 +99,7 @@ const loadCareFavorites = (): CareFavoriteMap => {
 const saveCareFavorites = (favorites: CareFavoriteMap) => {
   try {
     localStorage.setItem(CARE_FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    window.dispatchEvent(new Event('aquaguide:favorites-changed'));
   } catch {
     // Favorites are lightweight. Ignore storage failures so the page remains usable.
   }

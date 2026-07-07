@@ -16,6 +16,7 @@ import {
   Library,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
+import { loadAppStateFromStorage } from './services/storage/local-app-state';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
@@ -152,6 +153,19 @@ const readJsonCount = (key: string) => {
   return 0;
 };
 
+const FAVORITES_CHANGED_EVENT = 'aquaguide:favorites-changed';
+
+const readSpeciesFavoriteCount = () => {
+  try {
+    const legacyValue = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
+    const legacyIds = Array.isArray(legacyValue) ? legacyValue.filter((id): id is string => typeof id === 'string') : [];
+    const appStateIds = loadAppStateFromStorage().wishlist.filter((id): id is string => typeof id === 'string');
+    return new Set([...legacyIds, ...appStateIds]).size;
+  } catch {
+    return readJsonCount('wishlistFishIds');
+  }
+};
+
 function BottomNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -221,17 +235,19 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
   useEffect(() => {
     const refreshCounts = () => {
       setFavoriteCounts({
-        species: readJsonCount('wishlistFishIds'),
+        species: readSpeciesFavoriteCount(),
         care: readJsonCount('aqua_care_favorites'),
       });
     };
     refreshCounts();
     window.addEventListener('storage', refreshCounts);
     window.addEventListener('focus', refreshCounts);
+    window.addEventListener(FAVORITES_CHANGED_EVENT, refreshCounts);
     const timer = window.setInterval(refreshCounts, 1200);
     return () => {
       window.removeEventListener('storage', refreshCounts);
       window.removeEventListener('focus', refreshCounts);
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, refreshCounts);
       window.clearInterval(timer);
     };
   }, []);

@@ -620,6 +620,7 @@ export default function Encyclopedia() {
     setWishlistFishIds(next);
     localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
     patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+    window.dispatchEvent(new Event('aquaguide:favorites-changed'));
   };
 
   const toggleWishlist = (id: string) => {
