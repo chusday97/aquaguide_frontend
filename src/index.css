@@ -340,7 +340,7 @@ body,
   .aquarium-desktop-layout {
     display: grid;
     grid-template-columns: minmax(300px, 0.95fr) minmax(380px, 1fr) minmax(300px, 0.95fr);
-    grid-template-rows: 250px minmax(430px, auto);
+    grid-template-rows: minmax(290px, auto) minmax(430px, auto);
     grid-template-areas:
       "status actions discovery"
       "tank tank tank";
@@ -402,13 +402,18 @@ body,
     z-index: 1;
   }
 
-  .aquarium-status > section,
   .aquarium-actions,
   .aquarium-recommend,
   .aquarium-discovery {
     height: 100%;
     min-height: 0;
     overflow: hidden;
+  }
+
+  .aquarium-status > section {
+    height: 100%;
+    min-height: 0;
+    overflow: visible;
   }
 
   .aquarium-status > section,
