@@ -622,7 +622,7 @@ export default function Encyclopedia() {
   const syncWishlistFishIds = (next: Set<string>) => {
     setWishlistFishIds(next);
     localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-    patchLocalAppState({ wishlist: Array.from(next) }, { debounce: true });
+    patchLocalAppState({ wishlist: Array.from(next) });
     window.dispatchEvent(new Event('aquaguide:favorites-changed'));
   };
 
