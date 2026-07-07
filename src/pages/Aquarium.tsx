@@ -746,7 +746,7 @@ export default function AquariumManager() {
 
   useEffect(() => {
     const appState = loadAppStateFromStorage();
-    setWishlistFishIds(new Set(appState.wishlist));
+    setWishlistFishIds(loadWishlistFishIds());
     setDeceasedRecords(Array.isArray(appState.deceasedRecords) ? appState.deceasedRecords as DeceasedRecord[] : []);
     setDiagnosisRecords(Array.isArray(appState.diagnosisRecords) ? appState.diagnosisRecords as DiagnosisRecord[] : []);
     setFeedingRecords(appState.feedingRecords);

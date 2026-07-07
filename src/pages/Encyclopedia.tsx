@@ -92,8 +92,11 @@ const saveDiscoveryState = (state: DiscoveryDeckState) => {
 const loadWishlistIds = () => {
   try {
     const appState = loadAppStateFromStorage();
-    if (appState.wishlist.length > 0) return new Set<string>(appState.wishlist);
-    return new Set<string>(JSON.parse(localStorage.getItem('wishlistFishIds') || '[]'));
+    const legacyIds = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
+    return new Set<string>([
+      ...(Array.isArray(appState.wishlist) ? appState.wishlist : []),
+      ...(Array.isArray(legacyIds) ? legacyIds : []),
+    ]);
   } catch {
     return new Set<string>();
   }
