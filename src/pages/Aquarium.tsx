@@ -728,7 +728,6 @@ export default function AquariumManager() {
   const [fedToday, setFedToday] = useState(false);
   const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, string>>({});
   const [isDailyAdviceDetailsOpen, setIsDailyAdviceDetailsOpen] = useState(false);
-  const [dailyAdviceAiQuestion, setDailyAdviceAiQuestion] = useState('');
   const [dailyAdviceAiAnswer, setDailyAdviceAiAnswer] = useState('');
   const [dailyAdviceAiError, setDailyAdviceAiError] = useState('');
   const [isDailyAdviceAiLoading, setIsDailyAdviceAiLoading] = useState(false);
@@ -1373,7 +1372,6 @@ export default function AquariumManager() {
       },
     };
 
-    setDailyAdviceAiQuestion(trimmedQuestion);
     setDailyAdviceAiAnswer('');
     setDailyAdviceAiError('');
     setIsDailyAdviceAiLoading(true);
@@ -3662,11 +3660,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         <StatusSummaryCard
           advice={dailyAdviceViewModel}
           showDetails={isDailyAdviceDetailsOpen}
-          aiQuestion={dailyAdviceAiQuestion}
           aiAnswer={dailyAdviceAiAnswer}
           aiError={dailyAdviceAiError}
           isAiLoading={isDailyAdviceAiLoading}
-          onAiQuestionChange={setDailyAdviceAiQuestion}
           onAskAI={handleAskDailyAdviceAI}
           onAction={handleDailyAdviceAction}
         />

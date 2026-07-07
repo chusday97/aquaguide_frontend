@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Clock3, Send } from 'lucide-react';
+import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TagPill, type TagPillTone } from './TagPill';
@@ -72,11 +72,9 @@ type DailyAdviceAction =
 type StatusSummaryCardProps = {
   advice: DailyAdviceViewModel;
   showDetails: boolean;
-  aiQuestion: string;
   aiAnswer?: string;
   aiError?: string;
   isAiLoading?: boolean;
-  onAiQuestionChange: (value: string) => void;
   onAskAI: (question: string) => void;
   onAction: (action: DailyAdviceAction) => void;
 };
@@ -95,21 +93,12 @@ const levelStyles: Record<AquariumStatusLevel, string> = {
   insufficient_data: 'border-sky-100 bg-white text-sky-700',
 };
 
-const quickQuestions = [
-  '为什么今天需要换水？',
-  '我可以推迟到明天吗？',
-  '换水时需要注意什么？',
-  '换水后应该观察什么？',
-];
-
 export function StatusSummaryCard({
   advice,
   showDetails,
-  aiQuestion,
   aiAnswer,
   aiError,
   isAiLoading = false,
-  onAiQuestionChange,
   onAskAI,
   onAction,
 }: StatusSummaryCardProps) {
@@ -268,37 +257,20 @@ export function StatusSummaryCard({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[12px] font-black text-ink">
                   <Bot className="h-4 w-4 text-emerald-700" />
-                  让 AI 帮我解读
+                  AI 简短解读
                 </div>
-                <div className="text-[10px] font-black text-ink/35">不改变系统建议</div>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {quickQuestions.map(question => (
-                  <button
-                    key={question}
-                    type="button"
-                    onClick={() => onAskAI(question)}
-                    className="rounded-full bg-bg px-3 py-1.5 text-[10px] font-black text-ink/58 hover:bg-emerald-50 hover:text-emerald-700"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={aiQuestion}
-                  onChange={event => onAiQuestionChange(event.target.value)}
-                  placeholder="针对今天的建议继续提问……"
-                  className="h-9 min-w-0 flex-1 rounded-full border border-ink/10 bg-white px-3 text-[12px] font-bold outline-none focus:border-emerald-200"
-                />
                 <Button
                   type="button"
-                  disabled={isAiLoading || !aiQuestion.trim()}
-                  onClick={() => onAskAI(aiQuestion)}
-                  className="h-9 w-9 rounded-full bg-emerald-700 p-0 text-white shadow-none hover:bg-emerald-800 disabled:opacity-45"
+                  disabled={isAiLoading}
+                  onClick={() => onAskAI('请用三句话解释今天这条建议的依据和下一步。')}
+                  className="h-8 rounded-full bg-emerald-700 px-3 text-[11px] font-black text-white shadow-none hover:bg-emerald-800 disabled:opacity-45"
                 >
-                  {isAiLoading ? <Clock3 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {isAiLoading ? <Clock3 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  {isAiLoading ? '生成中' : '解释这条建议'}
                 </Button>
+              </div>
+              <div className="mt-2 text-[10px] font-bold leading-relaxed text-ink/42">
+                系统建议由本地记录生成，AI 只解释原因，不改变处理结论。
               </div>
               {(aiAnswer || aiError) && (
                 <div className="mt-2 rounded-[12px] bg-bg px-3 py-2 text-[11px] font-bold leading-relaxed text-ink/62">
