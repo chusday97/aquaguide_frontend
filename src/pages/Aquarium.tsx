@@ -38,7 +38,7 @@ import {
   normalizeDiscoveryState,
   recommendationService,
 } from '../modules/recommendation/recommendation.service';
-import { buildTankCopilotContext } from '../modules/copilot/tankBuildCopilot';
+import { buildTankCopilotContext, getTankCopilotMissingInfo } from '../modules/copilot/tankBuildCopilot';
 import { weatherService } from '../services/weather/weather.service';
 import type { LocalWeatherOutput } from '../services/weather/weather.schema';
 import {
@@ -87,6 +87,23 @@ const hardscapeOptions = fishData
   .filter(isHardscapeSpecies)
   .filter((item, index, items) => items.findIndex(next => next.scientificName === item.scientificName && next.name === item.name) === index)
   .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+type AquariumSettingsPanel = 'size' | 'parameters' | 'substrate' | 'plants' | 'lighting' | 'equipment';
+
+const normalizeCandidateName = (value: string) => value
+  .replace(/[（(].*?[）)]/g, '')
+  .replace(/\s+/g, '')
+  .toLowerCase();
+
+const getSettingsPanelForMissingInfo = (missingInfo: string[]): AquariumSettingsPanel => {
+  const text = missingInfo.join(' ');
+  if (/尺寸|容量|水量|长|宽|高/.test(text)) return 'size';
+  if (/过滤|设备|加热/.test(text)) return 'equipment';
+  if (/灯/.test(text)) return 'lighting';
+  if (/水草|植物/.test(text)) return 'plants';
+  if (/底砂|底床|硬景/.test(text)) return 'substrate';
+  return 'parameters';
+};
 
 type TankBuildTemplate = {
   id: string;
@@ -1698,7 +1715,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       });
       const result = await generateTankBuildCopilot(context);
       setTankCopilotResult(result);
-      setTankCopilotError(result.fallback ? 'AI 暂不可用，已显示本地规则方案。' : '');
+      setTankCopilotError('');
     } catch {
       setTankCopilotError('AI 建缸规划暂时不可用，请稍后重试。');
     } finally {
@@ -1713,18 +1730,41 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     }
 
     if (tankCopilotResult.nextAction.type === 'complete_tank_info') {
+      const missingInfo = getTankCopilotMissingInfo(activeAquarium);
+      const targetPanel = getSettingsPanelForMissingInfo([...missingInfo, ...tankCopilotMissingQuestions]);
       setIsTankCopilotOpen(false);
-      openAquariumSettings('parameters');
+      openAquariumSettings(targetPanel);
       return;
     }
 
-    if (tankCopilotResult.nextAction.type === 'view_candidates' || tankCopilotResult.nextAction.type === 'simulate_plan') {
+    if (tankCopilotResult.nextAction.type === 'view_candidates') {
+      if (tankCopilotAllowedCandidates.length === 0) {
+        setTankCopilotResult(null);
+        setTankCopilotAnswers({});
+        setTankCopilotError('当前本地规则没有可执行候选，请换一个目标或先完善鱼缸信息。');
+        return;
+      }
       setIsTankCopilotOpen(false);
       openSmartRecommendation(activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank');
       return;
     }
 
-    setIsTankCopilotOpen(false);
+    if (tankCopilotResult.nextAction.type === 'simulate_plan') {
+      if (!tankCopilotPrimaryCandidate) {
+        setTankCopilotResult(null);
+        setTankCopilotAnswers({});
+        setTankCopilotError('当前没有能进入模拟添加的安全候选，请重新描述目标。');
+        return;
+      }
+      setIsTankCopilotOpen(false);
+      openSmartRecommendation(activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank');
+      openSmartSimulation(tankCopilotPrimaryCandidate);
+      return;
+    }
+
+    setTankCopilotResult(null);
+    setTankCopilotAnswers({});
+    setTankCopilotError('可以重新描述目标，生成更具体的建缸方案。');
   };
 
   const handleRecommendationAssist = async () => {
@@ -2306,37 +2346,6 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const tankCopilotNeedsAnswers = tankCopilotMissingQuestions.length > 0;
   const tankCopilotHasAnswer = tankCopilotMissingQuestions.some(question => (tankCopilotAnswers[question] || '').trim().length > 0);
   const tankCopilotStep = !tankCopilotResult ? 1 : tankCopilotNeedsAnswers ? 2 : 3;
-  const tankCopilotActionView = (() => {
-    const actionType = tankCopilotResult?.nextAction.type;
-    if (actionType === 'complete_tank_info') {
-      return {
-        label: '完善鱼缸信息',
-        description: '先补齐鱼缸尺寸、水质或设备信息，候选会更可靠。',
-      };
-    }
-    if (actionType === 'view_candidates') {
-      return {
-        label: '查看候选生物',
-        description: '打开本地规则筛出的候选列表，不写入真实鱼缸。',
-      };
-    }
-    if (actionType === 'simulate_plan') {
-      return {
-        label: '进入模拟添加',
-        description: '先看负载和兼容变化，确认后再进入真实添加。',
-      };
-    }
-    return {
-      label: '关闭方案',
-      description: '当前没有必须执行的动作，可以先保留方案。',
-    };
-  })();
-  const tankCopilotPrimaryLabel = !tankCopilotResult
-    ? (isTankCopilotLoading ? '生成中...' : '生成建缸方案')
-    : tankCopilotNeedsAnswers
-      ? (isTankCopilotLoading ? '重新生成中...' : '带着补充信息重新生成')
-      : tankCopilotActionView.label;
-  const isTankCopilotPrimaryDisabled = isTankCopilotLoading || (tankCopilotNeedsAnswers && !tankCopilotHasAnswer);
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
@@ -2369,6 +2378,71 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       naturalLanguage: smartPreference,
     },
   });
+  const tankCopilotLocalCandidatePool = [
+    ...smartRecommendation.direct,
+    ...smartRecommendation.adjustable,
+  ].filter(candidate => candidate.status !== 'blocked');
+  const tankCopilotAllowedCandidates = (() => {
+    if (!tankCopilotResult || tankCopilotNeedsAnswers) return [];
+    const localById = new Map(tankCopilotLocalCandidatePool.map(candidate => [candidate.speciesId, candidate]));
+    const localByName = new Map(tankCopilotLocalCandidatePool.map(candidate => [normalizeCandidateName(candidate.name), candidate]));
+    const matched = new Map<string, RecommendationCandidate>();
+
+    tankCopilotResult.safeCandidates.forEach(candidate => {
+      const localCandidate = (candidate.speciesId ? localById.get(candidate.speciesId) : undefined)
+        || localByName.get(normalizeCandidateName(candidate.name));
+      if (localCandidate) matched.set(localCandidate.speciesId, localCandidate);
+    });
+
+    return Array.from(matched.values());
+  })();
+  const tankCopilotHiddenCandidateCount = tankCopilotResult && !tankCopilotNeedsAnswers
+    ? Math.max(0, tankCopilotResult.safeCandidates.length - tankCopilotAllowedCandidates.length)
+    : 0;
+  const tankCopilotPrimaryCandidate = tankCopilotAllowedCandidates[0] || null;
+  const tankCopilotActionView = (() => {
+    const actionType = tankCopilotResult?.nextAction.type;
+    if (actionType === 'complete_tank_info') {
+      return {
+        label: '完善鱼缸信息',
+        description: '打开鱼缸设置，并定位到最可能缺失的尺寸、水质或设备区域。',
+      };
+    }
+    if (actionType === 'view_candidates') {
+      if (tankCopilotAllowedCandidates.length === 0) {
+        return {
+          label: '重新描述目标',
+          description: '本地规则暂时没有可执行候选。换一个更具体的目标，或先完善鱼缸信息。',
+        };
+      }
+      return {
+        label: '查看候选生物',
+        description: `打开 ${tankCopilotAllowedCandidates.length} 个本地规则允许的候选，不写入真实鱼缸。`,
+      };
+    }
+    if (actionType === 'simulate_plan') {
+      if (!tankCopilotPrimaryCandidate) {
+        return {
+          label: '重新描述目标',
+          description: '当前没有可以模拟添加的安全候选。请换一个目标，或先完善鱼缸信息。',
+        };
+      }
+      return {
+        label: '进入模拟添加',
+        description: `先模拟 ${tankCopilotPrimaryCandidate.name} 的负载和兼容变化，确认后再进入真实添加。`,
+      };
+    }
+    return {
+      label: '重新描述目标',
+      description: '当前没有明确可执行动作，重新描述目标会生成新的方案。',
+    };
+  })();
+  const tankCopilotPrimaryLabel = !tankCopilotResult
+    ? (isTankCopilotLoading ? '生成中...' : '生成建缸方案')
+    : tankCopilotNeedsAnswers
+      ? (isTankCopilotLoading ? '重新生成中...' : '带着补充信息重新生成')
+      : tankCopilotActionView.label;
+  const isTankCopilotPrimaryDisabled = isTankCopilotLoading || (tankCopilotNeedsAnswers && !tankCopilotHasAnswer);
   const smartCandidateIds = new Set([
     ...smartRecommendation.direct,
     ...smartRecommendation.adjustable,
@@ -5321,11 +5395,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       </span>
                     </div>
                     <p className="mt-2 text-sm font-bold leading-relaxed text-ink">
-                      {tankCopilotResult.reply}
+                      {tankCopilotResult.source === 'model'
+                        ? tankCopilotResult.reply
+                        : 'AI 暂不可用，系统规则仍可使用。下面是本地规则整理的基础方案。'}
                     </p>
                     {tankCopilotResult.source === 'fallback' && (
                       <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-700">
-                        AI 暂不可用，当前方案来自本地规则模板；安全边界仍由系统规则生成。
+                        本地模板只整理规则结果，不代表模型回复。
                       </p>
                     )}
                     {tankCopilotNeedsAnswers && (
@@ -5377,15 +5453,20 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     </section>
                   )}
 
-                  {!tankCopilotNeedsAnswers && tankCopilotResult.safeCandidates.length > 0 && (
+                  {!tankCopilotNeedsAnswers && tankCopilotAllowedCandidates.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
-                      <div className="text-sm font-black text-ink">候选生物</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-black text-ink">候选生物</div>
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+                          本地规则允许
+                        </span>
+                      </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {tankCopilotResult.safeCandidates.map(candidate => (
-                          <div key={`${candidate.speciesId || candidate.name}-${candidate.name}`} className="rounded-[16px] bg-bg p-3">
+                        {tankCopilotAllowedCandidates.map(candidate => (
+                          <div key={candidate.speciesId} className="rounded-[16px] bg-bg p-3">
                             <div className="flex items-center justify-between gap-2">
                               <div className="truncate text-sm font-black text-ink">{candidate.name}</div>
-                              {candidate.recommendedQuantity && (
+                              {candidate.recommendedQuantity > 0 && (
                                 <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-accent">
                                   x{candidate.recommendedQuantity}
                                 </span>
@@ -5398,6 +5479,21 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         ))}
                       </div>
                     </section>
+                  )}
+
+                  {!tankCopilotNeedsAnswers && tankCopilotResult.safeCandidates.length > 0 && tankCopilotAllowedCandidates.length === 0 && (
+                    <section className="rounded-[20px] border border-amber-100 bg-amber-50/70 p-4">
+                      <div className="text-sm font-black text-amber-800">暂无可执行候选</div>
+                      <p className="mt-2 text-xs font-bold leading-relaxed text-amber-700">
+                        模型或模板给出的候选没有通过本地规则候选池校验。请重新描述目标，或先完善鱼缸信息。
+                      </p>
+                    </section>
+                  )}
+
+                  {!tankCopilotNeedsAnswers && tankCopilotHiddenCandidateCount > 0 && (
+                    <div className="rounded-[16px] border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-700">
+                      已隐藏 {tankCopilotHiddenCandidateCount} 个未通过本地规则候选池校验的候选。
+                    </div>
                   )}
 
                   {!tankCopilotNeedsAnswers && (
