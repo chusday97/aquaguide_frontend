@@ -2306,11 +2306,36 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const tankCopilotNeedsAnswers = tankCopilotMissingQuestions.length > 0;
   const tankCopilotHasAnswer = tankCopilotMissingQuestions.some(question => (tankCopilotAnswers[question] || '').trim().length > 0);
   const tankCopilotStep = !tankCopilotResult ? 1 : tankCopilotNeedsAnswers ? 2 : 3;
+  const tankCopilotActionView = (() => {
+    const actionType = tankCopilotResult?.nextAction.type;
+    if (actionType === 'complete_tank_info') {
+      return {
+        label: '完善鱼缸信息',
+        description: '先补齐鱼缸尺寸、水质或设备信息，候选会更可靠。',
+      };
+    }
+    if (actionType === 'view_candidates') {
+      return {
+        label: '查看候选生物',
+        description: '打开本地规则筛出的候选列表，不写入真实鱼缸。',
+      };
+    }
+    if (actionType === 'simulate_plan') {
+      return {
+        label: '进入模拟添加',
+        description: '先看负载和兼容变化，确认后再进入真实添加。',
+      };
+    }
+    return {
+      label: '关闭方案',
+      description: '当前没有必须执行的动作，可以先保留方案。',
+    };
+  })();
   const tankCopilotPrimaryLabel = !tankCopilotResult
     ? (isTankCopilotLoading ? '生成中...' : '生成建缸方案')
     : tankCopilotNeedsAnswers
       ? (isTankCopilotLoading ? '重新生成中...' : '带着补充信息重新生成')
-      : tankCopilotResult.nextAction.label;
+      : tankCopilotActionView.label;
   const isTankCopilotPrimaryDisabled = isTankCopilotLoading || (tankCopilotNeedsAnswers && !tankCopilotHasAnswer);
 
   const getDifficultyLabel = (difficulty: string) => {
@@ -5286,7 +5311,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 <>
                   <section className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-accent">方案结论</div>
+                      <div className="text-sm font-black text-accent">目标理解</div>
                       <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
                         tankCopilotResult.source === 'model'
                           ? 'bg-emerald-100 text-emerald-700'
@@ -5341,9 +5366,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
 
                   {!tankCopilotNeedsAnswers && tankCopilotResult.planSummary.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
-                      <div className="text-sm font-black text-ink">规划重点</div>
+                      <div className="text-sm font-black text-ink">推荐方向</div>
                       <div className="mt-3 grid gap-2">
-                        {tankCopilotResult.planSummary.map(item => (
+                        {tankCopilotResult.planSummary.slice(0, 3).map(item => (
                           <div key={item} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
                             {item}
                           </div>
@@ -5380,26 +5405,10 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     <div className="text-sm font-black text-ink">下一步动作</div>
                     <div className="mt-3 rounded-[16px] bg-emerald-50 px-3 py-3">
                       <div className="text-xs font-black text-emerald-700">建议先做</div>
-                      <div className="mt-1 text-sm font-black text-ink">{tankCopilotResult.nextAction.label}</div>
+                      <div className="mt-1 text-sm font-black text-ink">{tankCopilotActionView.label}</div>
                       <div className="mt-1 text-[11px] font-bold leading-relaxed text-ink/55">
-                        {tankCopilotResult.nextAction.type === 'complete_tank_info'
-                          ? '先补齐关键鱼缸信息，后续候选会更可靠。'
-                          : tankCopilotResult.nextAction.type === 'view_candidates'
-                            ? '查看本地规则筛出的候选，不会直接写入真实鱼缸。'
-                            : tankCopilotResult.nextAction.type === 'simulate_plan'
-                              ? '先模拟方案变化，确认后再进入真实添加流程。'
-                              : '当前没有必须执行的动作，可以先保留方案。'}
+                        {tankCopilotActionView.description}
                       </div>
-                    </div>
-                    <div className="mt-3 grid gap-2">
-                      {(tankCopilotResult.recommendedActions.length > 0
-                        ? tankCopilotResult.recommendedActions
-                        : ['先完善鱼缸信息，再查看本地规则筛选出的候选生物。']
-                      ).slice(0, 3).map(action => (
-                        <div key={action} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
-                          {action}
-                        </div>
-                      ))}
                     </div>
                     {tankCopilotResult.blockedReasons.length > 0 && (
                       <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
@@ -6826,20 +6835,29 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               </div>
             ))}
           </div>
-          {aiReasoning ? (
-            <div className="mx-4 mb-4 mt-1 p-3 bg-white/60 border border-yellow-200 rounded-[14px] text-xs text-ink/80 leading-relaxed font-medium">
-               <div className="text-yellow-600 font-bold mb-1 flex items-center"><Sparkles className="w-3 h-3 mr-1" />专家建议</div>
-               {aiReasoning.split('\n').map((line, idx) => <p key={idx} className="mb-1">{line}</p>)}
+          <details className="mx-4 mb-4 mt-1 rounded-[14px] border border-yellow-100 bg-white/50 px-3 py-2 text-xs font-medium leading-relaxed text-ink/70">
+            <summary className="cursor-pointer font-bold text-yellow-700">
+              让 AI 帮我解读
+            </summary>
+            <div className="mt-2 rounded-[12px] bg-yellow-50/70 px-3 py-2 text-[11px] font-bold text-ink/55">
+              系统结论由规则生成，AI 仅负责解释，不会改变风险等级。
             </div>
-          ) : (
-            <Button 
-               onClick={handleAskAIAboutConflicts} 
-               disabled={isRecommending}
-               className="mx-4 mb-4 mt-1 w-[calc(100%-2rem)] bg-yellow-500 hover:bg-yellow-600 text-white font-bold h-10 shadow-sm rounded-full"
-            >
-               {isRecommending ? "正在分析中..." : <><Sparkles className="w-4 h-4 mr-2" /> AI 详细分析原因</>}
-            </Button>
-          )}
+            {aiReasoning ? (
+              <div className="mt-2 space-y-1">
+                {aiReasoning.split('\n').map((line, idx) => <p key={idx}>{line}</p>)}
+              </div>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleAskAIAboutConflicts}
+                disabled={isRecommending}
+                variant="outline"
+                className="mt-3 h-9 rounded-full px-4 text-xs font-black"
+              >
+                {isRecommending ? '正在解读...' : <><Sparkles className="mr-2 h-3.5 w-3.5" />生成解释</>}
+              </Button>
+            )}
+          </details>
         </DialogContent>
       </Dialog>
 
