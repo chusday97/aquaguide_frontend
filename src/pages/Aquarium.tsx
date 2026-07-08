@@ -658,6 +658,7 @@ export default function AquariumManager() {
   const [tankCopilotResult, setTankCopilotResult] = useState<TankBuildCopilotData | null>(null);
   const [isTankCopilotLoading, setIsTankCopilotLoading] = useState(false);
   const [tankCopilotError, setTankCopilotError] = useState('');
+  const [tankCopilotAnswers, setTankCopilotAnswers] = useState<Record<string, string>>({});
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   const [selectedAqFish, setSelectedAqFish] = useState<{fish: Fish, aqFish: AquariumFish} | null>(null);
@@ -1664,29 +1665,45 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const openTankBuildCopilot = () => {
     setTankCopilotError('');
     setTankCopilotResult(null);
+    setTankCopilotAnswers({});
     setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? '基于当前鱼缸规划下一步安全搭配' : '新手小型淡水缸'));
     setIsTankCopilotOpen(true);
   };
 
-  const handleTankCopilotGenerate = async (goalOverride?: string) => {
+  const handleTankCopilotGenerate = async (goalOverride?: string, answerOverride?: Record<string, string>) => {
     const nextGoal = (goalOverride ?? tankCopilotGoal).trim();
     if (!nextGoal) {
       setTankCopilotError('先写一句目标，例如“新手小型淡水缸”。');
       return;
     }
 
+    const nextAnswers = answerOverride ?? (goalOverride ? {} : tankCopilotAnswers);
+    const answerLines = Object.entries(nextAnswers)
+      .map(([question, answer]) => [question.trim(), answer.trim()] as const)
+      .filter(([, answer]) => answer.length > 0)
+      .map(([question, answer]) => `${question}：${answer}`);
+    const copilotGoalWithAnswers = answerLines.length > 0
+      ? `${nextGoal}\n补充信息：\n${answerLines.join('\n')}`
+      : nextGoal;
+
     setTankCopilotGoal(nextGoal);
+    if (goalOverride) setTankCopilotAnswers({});
     setTankCopilotError('');
     setIsTankCopilotLoading(true);
-    const context = buildTankCopilotContext({
-      aquarium: activeAquarium,
-      userGoal: nextGoal,
-      smartRecommendation,
-    });
-    const result = await generateTankBuildCopilot(context);
-    setTankCopilotResult(result);
-    setTankCopilotError(result.fallback ? 'AI 暂不可用，已显示本地规则方案。' : '');
-    setIsTankCopilotLoading(false);
+    try {
+      const context = buildTankCopilotContext({
+        aquarium: activeAquarium,
+        userGoal: copilotGoalWithAnswers,
+        smartRecommendation,
+      });
+      const result = await generateTankBuildCopilot(context);
+      setTankCopilotResult(result);
+      setTankCopilotError(result.fallback ? 'AI 暂不可用，已显示本地规则方案。' : '');
+    } catch {
+      setTankCopilotError('AI 建缸规划暂时不可用，请稍后重试。');
+    } finally {
+      setIsTankCopilotLoading(false);
+    }
   };
 
   const handleTankCopilotNextAction = () => {
@@ -2276,6 +2293,25 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       setDiscoveryDragX(0);
     }
   };
+
+  const handleTankCopilotPrimaryAction = () => {
+    if (tankCopilotResult?.missingQuestions.length) {
+      void handleTankCopilotGenerate(undefined, tankCopilotAnswers);
+      return;
+    }
+    handleTankCopilotNextAction();
+  };
+
+  const tankCopilotMissingQuestions = tankCopilotResult?.missingQuestions.slice(0, 3) ?? [];
+  const tankCopilotNeedsAnswers = tankCopilotMissingQuestions.length > 0;
+  const tankCopilotHasAnswer = tankCopilotMissingQuestions.some(question => (tankCopilotAnswers[question] || '').trim().length > 0);
+  const tankCopilotStep = !tankCopilotResult ? 1 : tankCopilotNeedsAnswers ? 2 : 3;
+  const tankCopilotPrimaryLabel = !tankCopilotResult
+    ? (isTankCopilotLoading ? '生成中...' : '生成建缸方案')
+    : tankCopilotNeedsAnswers
+      ? (isTankCopilotLoading ? '重新生成中...' : '带着补充信息重新生成')
+      : tankCopilotResult.nextAction.label;
+  const isTankCopilotPrimaryDisabled = isTankCopilotLoading || (tankCopilotNeedsAnswers && !tankCopilotHasAnswer);
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
@@ -5170,6 +5206,32 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           </DialogHeader>
           <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { step: 1, title: '说目标', note: '输入方向' },
+                  { step: 2, title: '补信息', note: '最多 3 问' },
+                  { step: 3, title: '看方案', note: '执行下一步' },
+                ].map(item => {
+                  const isActive = tankCopilotStep === item.step;
+                  const isDone = tankCopilotStep > item.step;
+                  return (
+                    <div
+                      key={item.step}
+                      className={`rounded-[16px] border px-3 py-2 ${
+                        isActive
+                          ? 'border-accent/30 bg-emerald-50 text-accent'
+                          : isDone
+                            ? 'border-emerald-100 bg-white text-emerald-700'
+                            : 'border-border bg-white text-ink/35'
+                      }`}
+                    >
+                      <div className="text-xs font-black">{item.step}. {item.title}</div>
+                      <div className="mt-0.5 text-[10px] font-bold opacity-75">{isDone ? '已完成' : item.note}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
               <section className="rounded-[20px] border border-border bg-bg/70 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -5223,23 +5285,61 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               {tankCopilotResult ? (
                 <>
                   <section className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
-                    <div className="text-sm font-black text-accent">方案结论</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-black text-accent">方案结论</div>
+                      <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
+                        tankCopilotResult.source === 'model'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {tankCopilotResult.source === 'model' ? '模型回复' : '本地模板'}
+                      </span>
+                    </div>
                     <p className="mt-2 text-sm font-bold leading-relaxed text-ink">
                       {tankCopilotResult.reply}
                     </p>
-                    {tankCopilotResult.missingQuestions.length > 0 && (
-                      <div className="mt-3 rounded-[16px] bg-white/80 p-3">
-                        <div className="text-xs font-black text-amber-700">需要先确认</div>
-                        <div className="mt-2 grid gap-1.5 text-xs font-bold text-ink/65">
-                          {tankCopilotResult.missingQuestions.map(question => (
-                            <div key={question}>• {question}</div>
+                    {tankCopilotResult.source === 'fallback' && (
+                      <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-700">
+                        AI 暂不可用，当前方案来自本地规则模板；安全边界仍由系统规则生成。
+                      </p>
+                    )}
+                    {tankCopilotNeedsAnswers && (
+                      <div className="mt-3 rounded-[16px] bg-white/85 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs font-black text-amber-700">第 2 步：补充关键信息</div>
+                          <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">
+                            {tankCopilotMissingQuestions.length} 项
+                          </span>
+                        </div>
+                        <div className="mt-3 grid gap-3">
+                          {tankCopilotMissingQuestions.map((question, index) => (
+                            <label key={question} className="grid gap-1.5">
+                              <span className="text-[11px] font-black text-ink/60">
+                                {index + 1}. {question}
+                              </span>
+                              <Input
+                                value={tankCopilotAnswers[question] || ''}
+                                onChange={(event) => {
+                                  const nextValue = event.target.value;
+                                  setTankCopilotAnswers(prev => ({
+                                    ...prev,
+                                    [question]: nextValue,
+                                  }));
+                                }}
+                                placeholder="不知道也可以写“不确定”"
+                                className="h-10 rounded-full border-border bg-white px-3 text-xs font-bold"
+                              />
+                            </label>
                           ))}
                         </div>
+                        <p className="mt-3 text-[11px] font-bold leading-relaxed text-ink/45">
+                          补完后重新生成，方案会更贴近你的鱼缸；不会直接修改真实鱼缸。
+                        </p>
                       </div>
                     )}
                   </section>
 
-                  {tankCopilotResult.planSummary.length > 0 && (
+                  {!tankCopilotNeedsAnswers && tankCopilotResult.planSummary.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
                       <div className="text-sm font-black text-ink">规划重点</div>
                       <div className="mt-3 grid gap-2">
@@ -5252,7 +5352,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     </section>
                   )}
 
-                  {tankCopilotResult.safeCandidates.length > 0 && (
+                  {!tankCopilotNeedsAnswers && tankCopilotResult.safeCandidates.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
                       <div className="text-sm font-black text-ink">候选生物</div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -5275,20 +5375,31 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     </section>
                   )}
 
+                  {!tankCopilotNeedsAnswers && (
                   <section className="rounded-[20px] border border-border bg-white p-4">
                     <div className="text-sm font-black text-ink">下一步动作</div>
+                    <div className="mt-3 rounded-[16px] bg-emerald-50 px-3 py-3">
+                      <div className="text-xs font-black text-emerald-700">建议先做</div>
+                      <div className="mt-1 text-sm font-black text-ink">{tankCopilotResult.nextAction.label}</div>
+                      <div className="mt-1 text-[11px] font-bold leading-relaxed text-ink/55">
+                        {tankCopilotResult.nextAction.type === 'complete_tank_info'
+                          ? '先补齐关键鱼缸信息，后续候选会更可靠。'
+                          : tankCopilotResult.nextAction.type === 'view_candidates'
+                            ? '查看本地规则筛出的候选，不会直接写入真实鱼缸。'
+                            : tankCopilotResult.nextAction.type === 'simulate_plan'
+                              ? '先模拟方案变化，确认后再进入真实添加流程。'
+                              : '当前没有必须执行的动作，可以先保留方案。'}
+                      </div>
+                    </div>
                     <div className="mt-3 grid gap-2">
-                      {tankCopilotResult.recommendedActions.length > 0
-                        ? tankCopilotResult.recommendedActions.map(action => (
-                          <div key={action} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
-                            {action}
-                          </div>
-                        ))
-                        : (
-                          <div className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/55">
-                            先完善鱼缸信息，再查看本地规则候选。
-                          </div>
-                        )}
+                      {(tankCopilotResult.recommendedActions.length > 0
+                        ? tankCopilotResult.recommendedActions
+                        : ['先完善鱼缸信息，再查看本地规则筛选出的候选生物。']
+                      ).slice(0, 3).map(action => (
+                        <div key={action} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
+                          {action}
+                        </div>
+                      ))}
                     </div>
                     {tankCopilotResult.blockedReasons.length > 0 && (
                       <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
@@ -5301,6 +5412,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       </details>
                     )}
                   </section>
+                  )}
                 </>
               ) : (
                 <section className="rounded-[20px] border border-dashed border-border bg-white p-5 text-center">
@@ -5328,10 +5440,11 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             <Button
               type="button"
               className="h-11 rounded-full bg-accent px-6 text-sm font-black text-white"
-              disabled={isTankCopilotLoading}
-              onClick={handleTankCopilotNextAction}
+              disabled={isTankCopilotPrimaryDisabled}
+              onClick={handleTankCopilotPrimaryAction}
+              title={tankCopilotNeedsAnswers && !tankCopilotHasAnswer ? '先补充至少一项信息' : undefined}
             >
-              {tankCopilotResult ? tankCopilotResult.nextAction.label : isTankCopilotLoading ? '生成中...' : '生成建缸方案'}
+              {tankCopilotPrimaryLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
