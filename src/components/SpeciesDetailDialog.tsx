@@ -657,9 +657,14 @@ export function SpeciesDetailDialog({
                         {aiExplanationLoading ? (
                           <p className="mt-3 text-[12px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
                         ) : aiExplanation?.fallback ? (
-                          <p className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/60">
-                            AI 暂不可用，当前显示本地模板说明；系统结论仍由规则生成。
-                          </p>
+                          <div className="mt-3 rounded-[12px] bg-bg p-3">
+                            <div className="mb-2 w-fit rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700">
+                              本地模板
+                            </div>
+                            <p className="text-[12px] font-bold leading-relaxed text-ink/60">
+                              AI 暂不可用，系统规则仍可使用。
+                            </p>
+                          </div>
                         ) : aiExplanation ? (
                           <div className="mt-3 grid gap-2">
                             <div className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
@@ -941,9 +946,14 @@ export function SpeciesDetailDialog({
                     {aiExplanationLoading ? (
                       <p className="mt-2 text-[11px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
                     ) : aiExplanation?.fallback ? (
-                      <p className="mt-2 rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/60">
-                        AI 暂不可用，当前显示本地模板说明；系统结论仍由规则生成。
-                      </p>
+                      <div className="mt-2 rounded-[12px] bg-bg p-2">
+                        <div className="mb-1.5 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                          本地模板
+                        </div>
+                        <p className="text-[11px] font-bold leading-relaxed text-ink/60">
+                          AI 暂不可用，系统规则仍可使用。
+                        </p>
+                      </div>
                     ) : aiExplanation ? (
                       <div className="mt-2 grid gap-2">
                         <div className="w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">

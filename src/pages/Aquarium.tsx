@@ -15,6 +15,7 @@ import {
   generateRecommendationAssist,
   generateRiskExplanation,
   generateTankBuildCopilot,
+  type AiResponseSource,
   type RecommendationAssistData,
   type RiskExplanationData,
   type TankBuildCopilotData,
@@ -731,6 +732,7 @@ export default function AquariumManager() {
   const [isRecommending, setIsRecommending] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<Fish[]>([]);
   const [aiReasoning, setAiReasoning] = useState<string>('');
+  const [aiReasoningSource, setAiReasoningSource] = useState<AiResponseSource | null>(null);
 
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistFishIds());
   const [isWishlistExpanded, setIsWishlistExpanded] = useState(false);
@@ -748,6 +750,7 @@ export default function AquariumManager() {
   const [isDailyAdviceDetailsOpen, setIsDailyAdviceDetailsOpen] = useState(false);
   const [dailyAdviceAiAnswer, setDailyAdviceAiAnswer] = useState('');
   const [dailyAdviceAiError, setDailyAdviceAiError] = useState('');
+  const [dailyAdviceAiSource, setDailyAdviceAiSource] = useState<AiResponseSource | null>(null);
   const [isDailyAdviceAiLoading, setIsDailyAdviceAiLoading] = useState(false);
   const [isRiskReminderOpen, setIsRiskReminderOpen] = useState(false);
   const [isObservationOpen, setIsObservationOpen] = useState(false);
@@ -1392,6 +1395,7 @@ export default function AquariumManager() {
 
     setDailyAdviceAiAnswer('');
     setDailyAdviceAiError('');
+    setDailyAdviceAiSource(null);
     setIsDailyAdviceAiLoading(true);
 
     try {
@@ -1409,9 +1413,11 @@ export default function AquariumManager() {
         maxTokens: 500,
         temperature: 0.2,
       });
+      setDailyAdviceAiSource('model');
       setDailyAdviceAiAnswer(text);
     } catch {
-      setDailyAdviceAiError('AI 解读暂不可用。当前今日建议仍以本地养护记录和已记录数据为准。');
+      setDailyAdviceAiSource('fallback');
+      setDailyAdviceAiError('AI 暂不可用，系统规则仍可使用。');
     } finally {
       setIsDailyAdviceAiLoading(false);
     }
@@ -1515,11 +1521,7 @@ export default function AquariumManager() {
   };
 
   const formatRiskExplanationText = (explanation: RiskExplanationData, localRiskItems: TankRiskItem[]) => {
-    const localFallbackText = [
-      '暂时无法生成 AI 分析',
-      '你仍然可以参考系统规则结果：当前风险主要来自水体、空间、水质、温度或已有生物冲突。建议先查看本地风险原因，再决定是否加入。',
-      ...localRiskItems.slice(0, 4).map(item => `${item.title}：${item.detail} 下一步：${item.nextStep}`),
-    ].filter(Boolean).join('\n');
+    const localFallbackText = 'AI 暂不可用，系统规则仍可使用。';
 
     if (explanation.fallback) return localFallbackText;
 
@@ -1538,6 +1540,7 @@ export default function AquariumManager() {
     if (!activeAquarium) return;
     setIsRecommending(true);
     setAiReasoning('');
+    setAiReasoningSource(null);
     try {
       const livestock = activeAquarium.fishes.map(af => {
         const fish = fishData.find(d => d.id === af.fishId);
@@ -1584,11 +1587,13 @@ export default function AquariumManager() {
         },
       });
 
+      setAiReasoningSource(explanation.source === 'model' ? 'model' : 'fallback');
       setAiReasoning(formatRiskExplanationText(explanation, tankRiskItems));
     } catch(e) {
       console.error(e);
+      setAiReasoningSource('fallback');
       setAiReasoning(formatRiskExplanationText({
-        summary: '暂时无法生成 AI 分析',
+        summary: 'AI 暂不可用，系统规则仍可使用。',
         reasons: [],
         suggestions: [],
         nextSteps: [],
@@ -1603,6 +1608,7 @@ export default function AquariumManager() {
     setIsRecommendOpen(true);
     setIsRecommending(true);
     setAiReasoning('');
+    setAiReasoningSource(null);
     setAiRecommendations([]);
 
     try {
@@ -1650,18 +1656,22 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           const safeIds = new Set(localRecommendationItems.map(item => item.speciesId));
           const recs = ids.map(id => fishData.find(f => f.id === id)).filter(Boolean).filter(fish => safeIds.has((fish as Fish).id)) as Fish[];
           setAiRecommendations(recs.length > 0 ? recs : localRecommendations);
+          setAiReasoningSource('model');
         } catch(e) {
           console.error("JSON parse error from AI", e);
           setAiRecommendations(localRecommendations);
+          setAiReasoningSource('fallback');
         }
         setAiReasoning(text.replace(match[0], '').trim());
       } else {
+        setAiReasoningSource('model');
         setAiReasoning(text);
         setAiRecommendations(localRecommendations);
       }
     } catch(err) {
       console.error(err);
-      setAiReasoning("AI 请求失败，可能是 API Key、模型权限或网络访问问题。当前展示离线默认推荐如下：");
+      setAiReasoningSource('fallback');
+      setAiReasoning('AI 暂不可用，系统规则仍可使用。');
       const localRecommendations = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items
         .map(item => fishData.find(fish => fish.id === item.speciesId))
         .filter(Boolean) as Fish[];
@@ -3797,6 +3807,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
           showDetails={isDailyAdviceDetailsOpen}
           aiAnswer={dailyAdviceAiAnswer}
           aiError={dailyAdviceAiError}
+          aiSource={dailyAdviceAiSource}
           isAiLoading={isDailyAdviceAiLoading}
           onAskAI={handleAskDailyAdviceAI}
           onAction={handleDailyAdviceAction}
@@ -5233,7 +5244,18 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     </span>
                   </div>
                   <div>
-                    <div className="mb-2 text-[11px] font-black uppercase tracking-[1px] text-accent">推荐逻辑</div>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="text-[11px] font-black uppercase tracking-[1px] text-accent">推荐逻辑</div>
+                      {aiReasoningSource && (
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                          aiReasoningSource === 'model'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {aiReasoningSource === 'model' ? '模型回复' : '本地模板'}
+                        </span>
+                      )}
+                    </div>
                     <ul className="space-y-2">
                       {formatRecommendationReason(aiReasoning).map((line, index) => (
                         <li key={`${line}-${index}`} className="grid grid-cols-[18px_1fr] gap-2 text-[13px] font-medium leading-relaxed text-ink/80">
@@ -5397,13 +5419,8 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     <p className="mt-2 text-sm font-bold leading-relaxed text-ink">
                       {tankCopilotResult.source === 'model'
                         ? tankCopilotResult.reply
-                        : 'AI 暂不可用，系统规则仍可使用。下面是本地规则整理的基础方案。'}
+                        : 'AI 暂不可用，系统规则仍可使用。'}
                     </p>
-                    {tankCopilotResult.source === 'fallback' && (
-                      <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-700">
-                        本地模板只整理规则结果，不代表模型回复。
-                      </p>
-                    )}
                     {tankCopilotNeedsAnswers && (
                       <div className="mt-3 rounded-[16px] bg-white/85 p-3">
                         <div className="flex items-center justify-between gap-2">
@@ -6940,6 +6957,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
             </div>
             {aiReasoning ? (
               <div className="mt-2 space-y-1">
+                <div className={`mb-2 w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${
+                  aiReasoningSource === 'model'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-amber-50 text-amber-700'
+                }`}>
+                  {aiReasoningSource === 'model' ? '模型回复' : '本地模板'}
+                </div>
                 {aiReasoning.split('\n').map((line, idx) => <p key={idx}>{line}</p>)}
               </div>
             ) : (

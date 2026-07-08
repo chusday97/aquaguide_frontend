@@ -74,6 +74,7 @@ type StatusSummaryCardProps = {
   showDetails: boolean;
   aiAnswer?: string;
   aiError?: string;
+  aiSource?: 'model' | 'fallback' | null;
   isAiLoading?: boolean;
   onAskAI: (question: string) => void;
   onAction: (action: DailyAdviceAction) => void;
@@ -98,6 +99,7 @@ export function StatusSummaryCard({
   showDetails,
   aiAnswer,
   aiError,
+  aiSource = null,
   isAiLoading = false,
   onAskAI,
   onAction,
@@ -274,7 +276,14 @@ export function StatusSummaryCard({
               </div>
               {(aiAnswer || aiError) && (
                 <div className="mt-2 rounded-[12px] bg-bg px-3 py-2 text-[11px] font-bold leading-relaxed text-ink/62">
-                  {aiError || aiAnswer}
+                  <div className={`mb-1 w-fit rounded-full px-2 py-0.5 text-[10px] font-black ${
+                    aiSource === 'model'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {aiSource === 'model' ? '模型回复' : '本地模板'}
+                  </div>
+                  {aiSource === 'fallback' ? 'AI 暂不可用，系统规则仍可使用。' : aiError || aiAnswer}
                 </div>
               )}
             </div>

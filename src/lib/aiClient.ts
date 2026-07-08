@@ -109,17 +109,17 @@ export interface TankBuildCopilotData extends AiResultMeta {
 
 const fallbackRiskExplanation: RiskExplanationData = {
   statusRestatement: 'unknown',
-  summary: '暂时无法生成 AI 分析',
+  summary: 'AI 暂不可用，系统规则仍可使用。',
   reasons: [{
-    title: '请先参考系统规则结果',
-    detail: '你仍然可以参考系统规则结果：当前风险主要来自水体、空间、水质、温度或已有生物冲突。建议先查看本地风险原因，再决定是否加入。',
-    source: '来自本地规则',
+    title: '本地模板说明',
+    detail: '当前只展示本地规则结果，AI 没有参与判断或改写结论。',
+    source: '本地模板',
   }],
   suggestions: [{
-    title: '优先处理本地风险项',
-    detail: '先按照弹窗里的容量、水质、混养或信息不足提示逐项调整，再重新查看风险。',
+    title: '查看系统规则',
+    detail: '先处理页面中的阻断、风险或缺失信息，再重新评估。',
   }],
-  nextSteps: ['查看本地风险原因', '调整鱼缸或生物组合', '调整后再次检查'],
+  nextSteps: ['查看系统规则依据', '处理风险或缺失信息', '调整后再次检查'],
   disclaimer: '最终判断以系统规则结果为准',
   fallback: true,
 };
@@ -147,7 +147,7 @@ const fallbackRecommendationAssist: RecommendationAssistData = {
 };
 
 const fallbackTankBuildCopilot: TankBuildCopilotData = {
-  reply: 'AI 暂不可用，但可以继续使用本地规则生成基础方案。',
+  reply: 'AI 暂不可用，系统规则仍可使用。',
   missingQuestions: [],
   planSummary: ['先补齐鱼缸尺寸、水温、过滤和加热信息。'],
   recommendedActions: ['完善鱼缸信息后，再查看本地规则筛选出的候选生物。'],
@@ -358,7 +358,7 @@ export const generateRiskExplanation = async (context: unknown): Promise<RiskExp
     if (!response.ok || payload?.ok === false) {
       return withAiMeta({
         ...fallbackRiskExplanation,
-        summary: '暂时无法生成 AI 分析',
+        summary: 'AI 暂不可用，系统规则仍可使用。',
         reasons: fallbackRiskExplanation.reasons,
       }, 'risk_explanation', 'fallback', failureReasonFromResponse(response, payload));
     }
