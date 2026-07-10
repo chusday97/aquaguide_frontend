@@ -259,22 +259,26 @@ const getSpeciesActionGroups = (
     };
   }
 
-  const ruleText = [
-    ...(result.ruleResult?.blockingRules || []),
-    ...(result.ruleResult?.warningRules || []),
-  ].map(rule => `${rule.title} ${rule.evidence}`).join(' ');
-  const namedRiskSpecies = candidateSpecies.filter(item => ruleText.includes(item.name));
-  const remove = namedRiskSpecies.length > 0
-    ? namedRiskSpecies
-    : candidateSpecies.length > 0
-      ? [candidateSpecies[candidateSpecies.length - 1]]
-      : species.slice(-1);
-  const removeIds = new Set(remove.map(item => item.id));
+  const candidateIds = new Set(candidateSpecies.map(item => item.id));
+  const removeIdsFromBlockedPairs = new Set<string>();
+  result.decision?.pairResults
+    .filter(pair => pair.status === 'not_recommended')
+    .forEach(pair => {
+      const pairCandidates = [pair.speciesA, pair.speciesB].filter(item => candidateIds.has(item.id));
+      if (pairCandidates.length === 1) {
+        removeIdsFromBlockedPairs.add(pairCandidates[0].id);
+        return;
+      }
+      if (pairCandidates.length === 2) {
+        removeIdsFromBlockedPairs.add(pair.speciesB.id);
+      }
+    });
+  const remove = candidateSpecies.filter(item => removeIdsFromBlockedPairs.has(item.id));
 
   return {
-    keep: candidateSpecies.filter(item => !removeIds.has(item.id)),
+    keep: [],
     remove,
-    existing: existing.filter(item => !removeIds.has(item.id)),
+    existing,
   };
 };
 
@@ -1027,6 +1031,12 @@ export function CompatibilityRiskCalculator({
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {result.level === 'not_recommended' && speciesActionGroups.remove.length === 0 && (
+                  <div className="mb-2 rounded-[14px] border border-red-100 bg-red-50/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-red-700">
+                    当前规则无法安全确定应移除哪一个对象，请返回重新选择组合，不会自动猜测删除物种。
                   </div>
                 )}
 
