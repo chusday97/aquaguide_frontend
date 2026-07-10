@@ -317,6 +317,12 @@ function CompatibilityBottomSheet({
   };
   const conflicts = mainConflicts.length > 0 ? mainConflicts : [fallbackConflict];
   const primaryConflict = conflicts[0];
+  const primaryReasons = Array.from(new Set(primaryConflict.reasons?.length ? primaryConflict.reasons : [primaryConflict.reason])).slice(0, 3);
+  const mergedConflictCount = Math.max(0, conflicts.length - 1);
+  const mergedReasonCount = Math.max(
+    0,
+    conflicts.reduce((sum, conflict) => sum + (conflict.reasons?.length || 1), 0) - primaryReasons.length
+  );
   const sheetTitle = isAdjustment ? '调整建议' : '混养提醒';
 
   return (
@@ -385,34 +391,37 @@ function CompatibilityBottomSheet({
             </div>
           ) : (
             <div className="grid gap-3">
-              {conflicts.map(conflict => (
-                <section key={conflict.key} className="rounded-[18px] bg-white p-3 shadow-sm">
-                  <div className="text-[10px] font-black text-ink/42">提醒对象</div>
-                  <div className="mt-1 text-[15px] font-black text-ink">{conflict.pair}</div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(conflict.reasons || [conflict.reason]).map(reason => (
-                      <span key={reason} className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-600">
-                        {getConflictType(reason)}
-                      </span>
-                    ))}
+              <section className="rounded-[18px] bg-white p-3 shadow-sm">
+                <div className="text-[10px] font-black text-ink/42">主要提醒对象</div>
+                <div className="mt-1 text-[15px] font-black text-ink">{primaryConflict.pair}</div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {primaryReasons.map(reason => (
+                    <span key={reason} className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-600">
+                      {getConflictType(reason)}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="rounded-[14px] bg-bg px-3 py-2">
+                    <div className="text-[10px] font-black text-ink/42">风险数量</div>
+                    <div className="mt-1 text-[12px] font-black text-ink">{primaryReasons.length} 项主要提醒</div>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div className="rounded-[14px] bg-bg px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/42">风险数量</div>
-                      <div className="mt-1 text-[12px] font-black text-ink">{(conflict.reasons || [conflict.reason]).length} 项需要确认</div>
-                    </div>
-                    <div className={`rounded-[14px] border px-3 py-2 ${meta.tone}`}>
-                      <div className="text-[10px] font-black opacity-60">风险等级</div>
-                      <div className="mt-1 text-[12px] font-black">{meta.label}</div>
-                    </div>
+                  <div className={`rounded-[14px] border px-3 py-2 ${meta.tone}`}>
+                    <div className="text-[10px] font-black opacity-60">风险等级</div>
+                    <div className="mt-1 text-[12px] font-black">{meta.label}</div>
                   </div>
-                  <div className="mt-2 grid gap-1.5 rounded-[14px] bg-bg px-3 py-2">
-                    {(conflict.reasons || [conflict.reason]).slice(0, 3).map(reason => (
-                      <p key={reason} className="text-[12px] font-medium leading-relaxed text-ink/64">{reason}</p>
-                    ))}
+                </div>
+                <div className="mt-2 grid gap-1.5 rounded-[14px] bg-bg px-3 py-2">
+                  {primaryReasons.map(reason => (
+                    <p key={reason} className="text-[12px] font-medium leading-relaxed text-ink/64">{reason}</p>
+                  ))}
+                </div>
+                {(mergedConflictCount > 0 || mergedReasonCount > 0) && (
+                  <div className="mt-2 rounded-[14px] bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-700">
+                    已合并 {mergedConflictCount > 0 ? `${mergedConflictCount} 组对象` : ''}{mergedConflictCount > 0 && mergedReasonCount > 0 ? '、' : ''}{mergedReasonCount > 0 ? `${mergedReasonCount} 条依据` : ''}，详细规则可在结果页展开查看。
                   </div>
-                </section>
-              ))}
+                )}
+              </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="text-[13px] font-black text-ink">现在怎么做</div>
                 <div className="mt-2 grid gap-2">
@@ -558,6 +567,11 @@ export function CompatibilityRiskCalculator({
       missing: ruleResult.missingData.slice(0, 3),
     };
   }, [result.ruleResult]);
+  const ruleEvidenceSummary = ruleEvidence ? [
+    ruleEvidence.risks.length > 0 ? `${ruleEvidence.risks.length} 项风险` : '',
+    ruleEvidence.missing.length > 0 ? `${ruleEvidence.missing.length} 项缺失` : '',
+    ruleEvidence.passed.length > 0 ? `${ruleEvidence.passed.length} 项通过` : '',
+  ].filter(Boolean).join(' · ') : '';
   const commonPreviewSpecies = useMemo(() => {
     if (selectedAquarium) {
       const ownedIds = new Set(currentLivestock.map(item => item.species?.id).filter(Boolean));
@@ -951,7 +965,7 @@ export function CompatibilityRiskCalculator({
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-[12px] font-black text-ink">下一步处理</div>
-                    <div className="text-[10px] font-bold text-ink/42">先处理生物组合，再看详细依据。</div>
+                    <div className="text-[10px] font-bold text-ink/42">先确认可加入对象，依据可展开查看。</div>
                   </div>
                   {conflictTags.length > 0 && (
                     <div className="flex max-w-[52%] flex-wrap justify-end gap-1">
@@ -1076,7 +1090,7 @@ export function CompatibilityRiskCalculator({
                   >
                     <span>
                       <span className="block text-[11px] font-black text-ink/55">具体判定依据</span>
-                      <span className="block text-[9px] font-bold text-ink/35">半透明折叠显示，AI 仅负责解释</span>
+                      <span className="block text-[9px] font-bold text-ink/35">{ruleEvidenceSummary || '半透明折叠显示，AI 仅负责解释'}</span>
                     </span>
                     <ChevronDown className={`h-4 w-4 text-ink/35 transition-transform ${showRuleDetails ? 'rotate-180' : ''}`} />
                   </button>
