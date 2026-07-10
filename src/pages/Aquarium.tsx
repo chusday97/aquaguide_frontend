@@ -63,6 +63,13 @@ import { ActionCenterCard, type ActionCenterStatus } from '../components/product
 import { QuickActionGrid } from '../components/product/QuickActionGrid';
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
+import {
+  evaluateTankCompatibility,
+  getTankCompatibilityStatusLabel,
+  type TankCompatibilityResult,
+  type TankCompatibilityRule,
+  type TankCompatibilityStatus,
+} from '../lib/tankCompatibilityEngine';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -642,6 +649,19 @@ type CareDiagnosisContext = {
   prepInfo: string[];
 };
 
+type SelectedAddFishItem = { fishId: string; quantity: number; entryDate: string };
+
+type AddFishCompatibilityReview = {
+  status: TankCompatibilityStatus;
+  items: SelectedAddFishItem[];
+  evaluations: Array<{
+    fish: Fish;
+    quantity: number;
+    result: TankCompatibilityResult;
+  }>;
+  keyRules: TankCompatibilityRule[];
+};
+
 const loadWishlistFishIds = () => {
   try {
     const appState = loadAppStateFromStorage();
@@ -718,11 +738,12 @@ export default function AquariumManager() {
 
   // New fish form state
   const [fishSearchTerm, setFishSearchTerm] = useState('');
-  const [selectedAddFishItems, setSelectedAddFishItems] = useState<Array<{ fishId: string; quantity: number; entryDate: string }>>([]);
+  const [selectedAddFishItems, setSelectedAddFishItems] = useState<SelectedAddFishItem[]>([]);
   const [addFishSuccess, setAddFishSuccess] = useState<{
     aquariumName: string;
     items: Array<{ fishId: string; name: string; quantity: number; entryDate: string; image: string }>;
   } | null>(null);
+  const [addFishCompatibilityReview, setAddFishCompatibilityReview] = useState<AddFishCompatibilityReview | null>(null);
   const [addFishDatePicker, setAddFishDatePicker] = useState<{ fishId: string; month: Date } | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -1137,10 +1158,7 @@ export default function AquariumManager() {
     setIsEditingName(false);
   };
 
-  const handleAddFish = () => {
-    if (!activeAquarium || selectedAddFishItems.length === 0) return;
-
-    const normalizedItems = selectedAddFishItems
+  const normalizeSelectedAddFishItems = () => selectedAddFishItems
       .filter(item => fishData.some(fish => fish.id === item.fishId))
       .map(item => ({
         ...item,
@@ -1148,7 +1166,74 @@ export default function AquariumManager() {
         entryDate: item.entryDate || format(new Date(), 'yyyy-MM-dd'),
       }));
 
-    if (normalizedItems.length === 0) return;
+  const buildAddFishCompatibilityReview = (items: SelectedAddFishItem[]): AddFishCompatibilityReview | null => {
+    if (!activeAquarium || items.length === 0) return null;
+
+    const evaluations = items
+      .map(item => {
+        const fish = fishData.find(candidate => candidate.id === item.fishId);
+        if (!fish) return null;
+
+        const existingSpecies = activeAquarium.fishes
+          .filter(record => record.fishId !== item.fishId)
+          .map(record => {
+            const species = fishData.find(candidate => candidate.id === record.fishId);
+            if (!species) return null;
+            return {
+              species,
+              record: {
+                quantity: Math.max(1, record.quantity || 1),
+              },
+            };
+          })
+          .filter((entry): entry is { species: Fish; record: { quantity: number } } => entry !== null);
+
+        return {
+          fish,
+          quantity: item.quantity,
+          result: evaluateTankCompatibility({
+            tank: activeAquarium,
+            existingSpecies,
+            candidateSpecies: fish,
+            candidateQuantity: item.quantity,
+          }),
+        };
+      })
+      .filter((item): item is { fish: Fish; quantity: number; result: TankCompatibilityResult } => item !== null);
+
+    if (evaluations.length === 0) return null;
+
+    const statusRank: Record<TankCompatibilityStatus, number> = {
+      compatible: 0,
+      caution: 1,
+      insufficient_data: 2,
+      not_recommended: 3,
+    };
+    const status = evaluations.reduce<TankCompatibilityStatus>((current, evaluation) => (
+      statusRank[evaluation.result.status] > statusRank[current] ? evaluation.result.status : current
+    ), 'compatible');
+    const keyRules = evaluations
+      .flatMap(evaluation => {
+        if (evaluation.result.status === 'not_recommended') return evaluation.result.blockingRules;
+        if (evaluation.result.status === 'insufficient_data') return evaluation.result.missingData;
+        if (evaluation.result.status === 'caution') return [...evaluation.result.warningRules, ...evaluation.result.missingData];
+        return [];
+      })
+      .filter((rule, index, rules) => (
+        rules.findIndex(candidate => `${candidate.code}-${candidate.title}-${candidate.evidence}` === `${rule.code}-${rule.title}-${rule.evidence}`) === index
+      ))
+      .slice(0, 4);
+
+    return {
+      status,
+      items,
+      evaluations,
+      keyRules,
+    };
+  };
+
+  const commitAddFishItems = (normalizedItems: SelectedAddFishItem[]) => {
+    if (!activeAquarium || normalizedItems.length === 0) return false;
 
     const successItems = normalizedItems.map(item => {
       const fish = fishData.find(candidate => candidate.id === item.fishId);
@@ -1188,6 +1273,7 @@ export default function AquariumManager() {
     });
 
     saveAquariums(updated);
+    setAddFishCompatibilityReview(null);
     setAddFishSuccess({
       aquariumName: activeAquarium.name,
       items: successItems,
@@ -1195,6 +1281,35 @@ export default function AquariumManager() {
     setSelectedAddFishItems([]);
     setFishSearchTerm('');
     setAddFishDatePicker(null);
+    return true;
+  };
+
+  const handleAddFish = () => {
+    if (!activeAquarium) {
+      setTankActionMessage('请先选择当前鱼缸。');
+      return;
+    }
+    if (selectedAddFishItems.length === 0) return;
+
+    const normalizedItems = normalizeSelectedAddFishItems();
+    if (normalizedItems.length === 0) return;
+
+    const review = buildAddFishCompatibilityReview(normalizedItems);
+    if (!review || review.status === 'compatible') {
+      commitAddFishItems(normalizedItems);
+      return;
+    }
+
+    setAddFishCompatibilityReview(review);
+  };
+
+  const handleConfirmAddFishAfterReview = () => {
+    if (!addFishCompatibilityReview) return;
+    if (addFishCompatibilityReview.status === 'not_recommended') {
+      setTankActionMessage('当前组合不建议加入，请先返回调整。');
+      return;
+    }
+    commitAddFishItems(addFishCompatibilityReview.items);
   };
 
   const handleAddCompatibilitySpeciesToTank = async (items: { fishId: string; quantity: number }[]) => {
@@ -1264,6 +1379,7 @@ export default function AquariumManager() {
     setAddFishSuccess(null);
     setFishSearchTerm('');
     setAddFishDatePicker(null);
+    setAddFishCompatibilityReview(null);
   };
 
   const handleRemoveFish = (fishIdToRemove: string) => {
@@ -2617,6 +2733,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     return dateValue === todayAddFishDate ? `今天 · ${formatted}` : formatted;
   };
   const updateSelectedAddFishItem = (fishId: string, patch: Partial<{ quantity: number; entryDate: string }>) => {
+    setAddFishCompatibilityReview(null);
     setSelectedAddFishItems(prev => prev.map(item => (
       item.fishId === fishId
         ? { ...item, ...patch, quantity: Math.max(1, patch.quantity ?? item.quantity) }
@@ -2626,6 +2743,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const toggleSelectedAddFish = (fish: Fish) => {
     setAddFishSuccess(null);
     setAddFishDatePicker(null);
+    setAddFishCompatibilityReview(null);
     setSelectedAddFishItems(prev => {
       if (prev.some(item => item.fishId === fish.id)) {
         return prev.filter(item => item.fishId !== fish.id);
@@ -2636,6 +2754,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const handleReAddDeceasedFish = (fish: Fish) => {
     setAddFishSuccess(null);
     setAddFishDatePicker(null);
+    setAddFishCompatibilityReview(null);
     setFishSearchTerm('');
     setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
     setIsAddFishOpen(true);
@@ -4891,15 +5010,16 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       </Dialog>
 
       {/* Add Fish Dialog (Search Based) */}
-      <Dialog open={isAddFishOpen} onOpenChange={(open) => {
-        setIsAddFishOpen(open);
-        if (!open) {
-          setFishSearchTerm('');
-          setSelectedAddFishItems([]);
-          setAddFishSuccess(null);
-          setAddFishDatePicker(null);
-        }
-      }}>
+              <Dialog open={isAddFishOpen} onOpenChange={(open) => {
+                setIsAddFishOpen(open);
+                if (!open) {
+                  setFishSearchTerm('');
+                  setSelectedAddFishItems([]);
+                  setAddFishSuccess(null);
+                  setAddFishDatePicker(null);
+                  setAddFishCompatibilityReview(null);
+                }
+              }}>
         <DialogContent className="flex h-[88dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[520px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="text-xl font-black text-ink">添加生物到鱼缸</DialogTitle>
@@ -4960,11 +5080,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   placeholder="搜索鱼、虾、螺或学名" 
                   className="h-10 rounded-[14px] border-border bg-bg pl-9 text-sm font-medium text-ink"
                   value={fishSearchTerm}
-                  onChange={(e) => {
-                    setFishSearchTerm(e.target.value);
-                    setAddFishSuccess(null);
-                    setAddFishDatePicker(null);
-                  }}
+                          onChange={(e) => {
+                            setFishSearchTerm(e.target.value);
+                            setAddFishSuccess(null);
+                            setAddFishDatePicker(null);
+                            setAddFishCompatibilityReview(null);
+                          }}
                 />
               </div>
 
@@ -5055,10 +5176,13 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">{item.fish.category}</div>
                               <div className="mt-1 text-[10px] font-bold text-emerald-700">建议先少量加入，观察 3-7 天。</div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAddFishItems(prev => prev.filter(selected => selected.fishId !== item.fishId))}
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-ink/45"
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAddFishCompatibilityReview(null);
+                                        setSelectedAddFishItems(prev => prev.filter(selected => selected.fishId !== item.fishId));
+                                      }}
+                                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-ink/45"
                               aria-label={`移除 ${item.fish.name}`}
                             >
                               <X className="h-3.5 w-3.5" />
@@ -5167,9 +5291,53 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         </div>
                       );
                       })}
-                    </div>
+                            </div>
 
-                    <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-bold leading-relaxed text-emerald-900">
+                            {addFishCompatibilityReview && (
+                              <div className={`rounded-[16px] border p-3 text-[12px] font-bold leading-relaxed ${
+                                addFishCompatibilityReview.status === 'not_recommended'
+                                  ? 'border-red-200 bg-red-50 text-red-800'
+                                  : addFishCompatibilityReview.status === 'insufficient_data'
+                                    ? 'border-sky-100 bg-sky-50 text-sky-900'
+                                    : 'border-amber-100 bg-amber-50 text-amber-900'
+                              }`}>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="text-[12px] font-black">添加前混养预检</div>
+                                    <p className="mt-1">
+                                      {addFishCompatibilityReview.status === 'not_recommended'
+                                        ? '命中阻断风险，默认不能加入当前鱼缸。'
+                                        : addFishCompatibilityReview.status === 'insufficient_data'
+                                          ? '关键信息不足，不能显示“适合”。可先补信息，或确认后谨慎少量加入。'
+                                          : '存在需要确认的混养风险，确认后才会写入鱼缸。'}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black">
+                                    {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
+                                  </span>
+                                </div>
+                                <div className="mt-2 grid gap-1">
+                                  {addFishCompatibilityReview.evaluations.map(evaluation => (
+                                    <div key={evaluation.fish.id} className="flex items-center justify-between gap-2 rounded-full bg-white/70 px-2 py-1">
+                                      <span className="truncate">{evaluation.fish.name} x {evaluation.quantity}</span>
+                                      <span className="shrink-0 text-[10px] font-black">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {addFishCompatibilityReview.keyRules.length > 0 && (
+                                  <div className="mt-2 grid gap-1 rounded-[12px] bg-white/55 p-2">
+                                    {addFishCompatibilityReview.keyRules.map(rule => (
+                                      <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[10px] leading-relaxed">
+                                        <span className="font-black">{rule.title}</span>
+                                        <span className="ml-1 opacity-75">{rule.evidence}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+        
+                            <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-bold leading-relaxed text-emerald-900">
                       {selectedAddSpeciesCount === 1 ? (
                         <>
                           将添加：{selectedAddFishDetails[0].fish.name} x {selectedAddFishDetails[0].quantity}
@@ -5200,15 +5368,43 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               )}
             </div>
           </div>
-          {!addFishSuccess && (
-            <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(27,77,62,0.08)]">
-              <Button variant="outline" className="h-10 rounded-full text-sm font-bold text-ink" onClick={() => setIsAddFishOpen(false)}>取消</Button>
-              <div className="grid gap-1">
-                {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
-                <Button className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35" onClick={handleAddFish} disabled={selectedAddSpeciesCount === 0}>
-                  {selectedAddSpeciesCount === 0 ? '请先选择生物' : '确认添加到鱼缸'}
-                </Button>
-              </div>
+                  {!addFishSuccess && (
+                    <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(27,77,62,0.08)]">
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-full text-sm font-bold text-ink"
+                        onClick={() => {
+                          if (addFishCompatibilityReview) {
+                            setAddFishCompatibilityReview(null);
+                            return;
+                          }
+                          setIsAddFishOpen(false);
+                        }}
+                      >
+                        {addFishCompatibilityReview ? '返回调整' : '取消'}
+                      </Button>
+                      <div className="grid gap-1">
+                        {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
+                        <Button
+                          className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
+                          onClick={addFishCompatibilityReview
+                            ? addFishCompatibilityReview.status === 'not_recommended'
+                              ? () => setAddFishCompatibilityReview(null)
+                              : handleConfirmAddFishAfterReview
+                            : handleAddFish}
+                          disabled={selectedAddSpeciesCount === 0}
+                        >
+                          {selectedAddSpeciesCount === 0
+                            ? '请先选择生物'
+                            : addFishCompatibilityReview
+                              ? addFishCompatibilityReview.status === 'not_recommended'
+                                ? '返回调整组合'
+                                : addFishCompatibilityReview.status === 'insufficient_data'
+                                  ? '信息不足，谨慎加入'
+                                  : '确认风险后加入'
+                              : '确认添加到鱼缸'}
+                        </Button>
+                      </div>
             </DialogFooter>
           )}
         </DialogContent>
