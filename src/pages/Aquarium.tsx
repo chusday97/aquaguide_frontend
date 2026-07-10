@@ -1175,7 +1175,6 @@ export default function AquariumManager() {
         if (!fish) return null;
 
         const existingSpecies = activeAquarium.fishes
-          .filter(record => record.fishId !== item.fishId)
           .map(record => {
             const species = fishData.find(candidate => candidate.id === record.fishId);
             if (!species) return null;
@@ -1307,6 +1306,19 @@ export default function AquariumManager() {
     if (!addFishCompatibilityReview) return;
     if (addFishCompatibilityReview.status === 'not_recommended') {
       setTankActionMessage('当前组合不建议加入，请先返回调整。');
+      return;
+    }
+    if (addFishCompatibilityReview.status === 'insufficient_data') {
+      const missingCodes = addFishCompatibilityReview.keyRules.map(rule => rule.code);
+      const settingsPanel = missingCodes.some(code => /volume|size|tank/.test(code))
+        ? 'size'
+        : missingCodes.some(code => /filter|heater|equipment/.test(code))
+          ? 'equipment'
+          : 'parameters';
+      setIsAddFishOpen(false);
+      setAddFishCompatibilityReview(null);
+      openAquariumSettings(settingsPanel);
+      setTankActionMessage('请先补充鱼缸信息，再评估是否可以加入。');
       return;
     }
     commitAddFishItems(addFishCompatibilityReview.items);
@@ -5400,7 +5412,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                               ? addFishCompatibilityReview.status === 'not_recommended'
                                 ? '返回调整组合'
                                 : addFishCompatibilityReview.status === 'insufficient_data'
-                                  ? '信息不足，谨慎加入'
+                                  ? '先补充鱼缸信息'
                                   : '确认风险后加入'
                               : '确认添加到鱼缸'}
                         </Button>

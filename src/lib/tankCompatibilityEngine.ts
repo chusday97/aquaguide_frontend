@@ -171,7 +171,9 @@ export const evaluateTankCompatibility = ({
   }
 
   const currentLivestock = normalizeExistingSpecies(existingSpecies);
-  const currentSpecies = currentLivestock.map(item => item.species);
+  const currentSpecies = currentLivestock
+    .map(item => item.species)
+    .filter(species => species.id !== candidateSpecies.id);
   const livestock = currentLivestock.map(item => ({ species: item.species, record: { quantity: item.quantity } }));
   const fit = evaluateSpeciesForAquarium(candidateSpecies, tank, livestock);
 
@@ -295,7 +297,7 @@ export const evaluateTankCompatibility = ({
   const finalBlockingRules = dedupeRules(blockingRules);
   const finalMissingData = dedupeRules(missingData);
 
-  const missingIsBlockingJudgement = finalPassedRules.length === 0 && finalMissingData.some(item => item.severity === 'high' || item.severity === 'medium');
+  const missingIsBlockingJudgement = finalMissingData.some(item => item.severity === 'high' || item.severity === 'medium');
   const status: TankCompatibilityStatus = finalBlockingRules.length > 0
     ? 'not_recommended'
     : missingIsBlockingJudgement

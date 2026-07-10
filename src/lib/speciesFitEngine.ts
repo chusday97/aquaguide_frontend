@@ -115,7 +115,9 @@ const hasEquipment = (aquarium: Aquarium | null | undefined, keyword: string) =>
 };
 
 const getCompatibilityRisk = (species: Fish, currentLivestock: Array<{ species?: Fish; record?: { quantity?: number } }>): SpeciesFitItem | null => {
-  const validLivestock = currentLivestock.filter((item): item is { species: Fish; record?: { quantity?: number } } => Boolean(item?.species?.id));
+  const validLivestock = currentLivestock.filter((item): item is { species: Fish; record?: { quantity?: number } } => (
+    Boolean(item?.species?.id) && item.species?.id !== species.id
+  ));
   if (validLivestock.length === 0) return null;
   const speciesText = textOf(species);
   const selectedIsSmall = species.size === 'Small';
@@ -167,6 +169,7 @@ export const evaluateSpeciesForAquarium = (
   const confirmations: SpeciesFitItem[] = [];
   const matchedItems: SpeciesFitItem[] = [];
   let score = 40;
+  const otherLivestock = currentLivestock.filter(item => item.species?.id !== species.id);
 
   if (!aquarium) {
     return {
@@ -286,13 +289,13 @@ export const evaluateSpeciesForAquarium = (
     score -= 7;
   }
 
-  const compatibilityRisk = getCompatibilityRisk(species, currentLivestock);
+  const compatibilityRisk = getCompatibilityRisk(species, otherLivestock);
   if (compatibilityRisk?.severity === 'high') {
     hardBlocks.push(compatibilityRisk);
   } else if (compatibilityRisk) {
     warnings.push(compatibilityRisk);
     score -= 18;
-  } else if (currentLivestock.length === 0) {
+  } else if (otherLivestock.length === 0) {
     matchedItems.push({ type: 'empty_tank', title: '暂无混养冲突', detail: '当前鱼缸没有活体生物，不触发混养冲突。' });
     score += 8;
   } else {
@@ -312,7 +315,7 @@ export const evaluateSpeciesForAquarium = (
     score -= 10;
   }
   if (species.temperament === 'Peaceful') score += 5;
-  if (species.housingMode === '建议单养' && currentLivestock.length > 0) {
+  if (species.housingMode === '建议单养' && otherLivestock.length > 0) {
     warnings.push({ type: 'single_housing', title: '更适合单养', detail: '该物种更适合单独规划缸位。', severity: 'medium' });
     score -= 15;
   }
