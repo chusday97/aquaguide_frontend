@@ -132,6 +132,22 @@ const getResultNextAction = (level: CompatibilityRiskLevel) => {
   return '先选择至少 2 种生物。';
 };
 
+const getDecisionStepTitle = (level: CompatibilityRiskLevel) => {
+  if (level === 'not_recommended') return '先处理阻断对象';
+  if (level === 'insufficient_data') return '先补充判断信息';
+  if (level === 'caution') return '确认后少量加入';
+  if (level === 'compatible') return '确认加入对象';
+  return '先选择生物';
+};
+
+const getPrimaryResultButtonLabel = (level: CompatibilityRiskLevel) => {
+  if (level === 'compatible') return '添加选中的新生物';
+  if (level === 'not_recommended') return '重新选择组合';
+  if (level === 'insufficient_data') return '补充鱼缸信息';
+  if (level === 'caution') return '确认风险后添加';
+  return '继续选择';
+};
+
 const getConflictTags = (species: Fish[], reasons: string[]) => {
   if (species.length < 2) return [];
   const tags = new Set<string>();
@@ -548,6 +564,7 @@ export function CompatibilityRiskCalculator({
   const pendingAddableSpecies = useMemo(() => addableSpecies.filter(fish => (
     selectedAddableSpeciesIds.includes(fish.id) && !addedSpeciesIds.includes(fish.id)
   )), [addableSpecies, addedSpeciesIds, selectedAddableSpeciesIds]);
+  const selectedAddableCount = pendingAddableSpecies.length;
   useEffect(() => {
     setSelectedAddableSpeciesIds(prev => {
       const stillValid = prev.filter(id => addableSpeciesIds.includes(id) && !addedSpeciesIds.includes(id));
@@ -944,15 +961,18 @@ export function CompatibilityRiskCalculator({
             <div className="text-[11px] font-bold text-ink/45">添加 2 种以上生物后显示风险结果。</div>
           ) : (
             <>
-              <div className="mb-3 rounded-[14px] bg-white/78 px-3 py-3">
-                <div className="text-[10px] font-black opacity-60">结论卡</div>
-                <div className="mt-1 flex items-center gap-2">
+              <div className="mb-3 rounded-[14px] bg-white/82 px-3 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-black opacity-60">系统结论</div>
                   <span className={`rounded-full px-2 py-1 text-[11px] font-black ${meta.tone}`}>
                     {meta.label}
                   </span>
-                  <span className="text-[13px] font-black text-ink">{riskConclusion}</span>
                 </div>
-                <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/64">{getResultNextAction(result.level)}</p>
+                <p className="mt-2 text-[15px] font-black leading-snug text-ink">{riskConclusion}</p>
+                <div className="mt-3 rounded-[12px] bg-bg/80 px-3 py-2">
+                  <div className="text-[10px] font-black text-ink/45">下一步</div>
+                  <p className="mt-0.5 text-[12px] font-black leading-relaxed text-ink/72">{getResultNextAction(result.level)}</p>
+                </div>
               </div>
 
               {resultFeedback && (
@@ -964,8 +984,8 @@ export function CompatibilityRiskCalculator({
               <div className="mb-3 rounded-[16px] bg-white/78 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-[12px] font-black text-ink">下一步处理</div>
-                    <div className="text-[10px] font-bold text-ink/42">先确认可加入对象，依据可展开查看。</div>
+                    <div className="text-[12px] font-black text-ink">{getDecisionStepTitle(result.level)}</div>
+                    <div className="text-[10px] font-bold text-ink/42">勾选要加入的对象；删除键只移出本次计算，不会删除鱼缸数据。</div>
                   </div>
                   {conflictTags.length > 0 && (
                     <div className="flex max-w-[52%] flex-wrap justify-end gap-1">
@@ -1014,7 +1034,9 @@ export function CompatibilityRiskCalculator({
                   <div className="mb-2 rounded-[14px] border border-emerald-100 bg-emerald-50/80 p-2.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="text-[10px] font-black text-emerald-700">可加入的新生物</div>
-                      <div className="text-[9px] font-bold text-emerald-700/70">可取消勾选</div>
+                      <div className="text-[9px] font-bold text-emerald-700/70">
+                        {selectedAddableCount > 0 ? `已选 ${selectedAddableCount} 个` : '未选择'}
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {speciesActionGroups.keep.map(fish => {
@@ -1138,7 +1160,7 @@ export function CompatibilityRiskCalculator({
                 </div>
               )}
 
-              <div className={`mt-3 grid gap-2 ${result.level === 'caution' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <div className="mt-3 grid gap-2">
                 <button
                   type="button"
                   onClick={handlePrimaryResultAction}
@@ -1152,21 +1174,15 @@ export function CompatibilityRiskCalculator({
                   } disabled:bg-ink/20 disabled:text-ink/40`}
                 >
                   {isAddingToAquarium && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
-                  {result.level === 'compatible'
-                    ? '添加选中的新生物'
-                    : result.level === 'not_recommended'
-                      ? '重新选择'
-                      : result.level === 'insufficient_data'
-                        ? '先补充信息'
-                        : '按提醒添加选中生物'}
+                  {getPrimaryResultButtonLabel(result.level)}
                 </button>
                 {result.level === 'caution' && (
                   <button
                     type="button"
                     onClick={handleSecondaryResultAction}
-                    className="rounded-full bg-white/75 px-3 py-1.5 text-center text-[11px] font-black text-ink/65 transition-colors hover:bg-white"
+                    className="justify-self-center rounded-full bg-white/45 px-3 py-1.5 text-center text-[10px] font-black text-ink/45 transition-colors hover:bg-white hover:text-ink/70"
                   >
-                    查看提醒依据
+                    查看完整混养提醒
                   </button>
                 )}
               </div>
