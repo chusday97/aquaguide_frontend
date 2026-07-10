@@ -1,5 +1,6 @@
 import type { Aquarium, Fish } from '../src/types';
 import { evaluateTankCompatibility } from '../src/lib/tankCompatibilityEngine';
+import { evaluateCompatibilityDecision } from '../src/modules/knowledge/compatibilityKnowledge';
 
 const makeFish = (overrides: Partial<Fish> = {}): Fish => ({
   id: 'peaceful-small-fish',
@@ -83,6 +84,33 @@ const cases: Array<{ name: string; run: () => boolean }> = [
       });
       return result.status === 'not_recommended'
         && result.blockingRules.some(rule => rule.code === 'predation_risk');
+    },
+  },
+  {
+    name: 'pair result is independent of selection order',
+    run: () => {
+      const smallFish = makeFish();
+      const predator = makeFish({
+        id: 'order-test-predator',
+        name: '顺序测试掠食鱼',
+        description: '会捕食小型鱼。',
+        temperament: 'Aggressive',
+        size: 'Large',
+        tankSize: '至少 100 升',
+      });
+      const tank = makeTank({ dimensions: { length: '100', width: '50', height: '50' } });
+      const forward = evaluateCompatibilityDecision({
+        tank,
+        items: [{ species: smallFish, quantity: 1 }, { species: predator, quantity: 1 }],
+      });
+      const reverse = evaluateCompatibilityDecision({
+        tank,
+        items: [{ species: predator, quantity: 1 }, { species: smallFish, quantity: 1 }],
+      });
+      return forward.status === 'not_recommended'
+        && reverse.status === 'not_recommended'
+        && forward.blockingRules.some(rule => rule.code === 'predation_risk')
+        && reverse.blockingRules.some(rule => rule.code === 'predation_risk');
     },
   },
   {

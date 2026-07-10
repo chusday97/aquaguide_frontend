@@ -30,8 +30,8 @@ const uniqueRules = (rules: TankCompatibilityRule[]) => {
 
 const statusRank: Record<TankCompatibilityStatus, number> = {
   compatible: 0,
-  insufficient_data: 1,
-  caution: 2,
+  caution: 1,
+  insufficient_data: 2,
   not_recommended: 3,
 };
 
@@ -86,6 +86,38 @@ const toRelationship = (
   sourceRule: rule,
 });
 
+const mergeDirectionalResults = (results: TankCompatibilityResult[]): TankCompatibilityResult => {
+  const status = results.reduce<TankCompatibilityStatus>((current, result) => (
+    statusRank[result.status] > statusRank[current] ? result.status : current
+  ), 'compatible');
+  const blockingRules = uniqueRules(results.flatMap(result => result.blockingRules));
+  const warningRules = uniqueRules(results.flatMap(result => result.warningRules));
+  const missingData = uniqueRules(results.flatMap(result => result.missingData));
+  const passedRules = uniqueRules(results.flatMap(result => result.passedRules));
+  const summary = results.find(result => result.status === status)?.summary || results[0]?.summary || '暂时无法判断。';
+  return {
+    status,
+    riskLevel: status === 'not_recommended'
+      ? 'high'
+      : status === 'insufficient_data'
+        ? 'unknown'
+        : status === 'caution'
+          ? 'medium'
+          : 'none',
+    summary,
+    passedRules,
+    warningRules,
+    blockingRules,
+    missingData,
+    suggestions: Array.from(new Set(results.flatMap(result => result.suggestions))).slice(0, 5),
+    metadata: {
+      ruleVersion: results[0]?.metadata.ruleVersion || 'tank-compatibility-v1',
+      speciesDataVersion: results[0]?.metadata.speciesDataVersion || 'local-fish-data-v1',
+      calculatedAt: new Date().toISOString(),
+    },
+  };
+};
+
 const buildPairResult = (
   tank: Aquarium | null | undefined,
   itemA: CompatibilityItem,
@@ -93,12 +125,19 @@ const buildPairResult = (
 ): PairCompatibilityResult => {
   const quantityA = getQuantity(itemA.quantity);
   const quantityB = getQuantity(itemB.quantity);
-  const rawResult = evaluateTankCompatibility({
+  const forwardResult = evaluateTankCompatibility({
     tank,
     existingSpecies: [{ species: itemA.species, record: { quantity: quantityA } }],
     candidateSpecies: itemB.species,
     candidateQuantity: quantityB,
   });
+  const reverseResult = evaluateTankCompatibility({
+    tank,
+    existingSpecies: [{ species: itemB.species, record: { quantity: quantityB } }],
+    candidateSpecies: itemA.species,
+    candidateQuantity: quantityA,
+  });
+  const rawResult = mergeDirectionalResults([forwardResult, reverseResult]);
 
   const blocking = rawResult.blockingRules.map(rule => toRelationship(rule, 'not_recommended', rawResult.suggestions));
   const warnings = rawResult.warningRules.map(rule => toRelationship(rule, 'conditional', rawResult.suggestions));
