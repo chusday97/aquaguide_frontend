@@ -3,6 +3,7 @@ import { evaluateSpeciesForAquarium, getAquariumVolumeLiters } from './speciesFi
 
 export type TankCompatibilityStatus = 'compatible' | 'caution' | 'not_recommended' | 'insufficient_data';
 export type TankCompatibilityRiskLevel = 'none' | 'low' | 'medium' | 'high' | 'unknown';
+export type TankCompatibilityAddPolicy = 'allow' | 'confirm' | 'complete_information' | 'block';
 
 export type TankCompatibilityRule = {
   code: string;
@@ -340,4 +341,13 @@ export const getTankCompatibilityStatusLabel = (status: TankCompatibilityStatus)
     default:
       return '信息不足';
   }
+};
+
+export const getTankCompatibilityAddPolicy = (
+  status: TankCompatibilityStatus,
+): TankCompatibilityAddPolicy => {
+  if (status === 'compatible') return 'allow';
+  if (status === 'caution') return 'confirm';
+  if (status === 'insufficient_data') return 'complete_information';
+  return 'block';
 };

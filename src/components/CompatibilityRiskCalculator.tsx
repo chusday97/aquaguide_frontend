@@ -6,7 +6,7 @@ import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/speciesFitEngine';
-import { evaluateTankCompatibility, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
+import { evaluateTankCompatibility, getTankCompatibilityAddPolicy, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
 import { evaluateCompatibilityDecision, type CompatibilityItem } from '../modules/knowledge/compatibilityKnowledge';
 import type { CompatibilityDecision } from '../modules/knowledge/knowledge.types';
 
@@ -562,11 +562,12 @@ export function CompatibilityRiskCalculator({
     () => getSpeciesActionGroups(result, selectedSpecies, currentQuantityBySpeciesId),
     [currentQuantityBySpeciesId, result, selectedSpecies]
   );
+  const resultAddPolicy = result.level === 'empty' ? null : getTankCompatibilityAddPolicy(result.level);
   const addableSpecies = useMemo(() => (
-    result.level === 'not_recommended' || result.level === 'insufficient_data'
+    resultAddPolicy === 'block' || resultAddPolicy === 'complete_information'
       ? []
       : speciesActionGroups.keep
-  ), [result.level, speciesActionGroups.keep]);
+  ), [resultAddPolicy, speciesActionGroups.keep]);
   const addableSpeciesIds = useMemo(() => addableSpecies.map(fish => fish.id), [addableSpecies]);
   const addableSpeciesKey = addableSpeciesIds.join('|');
   const addedSpeciesKey = addedSpeciesIds.join('|');
@@ -723,23 +724,23 @@ export function CompatibilityRiskCalculator({
     }
   };
   const handlePrimaryResultAction = () => {
-    if (result.level === 'not_recommended') {
+    if (resultAddPolicy === 'block') {
       updateSpeciesIds([]);
       setSelectedQuantitiesById({});
       setResultFeedback('已返回重新选择，可以重新搜索搭配对象。');
       return;
     }
-    if (result.level === 'insufficient_data') {
+    if (resultAddPolicy === 'complete_information') {
       setResultFeedback('当前信息不足，建议先补充鱼缸参数后再添加。');
       setActiveModal('adjustment');
       return;
     }
-    if (result.level === 'caution') {
+    if (resultAddPolicy === 'confirm') {
       setConfirmingCautionAdd(true);
       setActiveModal('adjustment');
       return;
     }
-    void performAddToAquarium();
+    if (resultAddPolicy === 'allow') void performAddToAquarium();
   };
   const handleSecondaryResultAction = () => {
     if (result.level !== 'caution') return;

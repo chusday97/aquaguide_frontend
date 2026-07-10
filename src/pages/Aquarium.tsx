@@ -65,6 +65,7 @@ import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import {
   evaluateTankCompatibility,
+  getTankCompatibilityAddPolicy,
   getTankCompatibilityStatusLabel,
   type TankCompatibilityResult,
   type TankCompatibilityRule,
@@ -1294,7 +1295,7 @@ export default function AquariumManager() {
     if (normalizedItems.length === 0) return;
 
     const review = buildAddFishCompatibilityReview(normalizedItems);
-    if (!review || review.status === 'compatible') {
+    if (!review || getTankCompatibilityAddPolicy(review.status) === 'allow') {
       commitAddFishItems(normalizedItems);
       return;
     }
@@ -1304,11 +1305,12 @@ export default function AquariumManager() {
 
   const handleConfirmAddFishAfterReview = () => {
     if (!addFishCompatibilityReview) return;
-    if (addFishCompatibilityReview.status === 'not_recommended') {
+    const addPolicy = getTankCompatibilityAddPolicy(addFishCompatibilityReview.status);
+    if (addPolicy === 'block') {
       setTankActionMessage('当前组合不建议加入，请先返回调整。');
       return;
     }
-    if (addFishCompatibilityReview.status === 'insufficient_data') {
+    if (addPolicy === 'complete_information') {
       const missingCodes = addFishCompatibilityReview.keyRules.map(rule => rule.code);
       const settingsPanel = missingCodes.some(code => /volume|size|tank/.test(code))
         ? 'size'
@@ -5400,7 +5402,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         <Button
                           className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
                           onClick={addFishCompatibilityReview
-                            ? addFishCompatibilityReview.status === 'not_recommended'
+                            ? getTankCompatibilityAddPolicy(addFishCompatibilityReview.status) === 'block'
                               ? () => setAddFishCompatibilityReview(null)
                               : handleConfirmAddFishAfterReview
                             : handleAddFish}
@@ -5409,9 +5411,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                           {selectedAddSpeciesCount === 0
                             ? '请先选择生物'
                             : addFishCompatibilityReview
-                              ? addFishCompatibilityReview.status === 'not_recommended'
+                              ? getTankCompatibilityAddPolicy(addFishCompatibilityReview.status) === 'block'
                                 ? '返回调整组合'
-                                : addFishCompatibilityReview.status === 'insufficient_data'
+                                : getTankCompatibilityAddPolicy(addFishCompatibilityReview.status) === 'complete_information'
                                   ? '先补充鱼缸信息'
                                   : '确认风险后加入'
                               : '确认添加到鱼缸'}

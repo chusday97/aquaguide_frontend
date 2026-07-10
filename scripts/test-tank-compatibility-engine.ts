@@ -1,5 +1,5 @@
 import type { Aquarium, Fish } from '../src/types';
-import { evaluateTankCompatibility } from '../src/lib/tankCompatibilityEngine';
+import { evaluateTankCompatibility, getTankCompatibilityAddPolicy } from '../src/lib/tankCompatibilityEngine';
 import { evaluateCompatibilityDecision } from '../src/modules/knowledge/compatibilityKnowledge';
 
 const makeFish = (overrides: Partial<Fish> = {}): Fish => ({
@@ -33,6 +33,15 @@ const makeTank = (overrides: Partial<Aquarium> = {}): Aquarium => ({
 });
 
 const cases: Array<{ name: string; run: () => boolean }> = [
+  {
+    name: 'compatibility statuses map to one add policy',
+    run: () => (
+      getTankCompatibilityAddPolicy('compatible') === 'allow'
+      && getTankCompatibilityAddPolicy('caution') === 'confirm'
+      && getTankCompatibilityAddPolicy('insufficient_data') === 'complete_information'
+      && getTankCompatibilityAddPolicy('not_recommended') === 'block'
+    ),
+  },
   {
     name: 'freshwater tank blocks saltwater species',
     run: () => {
