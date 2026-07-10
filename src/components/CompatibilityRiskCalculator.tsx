@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Loader2, Search
 import { Input } from '@/components/ui/input';
 import { fishData } from '../data/fishData';
 import type { Aquarium, Fish } from '../types';
-import { getCareTaxonomyPath } from '../modules/species/species.service';
+import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/speciesFitEngine';
 import { evaluateTankCompatibility, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
@@ -11,6 +11,8 @@ import { evaluateCompatibilityDecision, type CompatibilityItem } from '../module
 import type { CompatibilityDecision } from '../modules/knowledge/knowledge.types';
 
 const getDisplayImage = getSpeciesDisplayImage;
+
+const isCompatibilityLivestock = (fish: Fish) => !['plant', 'hardscape'].includes(getLifeType(fish));
 
 type CompatibilityRiskLevel = 'empty' | TankCompatibilityStatus;
 type ResultModal = null | 'adjustment' | 'conflictDetail';
@@ -524,7 +526,10 @@ export function CompatibilityRiskCalculator({
     || aquariums[0]
     || null
   ), [activeAquariumId, aquariums, selectedAquariumId]);
-  const currentLivestock = useMemo(() => getCurrentLivestockForAquarium(selectedAquarium, fishData), [selectedAquarium]);
+  const currentLivestock = useMemo(() => (
+    getCurrentLivestockForAquarium(selectedAquarium, fishData)
+      .filter(item => isCompatibilityLivestock(item.species))
+  ), [selectedAquarium]);
   const currentQuantityBySpeciesId = useMemo(() => currentLivestock.reduce<Record<string, number>>((next, item) => {
     if (item.species?.id) next[item.species.id] = getQuantity(item.record?.quantity);
     return next;
@@ -597,6 +602,7 @@ export function CompatibilityRiskCalculator({
     if (selectedAquarium) {
       const ownedIds = new Set(currentLivestock.map(item => item.species?.id).filter(Boolean));
       const evaluated = fishData
+        .filter(isCompatibilityLivestock)
         .filter(fish => !activeSpeciesIds.includes(fish.id))
         .filter(fish => !ownedIds.has(fish.id))
         .map(fish => ({
@@ -623,8 +629,10 @@ export function CompatibilityRiskCalculator({
     const preferredSpecies = Array.from(new Set(preferredSpeciesIds))
       .map(id => fishData.find(fish => fish.id === id))
       .filter((fish): fish is Fish => Boolean(fish))
+      .filter(isCompatibilityLivestock)
       .filter(fish => !activeSpeciesIds.includes(fish.id));
     const fallbackSpecies = getCommonPreviewSpecies()
+      .filter(isCompatibilityLivestock)
       .filter(fish => !activeSpeciesIds.includes(fish.id))
       .filter(fish => !preferredSpecies.some(item => item.id === fish.id));
     return (preferredSpecies.length > 0 ? preferredSpecies : fallbackSpecies).slice(0, 8);
@@ -645,6 +653,7 @@ export function CompatibilityRiskCalculator({
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return [];
     return fishData
+      .filter(isCompatibilityLivestock)
       .filter(fish => !activeSpeciesIds.includes(fish.id))
       .filter(fish => (
         fish.name.toLowerCase().includes(keyword)
@@ -655,6 +664,10 @@ export function CompatibilityRiskCalculator({
   }, [searchTerm, activeSpeciesIds]);
 
   const addSpecies = (fish: Fish) => {
+    if (!isCompatibilityLivestock(fish)) {
+      setResultFeedback('水草和硬景不作为混养风险计算对象。');
+      return;
+    }
     updateSpeciesIds(prev => prev.includes(fish.id) ? prev : [...prev, fish.id]);
     setSelectedQuantitiesById(prev => prev[fish.id] ? prev : { ...prev, [fish.id]: 1 });
     setSearchTerm('');
