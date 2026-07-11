@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
@@ -57,6 +57,7 @@ import {
   speciesMatchesKeyword,
   type SpeciesGroup,
 } from '../lib/speciesGrouping';
+import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
@@ -431,6 +432,7 @@ function AnimatedFishBackground() {
 }
 
 export default function Encyclopedia() {
+  const { navigateToSection } = useWorkspaceNavigation();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<'browse' | 'compatibility'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
@@ -477,7 +479,6 @@ export default function Encyclopedia() {
   const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
   const [resultPage, setResultPage] = useState(0);
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
-  const atlasGridTopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const appState = loadAppStateFromStorage();
@@ -776,10 +777,7 @@ export default function Encyclopedia() {
     const nextPage = Math.max(0, Math.min(resultPageCount - 1, page));
     setResultPage(nextPage);
     if (options.scrollToGrid === false) return;
-    if (typeof window === 'undefined' || window.innerWidth < 768) return;
-    window.requestAnimationFrame(() => {
-      atlasGridTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    void navigateToSection('atlas-grid', { updateHash: false });
   };
 
   const getDifficultyLabel = (difficulty: string) => {
@@ -1062,6 +1060,7 @@ export default function Encyclopedia() {
         ? emptyActiveFilters
         : { ...prev, keyword: '', functionTag: label }
     ));
+    void navigateToSection('atlas-grid', { updateHash: false });
   };
 
   const applyEnvironmentFilter = (label: string) => {
@@ -1072,6 +1071,7 @@ export default function Encyclopedia() {
       ...prev,
       environment: label === '全部' || prev.environment === label ? null : label,
     }));
+    void navigateToSection('atlas-grid', { updateHash: false });
   };
 
   useEffect(() => {
@@ -1115,6 +1115,8 @@ export default function Encyclopedia() {
   const submitSearch = () => {
     setShowWishlistOnly(false);
     setActiveFilters(prev => ({ ...prev, keyword: searchTerm.trim() }));
+    setResultPage(0);
+    void navigateToSection('atlas-grid', { updateHash: false });
   };
 
   const openSpeciesGroup = (group: SpeciesGroup, variantId?: string) => {
@@ -1241,7 +1243,7 @@ export default function Encyclopedia() {
 
       {viewMode === 'browse' ? (
       <div className="flex flex-col gap-5">
-      <div className="atlas-sticky-toolbar grid grid-cols-1 gap-4 md:grid-cols-[420px_minmax(0,1fr)] md:items-center md:gap-3 md:rounded-[22px] md:border md:border-white/80 md:bg-white/82 md:p-3 md:shadow-sm">
+      <div id="atlas-toolbar" data-workspace-sticky="true" className="atlas-sticky-toolbar grid grid-cols-1 gap-4 md:grid-cols-[420px_minmax(0,1fr)] md:items-center md:gap-3 md:rounded-[22px] md:border md:border-white/80 md:bg-white/82 md:p-3 md:shadow-sm">
         <div className="relative min-w-0 md:mx-auto md:max-w-[560px] md:mx-0 md:w-[420px] md:max-w-[420px] md:flex-none">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/42" />
           <Input
@@ -1304,7 +1306,7 @@ export default function Encyclopedia() {
           </div>
         </section>
 
-        <div className="atlas-result-summary mx-auto grid w-full max-w-[960px] gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm md:col-span-2 md:max-w-none md:grid-cols-1 md:items-center md:px-4 md:py-3 xl:grid-cols-[minmax(220px,1fr)_auto_minmax(280px,360px)]">
+        <div id="atlas-results" className="atlas-result-summary mx-auto grid w-full max-w-[960px] gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm md:col-span-2 md:max-w-none md:grid-cols-1 md:items-center md:px-4 md:py-3 xl:grid-cols-[minmax(220px,1fr)_auto_minmax(280px,360px)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-[13px] font-black text-ink">
@@ -1380,7 +1382,7 @@ export default function Encyclopedia() {
         </div>
       </div>
 
-        <div ref={atlasGridTopRef} className="mt-1 grid scroll-mt-[178px] grid-cols-2 gap-2.5 md:col-span-2 md:grid-cols-2 md:gap-3 lg:grid-cols-3 xl:grid-cols-4">
+        <div id="atlas-grid" className="mt-1 grid scroll-mt-[178px] grid-cols-2 gap-2.5 md:col-span-2 md:grid-cols-2 md:gap-3 lg:grid-cols-3 xl:grid-cols-4">
           {pagedAtlasItems.map((item) => {
             if (item.kind === 'group') {
               const group = item.group;
@@ -1619,7 +1621,7 @@ export default function Encyclopedia() {
       </div>
 
       {resultItemCount > resultPageSize && (
-        <div className="mt-5 flex w-full justify-center">
+        <div id="atlas-pagination-bottom" className="mt-5 flex w-full justify-center">
           <div className="inline-flex max-w-full flex-col items-center gap-2 rounded-[22px] border border-white/80 bg-white/88 px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:rounded-full sm:px-4">
             <button
               type="button"
@@ -1731,9 +1733,7 @@ export default function Encyclopedia() {
           onAddToAquarium={addCompatibilitySpeciesToAquarium}
           onBrowseAtlas={() => {
             setViewMode('browse');
-            window.requestAnimationFrame(() => {
-              document.getElementById('calculator-tab-target')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+            void navigateToSection('atlas-toolbar', { updateHash: false });
           }}
         />
       )}
@@ -2348,6 +2348,7 @@ export default function Encyclopedia() {
           setShowWishlistOnly(false);
           setResultPage(0);
           setIsMoreFilterOpen(false);
+          void navigateToSection('atlas-grid', { updateHash: false });
         }}
           />
         </Suspense>

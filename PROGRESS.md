@@ -2,6 +2,7 @@
 收口 AquaGuide 当前未完成的体验与架构改造，优先统一混养判断规则，再逐步修复桌面布局、图鉴筛选分页、弹窗层级、收藏入口、养护百科布局和推荐兜底。
 
 ## 已完成
+- 已将图鉴搜索、快速筛选、更多筛选、顶部/底部分页及混养返回浏览接入统一工作区导航：补齐 `atlas-toolbar / atlas-results / atlas-grid / atlas-pagination-bottom` 稳定目标，移除页面自建的 `requestAnimationFrame + scrollIntoView`，结果定位会避让 sticky 工具区；`npm run lint` 与 `npm run build` 已通过。（commit: 本次提交）
 - 已将鱼缸常用操作与长页面定位接入统一工作区导航：添加成功后的“查看鱼缸”和今日种草入口会准确定位对应区块；换水、喂食、养护记录、混养风险和水质自查改为结果型文案，无生物时记录喂食会显示错误反馈，不再静默；`npm run lint` 与 `npm run build` 已通过。（commit: 本次提交）
 - 已收敛养护百科列表的重复 CTA：推荐卡与文章卡分别改为单一点击区域，不再同时出现多个“查看内容”；打开详情会记录来源位置，关闭后恢复右侧工作区滚动位置与来源焦点；`npm run lint` 与 `npm run build` 已通过。（commit: 本次提交）
 - 已将养护百科的推荐、搜索、分类与结果区接入统一工作区导航：移除页面级固定延迟和 `scrollIntoView`，分类/收藏/hash 入口会定位右侧真实结果区，搜索回车后准确定位结果并重置分页；`npm run lint` 与 `npm run build` 已通过。（commit: 本次提交）
