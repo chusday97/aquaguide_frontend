@@ -1,7 +1,7 @@
 import { fishData } from '../../data/fishData';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../../lib/speciesClassification';
 import { loggerService } from '../../services/logger/logger.service';
-import { Fish } from '../../types';
+import { Aquarium, Fish } from '../../types';
 import { speciesDetailInputSchema, speciesListInputSchema, SpeciesDetailOutput, SpeciesListOutput } from './species.schema';
 
 const secondaryCategoryOrder: Record<string, string[]> = {
@@ -231,30 +231,186 @@ export const matchesTemperamentFilter = (fish: Fish, temperamentFilter: string) 
 );
 
 export const getToolFunctions = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.diet} ${fish.feedingProfile?.recommendedFoods || ''} ${fish.feedingProfile?.specialNotes || ''}`;
-  if (getLifeType(fish) === 'coral') return [];
+  const identity = `${fish.name} ${fish.scientificName} ${fish.category}`;
+  const lifeType = getLifeType(fish);
+  if (lifeType === 'coral' || lifeType === 'reptile' || lifeType === 'fish') {
+    if (!/飞狐|小精灵|胡子|异型|清道夫|青苔鼠|金苔鼠|Otocinclus|Ancistrus|Crossocheilus|Gyrinocheilus|Corydoras|鼠鱼/i.test(identity)) {
+      return [];
+    }
+  }
   const tags: string[] = [];
 
-  if (/除藻|藻膜|褐藻|黑毛藻|飞狐|小精灵|胡子|异型|Otocinclus|Ancistrus|Crossocheilus|Amano|大和藻虾|角螺|鲍螺|海藻/i.test(text)) {
+  if (/除藻|藻虾|飞狐|小精灵|胡子|异型|清道夫|青苔鼠|金苔鼠|Otocinclus|Ancistrus|Crossocheilus|Gyrinocheilus|Amano|大和藻虾|角螺|斑马螺|鲍螺|Neritina|Clithon|Vittina/i.test(identity)) {
     tags.push('除藻');
   }
-  if (/残饵|清理|底层|沉底|鼠鱼|Corydoras|虾|螺|蟹/i.test(text)) {
+  if (lifeType === 'invertebrate' || /鼠鱼|Corydoras/i.test(identity)) {
     tags.push('清残饵');
   }
-  if (/控螺|杀手螺|食螺|Anentome|泛滥的杂螺/i.test(text)) {
+  if (/控螺|杀手螺|食螺|Anentome/i.test(identity)) {
     tags.push('控螺');
   }
-  if (/翻砂|底砂|沙地|海参|钻沙|砂/i.test(text)) {
+  if (/翻砂|海参|钻沙|Astropecten/i.test(identity)) {
     tags.push('翻砂');
   }
-  if (getLifeType(fish) === 'plant' || getLifeType(fish) === 'hardscape' || /水草|莫斯|榕|蕨|椒草|沉木|石|造景|根肥|液肥/i.test(text)) {
+  if (lifeType === 'plant' || lifeType === 'hardscape') {
     tags.push('造景维护');
   }
 
   return Array.from(new Set(tags));
 };
 
-export const getDisplayableSpecies = () => fishData.filter((fish) => getLifeType(fish) !== 'hardscape');
+type SpeciesTaxonomyOverride = {
+  roleLabel?: string;
+  positioning?: string;
+  functionTags?: string[];
+  environmentTags?: string[];
+};
+
+export const speciesTaxonomyOverrides: Record<string, SpeciesTaxonomyOverride> = {
+  sp_0141: {
+    roleLabel: '小型观赏鱼 / 群游搭配',
+    positioning: '适合稳定淡水草缸的群游观赏鱼',
+    functionTags: ['观赏鱼', '适合草缸', '小缸适合'],
+    environmentTags: ['淡水', '淡水热带', '草缸', '小缸', '需加热'],
+  },
+  sp_0186: {
+    roleLabel: '海水观赏鱼 / 谨慎混养',
+    positioning: '海水观赏鱼，加入珊瑚缸前需确认啄食风险',
+    functionTags: ['观赏鱼', '谨慎混养'],
+    environmentTags: ['海水', '需加热'],
+  },
+  sp_0460: {
+    roleLabel: '水龟 / 建议单养',
+    positioning: '需要晒背区和强过滤，不作为普通观赏鱼混养对象',
+    functionTags: ['建议单养'],
+    environmentTags: ['淡水', '淡水广温', '不需加热'],
+  },
+};
+
+const uniqueValues = (values: Array<string | null | undefined>) => (
+  Array.from(new Set(values.map(value => value?.trim()).filter(Boolean) as string[]))
+);
+
+const getSpeciesAliases = (fish: Fish) => {
+  const aliases = (fish as Fish & { aliases?: unknown; alias?: unknown; commonNames?: unknown }).aliases
+    || (fish as Fish & { alias?: unknown }).alias
+    || (fish as Fish & { commonNames?: unknown }).commonNames;
+  if (Array.isArray(aliases)) return aliases.map(value => String(value).toLowerCase()).filter(Boolean);
+  if (typeof aliases === 'string') return aliases.split(/[、,，/]/).map(value => value.trim().toLowerCase()).filter(Boolean);
+  return [];
+};
+
+export const getSpeciesRoleLabel = (fish: Fish) => {
+  const override = speciesTaxonomyOverrides[fish.id]?.roleLabel;
+  if (override) return override;
+  const lifeType = getLifeType(fish);
+  const secondaryCategory = getSecondaryCategory(fish);
+  const tools = getToolFunctions(fish);
+  if (secondaryCategory === '水母') return '观赏生物 / 特殊缸体';
+  if (secondaryCategory === '海葵') return '观赏生物 / 海水特殊养护';
+  if (lifeType === 'plant') return '水草造景 / 环境植物';
+  if (lifeType === 'hardscape') return '造景素材 / 环境配置';
+  if (tools.includes('除藻')) return lifeType === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
+  if (tools.includes('清残饵')) return '底层生物 / 清残饵';
+  if (lifeType === 'reptile') return '水陆生物 / 独立规划';
+  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
+  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
+  return lifeType === 'invertebrate' ? '观赏无脊椎 / 生态搭配' : '观赏生物 / 鱼缸搭配';
+};
+
+export const getSpeciesPositioning = (fish: Fish) => {
+  const override = speciesTaxonomyOverrides[fish.id]?.positioning;
+  if (override) return override;
+  const tools = getToolFunctions(fish);
+  if (tools.includes('除藻')) return '适合作为除藻辅助生物';
+  if (tools.includes('清残饵')) return '适合清理残饵的底层生物';
+  if (fish.housingMode === '建议单养') return '更适合单独饲养观察';
+  if (fish.housingMode === '谨慎混养') return '可混养，但需要先确认同缸对象';
+  if (fish.difficulty === 'Easy' && fish.size === 'Small') return '适合新手的小型观赏生物';
+  return fish.temperament === 'Peaceful' ? '适合温和社区缸搭配' : '需要留意性情和空间';
+};
+
+export const getSpeciesFilterTags = (fish: Fish) => {
+  const override = speciesTaxonomyOverrides[fish.id];
+  const lifeType = getLifeType(fish);
+  const taxonomy = getCareTaxonomyPath(fish);
+  const tools = getToolFunctions(fish);
+  const cleaningTools = tools.filter(tool => tool !== '造景维护');
+  const saltwater = isSaltwaterSpecies(fish);
+  const temperatureBand = getTemperatureBand(fish);
+  const isPlant = lifeType === 'plant';
+  const isHardscape = lifeType === 'hardscape';
+  const isOrnamentalFish = lifeType === 'fish';
+  const grassTankSuitable = !saltwater && !isHardscape && (
+    isPlant || (isOrnamentalFish && fish.temperament === 'Peaceful' && fish.size !== 'Large')
+  );
+
+  const functionTags = uniqueValues(override?.functionTags || [
+    fish.difficulty === 'Easy' ? '新手好养' : null,
+    fish.difficulty === 'Easy' ? '新手入门' : null,
+    fish.difficulty === 'Easy' ? '简单' : null,
+    fish.difficulty === 'Medium' ? '中等' : null,
+    fish.difficulty === 'Hard' ? '困难' : null,
+    cleaningTools.length > 0 ? '清洁工具' : null,
+    tools.includes('除藻') ? '除藻' : null,
+    tools.includes('清残饵') ? '清残饵' : null,
+    fish.size === 'Small' && !isHardscape ? '小缸适合' : null,
+    isOrnamentalFish ? '观赏鱼' : null,
+    cleaningTools.length > 0 ? '工具生物' : null,
+    grassTankSuitable ? '适合草缸' : null,
+    isPlant || isHardscape ? '水草造景' : null,
+    fish.housingMode,
+  ]);
+
+  const environmentTags = uniqueValues(override?.environmentTags || [
+    saltwater ? '海水' : '淡水',
+    !saltwater && temperatureBand === '冷水' ? '淡水冷水' : null,
+    !saltwater && temperatureBand === '热带' ? '淡水热带' : null,
+    !saltwater && temperatureBand === '广温' ? '淡水广温' : null,
+    grassTankSuitable ? '草缸' : null,
+    fish.size === 'Small' && !isHardscape ? '小缸' : null,
+    temperatureBand === '热带' ? '需加热' : '不需加热',
+  ]);
+
+  return {
+    functionTags,
+    environmentTags,
+    difficultyTags: uniqueValues([
+      fish.difficulty === 'Easy' ? '简单' : null,
+      fish.difficulty === 'Medium' ? '中等' : null,
+      fish.difficulty === 'Hard' ? '困难' : null,
+    ]),
+    housingTags: uniqueValues([fish.housingMode]),
+    searchKeywords: uniqueValues([
+      fish.name,
+      fish.scientificName,
+      fish.category,
+      fish.description,
+      fish.housingMode,
+      fish.housingReason,
+      taxonomy.waterType,
+      taxonomy.variety,
+      getSpeciesRoleLabel(fish),
+      ...tools,
+      ...getSpeciesAliases(fish),
+    ]).map(value => value.toLowerCase()),
+  };
+};
+
+export const getSpeciesFunctionTags = (fish: Fish) => {
+  const preferred = ['新手好养', '除藻', '清残饵', '小缸适合', '适合草缸', '适合混养', '谨慎混养', '建议单养'];
+  const tags = getSpeciesFilterTags(fish).functionTags;
+  return preferred.filter(tag => tags.includes(tag)).slice(0, 3);
+};
+
+export const isSpeciesCompatibleWithWaterType = (fish: Fish, waterType?: Aquarium['waterType']) => (
+  waterType === 'Saltwater' ? isSaltwaterSpecies(fish) : !isSaltwaterSpecies(fish)
+);
+
+export const getDisplayableSpecies = () => fishData.filter((fish) => {
+  const lifeType = getLifeType(fish);
+  return lifeType !== 'plant' && lifeType !== 'hardscape';
+});
 
 export const getSecondaryCategories = (fishes: Fish[], lifeTypeFilter: string) => {
   if (lifeTypeFilter === 'All') return [];

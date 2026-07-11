@@ -4,7 +4,16 @@ import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
 import { fishData } from '../data/fishData';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
-import { getCareTaxonomyPath, getLifeType, getSecondaryCategory, getToolFunctions, isSaltwaterSpecies } from '../modules/species/species.service';
+import {
+  getCareTaxonomyPath,
+  getLifeType,
+  getSecondaryCategory,
+  getSpeciesFilterTags,
+  getSpeciesFunctionTags,
+  getSpeciesRoleLabel as getSpeciesRole,
+  getToolFunctions,
+  isSaltwaterSpecies,
+} from '../modules/species/species.service';
 import type { DiscoveryDeckState } from '../modules/recommendation/recommendation.schema';
 import {
   DISCOVERY_DAILY_LIMIT,
@@ -216,139 +225,6 @@ const getFitStatusLabel = (status: 'ok' | 'warning' | 'danger' | 'info') => {
     default:
       return '信息不足';
   }
-};
-
-const getSpeciesPositioning = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  if (tools.includes('除藻')) return '适合作为除藻工具生物';
-  if (tools.includes('清残饵')) return '适合清理残饵的底层生物';
-  if (fish.difficulty === 'Easy' && fish.size === 'Small') return '适合新手的小型观赏生物';
-  if (fish.housingMode === '建议单养') return '更适合单独饲养观察';
-  if (fish.housingMode === '谨慎混养') return '可混养但需要先确认同缸对象';
-  return fish.temperament === 'Peaceful' ? '适合温和社区缸搭配' : '需要留意性情和空间';
-};
-
-const getSpeciesEnvironment = (fish: Fish) => {
-  const taxonomy = getCareTaxonomyPath(fish);
-  const isSaltwater = fish.category.includes('海水') || taxonomy.waterType.includes('海水');
-  if (isSaltwater) return '海水';
-  const tempTheme = getFishTemperatureTheme(fish.waterTemperature);
-  if (tempTheme.needsHeater) return '淡水热带';
-  if (tempTheme.type === 'cold') return '淡水冷水';
-  return '淡水广温';
-};
-
-const getSpeciesRole = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  const taxonomy = getCareTaxonomyPath(fish);
-  if (getSecondaryCategory(fish) === '水母') return '观赏生物 / 特殊缸体';
-  if (getSecondaryCategory(fish) === '海葵') return '观赏生物 / 海水特殊养护';
-  if (taxonomy.waterType.includes('水草') || fish.category.includes('水草')) return '水草造景 / 环境植物';
-  if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
-  if (tools.includes('清残饵')) return '底层生物 / 清残饵';
-  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
-  return getLifeType(fish) === 'invertebrate' ? '工具生物 / 生态搭配' : '观赏生物 / 鱼缸搭配';
-};
-
-const getSpeciesFunctionTags = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  const taxonomy = getCareTaxonomyPath(fish);
-  const tags = [
-    fish.difficulty === 'Easy' ? '新手友好' : null,
-    tools.includes('除藻') ? '除藻' : null,
-    tools.includes('清残饵') ? '清残饵' : null,
-    fish.size === 'Small' ? '小缸适合' : null,
-    taxonomy.waterType.includes('水草') || fish.category.includes('水草') ? '水草造景' : null,
-    fish.housingMode === '适合混养' && fish.temperament === 'Peaceful' ? '温和可混养' : null,
-    fish.housingMode === '谨慎混养' ? '谨慎混养' : null,
-  ].filter(Boolean) as string[];
-  return tags.filter((tag, index) => tags.indexOf(tag) === index).slice(0, 3);
-};
-
-const uniqueValues = (values: Array<string | null | undefined>) => (
-  Array.from(new Set(values.map(value => value?.trim()).filter(Boolean) as string[]))
-);
-
-const getSpeciesFilterTags = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  const taxonomy = getCareTaxonomyPath(fish);
-  const lifeType = getLifeType(fish);
-  const environment = getSpeciesEnvironment(fish);
-  const role = getSpeciesRole(fish);
-  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${fish.description} ${fish.housingMode || ''} ${fish.housingReason || ''} ${tools.join(' ')} ${taxonomy.waterType} ${taxonomy.variety}`;
-  const isExplicitMarine = isSaltwaterSpecies(fish) || environment === '海水' || /海水|珊瑚|海葵|水母|marine|reef|coral|anemone|jellyfish/i.test(text);
-  const isPlant = lifeType === 'plant' || fish.category.includes('水草') || taxonomy.waterType.includes('水草');
-  const isHardscape = lifeType === 'hardscape';
-  const fishLikeText = `${fish.name} ${fish.category} ${role} ${taxonomy.variety}`;
-  const isFish = lifeType === 'fish'
-    || /鱼|灯科|短鲷|慈鲷|斗鱼|孔雀|玛丽|月光|鼠鱼|鳉|鲤科|鲈形|鲶|鳅/.test(fishLikeText);
-  const secondaryCategory = getSecondaryCategory(fish);
-  const isLivestock = !isPlant && !isHardscape && !/底砂|设备|造景|硬景|沉木|石/.test(text);
-  const isOrnamental = isLivestock && (
-    isFish
-    || lifeType === 'coral'
-    || secondaryCategory === '水母'
-    || secondaryCategory === '海葵'
-    || /珊瑚|海葵|水母|观赏|主角|搭配/.test(`${fish.category} ${role} ${fish.name}`)
-  );
-  const temperatureTheme = getFishTemperatureTheme(fish.waterTemperature);
-
-  const functionTags = uniqueValues([
-    fish.difficulty === 'Easy' ? '新手好养' : null,
-    fish.difficulty === 'Easy' ? '新手入门' : null,
-    fish.difficulty === 'Easy' ? '简单' : null,
-    fish.difficulty === 'Medium' ? '中等' : null,
-    fish.difficulty === 'Hard' ? '困难' : null,
-    tools.length > 0 || /工具|清洁/.test(text) ? '清洁工具' : null,
-    tools.includes('除藻') || /除藻|藻/.test(text) ? '除藻' : null,
-    tools.includes('清残饵') || /残饵/.test(text) ? '清残饵' : null,
-    fish.size === 'Small' || /小缸|桌面/.test(text) ? '小缸适合' : null,
-    isOrnamental ? '观赏鱼' : null,
-    tools.length > 0 || /工具|清洁/.test(text) ? '工具生物' : null,
-    /草缸/.test(text) || fish.temperament === 'Peaceful' || isPlant ? '适合草缸' : null,
-    isPlant || isHardscape || /水草|造景/.test(text) ? '水草造景' : null,
-    /繁殖|鱼苗|抱卵|米虾|孔雀/.test(text) ? '繁殖友好' : null,
-    fish.housingMode,
-  ]);
-
-  const environmentTags = uniqueValues([
-    environment,
-    !isExplicitMarine ? '淡水' : null,
-    isExplicitMarine ? '海水' : null,
-    !isExplicitMarine && temperatureTheme.type === 'cold' ? '淡水冷水' : null,
-    !isExplicitMarine && temperatureTheme.type === 'tropical' ? '淡水热带' : null,
-    !isExplicitMarine && temperatureTheme.type === 'general' ? '淡水广温' : null,
-    /草缸/.test(text) || isPlant ? '草缸' : null,
-    fish.size === 'Small' ? '小缸' : null,
-    temperatureTheme.needsHeater ? '需加热' : '不需加热',
-  ]);
-
-  const searchKeywords = uniqueValues([
-    fish.name,
-    fish.scientificName,
-    fish.category,
-    fish.description,
-    fish.housingMode,
-    fish.housingReason,
-    taxonomy.waterType,
-    taxonomy.variety,
-    getSpeciesRole(fish),
-    ...tools,
-    ...getSpeciesAliases(fish),
-  ]).map(value => value.toLowerCase());
-
-  return {
-    functionTags,
-    environmentTags,
-    difficultyTags: uniqueValues([
-      fish.difficulty === 'Easy' ? '简单' : null,
-      fish.difficulty === 'Medium' ? '中等' : null,
-      fish.difficulty === 'Hard' ? '困难' : null,
-    ]),
-    housingTags: uniqueValues([fish.housingMode]),
-    searchKeywords,
-  };
 };
 
 const getSpeciesReminder = (fish: Fish) => {

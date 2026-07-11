@@ -22,7 +22,7 @@ import {
 } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
-import { getLifeType, getToolFunctions } from '../modules/species/species.service';
+import { getLifeType, getToolFunctions, isSpeciesCompatibleWithWaterType } from '../modules/species/species.service';
 import type { DiscoveryDeckState, RecommendationCandidate, RecommendationMode, SimulationResult, SmartRecommendationOutput } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
 import { buildDiagnosisResult } from '../modules/diagnosis/diagnosis.rules';
@@ -2712,19 +2712,49 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
   const selectedPlantCount = settingsForm.plants?.length || 0;
   const settingsGrossVolumeLiters = getTankGrossVolumeLiters(settingsForm.dimensions);
   const settingsEstimatedWaterLiters = getEstimatedWaterVolumeLiters(settingsForm.dimensions);
-  const visiblePlantOptions = isPlantListExpanded ? plantOptions : plantOptions.slice(0, 4);
-  const hiddenPlantCount = Math.max(plantOptions.length - visiblePlantOptions.length, 0);
+  const settingsWaterType = settingsForm.waterType || 'Freshwater';
+  const availablePlantOptions = settingsWaterType === 'Freshwater'
+    ? plantOptions.filter(item => isSpeciesCompatibleWithWaterType(item, 'Freshwater'))
+    : plantOptions;
+  const availableHardscapeOptions = settingsWaterType === 'Freshwater'
+    ? hardscapeOptions.filter(item => isSpeciesCompatibleWithWaterType(item, 'Freshwater'))
+    : hardscapeOptions;
+  const availableSubstrateOptions = settingsWaterType === 'Freshwater'
+    ? substrateOptions.filter(option => option.value !== '珊瑚砂')
+    : substrateOptions;
+  const updateSettingsWaterType = (waterType: NonNullable<Aquarium['waterType']>) => {
+    const keepFreshwaterOnly = waterType === 'Freshwater';
+    setSettingsForm({
+      ...settingsForm,
+      waterType,
+      substrate: keepFreshwaterOnly && settingsForm.substrate === '珊瑚砂' ? '无' : settingsForm.substrate,
+      plants: keepFreshwaterOnly
+        ? (settingsForm.plants || []).filter(value => {
+            const species = fishData.find(item => item.id === value || item.name === value);
+            return !species || isSpeciesCompatibleWithWaterType(species, 'Freshwater');
+          })
+        : settingsForm.plants,
+      hardscape: keepFreshwaterOnly
+        ? (settingsForm.hardscape || []).filter(value => {
+            const species = fishData.find(item => item.id === value || item.name === value);
+            return !species || isSpeciesCompatibleWithWaterType(species, 'Freshwater');
+          })
+        : settingsForm.hardscape,
+    });
+  };
+  const visiblePlantOptions = isPlantListExpanded ? availablePlantOptions : availablePlantOptions.slice(0, 4);
+  const hiddenPlantCount = Math.max(availablePlantOptions.length - visiblePlantOptions.length, 0);
   const selectedHardscapeCount = settingsForm.hardscape?.length || 0;
   const currentSubstrate = settingsForm.substrate || '无';
   const scapeOptions = [
-    ...substrateOptions.map(option => ({
+    ...availableSubstrateOptions.map(option => ({
       type: 'substrate' as const,
       id: `substrate-${option.value}`,
       value: option.value,
       label: option.label,
       hint: option.hint,
     })),
-    ...hardscapeOptions.map(item => ({
+    ...availableHardscapeOptions.map(item => ({
       type: 'hardscape' as const,
       id: `hardscape-${item.id}`,
       value: item.id,
@@ -2873,7 +2903,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 description={option.description}
                 selected={settingsForm.waterType === option.value}
                 disabled={option.disabled}
-                onClick={() => setSettingsForm({ ...settingsForm, waterType: option.value as any })}
+                onClick={() => updateSettingsWaterType(option.value as NonNullable<Aquarium['waterType']>)}
               />
             ))}
           </div>
@@ -6401,7 +6431,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       description={option.description}
                       selected={settingsForm.waterType === option.value}
                       disabled={option.disabled}
-                      onClick={() => setSettingsForm({ ...settingsForm, waterType: option.value as any })}
+                      onClick={() => updateSettingsWaterType(option.value as NonNullable<Aquarium['waterType']>)}
                     />
                   ))}
                 </div>
