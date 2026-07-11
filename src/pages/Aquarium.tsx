@@ -4997,7 +4997,7 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <div className="text-[13px] font-black text-ink">Step 1 选择生物</div>
+                  <div className="text-[13px] font-black text-ink">第 1 步：选择生物</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/50">{addFishIntro}</p>
                 </div>
               <div className="relative">
@@ -5072,7 +5072,7 @@ export default function AquariumManager() {
               <section className={`grid gap-3 rounded-[18px] bg-white p-3 shadow-sm ${selectedAddSpeciesCount > 0 ? '' : 'opacity-80'}`}>
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-[13px] font-black text-ink">Step 2 确认已选生物</div>
+                    <div className="text-[13px] font-black text-ink">第 2 步：确认已选生物</div>
                     {selectedAddSpeciesCount > 0 && (
                       <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">
                         已选择 {selectedAddSpeciesCount} 种

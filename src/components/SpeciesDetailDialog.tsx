@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +9,9 @@ import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceCla
 import { generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
 import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
-import { ImagePreviewModal, type PreviewImage } from './common/ImagePreviewModal';
+import type { PreviewImage } from './common/ImagePreviewModal';
+
+const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 
 type FitStatus = 'ok' | 'warning' | 'danger' | 'info';
 type DetailSource = 'atlas' | 'aquarium';
@@ -1020,7 +1022,11 @@ export function SpeciesDetailDialog({
         </DialogContent>
       </Dialog>
 
-      <ImagePreviewModal images={previewImages} index={previewIndex} open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} onIndexChange={setPreviewIndex} />
+      {isPreviewOpen && (
+        <Suspense fallback={null}>
+          <ImagePreviewModal images={previewImages} index={previewIndex} open onClose={() => setIsPreviewOpen(false)} onIndexChange={setPreviewIndex} />
+        </Suspense>
+      )}
     </>
   );
 }

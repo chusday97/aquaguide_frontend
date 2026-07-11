@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
@@ -30,8 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, ChevronRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
 import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalculator';
 import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage/local-app-state';
-import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
-import { ImagePreviewModal, type PreviewImage } from '../components/common/ImagePreviewModal';
+import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import {
@@ -45,6 +44,7 @@ import {
   getTankCompatibilityStatusLabel,
   type TankCompatibilityResult,
 } from '../lib/tankCompatibilityEngine';
+
 import {
   executeSpeciesAddition,
   reviewSpeciesAdditions,
@@ -57,6 +57,9 @@ import {
   speciesMatchesKeyword,
   type SpeciesGroup,
 } from '../lib/speciesGrouping';
+
+const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
+const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
 
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
@@ -2144,13 +2147,17 @@ export default function Encyclopedia() {
         </DialogContent>
       </Dialog>
 
-      <ImagePreviewModal
-        images={previewImages}
-        index={previewIndex}
-        open={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        onIndexChange={setPreviewIndex}
-      />
+      {isPreviewOpen && (
+        <Suspense fallback={null}>
+          <ImagePreviewModal
+            images={previewImages}
+            index={previewIndex}
+            open
+            onClose={() => setIsPreviewOpen(false)}
+            onIndexChange={setPreviewIndex}
+          />
+        </Suspense>
+      )}
 
       <Dialog open={!!pendingTankFish} onOpenChange={(open) => {
         if (!open) {
@@ -2253,8 +2260,10 @@ export default function Encyclopedia() {
         </DialogContent>
       </Dialog>
 
-      <FilterBottomSheet
-        open={isMoreFilterOpen}
+      {isMoreFilterOpen && (
+        <Suspense fallback={null}>
+          <FilterBottomSheet
+        open
         title="更多条件"
         subtitle={filterSheetMessage || '完整条件都在这里，页面上方只保留最常用入口。'}
         groups={[
@@ -2340,7 +2349,9 @@ export default function Encyclopedia() {
           setResultPage(0);
           setIsMoreFilterOpen(false);
         }}
-      />
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

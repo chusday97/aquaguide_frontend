@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent, ReactNode, RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
-import html2canvas from 'html2canvas';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { careTopicsData, type CareTopic } from '../data/careTopicsData';
 import { fishData } from '../data/fishData';
-import { ImagePreviewModal, type PreviewImage } from '../components/common/ImagePreviewModal';
-import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
+import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import type { Aquarium, AquariumFish, Fish as FishType } from '../types';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
@@ -19,6 +17,9 @@ import {
   toggleCareFavorite,
   type CareFavoriteMap,
 } from '../services/favorites/favorites.service';
+
+const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
+const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
 
 const categoryChips = ['全部', '鱼不舒服', '水变差', '新鱼入缸', '日常喂食', '换水维护', '怀孕 / 鱼苗', '死亡处理', '设备问题'];
 const bannerTopicIds = ['guide_water_deteriorate', 'guide_new_fish_acclimation', 'guide_safe_water_change'];
@@ -1415,6 +1416,7 @@ export default function CareEncyclopedia() {
     setIsSavingShareCard(true);
     setShareMessage('');
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(careCardRef.current, {
         backgroundColor: null,
         scale: 2,
@@ -1792,16 +1794,22 @@ export default function CareEncyclopedia() {
         }
       `}</style>
 
-      <ImagePreviewModal
-        images={previewImages}
-        index={previewIndex}
-        open={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        onIndexChange={setPreviewIndex}
-      />
+      {isPreviewOpen && (
+        <Suspense fallback={null}>
+          <ImagePreviewModal
+            images={previewImages}
+            index={previewIndex}
+            open
+            onClose={() => setIsPreviewOpen(false)}
+            onIndexChange={setPreviewIndex}
+          />
+        </Suspense>
+      )}
 
-      <FilterBottomSheet
-        open={isCareFilterOpen}
+      {isCareFilterOpen && (
+        <Suspense fallback={null}>
+          <FilterBottomSheet
+        open
         title="选择问题场景"
         subtitle="选择一个问题场景，列表会按场景更新。"
         groups={[
@@ -1831,7 +1839,9 @@ export default function CareEncyclopedia() {
           setCareViewMode(draftCareViewMode);
           setIsCareFilterOpen(false);
         }}
-      />
+          />
+        </Suspense>
+      )}
 
       <Dialog open={!!shareTopic} onOpenChange={(open) => {
         if (!open) {

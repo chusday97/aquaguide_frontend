@@ -1,5 +1,5 @@
 import { MessageCircle, Share2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { appShareConfig, getAbsoluteShareUrl } from '../lib/shareConfig';
 
 const isWeChatBrowser = () => {
@@ -31,6 +31,11 @@ const shareWithNativeSheet = async (title: string) => {
 
 export function ShareActions() {
   const [feedback, setFeedback] = useState('');
+  const feedbackTimerRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+  }, []);
 
   if (!isWeChatBrowser()) {
     return null;
@@ -38,7 +43,8 @@ export function ShareActions() {
 
   const showFeedback = (message: string) => {
     setFeedback(message);
-    window.setTimeout(() => setFeedback(''), 3200);
+    if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = window.setTimeout(() => setFeedback(''), 3200);
   };
 
   const handleShareToFriend = async () => {
@@ -68,20 +74,20 @@ export function ShareActions() {
     <div className="border-t border-border/70 bg-white/90 px-3 py-2 backdrop-blur-md">
       <div className="grid grid-cols-2 gap-2">
         <button
-        type="button"
-        onClick={handleShareToFriend}
-        className="flex h-9 items-center justify-center rounded-full border border-sky-100 bg-sky-50 text-[11px] font-black text-sky-700 transition-colors hover:bg-sky-100"
-      >
-        <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
-        转发给朋友
+          type="button"
+          onClick={handleShareToFriend}
+          className="flex h-9 items-center justify-center rounded-full border border-sky-100 bg-sky-50 text-[11px] font-black text-sky-700 transition-colors hover:bg-sky-100"
+        >
+          <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+          转发给朋友
         </button>
         <button
-        type="button"
-        onClick={handleShareToTimeline}
-        className="flex h-9 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-[11px] font-black text-emerald-700 transition-colors hover:bg-emerald-100"
-      >
-        <Share2 className="mr-1.5 h-3.5 w-3.5" />
-        分享到朋友圈
+          type="button"
+          onClick={handleShareToTimeline}
+          className="flex h-9 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-[11px] font-black text-emerald-700 transition-colors hover:bg-emerald-100"
+        >
+          <Share2 className="mr-1.5 h-3.5 w-3.5" />
+          分享到朋友圈
         </button>
       </div>
       {feedback && (
