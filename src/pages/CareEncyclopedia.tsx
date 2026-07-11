@@ -868,6 +868,23 @@ const stepDiagnosisQuestions: Array<{
   },
 ];
 
+const getStepDiagnosisQuestions = (issueType: StepDiagnosisIssue) => {
+  const questionIdsByIssue: Record<StepDiagnosisIssue, Array<keyof StepDiagnosisAnswers>> = {
+    cloudy: ['cloudyWater', 'recentWaterChange', 'recentNewLivestock'],
+    gasping: ['gasping', 'cloudyWater', 'recentWaterChange'],
+    death: ['gasping', 'cloudyWater', 'recentWaterChange', 'recentNewLivestock'],
+    shrimpDeath: ['recentWaterChange', 'cloudyWater', 'recentNewLivestock'],
+    plantProblem: ['cloudyWater', 'recentWaterChange'],
+    refusal: ['abnormalBehavior', 'recentNewLivestock', 'cloudyWater'],
+    hiding: ['abnormalBehavior', 'recentNewLivestock', 'recentWaterChange'],
+    aggression: ['abnormalBehavior', 'recentNewLivestock'],
+  };
+  const ids = questionIdsByIssue[issueType];
+  return ids
+    .map(id => stepDiagnosisQuestions.find(question => question.id === id))
+    .filter((question): question is (typeof stepDiagnosisQuestions)[number] => Boolean(question));
+};
+
 const inferStepDiagnosisIssue = (topic: CareTopic): StepDiagnosisIssue => {
   const text = `${topic.title}${topic.category}${topic.summary}${topic.keywords.join(' ')}`;
   if (/虾/.test(text)) return 'shrimpDeath';
@@ -2066,19 +2083,20 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
   const targetAquarium = aquariums.find(item => item.id === diagnosisState.targetAquariumId) || aquariums[0] || null;
   const currentLivestock = useMemo(() => getCurrentLivestock(targetAquarium), [targetAquarium]);
   const volumeLiters = getTankVolumeLiters(targetAquarium);
-  const activeQuestionIndex = Math.min(Math.max(diagnosisState.questionIndex, 0), stepDiagnosisQuestions.length - 1);
-  const activeQuestion = stepDiagnosisQuestions[activeQuestionIndex];
-  const answeredCount = stepDiagnosisQuestions.filter(question => diagnosisState.answers[question.id]).length;
+  const diagnosisQuestions = useMemo(() => getStepDiagnosisQuestions(diagnosisState.issueType), [diagnosisState.issueType]);
+  const activeQuestionIndex = Math.min(Math.max(diagnosisState.questionIndex, 0), diagnosisQuestions.length - 1);
+  const activeQuestion = diagnosisQuestions[activeQuestionIndex];
+  const answeredCount = diagnosisQuestions.filter(question => diagnosisState.answers[question.id]).length;
   const isQuestionStep = diagnosisState.currentStep === 2;
   const isSummaryStep = diagnosisState.currentStep === 3;
   const isResultStep = diagnosisState.currentStep === 4 && diagnosisState.result;
   const progressLabel = isQuestionStep
-    ? `第 ${activeQuestionIndex + 1} 题 / 共 ${stepDiagnosisQuestions.length} 题`
+    ? `第 ${activeQuestionIndex + 1} 题 / 共 ${diagnosisQuestions.length} 题`
     : `第 ${diagnosisState.currentStep} 步 / 共 4 步`;
   const progressPercent = diagnosisState.currentStep === 1
     ? 25
     : diagnosisState.currentStep === 2
-      ? 25 + (answeredCount / stepDiagnosisQuestions.length) * 45
+      ? 25 + (answeredCount / diagnosisQuestions.length) * 45
       : diagnosisState.currentStep === 3
         ? 80
         : 100;
@@ -2097,7 +2115,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
       if (prev.currentStep === 1) return { ...prev, currentStep: 2, questionIndex: 0, result: null };
       if (prev.currentStep === 2) {
         const nextQuestionIndex = activeQuestionIndex + 1;
-        if (nextQuestionIndex < stepDiagnosisQuestions.length) return { ...prev, questionIndex: nextQuestionIndex, result: null };
+        if (nextQuestionIndex < diagnosisQuestions.length) return { ...prev, questionIndex: nextQuestionIndex, result: null };
         return { ...prev, currentStep: 3, result: null };
       }
       if (prev.currentStep === 3) {
@@ -2129,7 +2147,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
       setDiagnosisState(prev => ({ ...prev, currentStep: 1, questionIndex: 0, result: null }));
       return;
     }
-    if (nextIndex >= stepDiagnosisQuestions.length) {
+    if (nextIndex >= diagnosisQuestions.length) {
       setDiagnosisState(prev => ({ ...prev, currentStep: 3, result: null }));
       return;
     }
@@ -2305,7 +2323,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
             上一题
           </Button>
         )}
-        {isQuestionStep && activeQuestionIndex < stepDiagnosisQuestions.length - 1 ? (
+        {isQuestionStep && activeQuestionIndex < diagnosisQuestions.length - 1 ? (
           <Button
             type="button"
             onClick={() => moveQuestion(1)}
@@ -2367,6 +2385,7 @@ function CareArticleDetail({
   const relatedTopics = getRelatedCareGuides(topic, careTopicsData, activeAquarium);
   const [ctaFeedback, setCtaFeedback] = useState('');
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
+  const [isDiagnosisStarted, setIsDiagnosisStarted] = useState(false);
   const [isChecklistSaved, setIsChecklistSaved] = useState(false);
   const [isOperationCompleted, setIsOperationCompleted] = useState(false);
   const [reminderSheet, setReminderSheet] = useState<null | {
@@ -2382,6 +2401,12 @@ function CareArticleDetail({
   const isWaterChangeGuide = /换水/.test(`${getDisplayTitle(topic)} ${topic.title} ${topic.keywords.join(' ')}`);
   const isFilterGuide = /过滤|滤材|清洗/.test(`${getDisplayTitle(topic)} ${topic.title} ${topic.keywords.join(' ')}`);
   const isFryGuide = /鱼苗|开口|卵黄囊/.test(`${getDisplayTitle(topic)} ${topic.title} ${topic.keywords.join(' ')}`);
+
+  useEffect(() => {
+    setIsDiagnosisStarted(false);
+    setIsDetailExpanded(false);
+    setCtaFeedback('');
+  }, [topic.id]);
   const primaryCtaLabel = meta.guideType === 'procedure'
     ? isNewFishAcclimationTopic(topic)
       ? '设置 3 天观察提醒'
@@ -2395,17 +2420,15 @@ function CareArticleDetail({
         : meta.guideType === 'knowledge'
           ? favorite ? '已收藏这篇指南' : '收藏这篇指南'
           : '设置提醒';
-  const secondaryLabel = meta.guideType === 'procedure'
+  const secondaryLabel: string | null = meta.guideType === 'procedure'
     ? isNewFishAcclimationTopic(topic)
       ? isOperationCompleted ? '已完成过水' : '标记已完成过水'
       : isWaterChangeGuide
         ? '设置下次换水提醒'
-        : isDetailExpanded ? '收起说明' : '展开完整说明'
+        : null
     : meta.guideType === 'careChecklist'
       ? isFryGuide ? '设置开口喂食提醒' : '设置阶段护理提醒'
-      : meta.guideType === 'knowledge'
-        ? relatedTopics.length > 0 ? '查看相关内容' : isDetailExpanded ? '收起说明' : '展开完整说明'
-        : isDetailExpanded ? '收起说明' : '展开完整说明';
+      : null;
 
   const addReminder = (label?: string, storageType: string = meta.guideType, successMessage?: string) => {
     const reminders = safeJsonParse<Array<{ id: string; title: string; type: string; createdAt: string; label?: string }>>(
@@ -2539,9 +2562,10 @@ function CareArticleDetail({
       return;
     }
     if (meta.guideType === 'diagnosis') {
-      scrollRef.current?.scrollTo({ top: 300, behavior: 'smooth' });
-      setCtaFeedback('已打开分步自查');
-      window.setTimeout(() => setCtaFeedback(''), 1800);
+      setIsDiagnosisStarted(true);
+      window.requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: 300, behavior: 'smooth' });
+      });
       return;
     }
     if (meta.guideType === 'knowledge') {
@@ -2593,7 +2617,16 @@ function CareArticleDetail({
           </div>
 
           {meta.guideType === 'diagnosis' ? (
-            <StepDiagnosisPanel topic={topic} />
+            isDiagnosisStarted ? (
+              <StepDiagnosisPanel topic={topic} />
+            ) : (
+              <section className="mt-4 rounded-[20px] border border-emerald-100 bg-[#F8FCF8] p-4">
+                <div className="text-[15px] font-black text-ink">准备开始问题自查</div>
+                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/55">
+                  系统会根据“{getDisplayTitle(topic)}”追问 2–4 个相关问题，再给出处理建议。
+                </p>
+              </section>
+            )
           ) : meta.guideType === 'procedure' ? (
             <section className="mt-4 rounded-[22px] border border-emerald-100 bg-[#F8FCF8] p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3">
@@ -2701,7 +2734,7 @@ function CareArticleDetail({
               className="flex w-full items-center justify-between gap-3 text-left"
               aria-expanded={isDetailExpanded}
             >
-              <span className="text-[13px] font-black text-ink">详细说明</span>
+              <span className="text-[13px] font-black text-ink">详细说明与判断依据</span>
               <span className="rounded-full bg-bg px-2.5 py-1 text-[10px] font-black text-ink/50">
                 {isDetailExpanded ? '收起' : '展开'}
               </span>
@@ -2752,14 +2785,16 @@ function CareArticleDetail({
             {primaryCtaLabel}
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleSecondaryCta}
-            className="h-10 w-full rounded-full border-emerald-100 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 md:w-fit md:min-w-[160px] md:max-w-[220px]"
-          >
-            {secondaryLabel}
-          </Button>
+          {secondaryLabel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSecondaryCta}
+              className="h-10 w-full rounded-full border-emerald-100 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 md:w-fit md:min-w-[160px] md:max-w-[220px]"
+            >
+              {secondaryLabel}
+            </Button>
+          )}
           {ctaFeedback && (
             <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700 md:col-span-2">
               {ctaFeedback}
