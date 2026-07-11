@@ -9,6 +9,7 @@ import { careTopicsData, type CareTopic } from '../data/careTopicsData';
 import { fishData } from '../data/fishData';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import type { Aquarium, AquariumFish, Fish as FishType } from '../types';
+import type { WorkspaceNavigationContext } from '../types/navigation';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
@@ -1100,7 +1101,7 @@ const buildStepDiagnosisResult = ({
 
 export default function CareEncyclopedia() {
   const location = useLocation();
-  const { navigateToSection } = useWorkspaceNavigation();
+  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
   const [highFrequencyFilter, setHighFrequencyFilter] = useState('全部');
@@ -1134,6 +1135,7 @@ export default function CareEncyclopedia() {
   const careCardRef = useRef<HTMLDivElement | null>(null);
   const careSearchRef = useRef<HTMLElement | null>(null);
   const contentListRef = useRef<HTMLElement | null>(null);
+  const detailNavigationContextRef = useRef<WorkspaceNavigationContext | null>(null);
 
   const appStateSnapshot = useMemo(() => loadAppStateFromStorage(), []);
   const activeAquarium = useMemo(() => (
@@ -1210,14 +1212,24 @@ export default function CareEncyclopedia() {
     void navigateToSection('care-results', { updateHash: false });
   };
 
-  const openCareDetail = (topicId: string) => {
+  const openCareDetail = (topicId: string, sourceId?: string, captureReturnContext = true) => {
     const topic = careTopicsData.find(item => item.id === topicId);
     if (!topic) return;
+    if (captureReturnContext) {
+      detailNavigationContextRef.current = captureContext(sourceId);
+    }
     setSelectedTopic(topic);
     setCheckedActions([]);
     window.setTimeout(() => {
       detailScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, 0);
+  };
+
+  const closeCareDetail = () => {
+    setSelectedTopic(null);
+    const context = detailNavigationContextRef.current;
+    detailNavigationContextRef.current = null;
+    if (context) void restoreContext(context);
   };
 
   const openBannerTopic = (topic: CareTopic, index: number, force = false) => {
@@ -1517,32 +1529,26 @@ export default function CareEncyclopedia() {
               }}
             >
               {careRecommendations.map(({ topic, reason }, index) => (
-                <article
+                <button
                   key={topic.id}
+                  id={`care-recommendation-${topic.id}`}
+                  type="button"
                   data-care-recommend-card
+                  onClick={() => openCareDetail(topic.id, `care-recommendation-${topic.id}`)}
                   className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:min-w-full md:max-w-full md:grid-cols-[42%_1fr] md:gap-3"
                 >
-                  <button
-                    type="button"
-                    onClick={() => openCareDetail(topic.id)}
-                    className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[16px] bg-white/70"
-                    aria-label={`查看${getDisplayTitle(topic)}`}
-                  >
+                  <span className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[16px] bg-white/70">
                     <CareImage topic={topic} className="h-full w-full" />
-                  </button>
-                  <div className="min-w-0 py-1 text-left">
-                    <div className="text-[10px] font-black text-emerald-700">{reason}</div>
-                    <h2 className="mt-1.5 line-clamp-2 text-[17px] font-black leading-tight text-ink">{getDisplayTitle(topic)}</h2>
-                    <p className="mt-1.5 line-clamp-3 text-[12px] font-medium leading-relaxed text-ink/58">{topic.summary}</p>
-                    <button
-                      type="button"
-                      onClick={() => openCareDetail(topic.id)}
-                      className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white md:desktop-action-fit"
-                    >
-                      查看内容
-                    </button>
-                  </div>
-                </article>
+                  </span>
+                  <span className="min-w-0 py-1 text-left">
+                    <span className="block text-[10px] font-black text-emerald-700">{reason}</span>
+                    <span className="mt-1.5 line-clamp-2 block text-[17px] font-black leading-tight text-ink">{getDisplayTitle(topic)}</span>
+                    <span className="mt-1.5 line-clamp-3 block text-[12px] font-medium leading-relaxed text-ink/58">{topic.summary}</span>
+                    <span className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700">
+                      打开指南 <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
+                    </span>
+                  </span>
+                </button>
               ))}
             </div>
             <div className="mt-2 flex justify-center gap-1.5">
@@ -1640,7 +1646,7 @@ export default function CareEncyclopedia() {
               key={topic.id}
               topic={topic}
               favorite={Boolean(favorites[topic.id])}
-              onClick={() => openCareDetail(topic.id)}
+              onClick={() => openCareDetail(topic.id, `care-article-${topic.id}`)}
               onToggleFavorite={(source) => toggleFavorite(topic, source)}
             />
           ))}
@@ -1678,7 +1684,7 @@ export default function CareEncyclopedia() {
         </div>
       )}
 
-      <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && setSelectedTopic(null)}>
+      <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && closeCareDetail()}>
         <DialogContent className="modalCardWide w-[92vw] max-w-[560px] overflow-hidden rounded-[24px] border-border p-0 md:max-w-[900px]">
           {selectedTopic && (
             <CareArticleDetail
@@ -1695,7 +1701,7 @@ export default function CareEncyclopedia() {
                 setCopyMessage('');
               }}
               onPreview={() => openPreview(selectedTopic)}
-              onSelectRelated={(topic) => openCareDetail(topic.id)}
+              onSelectRelated={(topic) => openCareDetail(topic.id, undefined, false)}
               activeAquarium={activeAquarium}
             />
           )}
@@ -2054,15 +2060,15 @@ function CareArticleCard({
       >
         <Heart className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
       </button>
-      <button type="button" onClick={onClick} className="grid min-h-[132px] w-full grid-cols-[112px_1fr] gap-3 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1">
+      <button id={`care-article-${topic.id}`} type="button" onClick={onClick} className="grid min-h-[132px] w-full grid-cols-[112px_1fr] gap-3 text-left transition-transform active:scale-[0.99] max-[360px]:grid-cols-1">
         <span data-care-card-image>
           <CareImage topic={topic} className="h-[112px] w-[112px] rounded-[16px] max-[360px]:h-[180px] max-[360px]:w-full" />
         </span>
         <span className="min-w-0 pr-8 max-[360px]:pr-0">
           <span className="line-clamp-2 block text-[15px] font-black leading-snug text-ink">{getDisplayTitle(topic)}</span>
           <span className="mt-1.5 line-clamp-2 block text-[12px] font-medium leading-relaxed text-ink/56">{topic.summary}</span>
-          <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-black text-white md:desktop-action-fit">
-            查看内容
+          <span className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700">
+            打开指南 <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
           </span>
         </span>
       </button>
