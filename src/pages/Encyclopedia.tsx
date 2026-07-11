@@ -1146,6 +1146,11 @@ export default function Encyclopedia() {
     : null;
   const pendingAddPolicy = pendingFit ? getTankCompatibilityAddPolicy(pendingFit.status) : null;
   const isOverlayOpen = !!selectedFish || !!selectedGroup || !!pendingTankFish || isCategoryDrawerOpen;
+
+  const openSelectedVariantDetails = (fish: Fish) => {
+    setSelectedGroup(null);
+    window.requestAnimationFrame(() => setSelectedFish(fish));
+  };
   const atlasModeItems = [
     { id: 'browse' as const, label: '浏览图鉴', description: '查找生物、分类和适配结果' },
     { id: 'compatibility' as const, label: '混养计算', description: '选择生物后查看混养风险' },
@@ -1858,10 +1863,7 @@ export default function Encyclopedia() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedFish(selectedGroupVariant);
-                      setSelectedGroup(null);
-                    }}
+                    onClick={() => openSelectedVariantDetails(selectedGroupVariant)}
                     className="h-11 rounded-full border border-border bg-white px-5 text-[13px] font-black text-ink/62 hover:border-accent hover:text-accent"
                   >
                     查看完整详情

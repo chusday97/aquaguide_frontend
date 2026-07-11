@@ -274,35 +274,32 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
       advice: fish.difficulty === 'Easy' ? '适合作为入门选择。' : fish.difficulty === 'Medium' ? '需要稳定水质和观察，但不是当前鱼缸不匹配项。' : '养护难度较高，建议先确认经验和设备。',
     },
     {
-      type: 'equipment',
-      label: '设备',
-      current: [
-        aquarium?.equipment?.filter ? `过滤：${aquarium.equipment.filter}` : '过滤未设置',
-        aquarium?.equipment?.heater ? '已配置加热棒' : '加热棒未确认',
-      ].join(' / '),
-      requirement: specialCareType === '水母' ? '圆形水母缸 / 柔和循环水流' : needsHeater ? '建议加热棒' : '常规过滤',
-      status: specialCareType === '水母'
-        ? 'warning'
-        : !aquarium
-          ? 'info'
-          : heaterMissing
-            ? 'warning'
-            : !hasFilter
-              ? 'info'
-              : needsHeater && !aquarium?.equipment?.heater
-                ? 'info'
-                : 'ok',
-      advice: specialCareType === '水母'
-        ? '水母不是鱼类，需要专用水母缸或避免强吸力过滤。'
-        : !aquarium
-          ? '先选择鱼缸后再确认设备。'
-          : heaterMissing
-            ? '该物种建议稳定加热，当前标记为未配置加热棒。'
-            : !hasFilter
-              ? '当前未确认过滤设备，建议补充设备信息。'
-              : needsHeater && !aquarium?.equipment?.heater
-                ? '建议确认是否有加热棒和温度计。'
-                : '设备条件基本匹配。',
+      type: 'filter',
+      label: '过滤',
+      current: aquarium?.equipment?.filter || '未设置',
+      requirement: specialCareType === '水母' ? '专用水母缸 / 柔和循环水流' : '稳定过滤',
+      status: !aquarium ? 'info' : specialCareType === '水母' ? 'warning' : hasFilter ? 'ok' : 'info',
+      advice: !aquarium
+        ? '先选择鱼缸后再确认过滤设备。'
+        : specialCareType === '水母'
+          ? '水母需要专用缸体，并避免普通过滤产生强吸力。'
+          : hasFilter
+            ? '已记录过滤设备。'
+            : '当前未确认过滤设备，建议补充过滤配置。',
+    },
+    {
+      type: 'heater',
+      label: '加热',
+      current: aquarium ? aquarium.equipment?.heater ? '已配置加热棒' : '未配置加热棒' : '未设置',
+      requirement: needsHeater ? '建议稳定加热' : '通常不强制加热',
+      status: !aquarium ? 'info' : heaterMissing ? 'warning' : 'ok',
+      advice: !aquarium
+        ? '先选择鱼缸后再确认加热设备。'
+        : heaterMissing
+          ? '该物种建议稳定加热，当前鱼缸未配置加热棒。'
+          : needsHeater
+            ? '已配置加热棒，建议同时使用温度计观察波动。'
+            : '当前物种通常不强制配置加热棒。',
     },
   ];
 
@@ -437,14 +434,15 @@ export function SpeciesDetailDialog({
     const temp = findItem('温度');
     const waterParam = findItem('水质参数');
     const space = findItem('缸体大小');
-    const equipment = findItem('设备');
+    const filter = findItem('过滤');
+    const heater = findItem('加热');
     return [
       water && { ...water, label: '水体类型', icon: Waves },
       temp && { ...temp, label: '温度', icon: Thermometer },
       waterParam && { ...waterParam, label: '水质参数', icon: FlaskConical },
       space && { ...space, label: '空间', icon: Box },
-      equipment && { ...equipment, label: '过滤', icon: SlidersHorizontal },
-      equipment && { ...equipment, label: '加热', icon: Flame },
+      filter && { ...filter, icon: SlidersHorizontal },
+      heater && { ...heater, icon: Flame },
     ].filter(Boolean) as Array<FitDimension & { icon: typeof Waves }>;
   }, [displayFit]);
 
@@ -463,6 +461,17 @@ export function SpeciesDetailDialog({
     if (displayFit.status === 'unsuitable' || displayFit.status === 'setupNeeded' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return '调整鱼缸条件';
     return '去完善环境';
   }, [displayFit, owned]);
+
+  const getMetricActionLabel = (metric: FitDimension) => {
+    if (metric.status === 'ok') return '我知道了';
+    if (metric.type === 'water_parameter') return '补充 pH / 硬度';
+    if (metric.type === 'filter') return '配置过滤';
+    if (metric.type === 'heater') return '配置加热';
+    if (metric.type === 'temperature') return '设置目标温度';
+    if (metric.type === 'space') return '完善鱼缸尺寸';
+    if (metric.type === 'water_type') return '调整水体类型';
+    return '完善鱼缸信息';
+  };
 
   const handleMainAction = () => {
     if (!fish || !displayFit) return;
@@ -772,7 +781,7 @@ export function SpeciesDetailDialog({
                     <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink/55">{activeMetric.advice || '当前页面不直接写入鱼缸设置，请到鱼缸设置中完善后重新评估。'}</p>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" onClick={() => setActiveMetric(null)}>我知道了</Button>
-                      <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => { setInlineFeedback('请在鱼缸设置里完善该项，保存后系统会重新评估。'); setActiveMetric(null); }}>去鱼缸设置调整</Button>
+                      <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => { setInlineFeedback(`请在鱼缸设置中${getMetricActionLabel(activeMetric)}，保存后系统会重新评估。`); setActiveMetric(null); }}>{getMetricActionLabel(activeMetric)}</Button>
                     </div>
                   </div>
                 </div>
