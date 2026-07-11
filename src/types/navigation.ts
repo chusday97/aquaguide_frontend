@@ -10,6 +10,7 @@ export type WorkspaceSectionId =
   | 'atlas-pagination-bottom'
   | 'care-search'
   | 'care-categories'
+  | 'care-recommendations'
   | 'care-results'
   | 'care-diagnosis'
   | 'care-actions';

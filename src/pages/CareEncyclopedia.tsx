@@ -11,6 +11,7 @@ import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import type { Aquarium, AquariumFish, Fish as FishType } from '../types';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
+import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import {
   getCareFavorites,
   subscribeToFavorites,
@@ -1099,6 +1100,7 @@ const buildStepDiagnosisResult = ({
 
 export default function CareEncyclopedia() {
   const location = useLocation();
+  const { navigateToSection } = useWorkspaceNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
   const [highFrequencyFilter, setHighFrequencyFilter] = useState('全部');
@@ -1153,23 +1155,21 @@ export default function CareEncyclopedia() {
       setSearchTerm('');
       setActiveCategory('全部');
       setCareResultPage(0);
-      window.setTimeout(() => {
-        contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
+      void navigateToSection('care-results', { updateHash: false });
       return;
     }
     if (location.hash === '#care-content') {
-      contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      void navigateToSection('care-results', { updateHash: false });
       return;
     }
     if (location.hash === '#care-search' || location.hash === '#care-diagnosis') {
-      careSearchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      void navigateToSection('care-search', { updateHash: false });
       return;
     }
     if (location.hash === '#care-recommendations') {
-      recommendationCarouselRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      void navigateToSection('care-recommendations', { updateHash: false });
     }
-  }, [location.hash]);
+  }, [location.hash, navigateToSection]);
 
   useEffect(() => {
     if (careRecommendations.length <= 1) return;
@@ -1207,9 +1207,7 @@ export default function CareEncyclopedia() {
     setCareViewMode('all');
     setCareWorkspacePage('content');
     setCareResultPage(0);
-    window.requestAnimationFrame(() => {
-      contentListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    void navigateToSection('care-results', { updateHash: false });
   };
 
   const openCareDetail = (topicId: string) => {
@@ -1570,6 +1568,12 @@ export default function CareEncyclopedia() {
             onChange={(event) => {
               setSearchTerm(event.target.value);
               setCareWorkspacePage(event.target.value.trim() ? 'content' : careWorkspacePage);
+              setCareResultPage(0);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && searchTerm.trim()) {
+                void navigateToSection('care-results', { updateHash: false });
+              }
             }}
             placeholder="搜索：水浑、浮头、不吃食、死鱼、怀孕、过水"
             className="h-10 rounded-full border-border bg-bg pl-9 text-[13px] font-medium text-ink placeholder:text-ink/36 md:desktop-input-limit"
@@ -1577,7 +1581,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      <section className={`${searchTerm.trim() ? 'hidden md:block' : ''} rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1`}>
+      <section id="care-categories" className={`${searchTerm.trim() ? 'hidden md:block' : ''} scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1`}>
           <div className="mb-2 text-[15px] font-black text-ink">我现在想处理什么？</div>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-2 md:gap-3">
             {careCategoryEntrances.map(item => {
@@ -1605,7 +1609,7 @@ export default function CareEncyclopedia() {
           </div>
       </section>
 
-      <section id="care-content" ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 md:col-start-2 md:row-start-1 md:row-span-5">
+      <section id="care-results" ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 md:col-start-2 md:row-start-1 md:row-span-5">
         <div className="rounded-[18px] border border-white/80 bg-white px-4 py-3 shadow-sm">
           <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
