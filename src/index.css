@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
 @import "tailwindcss";
 
+.workspace-section-highlight {
+  outline: 2px solid rgb(16 185 129 / 0.46);
+  outline-offset: 4px;
+  transition: outline-color 180ms ease;
+}
+
 @theme {
   --color-bg: #FDFCF8;
   --color-ink: #1A1A1A;

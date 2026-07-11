@@ -16,6 +16,7 @@ import {
   Library,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
+import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
@@ -180,7 +181,7 @@ function BottomNavigation() {
 
 function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
   const activePath = navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
   const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
   const activeMenu = useMemo(() => {
@@ -221,23 +222,15 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
   }, []);
 
   const handlePrimaryNav = (path: string) => {
-    navigate(path);
+    navigateToRoute(path);
   };
 
   const handleSubNav = (hash: string) => {
-    navigate(`${activePath}${hash}`);
-    window.setTimeout(() => {
-      const target = document.getElementById(hash.replace('#', ''));
-      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    navigateToView(activePath, hash);
   };
 
   const handleUtilityNav = (path: string, hash: string) => {
-    navigate(`${path}${hash}`);
-    window.setTimeout(() => {
-      const target = document.getElementById(hash.replace('#', ''));
-      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    navigateToView(path, hash);
   };
 
   return (
@@ -423,7 +416,9 @@ export default function App() {
     <AppErrorBoundary>
       <Router>
         <ToastProvider>
-          <AppShell />
+          <WorkspaceNavigationProvider>
+            <AppShell />
+          </WorkspaceNavigationProvider>
         </ToastProvider>
       </Router>
     </AppErrorBoundary>
