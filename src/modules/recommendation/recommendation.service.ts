@@ -140,7 +140,7 @@ const isLivestockSpecies = (fish: Fish) => {
 };
 
 const getWaterLayer = (fish: Fish) => {
-  const text = `${fish.category} ${fish.role || ''} ${fish.habitat || ''} ${fish.description || ''}`;
+  const text = `${fish.name} ${fish.category} ${fish.description || ''}`;
   if (/底层|底栖|鼠|鳅|清残|底砂/.test(text)) return 'bottom';
   if (/上层|鳉|孔雀|玛丽|浮水/.test(text)) return 'top';
   if (/水草|草/.test(text)) return 'plant';
@@ -153,7 +153,7 @@ const getMinimumGroupQuantity = (fish: Fish) => {
   if (/灯|群游|斑马|红鼻|宝莲|红绿|鼠/.test(text)) return 6;
   if (/虾/.test(text)) return 5;
   if (/螺|斗鱼|短鲷|鳌虾/.test(text)) return 1;
-  return fish.housingMode === '建议群养' ? 6 : 1;
+  return 1;
 };
 
 const getRecommendedQuantity = (fish: Fish, remainingCapacity: number) => {

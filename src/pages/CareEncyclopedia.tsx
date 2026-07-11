@@ -1072,17 +1072,18 @@ const buildStepDiagnosisResult = ({
     actions.push('先观察 2-4 小时，并补充水质、换水和喂食信息');
   }
 
-  const riskLabel = riskLevel === 'high' ? '高风险' : riskLevel === 'medium' ? '中风险' : riskLevel === 'unknown' ? '信息不足' : '低风险';
-  const conclusion = riskLevel === 'high'
+  const resolvedRiskLevel = riskLevel as StepDiagnosisResult['riskLevel'];
+  const riskLabel = resolvedRiskLevel === 'high' ? '高风险' : resolvedRiskLevel === 'medium' ? '中风险' : resolvedRiskLevel === 'unknown' ? '信息不足' : '低风险';
+  const conclusion = resolvedRiskLevel === 'high'
     ? '初步判断：存在较明显风险，优先处理供氧、过滤和水质。'
-    : riskLevel === 'medium'
+    : resolvedRiskLevel === 'medium'
       ? '初步判断：可能存在轻微缺氧、水质波动或短期应激。'
-      : riskLevel === 'unknown'
+      : resolvedRiskLevel === 'unknown'
         ? '当前信息不足，建议先补充观察和水质信息。'
         : '初步判断：暂未发现明显高风险，先轻量观察。';
 
   return {
-    riskLevel,
+    riskLevel: resolvedRiskLevel,
     riskLabel,
     conclusion,
     causes: Array.from(new Set(causes.length > 0 ? causes : ['信息不足或轻微环境波动'])).slice(0, 5),
@@ -2425,7 +2426,7 @@ function CareArticleDetail({
         ? relatedTopics.length > 0 ? '查看相关内容' : isDetailExpanded ? '收起说明' : '展开完整说明'
         : isDetailExpanded ? '收起说明' : '展开完整说明';
 
-  const addReminder = (label?: string, storageType = meta.guideType, successMessage?: string) => {
+  const addReminder = (label?: string, storageType: string = meta.guideType, successMessage?: string) => {
     const reminders = safeJsonParse<Array<{ id: string; title: string; type: string; createdAt: string; label?: string }>>(
       localStorage.getItem('aqua_care_reminders'),
       [],
@@ -2667,12 +2668,10 @@ function CareArticleDetail({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[16px] font-black text-ink">
-                    {meta.guideType === 'procedure' ? '操作步骤' : meta.guideType === 'careChecklist' ? '护理清单' : '完整说明'}
+                    {meta.guideType === 'careChecklist' ? '护理清单' : '完整说明'}
                   </div>
                   <div className="mt-0.5 text-[11px] font-bold text-ink/45">
-                    {meta.guideType === 'procedure'
-                      ? '按顺序操作，尽量保持水温和水质稳定。'
-                      : meta.guideType === 'careChecklist'
+                    {meta.guideType === 'careChecklist'
                         ? '按阶段照料，重点是稳定、观察和少量操作。'
                         : '先理解原理，再决定是否需要操作。'}
                   </div>

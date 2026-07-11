@@ -53,6 +53,8 @@ export default function Login() {
       return;
     }
 
+    if (!('reason' in result)) return;
+
     if (result.reason === 'invalid_credentials') {
       setPassword('');
       setErrors({ password: '邮箱或密码错误' });

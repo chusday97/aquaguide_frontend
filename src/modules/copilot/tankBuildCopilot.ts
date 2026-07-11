@@ -4,11 +4,9 @@ import type { SmartRecommendationOutput } from '../recommendation/recommendation
 const hasText = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
 
 const getTankVolumeLiters = (aquarium: Aquarium) => {
-  const volume = Number(aquarium.volume);
-  if (Number.isFinite(volume) && volume > 0) return Math.round(volume);
-  const length = Number(aquarium.length);
-  const width = Number(aquarium.width);
-  const height = Number(aquarium.height);
+  const length = Number(aquarium.dimensions?.length);
+  const width = Number(aquarium.dimensions?.width);
+  const height = Number(aquarium.dimensions?.height);
   if ([length, width, height].every(value => Number.isFinite(value) && value > 0)) {
     return Math.round((length * width * height) / 1000);
   }
@@ -20,8 +18,6 @@ export const getTankCopilotMissingInfo = (aquarium: Aquarium) => {
   if (!getTankVolumeLiters(aquarium)) missing.push('鱼缸尺寸或容量');
   if (!hasText(aquarium.waterType)) missing.push('水体类型');
   if (!Number.isFinite(Number(aquarium.targetTemperature))) missing.push('目标水温');
-  if (!Number.isFinite(Number(aquarium.ph))) missing.push('pH');
-  if (!Number.isFinite(Number(aquarium.hardness))) missing.push('硬度');
   if (!aquarium.equipment?.filter || aquarium.equipment.filter === '无') missing.push('过滤设备');
   return missing;
 };
@@ -50,13 +46,11 @@ export const buildTankCopilotContext = ({
       waterType: aquarium.waterType,
       volumeLiters: getTankVolumeLiters(aquarium),
       sizeCm: {
-        length: aquarium.length,
-        width: aquarium.width,
-        height: aquarium.height,
+        length: aquarium.dimensions?.length ?? null,
+        width: aquarium.dimensions?.width ?? null,
+        height: aquarium.dimensions?.height ?? null,
       },
       targetTemperature: aquarium.targetTemperature,
-      ph: aquarium.ph ?? null,
-      hardness: aquarium.hardness ?? null,
       equipment: aquarium.equipment,
       livestockCount: livestock.reduce((sum, item) => sum + item.quantity, 0),
       livestock,

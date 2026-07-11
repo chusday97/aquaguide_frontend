@@ -272,8 +272,7 @@ const getSpeciesFilterTags = (fish: Fish) => {
   const isPlant = lifeType === 'plant' || fish.category.includes('水草') || taxonomy.waterType.includes('水草');
   const isHardscape = lifeType === 'hardscape';
   const fishLikeText = `${fish.name} ${fish.category} ${role} ${taxonomy.variety}`;
-  const isFish = lifeType === 'freshwaterFish'
-    || lifeType === 'saltwaterFish'
+  const isFish = lifeType === 'fish'
     || /鱼|灯科|短鲷|慈鲷|斗鱼|孔雀|玛丽|月光|鼠鱼|鳉|鲤科|鲈形|鲶|鳅/.test(fishLikeText);
   const secondaryCategory = getSecondaryCategory(fish);
   const isLivestock = !isPlant && !isHardscape && !/底砂|设备|造景|硬景|沉木|石/.test(text);
@@ -308,9 +307,9 @@ const getSpeciesFilterTags = (fish: Fish) => {
     environment,
     !isExplicitMarine ? '淡水' : null,
     isExplicitMarine ? '海水' : null,
-    !isExplicitMarine && temperatureTheme.label === '冷水' ? '淡水冷水' : null,
-    !isExplicitMarine && temperatureTheme.label === '热带' ? '淡水热带' : null,
-    !isExplicitMarine && temperatureTheme.label === '广温' ? '淡水广温' : null,
+    !isExplicitMarine && temperatureTheme.type === 'cold' ? '淡水冷水' : null,
+    !isExplicitMarine && temperatureTheme.type === 'tropical' ? '淡水热带' : null,
+    !isExplicitMarine && temperatureTheme.type === 'general' ? '淡水广温' : null,
     /草缸/.test(text) || isPlant ? '草缸' : null,
     fish.size === 'Small' ? '小缸' : null,
     temperatureTheme.needsHeater ? '需加热' : '不需加热',

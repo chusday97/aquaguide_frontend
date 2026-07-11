@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
-import type { PointerEvent } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,12 @@ const hardscapeOptions = fishData
 
 type AquariumSettingsPanel = 'size' | 'parameters' | 'substrate' | 'plants' | 'lighting' | 'equipment';
 
+const dimensionFields: Array<{ key: keyof NonNullable<Aquarium['dimensions']>; label: string }> = [
+  { key: 'length', label: '长' },
+  { key: 'width', label: '宽' },
+  { key: 'height', label: '高' },
+];
+
 const normalizeCandidateName = (value: string) => value
   .replace(/[（(].*?[）)]/g, '')
   .replace(/\s+/g, '')
@@ -188,7 +194,7 @@ const findStockSpeciesByName = (name: string) => {
   ));
 };
 
-const tankBuildTemplates: TankBuildTemplate[] = [
+const tankBuildTemplates: TankBuildTemplate[] = ([
   {
     id: 'beginner-low-tech',
     name: '新手阴性草缸',
@@ -396,7 +402,7 @@ const tankBuildTemplates: TankBuildTemplate[] = [
     maintenance: ['每周换水 30%-40%', '前 4 周重点控光和勤换水', '前景草爬满后定期薄剪'],
     caution: '青龙石可能提高硬度，搭配偏软水灯鱼时要观察 GH/KH 和鱼只状态。',
   },
-].map(template => ({
+] satisfies TankBuildTemplate[]).map(template => ({
   ...template,
   plants: template.plants.map(name => findSpeciesValueByName(name, isAquaticPlantSpecies)),
   hardscape: template.hardscape.map(name => findSpeciesValueByName(name, isHardscapeSpecies)),
@@ -1505,7 +1511,7 @@ export default function AquariumManager() {
       aquarium: activeAquarium ? {
         name: activeAquarium.name,
         waterType: activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水',
-        volume: activeAquarium.volume,
+        volume: getTankVolumeLiters(activeAquarium),
         temperature: activeAquarium.targetTemperature,
         speciesCount: activeAquarium.fishes.reduce((sum, fish) => sum + Math.max(1, fish.quantity || 1), 0),
       } : null,
@@ -2643,7 +2649,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
         remainingBudget -= quantity * perAnimalLoad;
         return { name: rec.name, quantity, role: rec.role, fish };
       })
-      .filter((item): item is AdaptedBuildPlan['appliedSpecies'][number] => Boolean(item && item.quantity > 0));
+      .filter((item): item is NonNullable<typeof item> => Boolean(item && item.quantity > 0));
 
     const riskItems: string[] = [];
     if (belowMinimum) {
@@ -2914,11 +2920,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
       return (
         <ConfigSection title="尺寸" subtitle="用于估算容量和后续养护建议。">
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { key: 'length', label: '长' },
-              { key: 'width', label: '宽' },
-              { key: 'height', label: '高' },
-            ].map(item => (
+            {dimensionFields.map(item => (
               <div key={item.key} className="grid gap-1.5">
                 <Label className="text-[11px] font-bold text-ink/55">{item.label} (cm)</Label>
                 <Input
@@ -2927,7 +2929,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                   value={(settingsForm.dimensions as any)?.[item.key] || ''}
                   onChange={e => setSettingsForm({
                     ...settingsForm,
-                    dimensions: { ...(settingsForm.dimensions || {}), [item.key]: e.target.value }
+                    dimensions: {
+                      length: settingsForm.dimensions?.length || '',
+                      width: settingsForm.dimensions?.width || '',
+                      height: settingsForm.dimensions?.height || '',
+                      [item.key]: e.target.value,
+                    }
                   })}
                   className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
                 />
@@ -3239,7 +3246,17 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     typeof activeAquarium.equipment?.heater === 'boolean',
     typeof activeAquarium.equipment?.oxygen === 'boolean',
   ].filter(Boolean).length;
-  const tankConfiguredContentItems = Array.from(archiveOwnedById.values()).map(item => ({
+  type TankConfiguredContentItem = {
+    id: string;
+    fish: Fish | null;
+    name: string;
+    category: string;
+    quantity: number;
+    acquiredDate: string;
+    source: 'stocked' | 'plant' | 'hardscape' | 'substrate' | 'equipment';
+    description: string;
+  };
+  const tankConfiguredContentItems: TankConfiguredContentItem[] = Array.from(archiveOwnedById.values()).map(item => ({
     id: `${item.source}-${item.fish.id}`,
     fish: item.fish,
     name: item.fish.name,
@@ -3527,9 +3544,9 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
     status: ActionCenterStatus;
     description: string;
     actionText: string;
-    icon: JSX.Element;
+    icon: ReactNode;
     onAction: () => void;
-    tone: 'normal' | 'warning' | 'danger' | 'info' | 'muted';
+    tone?: 'normal' | 'warning' | 'danger' | 'info' | 'muted';
   }> = hasStockedAnimals
     ? []
     : [
@@ -6431,11 +6448,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
               {false && activeSettingsPanel === 'size' && (
               <ConfigSection title="尺寸" subtitle="用于估算容量和后续养护建议。">
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { key: 'length', label: '长' },
-                    { key: 'width', label: '宽' },
-                    { key: 'height', label: '高' },
-                  ].map(item => (
+                  {dimensionFields.map(item => (
                     <div key={item.key} className="grid gap-1.5">
                       <Label className="text-[11px] font-bold text-ink/55">{item.label} (cm)</Label>
                       <Input
@@ -6444,7 +6457,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                         value={(settingsForm.dimensions as any)?.[item.key] || ''}
                         onChange={e => setSettingsForm({
                           ...settingsForm,
-                          dimensions: { ...(settingsForm.dimensions || {}), [item.key]: e.target.value }
+                          dimensions: {
+                            length: settingsForm.dimensions?.length || '',
+                            width: settingsForm.dimensions?.width || '',
+                            height: settingsForm.dimensions?.height || '',
+                            [item.key]: e.target.value,
+                          }
                         })}
                         className="h-10 rounded-[12px] bg-bg text-sm font-bold md:w-[220px]"
                       />
