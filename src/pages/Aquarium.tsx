@@ -64,13 +64,15 @@ import { QuickActionGrid } from '../components/product/QuickActionGrid';
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import {
-  evaluateTankCompatibility,
   getTankCompatibilityAddPolicy,
   getTankCompatibilityStatusLabel,
-  type TankCompatibilityResult,
-  type TankCompatibilityRule,
-  type TankCompatibilityStatus,
 } from '../lib/tankCompatibilityEngine';
+import {
+  executeSpeciesAddition,
+  reviewSpeciesAdditions,
+  type SpeciesAdditionItem,
+  type SpeciesAdditionReview,
+} from '../services/aquarium/species-addition.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -658,17 +660,6 @@ type CareDiagnosisContext = {
 
 type SelectedAddFishItem = { fishId: string; quantity: number; entryDate: string };
 
-type AddFishCompatibilityReview = {
-  status: TankCompatibilityStatus;
-  items: SelectedAddFishItem[];
-  evaluations: Array<{
-    fish: Fish;
-    quantity: number;
-    result: TankCompatibilityResult;
-  }>;
-  keyRules: TankCompatibilityRule[];
-};
-
 const loadWishlistFishIds = () => {
   try {
     const appState = loadAppStateFromStorage();
@@ -750,7 +741,7 @@ export default function AquariumManager() {
     aquariumName: string;
     items: Array<{ fishId: string; name: string; quantity: number; entryDate: string; image: string }>;
   } | null>(null);
-  const [addFishCompatibilityReview, setAddFishCompatibilityReview] = useState<AddFishCompatibilityReview | null>(null);
+  const [addFishCompatibilityReview, setAddFishCompatibilityReview] = useState<SpeciesAdditionReview | null>(null);
   const [addFishDatePicker, setAddFishDatePicker] = useState<{ fishId: string; month: Date } | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -1173,72 +1164,13 @@ export default function AquariumManager() {
         entryDate: item.entryDate || format(new Date(), 'yyyy-MM-dd'),
       }));
 
-  const buildAddFishCompatibilityReview = (items: SelectedAddFishItem[]): AddFishCompatibilityReview | null => {
-    if (!activeAquarium || items.length === 0) return null;
+  const buildAddFishCompatibilityReview = (items: SelectedAddFishItem[]) => (
+    activeAquarium
+      ? reviewSpeciesAdditions({ aquarium: activeAquarium, items, speciesCatalog: fishData })
+      : null
+  );
 
-    const evaluations = items
-      .map(item => {
-        const fish = fishData.find(candidate => candidate.id === item.fishId);
-        if (!fish) return null;
-
-        const existingSpecies = activeAquarium.fishes
-          .map(record => {
-            const species = fishData.find(candidate => candidate.id === record.fishId);
-            if (!species) return null;
-            return {
-              species,
-              record: {
-                quantity: Math.max(1, record.quantity || 1),
-              },
-            };
-          })
-          .filter((entry): entry is { species: Fish; record: { quantity: number } } => entry !== null);
-
-        return {
-          fish,
-          quantity: item.quantity,
-          result: evaluateTankCompatibility({
-            tank: activeAquarium,
-            existingSpecies,
-            candidateSpecies: fish,
-            candidateQuantity: item.quantity,
-          }),
-        };
-      })
-      .filter((item): item is { fish: Fish; quantity: number; result: TankCompatibilityResult } => item !== null);
-
-    if (evaluations.length === 0) return null;
-
-    const statusRank: Record<TankCompatibilityStatus, number> = {
-      compatible: 0,
-      caution: 1,
-      insufficient_data: 2,
-      not_recommended: 3,
-    };
-    const status = evaluations.reduce<TankCompatibilityStatus>((current, evaluation) => (
-      statusRank[evaluation.result.status] > statusRank[current] ? evaluation.result.status : current
-    ), 'compatible');
-    const keyRules = evaluations
-      .flatMap(evaluation => {
-        if (evaluation.result.status === 'not_recommended') return evaluation.result.blockingRules;
-        if (evaluation.result.status === 'insufficient_data') return evaluation.result.missingData;
-        if (evaluation.result.status === 'caution') return [...evaluation.result.warningRules, ...evaluation.result.missingData];
-        return [];
-      })
-      .filter((rule, index, rules) => (
-        rules.findIndex(candidate => `${candidate.code}-${candidate.title}-${candidate.evidence}` === `${rule.code}-${rule.title}-${rule.evidence}`) === index
-      ))
-      .slice(0, 4);
-
-    return {
-      status,
-      items,
-      evaluations,
-      keyRules,
-    };
-  };
-
-  const commitAddFishItems = (normalizedItems: SelectedAddFishItem[]) => {
+  const commitAddFishItems = (normalizedItems: SpeciesAdditionItem[], confirmedCaution = false) => {
     if (!activeAquarium || normalizedItems.length === 0) return false;
 
     const successItems = normalizedItems.map(item => {
@@ -1248,37 +1180,19 @@ export default function AquariumManager() {
         name: fish?.name || '生物',
         image: fish ? getSpeciesDisplayImage(fish) : '',
         quantity: item.quantity,
-        entryDate: item.entryDate,
+        entryDate: item.entryDate || format(new Date(), 'yyyy-MM-dd'),
       };
     });
-
-    const updated = aquariums.map(a => {
-      if (a.id !== activeId) return a;
-
-      const nextFishes = [...a.fishes];
-      normalizedItems.forEach(item => {
-        const existingIndex = nextFishes.findIndex(f => f.fishId === item.fishId);
-        if (existingIndex >= 0) {
-          nextFishes[existingIndex] = {
-            ...nextFishes[existingIndex],
-            quantity: (nextFishes[existingIndex].quantity || 1) + item.quantity,
-          };
-          return;
-        }
-
-        nextFishes.push({
-          id: Math.random().toString(36).substring(2, 9),
-          fishId: item.fishId,
-          quantity: item.quantity,
-          entryDate: new Date(item.entryDate).toISOString(),
-          lastWaterChangeDate: new Date(item.entryDate).toISOString(),
-        });
-      });
-
-      return { ...a, fishes: nextFishes };
+    const execution = executeSpeciesAddition({
+      aquariums,
+      aquarium: activeAquarium,
+      items: normalizedItems,
+      speciesCatalog: fishData,
+      confirmedCaution,
     });
+    if (!execution.added) return false;
 
-    saveAquariums(updated);
+    saveAquariums(execution.aquariums);
     setAddFishCompatibilityReview(null);
     setAddFishSuccess({
       aquariumName: activeAquarium.name,
@@ -1329,7 +1243,7 @@ export default function AquariumManager() {
       setTankActionMessage('请先补充鱼缸信息，再评估是否可以加入。');
       return;
     }
-    commitAddFishItems(addFishCompatibilityReview.items);
+    commitAddFishItems(addFishCompatibilityReview.items, true);
   };
 
   const handleAddCompatibilitySpeciesToTank = async (items: { fishId: string; quantity: number }[]) => {
@@ -1350,33 +1264,22 @@ export default function AquariumManager() {
       throw new Error('没有可加入当前鱼缸的生物。');
     }
 
-    const updated = aquariums.map(a => {
-      if (a.id !== activeId) return a;
-
-      const nextFishes = [...a.fishes];
-      normalizedItems.forEach(item => {
-        const existingIndex = nextFishes.findIndex(f => f.fishId === item.fishId);
-        if (existingIndex >= 0) {
-          nextFishes[existingIndex] = {
-            ...nextFishes[existingIndex],
-            quantity: (nextFishes[existingIndex].quantity || 1) + item.quantity,
-          };
-          return;
-        }
-
-        nextFishes.push({
-          id: Math.random().toString(36).substring(2, 9),
-          fishId: item.fishId,
-          quantity: item.quantity,
-          entryDate: new Date(item.entryDate).toISOString(),
-          lastWaterChangeDate: new Date(item.entryDate).toISOString(),
-        });
-      });
-
-      return { ...a, fishes: nextFishes };
+    const execution = executeSpeciesAddition({
+      aquariums,
+      aquarium: activeAquarium,
+      items: normalizedItems,
+      speciesCatalog: fishData,
+      confirmedCaution: true,
     });
+    if (!execution.added) {
+      throw new Error(execution.reason === 'missing_information'
+        ? '请先补充鱼缸信息后再添加。'
+        : execution.reason === 'blocked'
+          ? '当前组合不建议加入鱼缸。'
+          : '请先确认混养提醒后再添加。');
+    }
 
-    saveAquariums(updated);
+    saveAquariums(execution.aquariums);
     const addedNames = normalizedItems
       .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
       .filter(Boolean)

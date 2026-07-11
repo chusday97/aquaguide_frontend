@@ -30,7 +30,16 @@ import {
   getCurrentLivestockForAquarium,
   type SpeciesFitEvaluation,
 } from '../lib/speciesFitEngine';
-import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
+import {
+  evaluateTankCompatibility,
+  getTankCompatibilityAddPolicy,
+  getTankCompatibilityStatusLabel,
+  type TankCompatibilityResult,
+} from '../lib/tankCompatibilityEngine';
+import {
+  executeSpeciesAddition,
+  reviewSpeciesAdditions,
+} from '../services/aquarium/species-addition.service';
 import {
   buildAtlasDisplayItems,
   deriveSpeciesGroups,
@@ -577,6 +586,7 @@ export default function Encyclopedia() {
   const [currentAquarium, setCurrentAquarium] = useState<Aquarium | null>(null);
   const [pendingTankFish, setPendingTankFish] = useState<Fish | null>(null);
   const [targetAquariumId, setTargetAquariumId] = useState('');
+  const [pendingTankAddConfirmed, setPendingTankAddConfirmed] = useState(false);
   const [calculatorSpeciesIds, setCalculatorSpeciesIds] = useState<string[]>([]);
   const [calculatorFeedback, setCalculatorFeedback] = useState('');
   const [calculatorPulse, setCalculatorPulse] = useState(false);
@@ -1009,33 +1019,42 @@ export default function Encyclopedia() {
     };
   };
 
-  const addFishToAquarium = (fish: Fish, aquariumId: string) => {
+  const addFishToAquarium = (fish: Fish, aquariumId: string, confirmedCaution = false) => {
     const appState = loadAppStateFromStorage();
     const aquariums = appState.aquariums.length > 0
       ? appState.aquariums
       : JSON.parse(localStorage.getItem('aquariums') || '[]') as Aquarium[];
     if (!Array.isArray(aquariums) || aquariums.length === 0) {
-      alert('请先在“我的鱼缸”页面创建一个鱼缸！');
+      setLastAddedToTankMessage('请先在“我的鱼缸”页面创建一个鱼缸。');
       return;
     }
     const aquarium = aquariums.find(item => item.id === aquariumId) || aquariums[0];
-    
-    const newFish = {
-      id: Math.random().toString(36).substring(2, 9),
-      fishId: fish.id,
-      quantity: 1,
-      entryDate: new Date().toISOString(),
-      lastWaterChangeDate: new Date().toISOString(),
-    };
-    
-    aquarium.fishes.push(newFish);
-    localStorage.setItem('aquariums', JSON.stringify(aquariums));
-    patchLocalAppState({ aquariums, currentAquariumId: aquarium.id }, { debounce: true });
+    const execution = executeSpeciesAddition({
+      aquariums,
+      aquarium,
+      items: [{ fishId: fish.id, quantity: 1 }],
+      speciesCatalog: fishData,
+      confirmedCaution,
+    });
+    if (!execution.added) {
+      if (execution.reason === 'confirmation_required') {
+        setPendingTankAddConfirmed(true);
+      } else if (execution.reason === 'missing_information') {
+        setLastAddedToTankMessage('鱼缸信息不足，请先补充尺寸、水温或设备信息。');
+      } else if (execution.reason === 'blocked') {
+        setLastAddedToTankMessage('当前条件下不建议加入该生物，请先调整鱼缸或更换物种。');
+      }
+      return;
+    }
+
+    localStorage.setItem('aquariums', JSON.stringify(execution.aquariums));
+    patchLocalAppState({ aquariums: execution.aquariums, currentAquariumId: aquarium.id }, { debounce: true });
     setOwnedFishIds(prev => new Set(prev).add(fish.id));
     setLastAddedToTankMessage(`已将 ${fish.name} 添加到 ${aquarium.name}。建议接下来观察 3-7 天。`);
     setSelectedFish(null);
     setPendingTankFish(null);
     setTargetAquariumId('');
+    setPendingTankAddConfirmed(false);
   };
 
   const addCompatibilitySpeciesToAquarium = async (items: { fishId: string; quantity: number }[]) => {
@@ -1060,37 +1079,23 @@ export default function Encyclopedia() {
       throw new Error('没有可加入当前鱼缸的新增生物。');
     }
 
-    const now = new Date().toISOString();
-    const updatedAquariums = aquariums.map(aquarium => {
-      if (aquarium.id !== activeAquarium.id) return aquarium;
-      const nextFishes = [...aquarium.fishes];
-
-      normalizedItems.forEach(item => {
-        const existingIndex = nextFishes.findIndex(record => record.fishId === item.fishId);
-        if (existingIndex >= 0) {
-          nextFishes[existingIndex] = {
-            ...nextFishes[existingIndex],
-            quantity: (nextFishes[existingIndex].quantity || 1) + item.quantity,
-          };
-          return;
-        }
-
-        nextFishes.push({
-          id: Math.random().toString(36).substring(2, 9),
-          fishId: item.fishId,
-          quantity: item.quantity,
-          entryDate: now,
-          lastWaterChangeDate: now,
-        });
-      });
-
-      return { ...aquarium, fishes: nextFishes };
+    const execution = executeSpeciesAddition({
+      aquariums,
+      aquarium: activeAquarium,
+      items: normalizedItems,
+      speciesCatalog: fishData,
+      confirmedCaution: true,
     });
+    if (!execution.added) {
+      throw new Error(execution.reason === 'missing_information'
+        ? '请先补充鱼缸信息后再添加。'
+        : '当前组合不允许加入鱼缸。');
+    }
 
-    localStorage.setItem('aquariums', JSON.stringify(updatedAquariums));
-    patchLocalAppState({ aquariums: updatedAquariums, currentAquariumId: activeAquarium.id });
+    localStorage.setItem('aquariums', JSON.stringify(execution.aquariums));
+    patchLocalAppState({ aquariums: execution.aquariums, currentAquariumId: activeAquarium.id });
 
-    const updatedActiveAquarium = updatedAquariums.find(item => item.id === activeAquarium.id) || activeAquarium;
+    const updatedActiveAquarium = execution.aquariums.find(item => item.id === activeAquarium.id) || activeAquarium;
     setCurrentAquarium(updatedActiveAquarium);
     setTargetAquariumId(activeAquarium.id);
     setOwnedFishIds(prev => {
@@ -1115,12 +1120,13 @@ export default function Encyclopedia() {
       ? appState.aquariums
       : JSON.parse(localStorage.getItem('aquariums') || '[]');
     if (!Array.isArray(aquariums) || aquariums.length === 0) {
-      alert('请先在“我的鱼缸”页面创建一个鱼缸！');
+      setDetailFeedback('请先在“我的鱼缸”页面创建一个鱼缸。');
       return;
     }
 
     setPendingTankFish(fish);
     setTargetAquariumId(aquariums[0].id);
+    setPendingTankAddConfirmed(false);
   };
 
   const openSpeciesPreview = (fish: Fish) => {
@@ -1266,7 +1272,15 @@ export default function Encyclopedia() {
   const selectedFit = selectedFish ? getSpeciesFitAssessment(selectedFish, referenceAquarium) : null;
   const selectedGroupFit = selectedGroupVariant ? fitEvaluations.get(selectedGroupVariant.id) : null;
   const selectedGroupCompatibility = selectedGroupVariant ? compatibilityEvaluations.get(selectedGroupVariant.id) : null;
-  const pendingFit = pendingTankFish ? getSpeciesFitAssessment(pendingTankFish, aquariumSnapshots.find(item => item.id === targetAquariumId) || referenceAquarium) : null;
+  const pendingAquarium = aquariumSnapshots.find(item => item.id === targetAquariumId) || referenceAquarium;
+  const pendingFit = pendingTankFish && pendingAquarium
+    ? reviewSpeciesAdditions({
+        aquarium: pendingAquarium,
+        items: [{ fishId: pendingTankFish.id, quantity: 1 }],
+        speciesCatalog: fishData,
+      })
+    : null;
+  const pendingAddPolicy = pendingFit ? getTankCompatibilityAddPolicy(pendingFit.status) : null;
   const isOverlayOpen = !!selectedFish || !!selectedGroup || !!pendingTankFish || isCategoryDrawerOpen;
   const atlasModeItems = [
     { id: 'browse' as const, label: '浏览图鉴', description: '查找生物、分类和适配结果' },
@@ -2272,7 +2286,12 @@ export default function Encyclopedia() {
         onIndexChange={setPreviewIndex}
       />
 
-      <Dialog open={!!pendingTankFish} onOpenChange={(open) => !open && setPendingTankFish(null)}>
+      <Dialog open={!!pendingTankFish} onOpenChange={(open) => {
+        if (!open) {
+          setPendingTankFish(null);
+          setPendingTankAddConfirmed(false);
+        }
+      }}>
         <DialogContent className="w-[90vw] max-w-[440px] rounded-[18px] border-border p-0 overflow-hidden">
           <DialogHeader>
             <div className="border-b border-border bg-bg/60 px-5 py-4 text-left">
@@ -2303,7 +2322,10 @@ export default function Encyclopedia() {
                 <button
                   key={aquarium.id}
                   type="button"
-                  onClick={() => setTargetAquariumId(aquarium.id)}
+                  onClick={() => {
+                    setTargetAquariumId(aquarium.id);
+                    setPendingTankAddConfirmed(false);
+                  }}
                   className={`rounded-sm border px-3 py-3 text-left transition-colors ${
                     isActive ? 'border-accent bg-accent text-white' : 'border-border bg-white text-ink hover:border-accent'
                   }`}
@@ -2318,26 +2340,48 @@ export default function Encyclopedia() {
             </div>
             {pendingFit && (
               <div className={`mt-3 rounded-[16px] border p-3 ${
-                pendingFit.status === 'risk' ? 'border-red-100 bg-red-50' : pendingFit.status === 'warning' ? 'border-amber-100 bg-amber-50' : pendingFit.status === 'unknown' ? 'border-sky-100 bg-sky-50' : 'border-emerald-100 bg-emerald-50'
+                pendingFit.status === 'not_recommended' ? 'border-red-100 bg-red-50' : pendingFit.status === 'caution' ? 'border-amber-100 bg-amber-50' : pendingFit.status === 'insufficient_data' ? 'border-sky-100 bg-sky-50' : 'border-emerald-100 bg-emerald-50'
               }`}>
-                <div className="text-[12px] font-black text-ink">添加前提醒</div>
-                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{pendingFit.conclusion}</p>
-                {pendingFit.risks.slice(0, 2).map(item => (
-                  <p key={item.label} className="mt-2 text-[11px] font-bold leading-relaxed text-ink/55">
-                    {item.label}：{item.advice}
+                <div className="flex items-center justify-between gap-2 text-[12px] font-black text-ink">
+                  <span>添加前预检</span>
+                  <span>{getTankCompatibilityStatusLabel(pendingFit.status)}</span>
+                </div>
+                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{pendingFit.evaluations[0]?.result.summary}</p>
+                {pendingFit.keyRules.slice(0, 2).map(item => (
+                  <p key={`${item.code}-${item.title}`} className="mt-2 text-[11px] font-bold leading-relaxed text-ink/55">
+                    {item.title}：{item.evidence}
                   </p>
                 ))}
+                {pendingTankAddConfirmed && pendingAddPolicy === 'confirm' && (
+                  <p className="mt-2 text-[11px] font-black text-amber-700">请再次确认：我已了解风险，仍要谨慎加入。</p>
+                )}
               </div>
             )}
           </div>
           <DialogFooter className="grid grid-cols-2 gap-3 border-t border-border bg-white px-6 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4">
-            <Button variant="outline" onClick={() => setPendingTankFish(null)} className="h-10 rounded-full text-sm font-bold">取消</Button>
+            <Button variant="outline" onClick={() => {
+              setPendingTankFish(null);
+              setPendingTankAddConfirmed(false);
+            }} className="h-10 rounded-full text-sm font-bold">取消</Button>
             <Button
-              disabled={!pendingTankFish || !targetAquariumId}
-              onClick={() => pendingTankFish && addFishToAquarium(pendingTankFish, targetAquariumId)}
+              disabled={!pendingTankFish || !targetAquariumId || pendingAddPolicy === 'block' || pendingAddPolicy === 'complete_information'}
+              onClick={() => {
+                if (!pendingTankFish) return;
+                if (pendingAddPolicy === 'confirm' && !pendingTankAddConfirmed) {
+                  setPendingTankAddConfirmed(true);
+                  return;
+                }
+                addFishToAquarium(pendingTankFish, targetAquariumId, pendingTankAddConfirmed);
+              }}
               className="h-10 rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90"
             >
-              确认添加
+              {pendingAddPolicy === 'block'
+                ? '当前不建议加入'
+                : pendingAddPolicy === 'complete_information'
+                  ? '请先补充鱼缸信息'
+                  : pendingAddPolicy === 'confirm'
+                    ? pendingTankAddConfirmed ? '确认谨慎加入' : '查看风险并继续'
+                    : '确认添加'}
             </Button>
           </DialogFooter>
         </DialogContent>

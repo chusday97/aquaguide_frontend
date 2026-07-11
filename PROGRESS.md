@@ -2,6 +2,7 @@
 收口 AquaGuide 当前未完成的体验与架构改造，优先统一混养判断规则，再逐步修复桌面布局、图鉴筛选分页、弹窗层级、收藏入口、养护百科布局和推荐兜底。
 
 ## 已完成
+- 已统一所有“加入鱼缸”写入出口：新增物种添加服务集中执行混养预检、四态写入策略、谨慎二次确认和同种数量合并；鱼缸添加、图鉴详情与混养结果回写不再各自直接修改 `aquarium.fishes`。混养专项测试扩展至 10 项并全部通过。（commit: 本次提交）
 - 已恢复当前前端类型契约基线：Copilot、推荐、鱼缸、图鉴、养护百科和登录页不再读取不存在的鱼缸/物种字段，补齐 Vite 环境类型并为旧数据展示路径增加显式类型适配；`npm run lint` 与 `npm run build` 均通过。（commit: 本次提交）
 - 已新增 `src/lib/tankCompatibilityEngine.ts`，开始建立统一混养判断入口 `evaluateTankCompatibility`。
 - `evaluateTankCompatibility` 已补充旧数据防御，避免历史混养条目缺字段时白屏。

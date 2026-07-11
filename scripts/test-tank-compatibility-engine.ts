@@ -1,6 +1,7 @@
 import type { Aquarium, Fish } from '../src/types';
 import { evaluateTankCompatibility, getTankCompatibilityAddPolicy } from '../src/lib/tankCompatibilityEngine';
 import { evaluateCompatibilityDecision } from '../src/modules/knowledge/compatibilityKnowledge';
+import { executeSpeciesAddition, reviewSpeciesAdditions } from '../src/services/aquarium/species-addition.service';
 
 const makeFish = (overrides: Partial<Fish> = {}): Fish => ({
   id: 'peaceful-small-fish',
@@ -135,6 +136,72 @@ const cases: Array<{ name: string; run: () => boolean }> = [
       return result.status === 'not_recommended'
         && result.blockingRules.some(rule => rule.code === 'bioload_over_limit')
         && result.blockingRules.every(rule => !['territorial_conflict', 'single_housing_required'].includes(rule.code));
+    },
+  },
+  {
+    name: 'addition service blocks incompatible species before write',
+    run: () => {
+      const freshwater = makeFish();
+      const saltwater = makeFish({ id: 'blocked-saltwater', category: '海水观赏鱼' });
+      const tank = makeTank();
+      const result = executeSpeciesAddition({
+        aquariums: [tank],
+        aquarium: tank,
+        items: [{ fishId: saltwater.id, quantity: 1 }],
+        speciesCatalog: [freshwater, saltwater],
+      });
+      return !result.added
+        && result.reason === 'blocked'
+        && result.aquariums[0].fishes.length === 0;
+    },
+  },
+  {
+    name: 'addition service requires caution confirmation',
+    run: () => {
+      const fish = makeFish({ waterTemperature: '24-28°C' });
+      const tank = makeTank({ equipment: { filter: '瀑布过滤', heater: false, oxygen: false, light: '普通灯' } });
+      const review = reviewSpeciesAdditions({
+        aquarium: tank,
+        items: [{ fishId: fish.id, quantity: 1 }],
+        speciesCatalog: [fish],
+      });
+      const pending = executeSpeciesAddition({
+        aquariums: [tank],
+        aquarium: tank,
+        items: [{ fishId: fish.id, quantity: 1 }],
+        speciesCatalog: [fish],
+      });
+      const confirmed = executeSpeciesAddition({
+        aquariums: [tank],
+        aquarium: tank,
+        items: [{ fishId: fish.id, quantity: 1 }],
+        speciesCatalog: [fish],
+        confirmedCaution: true,
+      });
+      return review?.policy === 'confirm'
+        && pending.reason === 'confirmation_required'
+        && confirmed.added
+        && confirmed.aquariums[0].fishes[0]?.fishId === fish.id;
+    },
+  },
+  {
+    name: 'addition service merges quantity for existing species',
+    run: () => {
+      const fish = makeFish();
+      const tank = makeTank({
+        dimensions: { length: '120', width: '50', height: '50' },
+        fishes: [{ id: 'existing', fishId: fish.id, quantity: 2, entryDate: '2026-01-01', lastWaterChangeDate: '2026-01-01' }],
+      });
+      const result = executeSpeciesAddition({
+        aquariums: [tank],
+        aquarium: tank,
+        items: [{ fishId: fish.id, quantity: 2 }],
+        speciesCatalog: [fish],
+        confirmedCaution: true,
+      });
+      return result.added
+        && result.aquariums[0].fishes.length === 1
+        && result.aquariums[0].fishes[0].quantity === 4;
     },
   },
 ];
