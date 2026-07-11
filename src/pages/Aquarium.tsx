@@ -1639,62 +1639,36 @@ export default function AquariumManager() {
     setAiRecommendations([]);
 
     try {
-      const currentFishNames = activeAquarium.fishes.map(af => {
-        const f = fishData.find(d => d.id === af.fishId);
-        return f ? `${f.name} x${af.quantity}` : '';
-      }).filter(Boolean).join(', ');
       const localRecommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
       const localRecommendations = localRecommendationItems
         .map(item => fishData.find(fish => fish.id === item.speciesId))
         .filter(Boolean) as Fish[];
-      const recommendableDatabase = localRecommendations.length > 0 ? localRecommendations : fishData.filter(fish => !isAquaticPlantSpecies(fish) && !isHardscapeSpecies(fish)).slice(0, 30);
+      setAiRecommendations(localRecommendations);
 
-      const prompt = `
-您是一个专业的水族混养顾问。请从我的本地数据库中挑选最适合当前鱼缸的 4-6 种生物进行混养推荐。
-我的鱼缸参数：${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'}, 设定温度 ${activeAquarium.targetTemperature || 25}°C。
-当前缸内已有生物：${currentFishNames || '缸里目前是空的'}。
-
-这是我的本地生物数据库信息（JSON数组）：
-${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, category: f.category, temp: f.waterTemperature, ph: f.phLevel, diff: f.difficulty, temperament: f.temperament })))}
-
-要求：
-1. 请只推荐数据库中存在的生物。
-2. 绝对不能将淡水与海水生物混养。
-3. 考虑温度、pH的重合度。
-4. 避免体型悬殊或性格凶猛冲突（如斗鱼不能养两条，大型鱼不能吃小型鱼）。
-5. 必须返回一段简短的推荐理由组合，最后返回一个只包含推荐生物ID的JSON数组格式，用[ ]包裹。不要输出 markdown 代码块的结构，只在一行输出JSON数组。
-
-示例输出：
-根据您的缸内情况，推荐增加一些中下层鱼类，比如鼠鱼来清理残饵。底层鱼非常温和，且水质要求匹配。
-["id1", "id2", "id3"]
-      `;
-
-      const text = await askAquaGuideAI({
-        messages: [{ role: 'user', content: prompt }],
-        maxTokens: 900,
-        temperature: 0.25,
+      const assist = await generateRecommendationAssist({
+        aquarium: {
+          id: activeAquarium.id,
+          waterType: activeAquarium.waterType,
+          targetTemperature: activeAquarium.targetTemperature,
+          dimensions: activeAquarium.dimensions,
+        },
+        safeCandidates: localRecommendationItems.map(item => ({
+          speciesId: item.speciesId,
+          reason: item.reason,
+          status: item.compatibilityStatus,
+          passedRules: item.passedRules,
+          warningRules: item.warningRules,
+          missingData: item.missingData,
+        })),
+        ruleFacts: {
+          source: 'AquaGuide local compatibility policy',
+          aiCannotChangeCandidates: true,
+        },
       });
-      
-      // Attempt to extract JSON array
-      const match = text.match(/\[(.*?)\]/);
-      if (match) {
-        try {
-          const ids = JSON.parse(match[0]) as string[];
-          const safeIds = new Set(localRecommendationItems.map(item => item.speciesId));
-          const recs = ids.map(id => fishData.find(f => f.id === id)).filter(Boolean).filter(fish => safeIds.has((fish as Fish).id)) as Fish[];
-          setAiRecommendations(recs.length > 0 ? recs : localRecommendations);
-          setAiReasoningSource('model');
-        } catch(e) {
-          console.error("JSON parse error from AI", e);
-          setAiRecommendations(localRecommendations);
-          setAiReasoningSource('fallback');
-        }
-        setAiReasoning(text.replace(match[0], '').trim());
-      } else {
-        setAiReasoningSource('model');
-        setAiReasoning(text);
-        setAiRecommendations(localRecommendations);
-      }
+      setAiReasoningSource(assist.source);
+      setAiReasoning(assist.source === 'model'
+        ? [...assist.explanations, ...assist.stagedPlan].slice(0, 4).join('\n')
+        : 'AI 暂不可用，系统规则仍可使用。');
     } catch(err) {
       console.error(err);
       setAiReasoningSource('fallback');
@@ -5416,7 +5390,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                 </div>
 
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-black text-ink">AI 提到的生物</h4>
+                  <h4 className="text-sm font-black text-ink">本地规则候选</h4>
                   <span className="text-[11px] font-bold text-ink/45">可一键加入种草清单</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
@@ -5513,7 +5487,7 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     最多 3 步到方案
                   </span>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div>
                   <Input
                     value={tankCopilotGoal}
                     onChange={(event) => {
@@ -5523,14 +5497,6 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                     placeholder="例如：新手小型淡水缸、低维护草缸、虾缸"
                     className="h-11 rounded-full border-border bg-white px-4 text-sm font-bold"
                   />
-                  <Button
-                    type="button"
-                    className="h-11 shrink-0 rounded-full bg-accent px-5 text-sm font-black text-white"
-                    disabled={isTankCopilotLoading}
-                    onClick={() => void handleTankCopilotGenerate()}
-                  >
-                    {isTankCopilotLoading ? '生成中...' : '生成方案'}
-                  </Button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {['新手小型淡水缸', '低维护草缸', '虾缸', '观赏鱼群游缸'].map(goal => (
@@ -5538,7 +5504,12 @@ ${JSON.stringify(recommendableDatabase.map(f => ({ id: f.id, name: f.name, categ
                       key={goal}
                       type="button"
                       className="rounded-full border border-border bg-white px-3 py-1.5 text-[11px] font-black text-ink/58 hover:border-accent/40 hover:text-accent"
-                      onClick={() => void handleTankCopilotGenerate(goal)}
+                      onClick={() => {
+                        setTankCopilotGoal(goal);
+                        setTankCopilotResult(null);
+                        setTankCopilotAnswers({});
+                        setTankCopilotError('');
+                      }}
                     >
                       {goal}
                     </button>
