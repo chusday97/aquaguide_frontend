@@ -49,6 +49,7 @@ import {
   executeSpeciesAddition,
   reviewSpeciesAdditions,
 } from '../services/aquarium/species-addition.service';
+import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 import {
   buildAtlasDisplayItems,
   deriveSpeciesGroups,
@@ -108,16 +109,7 @@ const saveDiscoveryState = (state: DiscoveryDeckState) => {
 };
 
 const loadWishlistIds = () => {
-  try {
-    const appState = loadAppStateFromStorage();
-    const legacyIds = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
-    return new Set<string>([
-      ...(Array.isArray(appState.wishlist) ? appState.wishlist : []),
-      ...(Array.isArray(legacyIds) ? legacyIds : []),
-    ]);
-  } catch {
-    return new Set<string>();
-  }
+  return new Set(getSpeciesFavoriteIds());
 };
 
 const getFishTemperatureTheme = (tempString: string) => {
@@ -506,20 +498,16 @@ export default function Encyclopedia() {
 
   const syncWishlistFishIds = (next: Set<string>) => {
     setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-    patchLocalAppState({ wishlist: Array.from(next) });
-    window.dispatchEvent(new Event('aquaguide:favorites-changed'));
+    setSpeciesFavoriteIds(next);
   };
 
   useEffect(() => {
     const refreshWishlist = () => setWishlistFishIds(loadWishlistIds());
-    window.addEventListener('aquaguide:favorites-changed', refreshWishlist);
-    window.addEventListener('storage', refreshWishlist);
     window.addEventListener('focus', refreshWishlist);
+    const unsubscribe = subscribeToFavorites(refreshWishlist);
     return () => {
-      window.removeEventListener('aquaguide:favorites-changed', refreshWishlist);
-      window.removeEventListener('storage', refreshWishlist);
       window.removeEventListener('focus', refreshWishlist);
+      unsubscribe();
     };
   }, []);
 

@@ -12,6 +12,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test:compatibility": "tsx scripts/test-tank-compatibility-engine.ts",
+    "test:favorites": "tsx scripts/test-favorites-service.ts",
     "test:taxonomy": "tsx scripts/assert_taxonomy_rules.ts",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",

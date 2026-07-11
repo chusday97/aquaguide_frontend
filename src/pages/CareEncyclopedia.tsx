@@ -13,12 +13,15 @@ import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import type { Aquarium, AquariumFish, Fish as FishType } from '../types';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
+import {
+  getCareFavorites,
+  subscribeToFavorites,
+  toggleCareFavorite,
+  type CareFavoriteMap,
+} from '../services/favorites/favorites.service';
 
 const categoryChips = ['全部', '鱼不舒服', '水变差', '新鱼入缸', '日常喂食', '换水维护', '怀孕 / 鱼苗', '死亡处理', '设备问题'];
 const bannerTopicIds = ['guide_water_deteriorate', 'guide_new_fish_acclimation', 'guide_safe_water_change'];
-const CARE_FAVORITES_STORAGE_KEY = 'aqua_care_favorites';
-
-type CareFavoriteMap = Record<string, { id: string; title: string; favoritedAt: string }>;
 type CareViewMode = 'all' | 'favorites';
 type FlyingFavorite = { id: string; startX: number; startY: number; endX: number; endY: number };
 type CareGuideView = {
@@ -86,24 +89,6 @@ type CareGuideMeta = {
 type ProcedureStep = { title: string; description: string };
 type ProcedureReminder = { title: string; reason: string };
 type ProcedureDetail = { title: string; description: string };
-
-const loadCareFavorites = (): CareFavoriteMap => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(CARE_FAVORITES_STORAGE_KEY) || '{}');
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const saveCareFavorites = (favorites: CareFavoriteMap) => {
-  try {
-    localStorage.setItem(CARE_FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
-    window.dispatchEvent(new Event('aquaguide:favorites-changed'));
-  } catch {
-    // Favorites are lightweight. Ignore storage failures so the page remains usable.
-  }
-};
 
 const safeJsonParse = <T,>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
@@ -1112,7 +1097,7 @@ export default function CareEncyclopedia() {
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [careViewMode, setCareViewMode] = useState<CareViewMode>('all');
   const [draftCareViewMode, setDraftCareViewMode] = useState<CareViewMode>('all');
-  const [favorites, setFavorites] = useState<CareFavoriteMap>(() => loadCareFavorites());
+  const [favorites, setFavorites] = useState<CareFavoriteMap>(() => getCareFavorites());
   const [shareTopic, setShareTopic] = useState<CareTopic | null>(null);
   const [isSavingShareCard, setIsSavingShareCard] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
@@ -1190,6 +1175,10 @@ export default function CareEncyclopedia() {
     setCarouselPausedUntil(Date.now() + 6000);
   };
 
+  useEffect(() => subscribeToFavorites(() => {
+    setFavorites(getCareFavorites());
+  }), []);
+
   const goToBanner = (index: number) => {
     pauseCarousel();
     setActiveBannerIndex((index + careRecommendations.length) % Math.max(1, careRecommendations.length));
@@ -1243,20 +1232,12 @@ export default function CareEncyclopedia() {
 
   const toggleFavorite = (topic: CareTopic, source?: HTMLElement) => {
     if (!favorites[topic.id]) launchFavoriteFly(source);
-    setFavorites(prev => {
-      const next = { ...prev };
-      if (next[topic.id]) {
-        delete next[topic.id];
-      } else {
-        next[topic.id] = {
-          id: topic.id,
-          title: getDisplayTitle(topic),
-          favoritedAt: new Date().toISOString(),
-        };
-      }
-      saveCareFavorites(next);
-      return next;
+    const next = toggleCareFavorite({
+      id: topic.id,
+      title: getDisplayTitle(topic),
+      favoritedAt: new Date().toISOString(),
     });
+    setFavorites(next);
   };
 
   const filteredTopics = useMemo(() => {

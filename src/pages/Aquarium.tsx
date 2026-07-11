@@ -73,6 +73,7 @@ import {
   type SpeciesAdditionItem,
   type SpeciesAdditionReview,
 } from '../services/aquarium/species-addition.service';
+import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -661,16 +662,7 @@ type CareDiagnosisContext = {
 type SelectedAddFishItem = { fishId: string; quantity: number; entryDate: string };
 
 const loadWishlistFishIds = () => {
-  try {
-    const appState = loadAppStateFromStorage();
-    const legacyIds = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
-    return new Set<string>([
-      ...(Array.isArray(appState.wishlist) ? appState.wishlist : []),
-      ...(Array.isArray(legacyIds) ? legacyIds : []),
-    ]);
-  } catch {
-    return new Set<string>();
-  }
+  return new Set(getSpeciesFavoriteIds());
 };
 
 export default function AquariumManager() {
@@ -836,20 +828,16 @@ export default function AquariumManager() {
 
   const syncWishlistFishIds = (next: Set<string>) => {
     setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
-    patchLocalAppState({ wishlist: Array.from(next) });
-    window.dispatchEvent(new Event('aquaguide:favorites-changed'));
+    setSpeciesFavoriteIds(next);
   };
 
   useEffect(() => {
     const refreshWishlist = () => setWishlistFishIds(loadWishlistFishIds());
-    window.addEventListener('aquaguide:favorites-changed', refreshWishlist);
-    window.addEventListener('storage', refreshWishlist);
     window.addEventListener('focus', refreshWishlist);
+    const unsubscribe = subscribeToFavorites(refreshWishlist);
     return () => {
-      window.removeEventListener('aquaguide:favorites-changed', refreshWishlist);
-      window.removeEventListener('storage', refreshWishlist);
       window.removeEventListener('focus', refreshWishlist);
+      unsubscribe();
     };
   }, []);
 

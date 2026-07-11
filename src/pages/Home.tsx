@@ -8,6 +8,7 @@ import { ThreeAquarium } from '../components/ThreeAquarium';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { getSpeciesDisplayImage, getSpeciesImageSurfaceClass, getSpeciesImageClass } from '../lib/speciesVisual';
+import { getSpeciesFavoriteIds, subscribeToFavorites, toggleSpeciesFavorite } from '../services/favorites/favorites.service';
 
 const getDifficultyLabel = (difficulty: string) => {
   switch (difficulty) {
@@ -23,7 +24,7 @@ export default function Home() {
   const [defaultAquarium, setDefaultAquarium] = useState<Aquarium | null>(null);
   const [ownedFishes, setOwnedFishes] = useState<Fish[]>([]);
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
-  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(new Set());
+  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => new Set(getSpeciesFavoriteIds()));
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
 
   useEffect(() => {
@@ -54,22 +55,17 @@ export default function Home() {
       } catch (e) {}
     }
 
-    // Load wishlist
-    const savedWishlist = localStorage.getItem('wishlistFishIds');
-    if (savedWishlist) {
-      setWishlistFishIds(new Set(JSON.parse(savedWishlist)));
-    }
+    const refreshWishlist = () => setWishlistFishIds(new Set(getSpeciesFavoriteIds()));
+    refreshWishlist();
+    return subscribeToFavorites(refreshWishlist);
   }, []);
 
   const toggleWishlist = (id: string) => {
-    const next = new Set(wishlistFishIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+    const isFavorite = toggleSpeciesFavorite(id);
+    setWishlistFishIds(new Set(getSpeciesFavoriteIds()));
     
     // If the currently selected fish was just un-wishlisted, close the dialog
-    if (selectedFish && selectedFish.id === id && next.has(id) === false) {
+    if (selectedFish && selectedFish.id === id && !isFavorite) {
       setSelectedFish(null);
     }
   };

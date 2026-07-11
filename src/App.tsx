@@ -16,7 +16,7 @@ import {
   Library,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
-import { loadAppStateFromStorage } from './services/storage/local-app-state';
+import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
@@ -141,31 +141,6 @@ const desktopSubMenus = {
   ],
 } as const;
 
-const readJsonCount = (key: string) => {
-  try {
-    const fallback = key === 'aqua_care_favorites' ? '{}' : '[]';
-    const value = JSON.parse(localStorage.getItem(key) || fallback);
-    if (Array.isArray(value)) return value.length;
-    if (value && typeof value === 'object') return Object.keys(value).length;
-  } catch {
-    return 0;
-  }
-  return 0;
-};
-
-const FAVORITES_CHANGED_EVENT = 'aquaguide:favorites-changed';
-
-const readSpeciesFavoriteCount = () => {
-  try {
-    const legacyValue = JSON.parse(localStorage.getItem('wishlistFishIds') || '[]');
-    const legacyIds = Array.isArray(legacyValue) ? legacyValue.filter((id): id is string => typeof id === 'string') : [];
-    const appStateIds = loadAppStateFromStorage().wishlist.filter((id): id is string => typeof id === 'string');
-    return new Set([...legacyIds, ...appStateIds]).size;
-  } catch {
-    return readJsonCount('wishlistFishIds');
-  }
-};
-
 function BottomNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -234,21 +209,14 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
 
   useEffect(() => {
     const refreshCounts = () => {
-      setFavoriteCounts({
-        species: readSpeciesFavoriteCount(),
-        care: readJsonCount('aqua_care_favorites'),
-      });
+      setFavoriteCounts(getFavoriteCounts());
     };
     refreshCounts();
-    window.addEventListener('storage', refreshCounts);
     window.addEventListener('focus', refreshCounts);
-    window.addEventListener(FAVORITES_CHANGED_EVENT, refreshCounts);
-    const timer = window.setInterval(refreshCounts, 1200);
+    const unsubscribe = subscribeToFavorites(refreshCounts);
     return () => {
-      window.removeEventListener('storage', refreshCounts);
       window.removeEventListener('focus', refreshCounts);
-      window.removeEventListener(FAVORITES_CHANGED_EVENT, refreshCounts);
-      window.clearInterval(timer);
+      unsubscribe();
     };
   }, []);
 

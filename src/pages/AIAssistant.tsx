@@ -7,6 +7,7 @@ import { Heart, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { assistantService } from '../modules/assistant/assistant.service';
 import type { AssistantAskOutput } from '../modules/assistant/assistant.schema';
 import { getSpeciesDisplayImage } from '../lib/speciesVisual';
+import { addSpeciesFavorite, getSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 
 interface Message {
   id: string;
@@ -133,13 +134,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>(loadSavedMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => {
-    try {
-      return new Set<string>(JSON.parse(localStorage.getItem('wishlistFishIds') || '[]'));
-    } catch {
-      return new Set<string>();
-    }
-  });
+  const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => new Set(getSpeciesFavoriteIds()));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,6 +147,10 @@ export default function AIAssistant() {
     localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.slice(-80)));
   }, [messages]);
 
+  useEffect(() => subscribeToFavorites(() => {
+    setWishlistFishIds(new Set(getSpeciesFavoriteIds()));
+  }), []);
+
   const handleClearChat = () => {
     if (!confirm('确定要清空 AI 助手的历史对话吗？')) return;
     setMessages([welcomeMessage]);
@@ -159,10 +158,8 @@ export default function AIAssistant() {
   };
 
   const addToWishlist = (speciesId: string) => {
-    const next = new Set(wishlistFishIds);
-    next.add(speciesId);
-    setWishlistFishIds(next);
-    localStorage.setItem('wishlistFishIds', JSON.stringify(Array.from(next)));
+    addSpeciesFavorite(speciesId);
+    setWishlistFishIds(new Set(getSpeciesFavoriteIds()));
   };
 
   const handleSend = async (textToSubmit?: string) => {
