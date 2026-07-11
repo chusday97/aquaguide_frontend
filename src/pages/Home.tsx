@@ -26,6 +26,7 @@ export default function Home() {
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => new Set(getSpeciesFavoriteIds()));
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
+  const [storageError, setStorageError] = useState('');
 
   useEffect(() => {
     // Load aquariums
@@ -44,6 +45,7 @@ export default function Home() {
         }
       } catch (e) {
         console.error('Failed to parse aquariums', e);
+        setStorageError('本地鱼缸数据读取失败，请返回“我的鱼缸”检查数据。');
       }
     }
 
@@ -52,7 +54,10 @@ export default function Home() {
     if (savedDeceased) {
       try {
         setDeceasedRecords(JSON.parse(savedDeceased));
-      } catch (e) {}
+      } catch (error) {
+        console.error('Failed to parse deceased records', error);
+        setStorageError('部分历史记录读取失败，其他功能仍可继续使用。');
+      }
     }
 
     const refreshWishlist = () => setWishlistFishIds(new Set(getSpeciesFavoriteIds()));
@@ -113,6 +118,11 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-4 max-w-md mx-auto relative pb-20 md:max-w-[760px]">
+      {storageError && (
+        <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">
+          {storageError}
+        </div>
+      )}
       
       {/* 1. Aquarium Preview */}
       <section className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
