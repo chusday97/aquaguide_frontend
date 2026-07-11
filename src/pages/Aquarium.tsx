@@ -74,6 +74,8 @@ import {
   type SpeciesAdditionReview,
 } from '../services/aquarium/species-addition.service';
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
+import { useToast } from '../components/common/ToastProvider';
+import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -666,6 +668,8 @@ const loadWishlistFishIds = () => {
 };
 
 export default function AquariumManager() {
+  const { navigateToSection } = useWorkspaceNavigation();
+  const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [pendingDeleteAquariumId, setPendingDeleteAquariumId] = useState<string | null>(null);
@@ -773,8 +777,6 @@ export default function AquariumManager() {
   const [localDataMessage, setLocalDataMessage] = useState('');
   const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-  const desktopDiscoveryRef = useRef<HTMLElement | null>(null);
-
   useEffect(() => {
     const appState = loadAppStateFromStorage();
     setWishlistFishIds(loadWishlistFishIds());
@@ -1280,10 +1282,7 @@ export default function AquariumManager() {
   const handleViewTankAfterAdd = () => {
     setIsAddFishOpen(false);
     setAddFishSuccess(null);
-    window.setTimeout(() => {
-      const target = document.querySelector('.aquarium-archive') || document.querySelector('.aquarium-tank');
-      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
+    void navigateToSection('aquarium-records', { updateHash: false });
   };
 
   const handleContinueAddFish = () => {
@@ -3477,7 +3476,7 @@ export default function AquariumManager() {
   const commonActions = [
     {
       id: 'recordWaterChange',
-      label: '记录换水',
+      label: waterChangedToday ? '撤回换水记录' : '记录本次换水',
       description: waterChangedToday ? '今日已记录' : '更新换水周期',
       icon: <Droplets className="h-4 w-4" />,
       onClick: handleTankWaterChange,
@@ -3486,11 +3485,14 @@ export default function AquariumManager() {
     },
     {
       id: 'recordFeeding',
-      label: hasStockedAnimals ? (fedToday ? '已喂食' : '喂食记录') : '喂食记录',
+      label: fedToday ? '撤回喂食记录' : '记录本次喂食',
       description: hasStockedAnimals ? (fedToday ? '今日已记录' : '少量投喂') : '添加生物后使用',
       icon: <Heart className="h-4 w-4" />,
       onClick: () => {
-        if (!hasStockedAnimals) return;
+        if (!hasStockedAnimals) {
+          showToast('鱼缸内还没有生物，添加后才能记录喂食', 'error');
+          return;
+        }
         setFedToday(prev => {
           const next = !prev;
           const today = format(new Date(), 'yyyy-MM-dd');
@@ -3533,7 +3535,7 @@ export default function AquariumManager() {
     },
     {
       id: 'viewRecords',
-      label: '查看记录',
+      label: '查看养护记录',
       description: '养护历史',
       icon: <Calendar className="h-4 w-4" />,
       onClick: () => setIsCalendarOpen(true),
@@ -3564,7 +3566,7 @@ export default function AquariumManager() {
       level: '配置提醒',
       title: '查看混养风险',
       reason: `当前鱼缸内已有 ${totalStockedQuantity} 只/条生物，建议检查体型、性情或空间冲突。`,
-      actionText: priorityTaskStatus.viewMixingRisk || '查看混养',
+      actionText: priorityTaskStatus.viewMixingRisk || '查看混养风险',
       tone: 'warning',
       onClick: () => {
         setIsConflictDialogOpen(true);
@@ -3576,7 +3578,7 @@ export default function AquariumManager() {
       level: '可选排查',
       title: '检查水体状态',
       reason: '如果水发白、发绿、有异味，再进入水质诊断。',
-      actionText: priorityTaskStatus.checkWater || '水质诊断',
+      actionText: priorityTaskStatus.checkWater || '开始水质自查',
       tone: 'info',
       onClick: () => {
         handleOpenDiagnosisWithType('水质异常');
@@ -3585,7 +3587,7 @@ export default function AquariumManager() {
   ];
   const structuredDiagnosis = diagnosisResult;
   const scrollToDesktopDiscovery = () => {
-    desktopDiscoveryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void navigateToSection('aquarium-discovery', { updateHash: false });
   };
 
   return (
@@ -3846,7 +3848,7 @@ export default function AquariumManager() {
         )}
       </section>
 
-      <div id="tank-status" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
+      <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
           advice={dailyAdviceViewModel}
           showDetails={isDailyAdviceDetailsOpen}
@@ -3859,7 +3861,7 @@ export default function AquariumManager() {
         />
       </div>
 
-      <section id="today-discovery" ref={desktopDiscoveryRef} className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
+      <section id="aquarium-discovery" className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-[13px] font-black text-ink">今日种草</div>
@@ -3956,7 +3958,7 @@ export default function AquariumManager() {
         )}
       </section>
 
-      <section id="quick-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
+      <section id="aquarium-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
@@ -3987,7 +3989,7 @@ export default function AquariumManager() {
       )}
 
       {/* Visual Tank Placeholder */}
-      <div id="tank-overview" className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
+      <div id="aquarium-tank" className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -4081,7 +4083,7 @@ export default function AquariumManager() {
       </div>
 
       {/* Tank Species Archive */}
-      <section id="tank-archive" className="aquarium-archive order-[6] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
+      <section id="aquarium-records" className="aquarium-archive order-[6] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
