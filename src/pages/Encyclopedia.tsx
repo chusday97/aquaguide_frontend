@@ -1551,11 +1551,7 @@ export default function Encyclopedia() {
                         : 'border-border/70 hover:border-accent/30'
                 }`}
               >
-                <button
-                  id={`atlas-species-${fish.id}`}
-                  type="button"
-                  onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)}
-                  aria-label={`查看${fish.name}详情`}
+                <div
                   data-species-card-image-area
                   className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border md:min-h-[170px] ${
                   isInCalculator
@@ -1589,14 +1585,12 @@ export default function Encyclopedia() {
                     className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${imageClass} ${getSpeciesImageClass(fish)}`}
                     referrerPolicy="no-referrer"
                   />
-                </button>
+                </div>
               <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                 <div className="min-h-[54px]">
-                  <button type="button" onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)} className="block w-full text-left">
-                    <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
-                      {fish.name}
-                    </h2>
-                  </button>
+                  <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
+                    {fish.name}
+                  </h2>
                   <p className="mt-0.5 line-clamp-1 text-[12px] font-bold leading-snug text-ink/54">{getSpeciesRole(fish)}</p>
                 </div>
                 <div className="flex min-h-[48px] max-h-[48px] flex-wrap content-start gap-1 overflow-hidden">
@@ -1614,11 +1608,12 @@ export default function Encyclopedia() {
                 </div>
                 <div className="mt-auto grid grid-cols-2 gap-2 pt-2 md:grid md:grid-cols-2">
                   <button
+                    id={`atlas-species-${fish.id}`}
                     type="button"
                     onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)}
                     className="h-9 w-full rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
                   >
-                    详情
+                    查看详情
                   </button>
                   <button
                     type="button"
