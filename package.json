@@ -14,6 +14,7 @@
     "test:compatibility": "tsx scripts/test-tank-compatibility-engine.ts",
     "test:favorites": "tsx scripts/test-favorites-service.ts",
     "test:taxonomy": "tsx scripts/assert_taxonomy_rules.ts",
+    "test:species-knowledge": "tsx scripts/assert_species_detail_knowledge.ts",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
     "refresh:species-assets": "python3 scripts/prepare_species_assets_and_data.py && python3 scripts/add_housing_profiles.py && python3 scripts/add_feeding_profiles_to_fish_data.py && python3 scripts/audit_species_images.py"

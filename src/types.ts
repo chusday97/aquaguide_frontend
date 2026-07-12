@@ -21,6 +21,10 @@ export interface Fish {
     specialNotes?: string;
     confidence?: string;
     sourceName?: string;
+    sourceUrl?: string;
+    sourceFields?: string[];
+    needsReview?: boolean;
+    reviewReason?: string;
   };
   tankSize: string;
   temperament: 'Peaceful' | 'Aggressive' | 'Territorial';

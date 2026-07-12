@@ -9,6 +9,9 @@ import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceCla
 import { generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
 import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
+import { evaluateCompatibilityDecision } from '../modules/knowledge/compatibilityKnowledge';
+import { buildSpeciesCarePresentation } from '../modules/knowledge/speciesCarePresentation';
+import type { PairCompatibilityResult } from '../modules/knowledge/knowledge.types';
 import type { PreviewImage } from './common/ImagePreviewModal';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
@@ -118,6 +121,20 @@ const getFitStatusClass = (status: FitStatus) => {
   if (status === 'warning') return 'border-amber-100 bg-amber-50 text-amber-700';
   if (status === 'danger') return 'border-red-100 bg-red-50 text-red-600';
   return 'border-sky-100 bg-sky-50 text-sky-700';
+};
+
+const getPairStatusPresentation = (status: PairCompatibilityResult['status']) => {
+  if (status === 'compatible') return { label: '适合', className: 'border-emerald-100 bg-emerald-50 text-emerald-700' };
+  if (status === 'caution') return { label: '谨慎', className: 'border-amber-100 bg-amber-50 text-amber-700' };
+  if (status === 'not_recommended') return { label: '不建议', className: 'border-red-100 bg-red-50 text-red-600' };
+  return { label: '信息不足', className: 'border-sky-100 bg-sky-50 text-sky-700' };
+};
+
+const getCareSourceClass = (status: ReturnType<typeof buildSpeciesCarePresentation>['sourceStatus']) => {
+  if (status === 'verified') return 'border-emerald-100 bg-emerald-50 text-emerald-700';
+  if (status === 'derived') return 'border-sky-100 bg-sky-50 text-sky-700';
+  if (status === 'generic') return 'border-amber-100 bg-amber-50 text-amber-700';
+  return 'border-orange-100 bg-orange-50 text-orange-700';
 };
 
 const getFitCurrentClass = (status: FitStatus) => {
@@ -455,6 +472,21 @@ export function SpeciesDetailDialog({
     return { matched, pending, adjust, total: metricCards.length || 1 };
   }, [metricCards]);
   const sexIdentificationGuide = useMemo(() => fish ? getSexIdentificationGuide(fish) : null, [fish]);
+  const carePresentation = useMemo(() => fish ? buildSpeciesCarePresentation(fish) : null, [fish]);
+  const compatibilityPairs = useMemo(() => {
+    if (!fish || !aquariumContext) return [];
+    const selectedQuantity = aquariumContext.fishes.find(item => item.fishId === fish.id)?.quantity || 1;
+    return getExistingLivestock(aquariumContext)
+      .filter(item => item.fish.id !== fish.id)
+      .map(item => evaluateCompatibilityDecision({
+        tank: aquariumContext,
+        items: [
+          { species: fish, quantity: selectedQuantity, origin: aquariumContext.fishes.some(record => record.fishId === fish.id) ? 'existing' : 'candidate' },
+          { species: item.fish, quantity: item.aqFish.quantity, origin: 'existing' },
+        ],
+      }).pairResults[0])
+      .filter((pair): pair is PairCompatibilityResult => Boolean(pair));
+  }, [fish, aquariumContext]);
 
   const mainActionLabel = useMemo(() => {
     if (!displayFit) return '去完善环境';
@@ -711,16 +743,51 @@ export function SpeciesDetailDialog({
                   {activeTab === 'compatibility' && (
                     <div className="mt-4 grid gap-3">
                       <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
-                        <h3 className="text-[16px] font-black text-ink">混养关系</h3>
-                        <p className="mt-2 rounded-[14px] bg-bg p-3 text-[13px] font-bold leading-relaxed text-ink/62">{displayFit.isEmptyTank ? '当前鱼缸暂无其他活体生物。添加鱼类、虾类或螺类后，系统将重新计算混养关系。' : displayFit.alreadyInTank ? '该生物已在当前鱼缸中，可继续观察现有状态。' : fish.housingReason || '建议先加入混养计算，再查看组合风险。'}</p>
-                        <Button className="mt-3 h-11 rounded-full bg-accent px-5 text-sm font-black text-white hover:bg-accent/90" onClick={() => onAddToCalculator(fish)}><Calculator className="mr-2 h-4 w-4" /> 添加生物并评估</Button>
+                        <h3 className="text-[16px] font-black text-ink">当前鱼缸混养关系</h3>
+                        {compatibilityPairs.length === 0 ? (
+                          <div className="mt-3 rounded-[14px] bg-bg p-3">
+                            <div className="text-[13px] font-black text-ink">尚未进行混养评估</div>
+                            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">当前鱼缸没有可与该物种逐对比较的其他活体。添加鱼类、虾类或螺类后，系统会重新计算。</p>
+                          </div>
+                        ) : (
+                          <div className="mt-3 grid gap-2">
+                            {compatibilityPairs.map(pair => {
+                              const otherSpecies = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
+                              const status = getPairStatusPresentation(pair.status);
+                              const evidence = pair.primaryReason?.evidence || pair.rawResult.summary;
+                              const action = pair.actions[0];
+                              return (
+                                <article key={pair.pairId} className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border ${getSpeciesImageSurfaceClass(otherSpecies)} p-1.5`}>
+                                      <img src={getSpeciesDisplayImage(otherSpecies)} alt={otherSpecies.name} loading="lazy" decoding="async" className={`h-full w-full object-contain ${getSpeciesImageClass(otherSpecies)}`} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="truncate text-[13px] font-black text-ink">与 {otherSpecies.name}</div>
+                                        <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${status.className}`}>{status.label}</span>
+                                      </div>
+                                      <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{evidence}</p>
+                                      {action && <p className="mt-1 text-[11px] font-bold leading-relaxed text-accent">建议：{action}</p>}
+                                    </div>
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <Button variant="outline" className="mt-3 h-10 rounded-full px-5 text-[12px] font-black" onClick={() => onAddToCalculator(fish)}><Calculator className="mr-2 h-4 w-4" />调整混养组合</Button>
                       </section>
-                      {displayFit.risks.length > 0 && displayFit.risks.slice(0, 3).map(item => (
-                        <div key={item.label} className="rounded-[16px] border border-amber-100 bg-amber-50/70 p-3">
-                          <div className="text-[13px] font-black text-ink">{item.label}</div>
-                          <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/62">{item.advice}</p>
-                        </div>
-                      ))}
+                      {(fish.housingMode || fish.housingReason) && (
+                        <details className="rounded-[16px] border border-border bg-white/70 p-3">
+                          <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-black text-ink">通用饲养倾向 · 类别参考<ChevronRight className="h-4 w-4 text-ink/40" /></summary>
+                          <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-medium leading-relaxed text-ink/60">
+                            <div className="font-black text-ink">{fish.housingMode || '需结合具体组合判断'}</div>
+                            {fish.housingReason && <p className="mt-1">{fish.housingReason}</p>}
+                            <p className="mt-2 text-[10px] font-bold text-amber-700">该内容是类别通用参考，不代表当前鱼缸的逐对混养结论。</p>
+                          </div>
+                        </details>
+                      )}
                     </div>
                   )}
 
@@ -742,18 +809,42 @@ export function SpeciesDetailDialog({
                           </div>
                         </details>
                       )}
-                      {[
-                        ['喂食建议', fish.feedingProfile?.recommendedFoods || fish.diet],
-                        ['换水建议', `约 ${fish.waterChangeCycle} 天，根据实际水质少量稳定换水。`],
-                        ['温度管理', `${fish.waterTemperature}，避免短时间大幅波动。`],
-                        ['躲藏与造景', fish.housingReason || '提供适当躲避物，减少应激。'],
-                        ['常见风险', fish.feedingProfile?.specialNotes || fish.description],
-                      ].map(([title, content]) => (
-                        <details key={title} className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                          <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-black text-ink">{title}<ChevronRight className="h-4 w-4 text-ink/40" /></summary>
-                          <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink/62">{content}</p>
-                        </details>
-                      ))}
+                      {carePresentation && (
+                        <>
+                          <section className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <h3 className="text-[14px] font-black text-ink">喂养资料</h3>
+                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/52">{carePresentation.sourceDetail}</p>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${getCareSourceClass(carePresentation.sourceStatus)}`}>{carePresentation.sourceLabel}</span>
+                            </div>
+                            {carePresentation.feedingItems.length > 0 ? (
+                              <div className="mt-3 grid gap-2">
+                                {carePresentation.feedingItems.map(item => (
+                                  <div key={item.label} className="rounded-[12px] bg-bg p-3">
+                                    <div className="text-[10px] font-black text-ink/42">{item.label}</div>
+                                    <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/65">{item.value}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold text-ink/55">暂无经过复核的物种专属资料。</div>
+                            )}
+                          </section>
+                          <section className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
+                            <h3 className="text-[14px] font-black text-ink">环境节奏</h3>
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              {carePresentation.environmentItems.map(item => (
+                                <div key={item.label} className="rounded-[12px] bg-bg p-3">
+                                  <div className="text-[10px] font-black text-ink/42">{item.label}</div>
+                                  <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/65">{item.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        </>
+                      )}
                     </div>
                   )}
 
