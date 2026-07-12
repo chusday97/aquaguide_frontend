@@ -76,6 +76,7 @@ import {
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import type { WorkspaceNavigationContext } from '../types/navigation';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -668,7 +669,7 @@ const loadWishlistFishIds = () => {
 };
 
 export default function AquariumManager() {
-  const { navigateToSection } = useWorkspaceNavigation();
+  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
   const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -694,6 +695,7 @@ export default function AquariumManager() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   const [selectedAqFish, setSelectedAqFish] = useState<{fish: Fish, aqFish: AquariumFish} | null>(null);
+  const speciesDetailNavigationContextRef = useRef<WorkspaceNavigationContext | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isBuildPlanOpen, setIsBuildPlanOpen] = useState(false);
@@ -758,6 +760,26 @@ export default function AquariumManager() {
   const [loadedDiscoveryImageSrc, setLoadedDiscoveryImageSrc] = useState('');
   const [selectedDiscoveryFish, setSelectedDiscoveryFish] = useState<Fish | null>(null);
   const [selectedWishlistFish, setSelectedWishlistFish] = useState<Fish | null>(null);
+
+  const openAquariumSpeciesDetail = (fish: Fish, aqFish: AquariumFish, sourceId?: string) => {
+    speciesDetailNavigationContextRef.current = captureContext(sourceId);
+    setSelectedWishlistFish(null);
+    setSelectedAqFish({ fish, aqFish });
+  };
+
+  const openWishlistSpeciesDetail = (fish: Fish, sourceId?: string) => {
+    speciesDetailNavigationContextRef.current = captureContext(sourceId);
+    setSelectedAqFish(null);
+    setSelectedWishlistFish(fish);
+  };
+
+  const closeAquariumSpeciesDetail = () => {
+    setSelectedAqFish(null);
+    setSelectedWishlistFish(null);
+    const context = speciesDetailNavigationContextRef.current;
+    speciesDetailNavigationContextRef.current = null;
+    if (context) void restoreContext(context);
+  };
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
   const [fedToday, setFedToday] = useState(false);
@@ -2318,8 +2340,11 @@ export default function AquariumManager() {
     const fish = fishData.find(item => item.id === fishId);
     if (!aqFish || !fish) return;
 
-    setSelectedWishlistFish(null);
-    setSelectedAqFish({ fish, aqFish });
+    openAquariumSpeciesDetail(
+      fish,
+      aqFish,
+      isTankPreviewOpen ? 'aquarium-tank-preview' : 'aquarium-tank',
+    );
   };
 
   const handleDiscoveryPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -3824,8 +3849,9 @@ export default function AquariumManager() {
                       <X className="h-3 w-3" />
                     </button>
                     <button
+                      id={`aquarium-wishlist-species-${fish.id}`}
                       type="button"
-                      onClick={() => setSelectedWishlistFish(fish)}
+                      onClick={() => openWishlistSpeciesDetail(fish, `aquarium-wishlist-species-${fish.id}`)}
                       className="block w-full rounded-[12px] text-center transition-colors hover:bg-rose-50/55 focus:outline-none focus:ring-2 focus:ring-rose-100"
                       aria-label={`查看${fish.name}详情`}
                     >
@@ -3989,7 +4015,7 @@ export default function AquariumManager() {
       )}
 
       {/* Visual Tank Placeholder */}
-      <div id="aquarium-tank" className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
+      <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -4181,12 +4207,17 @@ export default function AquariumManager() {
 
                 return (
                   <button
+                    id={canOpenDetail && item.fish ? `aquarium-archive-species-${item.fish.id}` : undefined}
                     key={item.id}
                     type="button"
                     disabled={!canOpenDetail && !canOpenSettings}
                     onClick={() => {
                       if (canOpenDetail && item.fish && ownedAqFish) {
-                        setSelectedAqFish({ fish: item.fish, aqFish: ownedAqFish });
+                        openAquariumSpeciesDetail(
+                          item.fish,
+                          ownedAqFish,
+                          `aquarium-archive-species-${item.fish.id}`,
+                        );
                         return;
                       }
                       if (item.source === 'equipment') {
@@ -4367,7 +4398,7 @@ export default function AquariumManager() {
             <DialogDescription>放大查看当前鱼缸 3D 画面。</DialogDescription>
           </DialogHeader>
           <div className="grid h-full w-full bg-[#DDEAE8] md:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="relative min-h-0">
+            <div id="aquarium-tank-preview" tabIndex={-1} className="relative min-h-0">
             <Suspense
               fallback={
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -6819,10 +6850,7 @@ export default function AquariumManager() {
         inWishlist={(selectedAqFish || selectedWishlistFish) ? wishlistFishIds.has(selectedAqFish?.fish.id || selectedWishlistFish?.id || '') : false}
         detailFeedback={tankActionMessage}
         onOpenChange={(open) => {
-          if (!open) {
-            setSelectedAqFish(null);
-            setSelectedWishlistFish(null);
-          }
+          if (!open) closeAquariumSpeciesDetail();
         }}
         onAddToCalculator={(fish) => {
           setSelectedAddFishItems(prev => (
@@ -6846,7 +6874,7 @@ export default function AquariumManager() {
             handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
           } else {
             handleRemoveFish(selectedAqFish.aqFish.id);
-            setSelectedAqFish(null);
+            closeAquariumSpeciesDetail();
           }
         } : undefined}
       />

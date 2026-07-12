@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
@@ -58,6 +58,7 @@ import {
   type SpeciesGroup,
 } from '../lib/speciesGrouping';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import type { WorkspaceNavigationContext } from '../types/navigation';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
@@ -432,7 +433,7 @@ function AnimatedFishBackground() {
 }
 
 export default function Encyclopedia() {
-  const { navigateToSection } = useWorkspaceNavigation();
+  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<'browse' | 'compatibility'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
@@ -440,6 +441,20 @@ export default function Encyclopedia() {
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<SpeciesGroup | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const detailNavigationContextRef = useRef<WorkspaceNavigationContext | null>(null);
+
+  const closeAtlasDetail = (restoreReturnContext = true) => {
+    setSelectedFish(null);
+    setSelectedGroup(null);
+    const context = detailNavigationContextRef.current;
+    detailNavigationContextRef.current = null;
+    if (restoreReturnContext && context) void restoreContext(context);
+  };
+
+  const openSpeciesDetail = (fish: Fish, sourceId?: string) => {
+    detailNavigationContextRef.current = captureContext(sourceId);
+    setSelectedFish(fish);
+  };
 
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());
@@ -916,7 +931,7 @@ export default function Encyclopedia() {
     patchLocalAppState({ aquariums: execution.aquariums, currentAquariumId: aquarium.id }, { debounce: true });
     setOwnedFishIds(prev => new Set(prev).add(fish.id));
     setLastAddedToTankMessage(`已将 ${fish.name} 添加到 ${aquarium.name}。建议接下来观察 3-7 天。`);
-    setSelectedFish(null);
+    closeAtlasDetail();
     setPendingTankFish(null);
     setTargetAquariumId('');
     setPendingTankAddConfirmed(false);
@@ -1119,11 +1134,12 @@ export default function Encyclopedia() {
     void navigateToSection('atlas-grid', { updateHash: false });
   };
 
-  const openSpeciesGroup = (group: SpeciesGroup, variantId?: string) => {
+  const openSpeciesGroup = (group: SpeciesGroup, variantId?: string, sourceId?: string) => {
     const keyword = (activeFilters.keyword || searchTerm).trim();
     const matchedVariant = keyword
       ? group.variants.find(variant => speciesMatchesKeyword(variant, keyword))
       : null;
+    detailNavigationContextRef.current = captureContext(sourceId);
     setSelectedVariantId(variantId || (matchedVariant || group.representativeSpecies).id);
     setSelectedGroup(group);
   };
@@ -1154,7 +1170,7 @@ export default function Encyclopedia() {
 
   const openSelectedVariantDetails = (fish: Fish) => {
     setSelectedGroup(null);
-    window.requestAnimationFrame(() => setSelectedFish(fish));
+    setSelectedFish(fish);
   };
   const atlasModeItems = [
     { id: 'browse' as const, label: '浏览图鉴', description: '查找生物、分类和适配结果' },
@@ -1409,8 +1425,9 @@ export default function Encyclopedia() {
                   }`}
                 >
                   <button
+                    id={`atlas-group-${group.groupId}`}
                     type="button"
-                    onClick={() => openSpeciesGroup(group)}
+                    onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)}
                     aria-label={`查看${group.groupName}品类`}
                     data-species-card-image-area
                     className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border md:min-h-[170px] ${
@@ -1441,7 +1458,7 @@ export default function Encyclopedia() {
                   </button>
                   <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                     <div className="min-h-[62px]">
-                      <button type="button" onClick={() => openSpeciesGroup(group)} className="block w-full text-left">
+                      <button type="button" onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)} className="block w-full text-left">
                         <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
                           {group.groupName}
                         </h2>
@@ -1455,7 +1472,7 @@ export default function Encyclopedia() {
                         <button
                           key={variant.id}
                           type="button"
-                          onClick={() => openSpeciesGroup(group, variant.id)}
+                          onClick={() => openSpeciesGroup(group, variant.id, `atlas-group-${group.groupId}`)}
                           className="group flex min-w-0 flex-col items-center gap-1"
                           aria-label={`查看${variant.name}`}
                         >
@@ -1477,7 +1494,7 @@ export default function Encyclopedia() {
                       {hiddenVariantCount > 0 && (
                         <button
                           type="button"
-                          onClick={() => openSpeciesGroup(group)}
+                          onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)}
                           className="flex min-w-0 flex-col items-center gap-1"
                           aria-label={`查看其余${hiddenVariantCount}个变种`}
                         >
@@ -1491,7 +1508,7 @@ export default function Encyclopedia() {
                     <div className="mt-auto grid grid-cols-2 gap-2 pt-2 md:grid md:grid-cols-2">
                       <button
                         type="button"
-                        onClick={() => openSpeciesGroup(group)}
+                        onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)}
                         className="h-9 w-full rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
                       >
                         查看品类
@@ -1535,8 +1552,9 @@ export default function Encyclopedia() {
                 }`}
               >
                 <button
+                  id={`atlas-species-${fish.id}`}
                   type="button"
-                  onClick={() => setSelectedFish(fish)}
+                  onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)}
                   aria-label={`查看${fish.name}详情`}
                   data-species-card-image-area
                   className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border md:min-h-[170px] ${
@@ -1574,7 +1592,7 @@ export default function Encyclopedia() {
                 </button>
               <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                 <div className="min-h-[54px]">
-                  <button type="button" onClick={() => setSelectedFish(fish)} className="block w-full text-left">
+                  <button type="button" onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)} className="block w-full text-left">
                     <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
                       {fish.name}
                     </h2>
@@ -1597,7 +1615,7 @@ export default function Encyclopedia() {
                 <div className="mt-auto grid grid-cols-2 gap-2 pt-2 md:grid md:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedFish(fish)}
+                    onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)}
                     className="h-9 w-full rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
                   >
                     详情
@@ -1740,7 +1758,7 @@ export default function Encyclopedia() {
         </div>
       </div>
 
-      <Dialog open={!!selectedGroup} onOpenChange={(open) => !open && setSelectedGroup(null)}>
+      <Dialog open={!!selectedGroup} onOpenChange={(open) => !open && closeAtlasDetail()}>
         <DialogContent className="w-[94vw] max-w-[920px] overflow-hidden rounded-[24px] border-border bg-white p-0">
           {selectedGroup && selectedGroupVariant && (
             <div className="flex max-h-[86dvh] flex-col">
@@ -1888,11 +1906,11 @@ export default function Encyclopedia() {
         inCalculator={!!selectedFish && calculatorSpeciesIds.includes(selectedFish.id)}
         inWishlist={!!selectedFish && wishlistFishIds.has(selectedFish.id)}
         detailFeedback={detailFeedback}
-        onOpenChange={(open) => !open && setSelectedFish(null)}
+        onOpenChange={(open) => !open && closeAtlasDetail()}
         onAddToTank={handleAddToTank}
         onAddToCalculator={handleAddToCalculator}
         onToggleWishlist={toggleWishlist}
-        onGoCalculator={() => { setSelectedFish(null); setViewMode('compatibility'); }}
+        onGoCalculator={() => { closeAtlasDetail(false); setViewMode('compatibility'); }}
         onRecordDeath={(fish) => {
           const appState = loadAppStateFromStorage();
           const records = appState.deceasedRecords.length > 0
