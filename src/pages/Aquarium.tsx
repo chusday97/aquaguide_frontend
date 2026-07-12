@@ -665,6 +665,7 @@ export default function AquariumManager() {
   const [smartPreference, setSmartPreference] = useState('新手友好 低维护');
   const [smartSimulation, setSmartSimulation] = useState<SimulationResult | null>(null);
   const [smartAddQuantity, setSmartAddQuantity] = useState(1);
+  const [smartCandidateScopeIds, setSmartCandidateScopeIds] = useState<string[] | null>(null);
   const [isTankCopilotOpen, setIsTankCopilotOpen] = useState(false);
   const [tankCopilotGoal, setTankCopilotGoal] = useState('');
   const [tankCopilotResult, setTankCopilotResult] = useState<TankBuildCopilotData | null>(null);
@@ -1629,8 +1630,12 @@ export default function AquariumManager() {
     }
     setIsRecommending(false);
   };
-  const openSmartRecommendation = (mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank') => {
+  const openSmartRecommendation = (
+    mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank',
+    candidateIds: string[] | null = null,
+  ) => {
     setSmartRecommendMode(mode);
+    setSmartCandidateScopeIds(candidateIds);
     setSmartSimulation(null);
     setSmartAddQuantity(1);
     setIsSmartRecommendOpen(true);
@@ -1701,7 +1706,10 @@ export default function AquariumManager() {
         return;
       }
       setIsTankCopilotOpen(false);
-      openSmartRecommendation(activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank');
+      openSmartRecommendation(
+        activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank',
+        tankCopilotAllowedCandidates.map(candidate => candidate.speciesId),
+      );
       return;
     }
 
@@ -1713,7 +1721,10 @@ export default function AquariumManager() {
         return;
       }
       setIsTankCopilotOpen(false);
-      openSmartRecommendation(activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank');
+      openSmartRecommendation(
+        activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank',
+        tankCopilotAllowedCandidates.map(candidate => candidate.speciesId),
+      );
       openSmartSimulation(tankCopilotPrimaryCandidate);
       return;
     }
@@ -1747,33 +1758,38 @@ export default function AquariumManager() {
   };
 
   const confirmSmartSimulationAdd = () => {
-    if (!activeAquarium || !smartSimulation) return;
+    if (!activeAquarium || !smartSimulation) {
+      showToast('当前没有可确认的模拟方案。', 'error');
+      return;
+    }
     const species = fishData.find(item => item.id === smartSimulation.candidate.speciesId);
-    if (!species) return;
-    const now = new Date().toISOString();
-    const updated = aquariums.map(aquarium => {
-      if (aquarium.id !== activeId) return aquarium;
-      const nextFishes = [...aquarium.fishes];
-      const existingIndex = nextFishes.findIndex(item => item.fishId === species.id);
-      if (existingIndex >= 0) {
-        nextFishes[existingIndex] = {
-          ...nextFishes[existingIndex],
-          quantity: (nextFishes[existingIndex].quantity || 1) + smartAddQuantity,
-        };
-      } else {
-        nextFishes.push({
-          id: Math.random().toString(36).substring(2, 9),
-          fishId: species.id,
-          quantity: smartAddQuantity,
-          entryDate: now,
-          lastWaterChangeDate: now,
-        });
-      }
-      return { ...aquarium, fishes: nextFishes };
+    if (!species) {
+      showToast('候选物种资料不存在，无法加入鱼缸。', 'error');
+      return;
+    }
+    const execution = executeSpeciesAddition({
+      aquariums,
+      aquarium: activeAquarium,
+      items: [{ fishId: species.id, quantity: smartAddQuantity, entryDate: format(new Date(), 'yyyy-MM-dd') }],
+      speciesCatalog: fishData,
+      confirmedCaution: true,
     });
-    saveAquariums(updated);
+
+    if (!execution.added) {
+      const message = execution.reason === 'missing_information'
+        ? '请先补充鱼缸信息，再确认模拟添加。'
+        : execution.reason === 'blocked'
+          ? '规则复核后仍不建议加入该物种。'
+          : '当前模拟无法写入鱼缸，请重新评估。';
+      showToast(message, 'error');
+      return;
+    }
+
+    saveAquariums(execution.aquariums);
     setTankActionMessage(`已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
+    showToast(`已加入 ${species.name} x${smartAddQuantity}`, 'success');
     setSmartSimulation(null);
+    setSmartCandidateScopeIds(null);
     setIsSmartRecommendOpen(false);
   };
 
@@ -2318,6 +2334,14 @@ export default function AquariumManager() {
       naturalLanguage: smartPreference,
     },
   });
+  const smartCandidateScope = smartCandidateScopeIds ? new Set(smartCandidateScopeIds) : null;
+  const visibleSmartDirect = smartCandidateScope
+    ? smartRecommendation.direct.filter(candidate => smartCandidateScope.has(candidate.speciesId))
+    : smartRecommendation.direct;
+  const visibleSmartAdjustable = smartCandidateScope
+    ? smartRecommendation.adjustable.filter(candidate => smartCandidateScope.has(candidate.speciesId))
+    : smartRecommendation.adjustable;
+  const visibleSmartBlocked = smartCandidateScope ? [] : smartRecommendation.blocked;
   const tankCopilotLocalCandidatePool = [
     ...smartRecommendation.direct,
     ...smartRecommendation.adjustable,
@@ -5527,6 +5551,7 @@ export default function AquariumManager() {
         setIsSmartRecommendOpen(open);
         if (!open) {
           setSmartSimulation(null);
+          setSmartCandidateScopeIds(null);
         }
       }}>
         <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[920px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
@@ -5608,7 +5633,7 @@ export default function AquariumManager() {
                 </div>
               )}
 
-              {smartRecommendation.mode === 'empty_tank' && smartRecommendation.emptyPlans.length > 0 && (
+              {!smartCandidateScope && smartRecommendation.mode === 'empty_tank' && smartRecommendation.emptyPlans.length > 0 && (
                 <section className="grid gap-3">
                   <div className="text-sm font-black text-ink">空缸组合方案</div>
                   <div className="grid gap-3 md:grid-cols-3">
@@ -5642,12 +5667,12 @@ export default function AquariumManager() {
                 </section>
               )}
 
-              {smartRecommendation.mode === 'existing_livestock' && (
+              {(smartCandidateScope || smartRecommendation.mode === 'existing_livestock') && (
                 <section className="grid gap-4">
                   {[
-                    { title: '可以直接加入', items: smartRecommendation.direct, tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
-                    { title: '调整后可以加入', items: smartRecommendation.adjustable, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
-                    { title: '不建议加入', items: smartRecommendation.blocked, tone: 'text-rose-700 bg-rose-50 border-rose-100' },
+                    { title: '可以直接加入', items: visibleSmartDirect, tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+                    { title: '调整后可以加入', items: visibleSmartAdjustable, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
+                    { title: '不建议加入', items: visibleSmartBlocked, tone: 'text-rose-700 bg-rose-50 border-rose-100' },
                   ].map(group => (
                     <div key={group.title} className="grid gap-2">
                       <div className="flex items-center justify-between gap-2">
@@ -5698,7 +5723,7 @@ export default function AquariumManager() {
                 </section>
               )}
 
-              {smartRecommendation.blockedSummary.length > 0 && (
+              {!smartCandidateScope && smartRecommendation.blockedSummary.length > 0 && (
                 <div className="rounded-[18px] border border-rose-100 bg-rose-50 p-4 text-xs font-bold leading-relaxed text-rose-700">
                   {smartRecommendation.blockedSummary.slice(0, 3).map(item => <div key={item}>• {item}</div>)}
                 </div>
