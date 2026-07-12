@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fishData } from '../data/fishData';
 import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
@@ -520,6 +521,7 @@ export function CompatibilityRiskCalculator({
   const [addedSpeciesIds, setAddedSpeciesIds] = useState<string[]>([]);
   const [isAddingToAquarium, setIsAddingToAquarium] = useState(false);
   const [confirmingCautionAdd, setConfirmingCautionAdd] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const selectedAquarium = useMemo(() => (
     aquariums.find(aquarium => aquarium.id === (selectedAquariumId || activeAquariumId))
     || aquariums.find(aquarium => aquarium.id === activeAquariumId)
@@ -725,9 +727,7 @@ export function CompatibilityRiskCalculator({
   };
   const handlePrimaryResultAction = () => {
     if (resultAddPolicy === 'block') {
-      updateSpeciesIds([]);
-      setSelectedQuantitiesById({});
-      setResultFeedback('已返回重新选择，可以重新搜索搭配对象。');
+      setIsClearConfirmOpen(true);
       return;
     }
     if (resultAddPolicy === 'complete_information') {
@@ -745,6 +745,14 @@ export function CompatibilityRiskCalculator({
   const handleSecondaryResultAction = () => {
     if (result.level !== 'caution') return;
     setActiveModal('conflictDetail');
+  };
+  const clearSelectedSpecies = () => {
+    updateSpeciesIds([]);
+    setSelectedQuantitiesById({});
+    setSelectedAddableSpeciesIds([]);
+    setAddedSpeciesIds([]);
+    setIsClearConfirmOpen(false);
+    setResultFeedback(`已清空 ${selectedCount} 种生物，可以重新选择组合。`);
   };
 
   return (
@@ -929,10 +937,7 @@ export function CompatibilityRiskCalculator({
                 <div className={`mt-0.5 text-[10px] font-bold ${selectedCount >= 2 ? 'text-emerald-700' : 'text-ink/42'}`}>{selectedHint}</div>
               </div>
               {selectedSpecies.length > 0 && (
-                <button type="button" onClick={() => {
-                  updateSpeciesIds([]);
-                  setSelectedQuantitiesById({});
-                }} className="text-[10px] font-bold text-ink/45 hover:text-ink">
+                <button type="button" onClick={() => setIsClearConfirmOpen(true)} className="text-[10px] font-bold text-ink/45 hover:text-ink">
                   清空
                 </button>
               )}
@@ -1242,6 +1247,32 @@ export function CompatibilityRiskCalculator({
         setResultFeedback('已返回组合编辑，可以继续移除或添加生物。');
       }}
     />
+    <Dialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
+      <DialogContent className="w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[24px] border-border bg-white p-0">
+        <DialogHeader className="border-b border-border/70 px-6 py-5 text-left">
+          <DialogTitle className="text-[18px] font-black text-ink">清空当前混养组合？</DialogTitle>
+          <DialogDescription className="mt-1 text-[12px] font-bold leading-relaxed text-ink/55">
+            将移除当前已选的 {selectedCount} 种生物和数量设置，此操作不会删除鱼缸里的真实生物。
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="grid grid-cols-2 gap-2 border-t border-border/70 bg-white px-6 pb-[calc(22px+env(safe-area-inset-bottom))] pt-4">
+          <button
+            type="button"
+            onClick={() => setIsClearConfirmOpen(false)}
+            className="h-11 rounded-full border border-border bg-white text-[13px] font-black text-ink/60 hover:border-ink/20 hover:text-ink"
+          >
+            保留组合
+          </button>
+          <button
+            type="button"
+            onClick={clearSelectedSpecies}
+            className="h-11 rounded-full bg-red-600 text-[13px] font-black text-white hover:bg-red-700"
+          >
+            确认清空
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
