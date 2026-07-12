@@ -83,29 +83,7 @@ export interface RecommendationAssistData extends AiResultMeta {
   fallback?: boolean;
 }
 
-export type TankBuildNextActionType = 'complete_tank_info' | 'view_candidates' | 'simulate_plan' | 'none';
-
-export interface TankBuildCopilotCandidate {
-  speciesId?: string;
-  name: string;
-  status?: 'compatible' | 'caution' | 'insufficient_data';
-  recommendedQuantity?: number;
-  reason: string;
-}
-
-export interface TankBuildCopilotData extends AiResultMeta {
-  reply: string;
-  missingQuestions: string[];
-  planSummary: string[];
-  recommendedActions: string[];
-  safeCandidates: TankBuildCopilotCandidate[];
-  blockedReasons: string[];
-  nextAction: {
-    type: TankBuildNextActionType;
-    label: string;
-  };
-  fallback?: boolean;
-}
+export type TankBuildCopilotData = TankCopilotResponse;
 
 const fallbackRiskExplanation: RiskExplanationData = {
   statusRestatement: 'unknown',
@@ -146,30 +124,28 @@ const fallbackRecommendationAssist: RecommendationAssistData = {
   fallback: true,
 };
 
-const fallbackTankBuildCopilot: TankBuildCopilotData = {
-  reply: 'AI 暂不可用，系统规则仍可使用。',
+const fallbackTankBuildCopilot: Omit<TankCopilotResponse, 'source' | 'generatedAt' | 'task'> = {
+  goalUnderstanding: 'AI 暂不可用，当前目标将由本地规则继续处理。',
   missingQuestions: [],
-  planSummary: ['先补齐鱼缸尺寸、水温、过滤和加热信息。'],
-  recommendedActions: ['完善鱼缸信息后，再查看本地规则筛选出的候选生物。'],
-  safeCandidates: [],
-  blockedReasons: [],
-  nextAction: {
+  planSummary: '先补齐鱼缸尺寸、水温、过滤和加热信息，再查看本地规则候选。',
+  recommendedActions: [{
     type: 'complete_tank_info',
     label: '完善鱼缸信息',
-  },
-  fallback: true,
+  }],
+  selectedCandidateIds: [],
+  blockedExplanation: [],
 };
 
 export const getAiUnavailableMessage = () => (
   'AI 后端还没有配置 API Key。请在项目根目录创建 .env.local，并写入 AI_API_KEY=你的Key，然后重启 npm run dev。'
 );
 
-const withAiMeta = <T extends { fallback?: boolean }>(
+const withAiMeta = <T extends object, K extends AiTaskName>(
   data: T,
-  task: AiTaskName,
+  task: K,
   source: AiResponseSource,
   failureReason?: AiFailureReason,
-): T & Required<Pick<AiResultMeta, 'source' | 'task' | 'generatedAt'>> & Pick<AiResultMeta, 'failureReason'> => ({
+): T & { source: AiResponseSource; task: K; generatedAt: string; failureReason?: AiFailureReason; fallback?: boolean } => ({
   ...data,
   source,
   failureReason,
@@ -296,50 +272,53 @@ const normalizeRecommendationAssist = (data: Partial<RecommendationAssistData> |
     : [],
 });
 
-const normalizeTankBuildCopilot = (data: Partial<TankBuildCopilotData> | undefined): TankBuildCopilotData => {
-  const allowedActions: TankBuildNextActionType[] = ['complete_tank_info', 'view_candidates', 'simulate_plan', 'none'];
-  const rawActionType = data?.nextAction?.type;
-  const actionType = allowedActions.includes(rawActionType as TankBuildNextActionType)
-    ? rawActionType as TankBuildNextActionType
-    : 'none';
+const normalizeCopilotQuestion = (item: unknown, index: number): CopilotQuestion | null => {
+  if (typeof item === 'string' && item.trim()) {
+    return { id: `question-${index + 1}`, prompt: item.trim(), informationKey: 'other' };
+  }
+  if (!item || typeof item !== 'object') return null;
+  const question = item as Partial<CopilotQuestion>;
+  if (typeof question.prompt !== 'string' || !question.prompt.trim()) return null;
+  const allowedKeys: CopilotQuestion['informationKey'][] = ['tank_size', 'water_type', 'temperature', 'filter', 'preference', 'other'];
+  return {
+    id: typeof question.id === 'string' && question.id.trim() ? question.id.trim() : `question-${index + 1}`,
+    prompt: question.prompt.trim(),
+    informationKey: allowedKeys.includes(question.informationKey as CopilotQuestion['informationKey'])
+      ? question.informationKey as CopilotQuestion['informationKey']
+      : 'other',
+  };
+};
+
+const normalizeTankBuildCopilot = (data: Record<string, unknown> | undefined): Omit<TankCopilotResponse, 'source' | 'generatedAt' | 'task'> => {
+  const allowedActions: TankCopilotActionType[] = ['complete_tank_info', 'view_safe_candidates', 'start_addition_simulation', 'restart_goal'];
+  const rawActions = Array.isArray(data?.recommendedActions) ? data.recommendedActions : [];
+  const recommendedActions = rawActions.map((item): TankCopilotAction | null => {
+    if (!item || typeof item !== 'object') return null;
+    const action = item as Partial<TankCopilotAction>;
+    if (!allowedActions.includes(action.type as TankCopilotActionType)) return null;
+    return {
+      type: action.type as TankCopilotActionType,
+      label: typeof action.label === 'string' && action.label.trim() ? action.label.trim() : '继续',
+    };
+  }).filter((item): item is TankCopilotAction => Boolean(item)).slice(0, 2);
 
   return {
-    reply: typeof data?.reply === 'string' && data.reply.trim() ? data.reply : fallbackTankBuildCopilot.reply,
+    goalUnderstanding: typeof data?.goalUnderstanding === 'string' && data.goalUnderstanding.trim()
+      ? data.goalUnderstanding.trim()
+      : fallbackTankBuildCopilot.goalUnderstanding,
     missingQuestions: Array.isArray(data?.missingQuestions)
-      ? data.missingQuestions.filter(item => typeof item === 'string').slice(0, 3)
+      ? data.missingQuestions.map(normalizeCopilotQuestion).filter((item): item is CopilotQuestion => Boolean(item)).slice(0, 3)
       : [],
-    planSummary: Array.isArray(data?.planSummary)
-      ? data.planSummary.filter(item => typeof item === 'string').slice(0, 5)
+    planSummary: typeof data?.planSummary === 'string' && data.planSummary.trim()
+      ? data.planSummary.trim()
       : fallbackTankBuildCopilot.planSummary,
-    recommendedActions: Array.isArray(data?.recommendedActions)
-      ? data.recommendedActions.filter(item => typeof item === 'string').slice(0, 5)
-      : fallbackTankBuildCopilot.recommendedActions,
-    safeCandidates: Array.isArray(data?.safeCandidates)
-      ? data.safeCandidates.map(item => ({
-        speciesId: typeof item?.speciesId === 'string' ? item.speciesId : undefined,
-        name: typeof item?.name === 'string' ? item.name : '候选生物',
-        status: ['compatible', 'caution', 'insufficient_data'].includes(String(item?.status))
-          ? item.status
-          : 'compatible',
-        recommendedQuantity: Number.isFinite(Number(item?.recommendedQuantity)) ? Math.max(1, Number(item.recommendedQuantity)) : undefined,
-        reason: typeof item?.reason === 'string' ? item.reason : '符合本地规则候选。',
-      })).slice(0, 6)
+    recommendedActions: recommendedActions.length > 0 ? recommendedActions : fallbackTankBuildCopilot.recommendedActions,
+    selectedCandidateIds: Array.isArray(data?.selectedCandidateIds)
+      ? data.selectedCandidateIds.filter(item => typeof item === 'string' && item.trim()).slice(0, 6) as string[]
       : [],
-    blockedReasons: Array.isArray(data?.blockedReasons)
-      ? data.blockedReasons.filter(item => typeof item === 'string').slice(0, 5)
+    blockedExplanation: Array.isArray(data?.blockedExplanation)
+      ? data.blockedExplanation.filter(item => typeof item === 'string' && item.trim()).slice(0, 5) as string[]
       : [],
-    nextAction: {
-      type: actionType,
-      label: typeof data?.nextAction?.label === 'string' && data.nextAction.label.trim()
-        ? data.nextAction.label
-        : actionType === 'complete_tank_info'
-          ? '完善鱼缸信息'
-          : actionType === 'view_candidates'
-            ? '查看候选生物'
-            : actionType === 'simulate_plan'
-              ? '加入模拟鱼缸'
-              : '我知道了',
-    },
   };
 };
 
@@ -433,7 +412,7 @@ export const generateRecommendationAssist = async (context: unknown): Promise<Re
   }
 };
 
-export const generateTankBuildCopilot = async (context: unknown): Promise<TankBuildCopilotData> => {
+export const generateTankBuildCopilot = async (context: TankCopilotContext): Promise<TankBuildCopilotData> => {
   try {
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -458,3 +437,10 @@ export const generateTankBuildCopilot = async (context: unknown): Promise<TankBu
     return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', failureReasonFromError(error));
   }
 };
+import type {
+  CopilotQuestion,
+  TankCopilotAction,
+  TankCopilotActionType,
+  TankCopilotContext,
+  TankCopilotResponse,
+} from '../modules/copilot/copilot.types';

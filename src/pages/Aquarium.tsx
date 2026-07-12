@@ -109,11 +109,6 @@ const dimensionFields: Array<{ key: keyof NonNullable<Aquarium['dimensions']>; l
   { key: 'height', label: '高' },
 ];
 
-const normalizeCandidateName = (value: string) => value
-  .replace(/[（(].*?[）)]/g, '')
-  .replace(/\s+/g, '')
-  .toLowerCase();
-
 const getSettingsPanelForMissingInfo = (missingInfo: string[]): AquariumSettingsPanel => {
   const text = missingInfo.join(' ');
   if (/尺寸|容量|水量|长|宽|高/.test(text)) return 'size';
@@ -1657,13 +1652,6 @@ export default function AquariumManager() {
     }
 
     const nextAnswers = answerOverride ?? (goalOverride ? {} : tankCopilotAnswers);
-    const answerLines = Object.entries(nextAnswers)
-      .map(([question, answer]) => [question.trim(), answer.trim()] as const)
-      .filter(([, answer]) => answer.length > 0)
-      .map(([question, answer]) => `${question}：${answer}`);
-    const copilotGoalWithAnswers = answerLines.length > 0
-      ? `${nextGoal}\n补充信息：\n${answerLines.join('\n')}`
-      : nextGoal;
 
     setTankCopilotGoal(nextGoal);
     if (goalOverride) setTankCopilotAnswers({});
@@ -1672,7 +1660,8 @@ export default function AquariumManager() {
     try {
       const context = buildTankCopilotContext({
         aquarium: activeAquarium,
-        userGoal: copilotGoalWithAnswers,
+        userGoal: nextGoal,
+        answers: nextAnswers,
         smartRecommendation,
       });
       const result = await generateTankBuildCopilot(context);
@@ -1691,15 +1680,20 @@ export default function AquariumManager() {
       return;
     }
 
-    if (tankCopilotResult.nextAction.type === 'complete_tank_info') {
+    const nextAction = tankCopilotResult.recommendedActions[0];
+
+    if (nextAction?.type === 'complete_tank_info') {
       const missingInfo = getTankCopilotMissingInfo(activeAquarium);
-      const targetPanel = getSettingsPanelForMissingInfo([...missingInfo, ...tankCopilotMissingQuestions]);
+      const targetPanel = getSettingsPanelForMissingInfo([
+        ...missingInfo,
+        ...tankCopilotMissingQuestions.map(question => question.prompt),
+      ]);
       setIsTankCopilotOpen(false);
       openAquariumSettings(targetPanel);
       return;
     }
 
-    if (tankCopilotResult.nextAction.type === 'view_candidates') {
+    if (nextAction?.type === 'view_safe_candidates') {
       if (tankCopilotAllowedCandidates.length === 0) {
         setTankCopilotResult(null);
         setTankCopilotAnswers({});
@@ -1711,7 +1705,7 @@ export default function AquariumManager() {
       return;
     }
 
-    if (tankCopilotResult.nextAction.type === 'simulate_plan') {
+    if (nextAction?.type === 'start_addition_simulation') {
       if (!tankCopilotPrimaryCandidate) {
         setTankCopilotResult(null);
         setTankCopilotAnswers({});
@@ -2290,7 +2284,7 @@ export default function AquariumManager() {
 
   const tankCopilotMissingQuestions = tankCopilotResult?.missingQuestions.slice(0, 3) ?? [];
   const tankCopilotNeedsAnswers = tankCopilotMissingQuestions.length > 0;
-  const tankCopilotHasAnswer = tankCopilotMissingQuestions.some(question => (tankCopilotAnswers[question] || '').trim().length > 0);
+  const tankCopilotHasAnswer = tankCopilotMissingQuestions.some(question => (tankCopilotAnswers[question.id] || '').trim().length > 0);
   const tankCopilotStep = !tankCopilotResult ? 1 : tankCopilotNeedsAnswers ? 2 : 3;
 
   const getDifficultyLabel = (difficulty: string) => {
@@ -2331,30 +2325,28 @@ export default function AquariumManager() {
   const tankCopilotAllowedCandidates = (() => {
     if (!tankCopilotResult || tankCopilotNeedsAnswers) return [];
     const localById = new Map(tankCopilotLocalCandidatePool.map(candidate => [candidate.speciesId, candidate]));
-    const localByName = new Map(tankCopilotLocalCandidatePool.map(candidate => [normalizeCandidateName(candidate.name), candidate]));
     const matched = new Map<string, RecommendationCandidate>();
 
-    tankCopilotResult.safeCandidates.forEach(candidate => {
-      const localCandidate = (candidate.speciesId ? localById.get(candidate.speciesId) : undefined)
-        || localByName.get(normalizeCandidateName(candidate.name));
+    tankCopilotResult.selectedCandidateIds.forEach(speciesId => {
+      const localCandidate = localById.get(speciesId);
       if (localCandidate) matched.set(localCandidate.speciesId, localCandidate);
     });
 
     return Array.from(matched.values());
   })();
   const tankCopilotHiddenCandidateCount = tankCopilotResult && !tankCopilotNeedsAnswers
-    ? Math.max(0, tankCopilotResult.safeCandidates.length - tankCopilotAllowedCandidates.length)
+    ? Math.max(0, tankCopilotResult.selectedCandidateIds.length - tankCopilotAllowedCandidates.length)
     : 0;
   const tankCopilotPrimaryCandidate = tankCopilotAllowedCandidates[0] || null;
   const tankCopilotActionView = (() => {
-    const actionType = tankCopilotResult?.nextAction.type;
+    const actionType = tankCopilotResult?.recommendedActions[0]?.type;
     if (actionType === 'complete_tank_info') {
       return {
         label: '完善鱼缸信息',
         description: '打开鱼缸设置，并定位到最可能缺失的尺寸、水质或设备区域。',
       };
     }
-    if (actionType === 'view_candidates') {
+    if (actionType === 'view_safe_candidates') {
       if (tankCopilotAllowedCandidates.length === 0) {
         return {
           label: '重新描述目标',
@@ -2366,7 +2358,7 @@ export default function AquariumManager() {
         description: `打开 ${tankCopilotAllowedCandidates.length} 个本地规则允许的候选，不写入真实鱼缸。`,
       };
     }
-    if (actionType === 'simulate_plan') {
+    if (actionType === 'start_addition_simulation') {
       if (!tankCopilotPrimaryCandidate) {
         return {
           label: '重新描述目标',
@@ -5381,7 +5373,7 @@ export default function AquariumManager() {
                     </div>
                     <p className="mt-2 text-sm font-bold leading-relaxed text-ink">
                       {tankCopilotResult.source === 'model'
-                        ? tankCopilotResult.reply
+                        ? tankCopilotResult.goalUnderstanding
                         : 'AI 暂不可用，系统规则仍可使用。'}
                     </p>
                     {tankCopilotNeedsAnswers && (
@@ -5394,17 +5386,17 @@ export default function AquariumManager() {
                         </div>
                         <div className="mt-3 grid gap-3">
                           {tankCopilotMissingQuestions.map((question, index) => (
-                            <label key={question} className="grid gap-1.5">
+                            <label key={question.id} className="grid gap-1.5">
                               <span className="text-[11px] font-black text-ink/60">
-                                {index + 1}. {question}
+                                {index + 1}. {question.prompt}
                               </span>
                               <Input
-                                value={tankCopilotAnswers[question] || ''}
+                                value={tankCopilotAnswers[question.id] || ''}
                                 onChange={(event) => {
                                   const nextValue = event.target.value;
                                   setTankCopilotAnswers(prev => ({
                                     ...prev,
-                                    [question]: nextValue,
+                                    [question.id]: nextValue,
                                   }));
                                 }}
                                 placeholder="不知道也可以写“不确定”"
@@ -5420,15 +5412,11 @@ export default function AquariumManager() {
                     )}
                   </section>
 
-                  {!tankCopilotNeedsAnswers && tankCopilotResult.planSummary.length > 0 && (
+                  {!tankCopilotNeedsAnswers && Boolean(tankCopilotResult.planSummary?.trim()) && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
                       <div className="text-sm font-black text-ink">推荐方向</div>
-                      <div className="mt-3 grid gap-2">
-                        {tankCopilotResult.planSummary.slice(0, 3).map(item => (
-                          <div key={item} className="rounded-[14px] bg-bg px-3 py-2 text-xs font-bold text-ink/65">
-                            {item}
-                          </div>
-                        ))}
+                      <div className="mt-3 rounded-[14px] bg-bg px-3 py-2 text-xs font-bold leading-relaxed text-ink/65">
+                        {tankCopilotResult.planSummary}
                       </div>
                     </section>
                   )}
@@ -5461,7 +5449,7 @@ export default function AquariumManager() {
                     </section>
                   )}
 
-                  {!tankCopilotNeedsAnswers && tankCopilotResult.safeCandidates.length > 0 && tankCopilotAllowedCandidates.length === 0 && (
+                  {!tankCopilotNeedsAnswers && tankCopilotResult.selectedCandidateIds.length > 0 && tankCopilotAllowedCandidates.length === 0 && (
                     <section className="rounded-[20px] border border-amber-100 bg-amber-50/70 p-4">
                       <div className="text-sm font-black text-amber-800">暂无可执行候选</div>
                       <p className="mt-2 text-xs font-bold leading-relaxed text-amber-700">
@@ -5486,11 +5474,11 @@ export default function AquariumManager() {
                         {tankCopilotActionView.description}
                       </div>
                     </div>
-                    {tankCopilotResult.blockedReasons.length > 0 && (
+                    {tankCopilotResult.blockedExplanation.length > 0 && (
                       <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
                         <summary className="cursor-pointer">查看不建议方向</summary>
                         <div className="mt-2 grid gap-1.5">
-                          {tankCopilotResult.blockedReasons.map(reason => (
+                          {tankCopilotResult.blockedExplanation.map(reason => (
                             <div key={reason}>• {reason}</div>
                           ))}
                         </div>

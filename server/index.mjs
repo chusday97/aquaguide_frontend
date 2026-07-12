@@ -186,7 +186,7 @@ const buildTankCopilotPrompt = (context = {}) => {
     '你的任务是理解用户想建什么缸，识别缺失信息，并把本地规则工具已经筛出的安全候选组织成可执行方案。',
     '你不能重新判断 canAdd，不能覆盖风险等级，不能把 blockedReasons 中的生物重新加入推荐。',
     '你不能编造数据库不存在的生物、鱼缸设备或用户没有提供的数据。',
-    '你只能基于 context.aquariumSummary、context.toolResults 和 context.ruleFacts 工作。',
+    '你只能基于 context.goal、context.answers、context.aquariumSummary、context.missingInformation、context.safeCandidates、context.adjustableCandidates 和 context.blockedReasons 工作。',
     '如果缺失信息较多，最多追问 3 个关键问题，不要直接生成确定推荐。',
     '输出必须是合法 JSON，不要 Markdown，不要代码块，不要额外解释。',
   ].join('\n');
@@ -194,28 +194,19 @@ const buildTankCopilotPrompt = (context = {}) => {
     '请为用户生成一个建缸规划 Copilot 回复。回复必须可执行、简短，并尊重本地规则结果。',
     '返回 JSON 必须符合这个结构：',
     JSON.stringify({
-      reply: '一句话回应用户目标',
-      missingQuestions: ['最多 3 个需要补充的问题'],
-      planSummary: ['方案重点 1', '方案重点 2'],
-      recommendedActions: ['下一步动作 1', '下一步动作 2'],
-      safeCandidates: [
-        {
-          speciesId: 'species-id',
-          name: '候选生物名',
-          status: 'compatible',
-          recommendedQuantity: 6,
-          reason: '为什么适合这个方案',
-        },
+      goalUnderstanding: '一句话说明你理解的用户目标',
+      missingQuestions: [
+        { id: 'tank-size', prompt: '鱼缸尺寸或容量是多少？', informationKey: 'tank_size' },
       ],
-      blockedReasons: ['不建议方向或生物的原因'],
-      nextAction: {
-        type: 'complete_tank_info',
-        label: '完善鱼缸信息',
-      },
+      planSummary: '一个简短、可执行的推荐方案摘要',
+      recommendedActions: [{ type: 'complete_tank_info', label: '完善鱼缸信息' }],
+      selectedCandidateIds: ['只能从本地候选池选择的 species-id'],
+      blockedExplanation: ['不建议方向或生物的原因'],
     }, null, 2),
     '',
-    'nextAction.type 只能是 complete_tank_info、view_candidates、simulate_plan、none。',
-    'safeCandidates 只能来自 context.toolResults.safeCandidates 或 adjustableCandidates。',
+    'recommendedActions 最多 2 个，type 只能是 complete_tank_info、view_safe_candidates、start_addition_simulation、restart_goal。',
+    'selectedCandidateIds 只能来自 context.safeCandidates 或 context.adjustableCandidates。',
+    'missingQuestions 最多 3 个，informationKey 只能是 tank_size、water_type、temperature、filter、preference、other。',
     '',
     'context:',
     compactContext,
@@ -310,47 +301,33 @@ const normalizeRecommendationAssistData = (data) => ({
 });
 
 const normalizeTankCopilotData = (data) => {
-  const allowedActions = new Set(['complete_tank_info', 'view_candidates', 'simulate_plan', 'none']);
-  const allowedStatus = new Set(['compatible', 'caution', 'insufficient_data']);
-  const nextActionType = allowedActions.has(data?.nextAction?.type) ? data.nextAction.type : 'none';
+  const allowedActions = new Set(['complete_tank_info', 'view_safe_candidates', 'start_addition_simulation', 'restart_goal']);
+  const allowedInformationKeys = new Set(['tank_size', 'water_type', 'temperature', 'filter', 'preference', 'other']);
 
   return {
-    reply: typeof data?.reply === 'string' && data.reply.trim()
-      ? data.reply
+    goalUnderstanding: typeof data?.goalUnderstanding === 'string' && data.goalUnderstanding.trim()
+      ? data.goalUnderstanding.trim()
       : '我会先按本地规则检查鱼缸条件，再给出可执行建缸方案。',
     missingQuestions: Array.isArray(data?.missingQuestions)
-      ? data.missingQuestions.filter(item => typeof item === 'string').slice(0, 3)
+      ? data.missingQuestions.slice(0, 3).map((item, index) => ({
+        id: typeof item?.id === 'string' && item.id.trim() ? item.id.trim() : `question-${index + 1}`,
+        prompt: typeof item?.prompt === 'string' ? item.prompt.trim() : '',
+        informationKey: allowedInformationKeys.has(item?.informationKey) ? item.informationKey : 'other',
+      })).filter(item => item.prompt)
       : [],
-    planSummary: Array.isArray(data?.planSummary)
-      ? data.planSummary.filter(item => typeof item === 'string').slice(0, 5)
-      : [],
+    planSummary: typeof data?.planSummary === 'string' ? data.planSummary.trim() : '',
     recommendedActions: Array.isArray(data?.recommendedActions)
-      ? data.recommendedActions.filter(item => typeof item === 'string').slice(0, 5)
+      ? data.recommendedActions.slice(0, 2).map(item => ({
+        type: allowedActions.has(item?.type) ? item.type : 'restart_goal',
+        label: typeof item?.label === 'string' && item.label.trim() ? item.label.trim() : '重新描述目标',
+      }))
       : [],
-    safeCandidates: Array.isArray(data?.safeCandidates)
-      ? data.safeCandidates.slice(0, 6).map(item => ({
-        speciesId: typeof item?.speciesId === 'string' ? item.speciesId : '',
-        name: typeof item?.name === 'string' ? item.name : '候选生物',
-        status: allowedStatus.has(item?.status) ? item.status : 'compatible',
-        recommendedQuantity: Number.isFinite(Number(item?.recommendedQuantity)) ? Math.max(1, Number(item.recommendedQuantity)) : undefined,
-        reason: typeof item?.reason === 'string' ? item.reason : '符合本地规则候选。',
-      })).filter(item => item.speciesId || item.name)
+    selectedCandidateIds: Array.isArray(data?.selectedCandidateIds)
+      ? data.selectedCandidateIds.filter(item => typeof item === 'string' && item.trim()).slice(0, 6)
       : [],
-    blockedReasons: Array.isArray(data?.blockedReasons)
-      ? data.blockedReasons.filter(item => typeof item === 'string').slice(0, 5)
+    blockedExplanation: Array.isArray(data?.blockedExplanation)
+      ? data.blockedExplanation.filter(item => typeof item === 'string' && item.trim()).slice(0, 5)
       : [],
-    nextAction: {
-      type: nextActionType,
-      label: typeof data?.nextAction?.label === 'string' && data.nextAction.label.trim()
-        ? data.nextAction.label
-        : nextActionType === 'complete_tank_info'
-          ? '完善鱼缸信息'
-          : nextActionType === 'view_candidates'
-            ? '查看候选生物'
-            : nextActionType === 'simulate_plan'
-              ? '加入模拟鱼缸'
-              : '我知道了',
-    },
   };
 };
 

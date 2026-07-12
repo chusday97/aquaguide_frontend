@@ -1,5 +1,6 @@
 import type { Aquarium } from '../../types';
 import type { SmartRecommendationOutput } from '../recommendation/recommendation.schema';
+import type { TankCopilotContext } from './copilot.types';
 
 const hasText = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
 
@@ -25,12 +26,14 @@ export const getTankCopilotMissingInfo = (aquarium: Aquarium) => {
 export const buildTankCopilotContext = ({
   aquarium,
   userGoal,
+  answers = {},
   smartRecommendation,
 }: {
   aquarium: Aquarium;
   userGoal: string;
+  answers?: Record<string, string>;
   smartRecommendation: SmartRecommendationOutput;
-}) => {
+}): TankCopilotContext => {
   const missingInfo = getTankCopilotMissingInfo(aquarium);
   const livestock = (aquarium.fishes || []).map(item => ({
     fishId: item.fishId,
@@ -39,7 +42,8 @@ export const buildTankCopilotContext = ({
   }));
 
   return {
-    taskGoal: userGoal,
+    goal: userGoal,
+    answers,
     aquariumSummary: {
       id: aquarium.id,
       name: aquarium.name,
@@ -55,34 +59,25 @@ export const buildTankCopilotContext = ({
       livestockCount: livestock.reduce((sum, item) => sum + item.quantity, 0),
       livestock,
     },
-    toolResults: {
-      missingInfo,
-      localSummary: smartRecommendation.localSummary,
-      safeCandidates: smartRecommendation.direct.slice(0, 6).map(item => ({
-        speciesId: item.speciesId,
-        name: item.name,
-        status: 'compatible',
-        recommendedQuantity: item.recommendedQuantity,
-        reason: item.reason,
-        risks: item.risks,
-      })),
-      adjustableCandidates: smartRecommendation.adjustable.slice(0, 6).map(item => ({
-        speciesId: item.speciesId,
-        name: item.name,
-        status: 'caution',
-        recommendedQuantity: item.recommendedQuantity,
-        reason: item.reason,
-        risks: item.risks,
-        requiredAdjustments: item.requiredAdjustments,
-      })),
-      blockedReasons: smartRecommendation.blockedSummary.slice(0, 8),
-    },
-    ruleFacts: {
-      source: 'AquaGuide local rules',
-      ruleEngine: 'evaluateTankCompatibility',
-      aiCannotOverrideRuleStatus: true,
-      blockedSpeciesMustStayExcluded: true,
-      noDirectWriteToAquarium: true,
-    },
+    missingInformation: missingInfo,
+    safeCandidates: smartRecommendation.direct.slice(0, 6).map(item => ({
+      speciesId: item.speciesId,
+      name: item.name,
+      status: 'compatible',
+      recommendedQuantity: item.recommendedQuantity,
+      reason: item.reason,
+      risks: item.risks,
+    })),
+    adjustableCandidates: smartRecommendation.adjustable.slice(0, 6).map(item => ({
+      speciesId: item.speciesId,
+      name: item.name,
+      status: 'caution',
+      recommendedQuantity: item.recommendedQuantity,
+      reason: item.reason,
+      risks: item.risks,
+      requiredAdjustments: item.requiredAdjustments,
+    })),
+    blockedReasons: smartRecommendation.blockedSummary.slice(0, 8),
+    ruleVersion: 'tank-compatibility-v1',
   };
 };
