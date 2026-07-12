@@ -12,7 +12,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "极易繁殖，对药物和含铜除藻剂极敏感，需大量水草提供避难所。",
-    "diet": "杂食性：藻类+煮熟蔬菜+虾粮。频率：每周2-3次少量补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -20,15 +20,19 @@ export const fishData: Fish[] = [
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+煮熟蔬菜+虾粮",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
       "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
-      "feedingLayer": "底层",
-      "avoidFoods": "含铜药物；长期残饵",
-      "specialNotes": "极易繁殖，对药物和含铜除藻剂极敏感，需大量水草或莫斯提供避难所",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingLayer": "底层/缸壁",
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -58,7 +62,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -88,7 +102,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+dennerli+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -118,7 +142,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vittina+turrita+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -132,23 +166,27 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "体型娇小，能进入细小缝隙除藻，外壳带刺需防范被翻过身来。",
-    "diet": "植食性：绿斑藻+褐藻。频率：以缸内藻类为主，藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "绿斑藻+褐藻",
-      "feedingFrequency": "以缸内藻类为主，藻少时每周2-3次补喂",
+      "dietType": "Omnivore",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期残饵",
-      "specialNotes": "体型娇小带刺，能进入细小缝隙除藻",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -178,7 +216,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Geosesarma+dennerle+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -208,7 +256,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "鱼粮长期代替主食；带尖刺或过大的活饵；底砂误食",
       "specialNotes": "严禁与鱼混养（会互相伤害），需维持20度以下低温，视力差靠嗅觉觅食；视力弱，适合用镊子或沉底食物定点投喂",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template",
+      "sourceUrl": "https://www.google.com/search?q=Ambystoma+mexicanum+care+sheet+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -238,7 +296,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "大型鱼粮；长期高脂活饵；水质污染残饵",
       "specialNotes": "两栖类对水质和药物敏感，喂食后注意清理残饵",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template",
+      "sourceUrl": "https://www.google.com/search?q=Cynops+orientalis+care+sheet+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -268,7 +336,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "野外昆虫；过大食物；长期只喂小鼠",
       "specialNotes": "著名“干饭王”，应单缸养殖以防同类吞食，注意水质清洁防止红腿病；角蛙不是水族鱼缸生物，建议在 App 中单独归为两栖爬宠",
       "confidence": "0.78",
-      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+amphibian_care_template",
+      "sourceUrl": "https://www.google.com/search?q=Ceratophrys+ornata+care+sheet+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -298,7 +376,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -328,7 +416,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Xiphophorus+maculatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -358,7 +456,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Puntius+titteya+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -388,7 +496,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；无自然食物来源的新缸；无藻新缸长期饥饿",
       "specialNotes": "最强草缸除藻工，只吃藻不伤虾，但对水质和氧气要求高，新缸容易饿死；草缸除藻神技。对NO3极其敏感。严禁在新缸（无藻缸）放入，会饿死；著名的褐藻清理者。对硝酸盐零容忍。严禁在无藻的新缸中放入（会饿死）；新缸需确认已有可摄食藻膜或补充专用食物；工具鱼不等于不用喂，藻少时必须补充专用食物",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+algae_grazer_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+algae_grazer_template",
+      "sourceUrl": "https://www.google.com/search?q=Otocinclus+vittatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -418,7 +536,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+aeneus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -448,7 +576,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Helostoma+temminkii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -478,7 +616,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -508,7 +656,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "需要大量躲避物（如陶罐、沉木）和稳定的软水",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Apistogramma+agassizii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -538,7 +696,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Chindongo+socolofi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -568,7 +736,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "极致软水要求。GH超过5易引发融鳍。性格高傲，严禁与抢食过快的鱼类或爱啄鳍的虎皮鱼混养",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+altum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -598,7 +776,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Phenacogrammus+interruptus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -628,7 +816,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Amatitlania+nigrofasciata+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -658,7 +856,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型同缸生物；可吞入口的小型鱼虾",
       "specialNotes": "食性猛，会吞食小型甲壳类；海水鱼。需要高盐度和高GH。性格较凶，会捕食小型虾类；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Lutjanus+kasmira+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -688,7 +896,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "极其勤快的除藻能手；海水除藻能手。对白点病抵抗力弱。对GH和钙镁离子平衡要求严苛；海水除藻能手。对水质波动敏感。GH和钙镁离子平衡是维持其鲜黄色的关键",
       "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Zebrasoma+flavescens+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -718,7 +936,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Paracanthurus+hepatus+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -748,7 +976,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pterapogon+kauderni+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -778,7 +1016,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "生命力极强，但成年后除藻效率下降且排泄量巨大，严禁放生至野外自然水域",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hypostomus+plecostomus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -792,7 +1040,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "极易繁殖，对药物和含铜除藻剂极敏感，需大量水草或莫斯提供避难所。",
-    "diet": "杂食性：藻类+煮熟蔬菜+虾粮。频率：每周2-3次少量补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -800,15 +1048,19 @@ export const fishData: Fish[] = [
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+煮熟蔬菜+虾粮",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
       "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
-      "feedingLayer": "底层",
-      "avoidFoods": "含铜药物；长期残饵",
-      "specialNotes": "极易繁殖，对药物和含铜除藻剂极敏感，需大量水草或莫斯提供避难所",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingLayer": "底层/缸壁",
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -838,7 +1090,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -868,7 +1130,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+dennerli+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -898,7 +1170,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Yellow+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -928,7 +1210,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -958,7 +1250,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vittina+turrita+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -972,23 +1274,27 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "体型娇小带刺，能进入细小缝隙除藻。因翻身后难以自行翻正，需人工辅助以免死亡。",
-    "diet": "植食性：绿斑藻+褐藻。频率：以缸内藻类为主，藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "绿斑藻+褐藻",
-      "feedingFrequency": "以缸内藻类为主，藻少时每周2-3次补喂",
+      "dietType": "Omnivore",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期残饵",
-      "specialNotes": "体型娇小带刺，能进入细小缝隙除藻",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -1018,7 +1324,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "需要高温硬水环境，会啃食部分细嫩的水草",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tylomelania+sp.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1048,7 +1364,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Geosesarma+dennerle+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1078,7 +1404,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "外壳布满黑点，除藻能力出色，不会在淡水中繁殖",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neritina+turrita+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1108,7 +1444,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Acheilognathus+macropterus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1122,23 +1468,27 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "性格极其凶猛的原生鱼，游速快。会吞食小型鱼虾，建议单养或与大型鱼混养。",
-    "diet": "肉食性：通用颗粒饲料+藻类。频率：成体每周2-4次，幼体可少量每日喂。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 160 升",
     "temperament": "Aggressive",
     "size": "Medium",
     "housingMode": "建议单养",
     "housingReason": "性情偏凶或捕食倾向明显，和温和小型鱼混养容易造成追咬、压迫或吞食。",
     "feedingProfile": {
-      "dietType": "Carnivore",
-      "feedingType": "肉食性",
-      "recommendedFoods": "通用颗粒饲料+藻类",
-      "feedingFrequency": "成体每周2-4次，幼体可少量每日喂",
-      "portionRule": "腹部微鼓即可，避免一次塞食过多",
-      "feedingLayer": "全层",
-      "avoidFoods": "来源不明活饵；长期单一高脂食物",
-      "specialNotes": "原生溪流掠食者；会疯狂捕食小型鱼虾，适合单养或原生巨型缸",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -1168,7 +1518,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "对水温敏感，需保持高氧和强流环境，主要啃食石上藻类",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pseudogastromyzon+fangi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1198,7 +1558,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Cobitis+sinensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1228,7 +1598,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "常在沙底寻找食物，不具有攻击性，适合原生缸混养",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Abbottina+rivularis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1258,7 +1638,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pseudorasbora+parva+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1288,7 +1678,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Macropodus+ocellatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -1318,7 +1718,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Macropodus+spechti+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -1348,7 +1758,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sewellia+lineolata+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1378,7 +1798,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Aphyocypris+chinensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1408,7 +1838,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食性底栖鱼，夜行性；会吞食小型鱼类，建议与大鱼混养并提供躲避；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Pseudobagrus+fulvidraco+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -1438,7 +1878,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "具有一定的领地意识，会捕食小型鱼类；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Mastacembelus+armatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -1468,7 +1918,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+asiatica+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -1498,7 +1958,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+barca+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -1528,7 +1998,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Acrossocheilus+fasciatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1558,7 +2038,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+hastatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1588,7 +2078,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除了在底部寻找食物，也会在中层悬停",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+pygmaeus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1618,7 +2118,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemichromis+bimaculatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1648,7 +2158,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cichlasoma+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1678,7 +2198,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "性格在同等体型中算相对温和，但仍有领地意识，会啃食细嫩的水草",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Heros+severus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1708,7 +2238,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "身型极窄，方便进入石缝中捕食",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Altolamprologus+calvus+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1738,7 +2278,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neolamprologus+multifasciatus+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1768,7 +2318,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "长期只喂活饵；大颗粒饲料",
       "specialNotes": "偏爱小型动物性饵料，可逐步训食人工颗粒",
       "confidence": "0.83",
-      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Macropodus+opercularis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -1798,7 +2358,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sphaerichthys+osphromenoides+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1812,23 +2382,27 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 5,
     "description": "大型工具鱼。能不停清理石头和缸壁上的褐藻。但在食物不足时可能会吸吮其他鱼的体表。",
-    "diet": "植食性：藻类+植物性薄片+煮熟蔬菜。频率：每天1次或隔天1次。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 280 升",
     "temperament": "Peaceful",
     "size": "Large",
     "housingMode": "谨慎混养",
     "housingReason": "体型较大，可能压迫或误食小型鱼虾；适合与体型接近、游层错开的温和鱼混养。",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "藻类+植物性薄片+煮熟蔬菜",
-      "feedingFrequency": "每天1次或隔天1次",
-      "portionRule": "2-3分钟内吃完，宁少勿多",
-      "feedingLayer": "全层",
-      "avoidFoods": "过量投喂",
-      "specialNotes": "饥饿时会吸吮其他鱼的体表，需注意投喂",
-      "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -1858,7 +2432,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Moenkhausia+sanctaefilomenae+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1888,7 +2472,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "对水深敏感，不建议深水养殖，需注意预防失鳔病，喂食建议沉底",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Ranchu+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1918,7 +2512,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Oranda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1948,7 +2552,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "体型圆滚。游动极其缓慢。严禁与抢食凶猛的鲤科鱼混养，GH维持在中高位",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -1978,7 +2592,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "体型圆滚。游动极其缓慢。严禁与抢食凶猛的鲤科鱼混养，GH维持在中高位",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2008,7 +2632,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "体型圆滚。游动极其缓慢。严禁与抢食凶猛的鲤科鱼混养，GH维持在中高位",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2038,7 +2672,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "体型圆滚。游动极其缓慢。严禁与抢食凶猛的鲤科鱼混养，GH维持在中高位",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2068,7 +2712,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；可吞入口的小型同缸生物",
       "specialNotes": "锦鲤改良种。对GH耐受度极高。严禁入草缸，会吞食一切嫩叶并挖掘底床",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Cyprinus+carpio+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2098,7 +2752,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cyprinus+carpio+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2128,7 +2792,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemianthus+callitrichoides+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2158,7 +2832,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Eleocharis+acicularis+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2172,7 +2856,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.0-7.0",
     "waterChangeCycle": 5,
     "description": "食虫类植物。具有极佳的翠绿色视觉效果，但定水较难，初期容易化水，需软水环境。",
-    "diet": "自养型：光照+肥料。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -2180,15 +2864,19 @@ export const fishData: Fish[] = [
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "光照+肥料",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "造景层",
-      "avoidFoods": "过量液肥",
-      "specialNotes": "食虫类水草，视觉极柔和；展示为养护需求而非喂食需求",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -2218,7 +2906,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Bucephalandra+sp.+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2248,7 +2946,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Anubias+barteri+var.+nana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2278,7 +2986,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "适合微型缸造景，生长极其缓慢，叶片厚实，不容易被鱼类啃食；展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Anubias+barteri+var.+nana+%27Petite%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2308,7 +3026,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cabomba+caroliniana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2338,7 +3066,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Rotala+rotundifolia+%27Green%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2368,7 +3106,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Rotala+rotundifolia+%27Red%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2398,7 +3146,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vesicularia+dubyana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2412,23 +3170,27 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "经典阴生水草。叶片修长，具有粗壮的根茎，不要埋入泥中，直接绑在沉木上效果最佳。",
-    "diet": "自养型：光照+肥料；沉木纤维。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 240 升",
     "temperament": "Peaceful",
     "size": "Large",
     "housingMode": "谨慎混养",
     "housingReason": "体型较大，可能压迫或误食小型鱼虾；适合与体型接近、游层错开的温和鱼混养。",
     "feedingProfile": {
-      "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "光照+肥料；沉木纤维",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "造景层",
-      "avoidFoods": "过量液肥；缺少沉木纤维",
-      "specialNotes": "需绑在沉木上；展示为养护需求而非喂食需求；经典阴生草。不耐高温，GH适中即可，是沉木上的灵魂",
-      "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+local_note_extraction"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -2458,7 +3220,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Bolbitis+heudelotii+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2488,7 +3260,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cryptocoryne+wendtii+%27Green%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2518,7 +3300,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Aponogeton+crispus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2548,7 +3340,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Lemna+minor+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2578,7 +3380,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Limnobium+laevigatum+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2608,7 +3420,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Egeria+densa+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2638,7 +3460,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Nymphaea+lotus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2668,7 +3500,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Limnophila+aquatica+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2698,7 +3540,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Microsorum+pteropus+%27Narrow%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2728,7 +3580,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Staurogyne+repens+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2758,7 +3620,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ludwigia+glandulosa+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2788,7 +3660,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Micranthemum+umbrosum+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2818,7 +3700,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Echinodorus+amazonicus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2848,7 +3740,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ludwigia+inclinata+var.+verticillata+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2878,7 +3780,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Bacopa+caroliniana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2908,7 +3820,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Myriophyllum+aquaticum+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2938,7 +3860,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Blyxa+japonica+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2968,7 +3900,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Riccia+fluitans+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -2998,7 +3940,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "适合表现老龄感，附着力强，非常适合黏贴在沉木分支上；展示为养护需求而非喂食需求",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Vesicularia+sp.+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3028,7 +3980,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Fissidens+fontanus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3042,7 +4004,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 5,
     "description": "椒草中的巨人。叶片带凹凸纹路，非常坚硬，甚至可以和部分慈鲷混养而不会被吃。",
-    "diet": "自养型：液肥+CO2。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 640 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -3050,15 +4012,19 @@ export const fishData: Fish[] = [
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "液肥+CO2",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "附着",
-      "avoidFoods": "过量液肥",
-      "specialNotes": "由于叶子坚硬，它是少有的能与大型慈鲷共存且不被啃食的水草；展示为养护需求而非喂食需求",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -3088,7 +4054,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3118,7 +4094,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3148,7 +4134,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "视力差，靠嗅觉觅食，皮肤厚实；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Polypterus+ornatipinnis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3178,7 +4174,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Erpetoichthys+calabaricus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3208,7 +4214,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "能舔食鱼缸壁上的藻类，但在饥饿时会舔食其他鱼的体表",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Semaprochilodus+taeniurus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3238,7 +4254,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+bleheri+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3268,7 +4294,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "冬季需要经历一个低温停食的过程；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+aurantimaculata+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3298,7 +4334,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；未检疫活饵",
       "specialNotes": "对水质要求较高，喜欢清澈的水环境，对活饵的接受度最高；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+lorti+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3328,7 +4374,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sawbwa+resplendens+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3358,7 +4414,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poropanchax+normani+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3388,7 +4454,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "长期只喂活饵；大颗粒饲料",
       "specialNotes": "偏爱小型动物性饵料，可逐步训食人工颗粒",
       "confidence": "0.83",
-      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Epiplatys+annulatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3418,7 +4494,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+amandae+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3448,7 +4534,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+amapaensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3478,7 +4574,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "性格稳重，但依然会吞食小型鱼类，适合作为大型缸入门；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3508,7 +4614,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Osteoglossum+bicirrhosum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3538,7 +4654,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Osteoglossum+ferreirai+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3568,7 +4694,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "典型的水面掠食者，只能在水面捕食；严禁与抢食凶猛的鱼混养；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Pantodon+buchholzi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3598,7 +4734,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Gymnotus+carapo+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3628,7 +4774,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "属于杂食性异型，不仅吃藻也会抢食沉底饲料",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Peckoltia+compta+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3658,7 +4814,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "以啃食木头为食；必须在缸内放置沉木供其磨牙和辅助消化",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Panaque+nigrolineatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3688,7 +4854,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "生命力极强，除藻效率高",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterygoplichthys+gibbiceps+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3718,7 +4894,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3748,7 +4934,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hypancistrus+inspector+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3778,7 +4974,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Chromobotia+macracanthus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3808,7 +5014,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Botia+almorhae+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3838,7 +5054,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Beaufortia+kweichowensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3868,7 +5094,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Zacco+platypus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -3882,23 +5118,27 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "原生溪流掠食者。嘴部有明显的切迹。会疯狂捕食小型鱼虾，适合单养或原生巨型缸。",
-    "diet": "肉食性：通用颗粒饲料+藻类。频率：成体每周2-4次，幼体可少量每日喂。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 160 升",
     "temperament": "Aggressive",
     "size": "Medium",
     "housingMode": "建议单养",
     "housingReason": "性情偏凶或捕食倾向明显，和温和小型鱼混养容易造成追咬、压迫或吞食。",
     "feedingProfile": {
-      "dietType": "Carnivore",
-      "feedingType": "肉食性",
-      "recommendedFoods": "通用颗粒饲料+藻类",
-      "feedingFrequency": "成体每周2-4次，幼体可少量每日喂",
-      "portionRule": "腹部微鼓即可，避免一次塞食过多",
-      "feedingLayer": "全层",
-      "avoidFoods": "来源不明活饵；长期单一高脂食物",
-      "specialNotes": "原生溪流掠食者；会疯狂捕食小型鱼虾，适合单养或原生巨型缸",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -3928,7 +5168,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "喜欢钻沙，会捕食小型底栖鱼类；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Mastacembelus+armatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -3958,7 +5208,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "长期只喂活饵；大颗粒饲料",
       "specialNotes": "偏爱小型动物性饵料，可逐步训食人工颗粒",
       "confidence": "0.83",
-      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Parambassis+ranga+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -3988,7 +5248,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Glossolepis+incisus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4018,7 +5288,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "嘴部极小，必须喂食细微颗粒或活体丰年虾",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Iriatherina+werneri+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4048,7 +5328,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pseudomugil+furcatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4078,7 +5368,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sphaerichthys+osphromenoides+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4092,23 +5392,27 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 5,
     "description": "大型工具鱼，尾鳍有横向条纹。清理缸壁效率极高。饥饿时会吸吮其他鱼的体表，需注意投喂。",
-    "diet": "植食性：藻类+植物性薄片+煮熟蔬菜。频率：每天1次或隔天1次。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 280 升",
     "temperament": "Peaceful",
     "size": "Large",
     "housingMode": "谨慎混养",
     "housingReason": "体型较大，可能压迫或误食小型鱼虾；适合与体型接近、游层错开的温和鱼混养。",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "藻类+植物性薄片+煮熟蔬菜",
-      "feedingFrequency": "每天1次或隔天1次",
-      "portionRule": "2-3分钟内吃完，宁少勿多",
-      "feedingLayer": "全层",
-      "avoidFoods": "过量投喂",
-      "specialNotes": "饥饿时会吸吮其他鱼的体表，需注意投喂",
-      "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -4138,7 +5442,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "非常有活力，但会啃食鱼缸内的水草，且性格较猛，会欺负体型小的鱼",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Leporinus+fasciatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4168,7 +5482,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "幼鱼酷似食人鱼但其实是杂食性；生长速度极其惊人，需要巨大的过滤和生存空间，食量大",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Piaractus+brachypomus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4198,7 +5522,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Serrasalmus+rhombeus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -4228,7 +5562,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+pulchripinnis+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4258,7 +5602,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "受限于体型，游动较笨拙，需注意喂食均匀，防止浮鳔",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+sphenops+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4288,7 +5642,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4318,7 +5682,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4348,7 +5722,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+Dumbo+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4378,7 +5762,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4408,7 +5802,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Amatitlania+nigrofasciata+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4438,7 +5842,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Amatitlania+nigrofasciata+var.+White+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4468,7 +5882,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Panda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4498,7 +5922,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Oranda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4512,7 +5946,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-8.0",
     "waterChangeCycle": 7,
     "description": "商家常称彩色天使鱼、彩色裙鱼或激光鱼，实际属于黑裙鱼/白裙鱼的彩色改良品系，不是神仙鱼或七彩神仙。颜色鲜艳、适应力强，适合新手中小型观赏缸。",
-    "diet": "杂食性：细颗粒饲料+丰年虾。频率：每天1-2次。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Territorial",
     "size": "Small",
@@ -4521,14 +5955,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+丰年虾",
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
       "feedingFrequency": "每天1-2次",
-      "portionRule": "2-3分钟内吃完，宁少勿多",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中层",
-      "avoidFoods": "过量投喂",
-      "specialNotes": "市面俗称“彩色天使鱼”容易与神仙鱼、七彩神仙混淆；本种按彩色裙鱼/黑裙鱼改良品系管理。",
-      "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -4558,7 +5996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+GloFish+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4588,7 +6036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "相比原种更适合中小型缸，但由于内脏挤压，不建议过量喂食",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+leerii+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4618,7 +6076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4648,7 +6116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Paracheirodon+innesi+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4678,7 +6156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4708,7 +6196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4738,7 +6236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Xiphophorus+hellerii+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4768,7 +6276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻界的网红，金黄色身体和蓝眼；建议提供大量沉木",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4798,7 +6316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Longfin+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4828,7 +6356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+sphenops+var.+Chocolate+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4858,7 +6396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "体型圆滚。游动极其缓慢。严禁与抢食凶猛的鲤科鱼混养，GH维持在中高位",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4888,7 +6436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cyprinus+carpio+var.+Kohaku+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4918,7 +6476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Black+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4948,7 +6516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Yellow+Line+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -4978,7 +6556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Fire+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5008,7 +6596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "游动性稍弱于原种，建议喂食易消化的细微颗粒",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5038,7 +6636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+latipinna+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5068,7 +6676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "喜欢啃食浮在水面的油膜",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+latipinna+var.+Silver+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5098,7 +6716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+Full+Black+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5128,7 +6756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tanichthys+albonubes+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5158,7 +6796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tanichthys+albonubes+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5188,7 +6836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "大型改良掠食鱼",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Salminus+brasiliensis+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5218,7 +6876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5248,7 +6916,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "建议喂食富含虾青素的饵料维持颜色",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5278,7 +6956,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Marble+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5308,7 +6996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5338,7 +7036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "适合在有沉木和高大水草的缸中饲养",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Panda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5368,7 +7076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5398,7 +7116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "视力一般但觅食能力尚可；不建议与抢食极其凶猛的鱼（如草金）混养",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Telescopes+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5428,7 +7156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "金属污染；强竞争同缸鱼抢食",
       "specialNotes": "象鼻鱼夜行且觅食慢，需确保食物能到达底层",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+elephantnose_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+elephantnose_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Gnathonemus+petersii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -5458,7 +7196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "主食沉木，排泄量极大，必须配备强大的物理过滤系统，且缸内必须有沉木供其啃食",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Panaque+sp.+L191+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5488,7 +7236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Xanthichthys+mento+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -5518,7 +7276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；长期缺少植物性饲料",
       "specialNotes": "在珊瑚缸中养殖需注意，有时会啄食LPS（大水螅体珊瑚）；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Centropyge+heraldi+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -5548,7 +7316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；长期缺少植物性饲料",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pomacanthus+annularis+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -5578,7 +7356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；长期缺少植物性饲料",
       "specialNotes": "对人工饲料接受度较高，但会啄食大部分珊瑚；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Chaetodon+auriga+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -5608,7 +7396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Chrysiptera+cyanea+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5638,7 +7436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "非常活泼，会主动爬到手心觅食",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Lysmata+amboinensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5668,7 +7476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Thor+amboinensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5698,7 +7516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Lysmata+boggesi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5728,7 +7556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Paguristes+cadenati+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5758,7 +7596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Entacmaea+quadricolor+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -5788,7 +7636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Stichodactyla+haddoni+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -5818,7 +7676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "海水滤食性生物；投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Protula+bispiralis+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -5848,7 +7716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Astropecten+polyacanthus+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -5878,7 +7756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sahyadria+denisonii+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -5908,7 +7796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+stewartii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -5938,7 +7836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "体型巨大且凶猛。GH不宜过高。是典型的掠食者，严禁与任何小型鱼类混养；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+diplogramma+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -5968,7 +7876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "大颗粒饲料；长期未检疫活饵",
       "specialNotes": "行动缓慢，喜欢躲避在石缝或沉木下；对人工饲料接受度低，需喂食活饵；这类小型鱼常对人工饲料接受度低，建议保留开口饵提醒",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+micro_predator_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+micro_predator_template",
+      "sourceUrl": "https://www.google.com/search?q=Badis+badis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -5998,7 +7916,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "大颗粒饲料；长期未检疫活饵",
       "specialNotes": "这类小型鱼常对人工饲料接受度低，建议保留开口饵提醒",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+micro_predator_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+micro_predator_template",
+      "sourceUrl": "https://www.google.com/search?q=Dario+dario+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -6028,7 +7956,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "属于肉食性异型，不怎么吃藻，需喂食沉底肉食饲料；肉食性异型。GH适中即可。性格较凶，会守卫领地。建议喂食沉底肉食饲料而非藻饼",
       "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Leporacanthicus+cf.+galaxias+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6058,7 +7996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Scobinancistrus+aureatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6088,7 +8036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "皮实好养，喜欢啄食水草表面的附着物",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+sphenops+var.+Green+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6118,7 +8076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6148,7 +8116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+herbertaxelrodi+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6178,7 +8156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Paracheirodon+innesi+var.+Diamond+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6208,7 +8196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+White+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6238,7 +8236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Aphyocharax+anisitsi+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6268,7 +8276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+latipinna+var.+Blood+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6298,7 +8316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "长期抢不到食；尖锐底砂",
       "specialNotes": "喜欢钻沙和藏匿在沉木缝隙，能有效清理底部的残渣；底栖夜行鱼需确认食物能落到底层",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+loach_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+loach_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pangio+kuhlii+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；存在特殊喂养关键词"
     }
   },
   {
@@ -6328,7 +8356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Thorichthys+meeki+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6358,7 +8396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+rodwayi+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6388,7 +8436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻高手黑线飞狐的金黄色改良种；除藻效率依然出色；成年后性格变孤僻，有时会抢鱼食；金黄色长鳍版。除藻能力与黑线飞狐一致。对GH耐受广，是高颜值的工具鱼；经典的除藻能手。改良后色彩更鲜亮。成年后性格变孤僻",
       "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Crossocheilus+langei+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6418,7 +8476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pelvicachromis+pulcher+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6448,7 +8516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sahyadria+denisonii+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6478,7 +8556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+aurantimaculata+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -6508,7 +8596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Geophagus+sp.+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6538,7 +8636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+erythrostigma+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6568,7 +8676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Gold+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6598,7 +8716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Platinum+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6628,7 +8756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "需要大量躲避穴（陶罐或沉木），在软水中色彩最艳丽",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Apistogramma+agassizii+var.+Fire+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6658,7 +8796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Amatitlania+nigrofasciata+var.+Jellybean+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6688,7 +8836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+asiatica+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -6718,7 +8876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+argus+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -6748,7 +8916,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6778,7 +8956,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6808,7 +8996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6838,7 +9036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6868,7 +9076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "幼年是除藻能手，成年后具有领地意识，不建议与体表粘液丰富的鱼（如七彩）混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Gyrinocheilus+aymonieri+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6898,7 +9116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻效率高且不伤水草，是高级草缸的标配功能生物",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Gold+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6928,7 +9156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+panda+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6958,7 +9196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+aeneus+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -6988,7 +9236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+leerii+var.+Albino+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7018,7 +9276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "大颗粒饲料；长期未检疫活饵",
       "specialNotes": "只吃活饵或冷冻红虫，适合微型精品生态缸；火焰变色龙改良版。体色更偏橙金。必须极软水养殖，硬水会导致其拒食；这类小型鱼常对人工饲料接受度低，建议保留开口饵提醒",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+micro_predator_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+micro_predator_template",
+      "sourceUrl": "https://www.google.com/search?q=Dario+dario+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -7048,7 +9316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Nematobrycon+palmeri+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7078,7 +9356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Xiphophorus+hellerii+var.+Albino+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7108,7 +9396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+latipinna+var.+High+Fin+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7138,7 +9436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Full+Black+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7168,7 +9476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Bloody+Mary+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7198,7 +9516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "需要较高的水体空间和充足的蛋白质食物支持生长",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Platinum+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7228,7 +9556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Marble+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7258,7 +9596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -7288,7 +9636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cichlasoma+var.+Blood+Parrot+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7318,7 +9676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+Yellow+Grass+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7348,7 +9716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+Kohaku+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7378,7 +9756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+var.+Albino+Kohaku+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7408,7 +9796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "建议喂食高质量的薄片饲料",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Blue+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7438,7 +9836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "招财鱼改良种。互动性强，食量巨大。GH中等偏高利于骨骼发育，需强力物理过滤",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Osphronemus+goramy+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7468,7 +9876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "是非常优秀的除藻和清理残饵的工具螺",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pomacea+bridgesii+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7498,7 +9916,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pomacea+bridgesii+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7528,7 +9956,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pomacea+bridgesii+var.+Purple+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7558,7 +9996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Synodontis+nigriventris+var.+White+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7588,7 +10036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sahyadria+denisonii+var.+Red+Line+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7618,7 +10076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻能力与原种一致",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Crossocheilus+langei+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7648,7 +10116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+sweglesi+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7678,7 +10156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "由于视力略差，建议喂食时确保食物能落在它们面前",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Albino+Red+Eye+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7708,7 +10196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Peckoltia+compta+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7738,7 +10236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "必须单缸饲养，建议喂食富含蛋白质的干粮或冻红虫；斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Koi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -7768,7 +10276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Halfmoon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -7798,7 +10316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Crowntail+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -7828,7 +10356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Dumbo+Halfmoon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -7858,7 +10396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Dragon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -7888,7 +10436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Maylandia+estherae+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7918,7 +10476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sciaenochromis+fryeri+var.+White+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7948,7 +10516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "这种鱼有“装死”捕食的习性，需要巨大的活动空间和硬水环境",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Nimbochromis+livingstonii+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -7978,7 +10556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Altolamprologus+calvus+var.+Gold+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8008,7 +10596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+leerii+var.+Red+Head+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8038,7 +10636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+Blue+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8068,7 +10676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+Gold+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8098,7 +10716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "食土鲷的白化品种",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Geophagus+surinamensis+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8128,7 +10756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemichromis+bimaculatus+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8158,7 +10796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Black+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8188,7 +10836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Apistogramma+cacatuoides+var.+Super+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8218,7 +10876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Neon+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8248,7 +10916,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Rili+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8278,7 +10956,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Deep+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8308,7 +10996,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+S-Class+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8338,7 +11036,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+Black+King+Kong+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8368,7 +11076,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Blue+Gold+Back+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8398,7 +11116,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻大师",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Gold+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8428,7 +11156,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+White+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8458,7 +11196,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Parancistrus+aurantiacus+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8488,7 +11236,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "需要喂食富含虾青素的活食；肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Super+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -8518,7 +11276,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Silver+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -8548,7 +11316,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+aurantimaculata+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -8578,7 +11356,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+andrao+var.+Super+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -8608,7 +11396,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+bleheri+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8638,7 +11436,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Platinum+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8668,7 +11476,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8698,7 +11516,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Green+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8728,7 +11556,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Orange+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8758,7 +11596,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "喜欢啃食油膜和水垢",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+latipinna+var.+Gold+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8788,7 +11636,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+sphenops+var.+Black+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8818,7 +11676,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "对食物不挑剔，是极佳的小缸宠物",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Albino+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8848,7 +11716,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Melanotaenia+praecox+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8878,7 +11756,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Lutjanus+kasmira+var.+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -8908,7 +11796,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pseudochromis+sp.+Gold+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -8938,7 +11836,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemianthus+callitrichoides+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8968,7 +11876,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Eleocharis+acicularis+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -8982,7 +11900,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.0-7.0",
     "waterChangeCycle": 5,
     "description": "食虫类水草，视觉极柔和。定水期易化水，需软水和高光。一旦成景，其翠绿色地毯效果无与伦比。",
-    "diet": "自养型：光照+肥料。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -8990,15 +11908,19 @@ export const fishData: Fish[] = [
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "光照+肥料",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "造景层",
-      "avoidFoods": "过量液肥",
-      "specialNotes": "食虫类水草，视觉极柔和；展示为养护需求而非喂食需求",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -9028,7 +11950,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "不可将根茎埋入泥中，需绑在沉木或石块上；展示为养护需求而非喂食需求",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction"
+      "sourceName": "aquapedia_master_v2.csv+rules+local_note_extraction",
+      "sourceUrl": "https://www.google.com/search?q=Bucephalandra+sp.+Blue+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9058,7 +11990,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Anubias+barteri+var.+nana+%27Petite%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9088,7 +12030,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Rotala+rotundifolia+%27Red%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9118,7 +12070,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Rotala+rotundifolia+%27Green%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9132,23 +12094,27 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "经典阴生蕨类。叶片修长，具有粗壮根茎。需绑在沉木上。不耐高温，水温超30度易发生黑斑病。",
-    "diet": "自养型：光照+肥料；沉木纤维。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "肉食/杂食性：高蛋白颗粒+冻虾+鱼肉/昆虫类饵料。频率：每天1次或隔天1次，视体型和消化速度调整。",
     "tankSize": "至少 240 升",
     "temperament": "Peaceful",
     "size": "Large",
     "housingMode": "谨慎混养",
     "housingReason": "体型较大，可能压迫或误食小型鱼虾；适合与体型接近、游层错开的温和鱼混养。",
     "feedingProfile": {
-      "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "光照+肥料；沉木纤维",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "造景层",
-      "avoidFoods": "过量液肥；缺少沉木纤维",
-      "specialNotes": "需绑在沉木上；展示为养护需求而非喂食需求；经典阴生草。不耐高温，GH适中即可，是沉木上的灵魂",
-      "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+local_note_extraction"
+      "dietType": "Carnivore/Omnivore",
+      "feedingType": "肉食/杂食性",
+      "recommendedFoods": "高蛋白颗粒+冻虾+鱼肉/昆虫类饵料",
+      "feedingFrequency": "每天1次或隔天1次，视体型和消化速度调整",
+      "portionRule": "腹部微鼓即可，避免一次喂太饱",
+      "feedingLayer": "中上层/底层视物种而定",
+      "avoidFoods": "长期喂活鱼；高脂肪肉类；过量投喂",
+      "specialNotes": "大型或凶猛鱼污染量高，喂食后要观察残饵和水质变化。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -9178,7 +12144,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Bolbitis+heudelotii+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9208,7 +12184,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vesicularia+dubyana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9238,7 +12224,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Fissidens+fontanus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9268,7 +12264,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Cryptocoryne+wendtii+%27Green%27+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9298,7 +12304,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Echinodorus+amazonicus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9328,7 +12344,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Limnobium+laevigatum+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9358,7 +12384,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Nymphaea+lotus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9388,7 +12424,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Egeria+densa+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9418,7 +12464,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Staurogyne+repens+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9448,7 +12504,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ludwigia+inclinata+var.+verticillata+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9478,7 +12544,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Myriophyllum+aquaticum+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -9492,7 +12568,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 5,
     "description": "巨大的椒草。叶片带硬质纹路。由于叶子坚硬，它是少有的能与大型慈鲷共存且不被啃食的水草。",
-    "diet": "自养型：液肥+CO2。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 640 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -9500,15 +12576,19 @@ export const fishData: Fish[] = [
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "液肥+CO2",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "避免过量施肥，以叶色和藻相调整剂量",
-      "feedingLayer": "附着",
-      "avoidFoods": "过量液肥",
-      "specialNotes": "由于叶子坚硬，它是少有的能与大型慈鲷共存且不被啃食的水草；展示为养护需求而非喂食需求",
-      "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -9538,7 +12618,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Plerogyra+sinuosa+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9568,7 +12658,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Euphyllia+glabrescens+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9598,7 +12698,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sarcophyton+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9628,7 +12738,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pachyclavularia+violacea+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9658,7 +12778,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Euphyllia+divisas+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9688,7 +12818,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Catalaphyllia+jardinei+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9718,7 +12858,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Actinodiscus+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9748,7 +12898,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Heteractis+crispa+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -9778,7 +12938,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "建议放置在底层沙地，夜间会伸出触手捕食；投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trachyphyllia+geoffroyi+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9808,7 +12978,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "海水滤食性生物；投喂需结合水质营养盐控制；滤食性生物。不耐受高浓度硝酸盐。GH需维持在30左右（天然海水水平）；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sabellastarte+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -9838,7 +13018,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Fromia+milleporella+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -9868,7 +13058,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Acropora+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9898,7 +13098,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Zoanthus+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9928,7 +13138,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "必须手动喂食虾肉或浮游生物，否则会饿死；投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tubastraea+faulkneri+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -9958,7 +13178,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Palythoa+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -9988,7 +13218,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Stichodactyla+haddoni+Blue+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -10018,7 +13258,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Stichodactyla+gigantea+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -10048,7 +13298,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Clavularia+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -10078,7 +13338,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "必须定期喂食碎虾肉；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tubastraea+coccinea+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -10108,7 +13378,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Xenia+sp.+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -10138,7 +13418,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pelvicachromis+pulcher+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10168,7 +13458,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+rodwayi+var.+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10198,7 +13498,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Aphyocharax+anisitsi+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10228,7 +13538,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Longfin+White+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10258,7 +13578,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Blue+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10288,7 +13618,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10318,7 +13658,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10348,7 +13698,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10378,7 +13738,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10408,7 +13778,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10438,7 +13818,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Tigerhead+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10468,7 +13858,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "对水温变化敏感，需喂食高质量的高蛋白沉底饲料",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Calico+Ranchu+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10498,7 +13898,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Black+Oranda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10528,7 +13938,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Butterfly+Tail+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10558,7 +13978,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10588,7 +14018,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10618,7 +14058,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Echinodorus+tenellus+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10648,7 +14098,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "不耐除藻剂（如戊二醛），需谨慎给药；展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vallisneria+nana+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10678,7 +14138,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Vallisneria+gigantea+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10708,7 +14178,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量液肥",
       "specialNotes": "展示为养护需求而非喂食需求；叶片呈规则三角形。适合绑网片。GH超过12生长变慢且易长丝藻",
       "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Vesicularia+sp.+Giant+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10738,7 +14218,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Prionobrama+filigera+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10768,7 +14258,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Boehlkea+fredcochui+var.+Blue+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10798,7 +14298,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+herbertaxelrodi+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10828,7 +14338,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tanichthys+albonubes+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10858,7 +14378,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+rodwayi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10888,7 +14418,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Purple+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10918,7 +14458,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Pink+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -10948,7 +14498,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "食性凶猛，严禁与小型海水鱼混养；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Lutjanus+kasmira+var.+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -10978,7 +14538,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Synchiropus+splendidus+var.+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -11008,7 +14578,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Zoanthus+sp.+Snowflake+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -11038,7 +14618,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Catalaphyllia+jardinei+var.+Green+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -11068,7 +14658,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "需要中等光照，定期喂食微小颗粒能显著加快其生长速度；投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Micromussa+lordhowensis+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -11098,7 +14698,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Entacmaea+quadricolor+var.+Red+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -11128,7 +14738,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "属于滤食性生物，严禁接触空气（会导致死亡），需要定期喂食浮游生物；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Haliclona+sp.+Blue+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；存在特殊喂养关键词"
     }
   },
   {
@@ -11158,7 +14778,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Andinoacara+pulcher+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11188,7 +14818,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemichromis+bimaculatus+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11218,7 +14858,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "保留了原种的互动性和大食量",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Astronotus+ocellatus+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11248,7 +14898,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+herbertaxelrodi+var.+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11278,7 +14938,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Peckoltia+compta+var.+Super+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11308,7 +14978,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；普通鱼缸水流和过滤",
       "specialNotes": "需搭配圆形水母缸，每天喂食两次新鲜丰年虾或人工水母液；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Aurelia+aurita+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -11338,7 +15018,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；普通鱼缸水流和过滤",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Aurelia+coerulea+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐"
     }
   },
   {
@@ -11368,7 +15058,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；普通鱼缸水流和过滤",
       "specialNotes": "属于掠食性水母，会捕食其他水母；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Chrysaora+quinquecirrha+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -11398,7 +15098,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "普通鱼缸强吸力过滤；大颗粒食物；过量投喂",
       "specialNotes": "展示为养护需求而非喂食需求；部分水母依赖共生藻和光照，同时仍需微型浮游饵料",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Phyllorhiza+punctata+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知"
     }
   },
   {
@@ -11428,7 +15138,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "普通鱼缸强吸力过滤；大颗粒食物；过量投喂",
       "specialNotes": "展示为养护需求而非喂食需求；部分水母依赖共生藻和光照，同时仍需微型浮游饵料",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Cassiopea+andromeda+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知"
     }
   },
   {
@@ -11458,7 +15178,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；普通鱼缸水流和过滤",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Chrysaora+melanaster+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -11488,7 +15218,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "普通鱼缸强吸力过滤；大颗粒食物；过量投喂",
       "specialNotes": "展示为养护需求而非喂食需求；部分水母依赖共生藻和光照，同时仍需微型浮游饵料",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+jellyfish_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Cotylorhiza+tuberculata+Tropica+aquarium+plant+care",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知"
     }
   },
   {
@@ -11518,7 +15258,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；普通鱼缸水流和过滤",
       "specialNotes": "属于中型捕食者；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Sanderia+malayensis+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -11548,7 +15298,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "上浮饲料过量；高油脂食物",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+White+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11578,7 +15338,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "性格温顺，觅食能力强",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Black+Moor+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11608,7 +15378,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Carassius+auratus+var.+Panda+Butterfly+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11638,7 +15418,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+var.+Super+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11668,7 +15458,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "适合搭配黑色背景和沉木，展现其极致的色彩；斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     }
   },
   {
@@ -11698,7 +15498,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Kohaku+Crown+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -11728,7 +15538,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；过量红虫",
       "specialNotes": "斗鱼胃容量小，少量多餐比一次大量更安全",
       "confidence": "0.84",
-      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+betta_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Betta+splendens+var.+Blue+Dragon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -11758,7 +15578,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻能力出众",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Snowflake+Gold+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11788,7 +15618,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Platinum+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11818,7 +15658,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Glo+Orange+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11848,7 +15698,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻工具鱼的高级版",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Crossocheilus+langei+var.+Gold+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11878,7 +15738,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neocaridina+davidi+var.+Blue+Pearl+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11908,7 +15778,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+Flower+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11938,7 +15818,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Caridina+cantonensis+var.+Panda+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11968,7 +15858,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Chrysiptera+cyanea+var.+Platinum+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -11998,7 +15898,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Catalaphyllia+jardinei+var.+Ultra+Green+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -12028,7 +15938,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Entacmaea+quadricolor+var.+Rose+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -12058,7 +15978,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Stichodactyla+gigantea+var.+Green+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -12088,7 +16018,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Zoanthus+sp.+Gold+Center+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -12118,7 +16058,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trachyphyllia+geoffroyi+var.+Purple+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "Dietary_Needs缺失，使用规则补齐；食性未知；特殊类群需复核"
     }
   },
   {
@@ -12148,7 +16098,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；污染水质的粉末饲料；来源不明活饵；长期单一高脂食物；过量投喂导致营养盐升高",
       "specialNotes": "投喂需结合水质营养盐控制；珊瑚喂食需结合光照、水流和NO3/PO4控制",
       "confidence": "0.80",
-      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+coral_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tubastraea+coccinea+var.+Red+coral+care+feeding",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊类群需复核；存在特殊喂养关键词"
     }
   },
   {
@@ -12178,7 +16138,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Synchiropus+splendidus+var.+XL+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12208,7 +16178,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Blood+Red+A+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12238,7 +16218,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Scleropages+formosus+var.+Gold+Head+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12268,7 +16258,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "尖锐底砂；来源不明活饵；可吞入口的小鱼虾",
       "specialNotes": "魟鱼对水质和底床要求高，喂食后必须清理残饵",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+stingray_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+stingray_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Potamotrygon+leopoldi+var.+Albino+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12298,7 +16298,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "尖锐底砂；来源不明活饵；可吞入口的小鱼虾",
       "specialNotes": "魟鱼对水质和底床要求高，喂食后必须清理残饵",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+stingray_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+stingray_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Potamotrygon+leopoldi+var.+Eclipse+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12328,7 +16338,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+stewartii+var.+Karbi+Anglong+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12358,7 +16378,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "肉食鱼需避免与可吞入口的小型鱼虾混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+predatory_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Channa+andrao+var.+Red+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "存在特殊喂养关键词"
     }
   },
   {
@@ -12388,7 +16418,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pangio+kuhlii+var.+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12418,7 +16458,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Geophagus+sp.+var.+Longfin+Platinum+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12448,7 +16498,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Xiphophorus+hellerii+var.+High+Fin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12478,7 +16538,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "非常认主，看到主人会主动游过来索食，极具互动性",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Andinoacara+pulcher+var.+Super+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12508,7 +16578,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+var.+Super+Red+Balloon+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12538,7 +16618,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "除藻效率极高，不伤鱼，是高端草缸的常客",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Ancistrus+sp.+Albino+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12568,7 +16658,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+var.+Glo+Orange+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12598,7 +16698,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+Balloon+Gold+XL+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12628,7 +16738,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Gymnocorymbus+ternetzi+var.+Platinum+Balloon+Longfin+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12658,7 +16778,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12688,7 +16818,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12718,7 +16858,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12748,7 +16898,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "不适用",
       "specialNotes": "硬景/底床不需要喂食，可展示为维护与水质影响",
       "confidence": "0.95",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12778,7 +16938,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tanichthys+albonubes+var.+Polar+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -12792,21 +16962,25 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "除藻冠军，体型较大，不会在淡水中繁殖，饥饿时可能骚扰小型鱼。",
-    "diet": "植食性：藻类+煮熟蔬菜+虾粮；自然藻类。频率：每周2-3次少量补喂。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "藻类+煮熟蔬菜+虾粮；自然藻类",
-      "feedingFrequency": "每周2-3次少量补喂",
-      "portionRule": "2小时内吃完，残饵及时取出",
-      "feedingLayer": "底层",
-      "avoidFoods": "含铜药物；长期残饵；无自然食物来源的新缸",
-      "specialNotes": "除藻冠军，体型较大，不会在淡水中繁殖，饥饿时可能会骚扰小型鱼或刚脱壳的小虾；除藻能力之冠。脱壳期需GH支撑。饥饿时可能会抓捕小型幼虾；新缸需确认已有可摄食藻膜或补充专用食物",
-      "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "dietType": "Autotroph",
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "适合混养",
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。"
@@ -12836,7 +17010,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neritina+natalensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -12852,21 +17036,25 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "色彩丰富且不吃草，呼吸管极具特色，产卵于水面上方，极易清理。",
-    "diet": "杂食性：藻类+藻片+焯熟蔬菜+补钙食物。频率：藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 48 升",
     "temperament": "Peaceful",
     "size": "Small",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+藻片+焯熟蔬菜+补钙食物",
-      "feedingFrequency": "藻少时每周2-3次补喂",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期缺钙；长期残饵",
-      "specialNotes": "色彩丰富且不吃草；神秘螺主要清理藻类和残饵，壳体生长需要钙源和稳定pH",
-      "confidence": "0.86",
-      "sourceName": "aquapedia_master_v2.csv+rules+snail_feeding_template"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -12882,21 +17070,25 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "肉食性，专门清理缸内泛滥的杂螺（如扁螺），不吃鱼但会吃死鱼。",
-    "diet": "肉食性：藻类+藻片+补钙食物。频率：以缸内藻类为主，藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Territorial",
     "size": "Small",
     "feedingProfile": {
-      "dietType": "Carnivore",
-      "feedingType": "肉食性",
-      "recommendedFoods": "藻类+藻片+补钙食物",
-      "feedingFrequency": "以缸内藻类为主，藻少时每周2-3次补喂",
+      "dietType": "Omnivore",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期残饵；来源不明活饵；长期单一高脂食物",
-      "specialNotes": "肉食性，专门清理缸内泛滥的杂螺（如扁螺）；不伤鱼，但在没有食物时会捕食沉底饲料；肉食性螺。能有效清理扁螺，对GH要求不严，只要不溶壳即可",
-      "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -12926,7 +17118,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "酸性软水。严禁与三湖慈鲷或大型掠食鱼混养",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Paracheirodon+innesi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -12956,7 +17158,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Paracheirodon+axelrodi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -12986,7 +17198,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hemigrammus+rhodostomus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -13016,7 +17238,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Tanichthys+albonubes+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。"
@@ -13046,7 +17278,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Danio+rerio+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -13076,7 +17318,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+reticulata+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -13106,7 +17358,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "食性杂，喜欢啃食水面油膜和藻类",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Poecilia+sphenops+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。"
@@ -13136,7 +17398,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Xiphophorus+hellerii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "有一定领地意识，混养时需要足够空间、躲避物，并避免与同体型同习性的鱼过密饲养。"
@@ -13166,7 +17438,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Puntigrus+tetrazona+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "建议单养",
     "housingReason": "性情偏凶或捕食倾向明显，和温和小型鱼混养容易造成追咬、压迫或吞食。"
@@ -13196,7 +17478,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Sahyadria+denisonii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。"
@@ -13226,7 +17518,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "幼年除藻勤快，成年后性格变粗暴，有时会吸附在平滑体表的鱼类身上",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Gyrinocheilus+aymonieri+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "有一定领地意识，混养时需要足够空间、躲避物，并避免与同体型同习性的鱼过密饲养。"
@@ -13256,7 +17558,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "幼年除藻，成年后性格变坏。由于其体表粗糙，GH耐受力极强。忌与七彩神仙混养",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Gyrinocheilus+aymonieri+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "有一定领地意识，混养时需要足够空间、躲避物，并避免与同体型同习性的鱼过密饲养。"
@@ -13286,7 +17598,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Corydoras+pandas+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情通常温和，适合与体型接近、水温和 pH 区间重叠的温和鱼群混养；群游鱼建议成群饲养。"
@@ -13316,7 +17638,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+leerii+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。"
@@ -13346,7 +17678,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+category_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Trichopodus+trichopterus+var.+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "有一定领地意识，混养时需要足够空间、躲避物，并避免与同体型同习性的鱼过密饲养。"
@@ -13374,9 +17716,19 @@ export const fishData: Fish[] = [
       "portionRule": "2-3分钟内吃完，避免抢食过量",
       "feedingLayer": "中底层",
       "avoidFoods": "长期单一红虫；过量高蛋白饲料",
-      "specialNotes": "又称神仙鱼，适合高缸养殖以充分舒展鱼鳍，性格略显孤傲，会吞食极小型的灯鱼；天使鱼适合多样化饲料，繁殖期可适当提高蛋白比例",
+      "specialNotes": "适合高缸养殖以充分舒展鱼鳍，性格略显孤傲，会吞食极小型的灯鱼；神仙鱼适合多样化饲料，繁殖期可适当提高蛋白比例",
       "confidence": "0.85",
-      "sourceName": "aquapedia_master_v2.csv+rules+angelfish_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+angelfish_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pterophyllum+scalare+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     },
     "housingMode": "建议单养",
     "housingReason": "有一定领地意识，繁殖期护卵行为明显，可能吞食极小型灯鱼；更适合与体型接近、性情温和且不咬鳍的鱼谨慎混养。"
@@ -13404,9 +17756,19 @@ export const fishData: Fish[] = [
       "portionRule": "2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中底层",
       "avoidFoods": "过量投喂",
-      "specialNotes": "七彩神仙鱼和普通神仙鱼/天使鱼不同属。偏高温软酸水，GH>6 可能影响状态；忌与抢食凶猛鱼类混养",
+      "specialNotes": "极致软水。GH>6影响鳍条舒展。忌与抢食凶猛鱼类混养",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Symphysodon+aequifasciatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "七彩神仙对水温、水质和抢食压力非常敏感，适合与同样偏高温软酸水、性情温和且不抢食的鱼谨慎混养；不应按普通神仙鱼条件饲养。"
@@ -13436,7 +17798,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Mikrogeophagus+ramirezi+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "建议单养",
     "housingReason": "斗鱼有明显领地意识，同类或长鳍鱼混养容易追咬；新手更适合单独饲养或非常谨慎搭配底栖温和生物。"
@@ -13466,7 +17838,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂；嫩叶水草",
       "specialNotes": "高硬度要求。严禁入草缸，会挖掘底泥并啃食水草",
       "confidence": "0.91",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement",
+      "sourceUrl": "https://www.google.com/search?q=Labidochromis+caeruleus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "建议单养",
     "housingReason": "斗鱼有明显领地意识，同类或长鳍鱼混养容易追咬；新手更适合单独饲养或非常谨慎搭配底栖温和生物。"
@@ -13496,7 +17878,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Andinoacara+pulcher+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "适合混养",
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。"
@@ -13526,7 +17918,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物",
       "specialNotes": "俗称“水里的猪”，食量惊人，排泄量极大",
       "confidence": "0.92",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Astronotus+ocellatus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "建议单养",
     "housingReason": "斗鱼有明显领地意识，同类或长鳍鱼混养容易追咬；新手更适合单独饲养或非常谨慎搭配底栖温和生物。"
@@ -13556,7 +17958,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "过量投喂",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Amphiprion+ocellaris+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "海水生物需要稳定盐度和成熟系统；鱼、珊瑚、海葵之间存在捕食、蛰伤或领地风险，需要按珊瑚缸兼容性搭配。"
@@ -13586,7 +17998,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "来源不明活饵；长期单一高脂食物；可吞入口的小型鱼虾",
       "specialNotes": "纯肉食性，会吞食任何能塞进嘴里的活物；极具观赏性但背鳍带毒。纯肉食性。GH需维持在30左右；海水生物投喂需同步观察氨氮、NO3和PO4",
       "confidence": "0.81",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+marine_feeding_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+marine_feeding_template",
+      "sourceUrl": "https://www.google.com/search?q=Pterois+volitans+LiveAquaria+diet",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     },
     "housingMode": "建议单养",
     "housingReason": "该类生物捕食性强或体型差异风险高，容易吞食小鱼、小虾或攻击同缸生物，建议单独饲养或专业级混养。"
@@ -13602,21 +18024,25 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "除藻冠军，体型较大，不会在淡水中繁殖，饥饿时可能会骚扰小型鱼或刚脱壳的小虾。",
-    "diet": "植食性：藻类+煮熟蔬菜+虾粮；自然藻类。频率：每周2-3次少量补喂。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
     "feedingProfile": {
-      "dietType": "Herbivore",
-      "feedingType": "植食性",
-      "recommendedFoods": "藻类+煮熟蔬菜+虾粮；自然藻类",
-      "feedingFrequency": "每周2-3次少量补喂",
-      "portionRule": "2小时内吃完，残饵及时取出",
-      "feedingLayer": "底层",
-      "avoidFoods": "含铜药物；长期残饵；无自然食物来源的新缸",
-      "specialNotes": "除藻冠军，体型较大，不会在淡水中繁殖，饥饿时可能会骚扰小型鱼或刚脱壳的小虾；除藻能力之冠。脱壳期需GH支撑。饥饿时可能会抓捕小型幼虾；新缸需确认已有可摄食藻膜或补充专用食物",
-      "confidence": "0.96",
-      "sourceName": "aquapedia_master_v2.csv+aquapedia_supplement"
+      "dietType": "Autotroph",
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "适合混养",
     "housingReason": "属于造景或植物类，不会主动攻击鱼虾；主要注意光照、底床和是否会被草食性鱼啃食。"
@@ -13646,7 +18072,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "含铜药物；长期残饵",
       "specialNotes": "",
       "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Neritina+natalensis+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -13662,21 +18098,25 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "色彩丰富且不吃草。具有呼吸管，产卵于水面上方，极易清理。不要与凶猛的河豚类混养。",
-    "diet": "杂食性：藻类+藻片+焯熟蔬菜+补钙食物。频率：藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 48 升",
     "temperament": "Peaceful",
     "size": "Small",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+藻片+焯熟蔬菜+补钙食物",
-      "feedingFrequency": "藻少时每周2-3次补喂",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期缺钙；长期残饵",
-      "specialNotes": "色彩丰富且不吃草；神秘螺主要清理藻类和残饵，壳体生长需要钙源和稳定pH",
-      "confidence": "0.86",
-      "sourceName": "aquapedia_master_v2.csv+rules+snail_feeding_template"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -13692,21 +18132,25 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "肉食性，专门清理缸内泛滥的杂螺（如扁螺）。不伤鱼，但在没有食物时会捕食沉底饲料。",
-    "diet": "肉食性：藻类+藻片+补钙食物。频率：以缸内藻类为主，藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Territorial",
     "size": "Small",
     "feedingProfile": {
-      "dietType": "Carnivore",
-      "feedingType": "肉食性",
-      "recommendedFoods": "藻类+藻片+补钙食物",
-      "feedingFrequency": "以缸内藻类为主，藻少时每周2-3次补喂",
+      "dietType": "Omnivore",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期残饵；来源不明活饵；长期单一高脂食物",
-      "specialNotes": "肉食性，专门清理缸内泛滥的杂螺（如扁螺）；不伤鱼，但在没有食物时会捕食沉底饲料；肉食性螺。能有效清理扁螺，对GH要求不严，只要不溶壳即可",
-      "confidence": "0.82",
-      "sourceName": "aquapedia_master_v2.csv+rules+aquapedia_supplement+category_feeding_template"
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     },
     "housingMode": "谨慎混养",
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。"
@@ -13736,7 +18180,17 @@ export const fishData: Fish[] = [
       "avoidFoods": "长期只喂活饵；大颗粒饲料",
       "specialNotes": "性格极度胆小，必须成群养殖且光照不宜太强，否则会导致其长期躲藏不食；偏爱小型动物性饵料，可逐步训食人工颗粒",
       "confidence": "0.83",
-      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template"
+      "sourceName": "aquapedia_master_v2.csv+rules+small_carnivore_fish_template",
+      "sourceUrl": "https://www.google.com/search?q=Kryptopterus+vitreolus+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": true,
+      "reviewReason": "特殊喂养关键词已抽取为提示，建议抽查"
     },
     "housingMode": "适合混养",
     "housingReason": "性情相对温和，可与体型接近、水质需求相同的温和物种混养；仍需避免过密饲养和体型差异过大。"
@@ -13752,7 +18206,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "常见草缸工具虾，能啃食藻膜并清理少量残饵；体色多为半透明黑褐色，适合成群饲养，避免与会捕食虾的中大型鱼混养。",
-    "diet": "杂食性：藻类+煮熟蔬菜+虾粮。频率：每周2-3次少量补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -13760,15 +18214,19 @@ export const fishData: Fish[] = [
     "housingReason": "虾螺蟹通常性情温和，但可能被中大型鱼或肉食鱼捕食；也要避免铜药和会夹鱼的蟹类。",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+煮熟蔬菜+虾粮",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
       "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
-      "feedingLayer": "底层",
-      "avoidFoods": "含铜药物；长期残饵",
-      "specialNotes": "",
-      "confidence": "0.87",
-      "sourceName": "aquapedia_master_v2.csv"
+      "feedingLayer": "底层/缸壁",
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
+      "confidence": "0.78",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13782,7 +18240,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "常见水龟，适应力强但成体体型较大，排泄量高，需要足够水体、强过滤和晒背区域；不建议与观赏鱼混养。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 200 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -13791,14 +18249,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
-      "feedingLayer": "水面/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "需要晒背台、UVB或日照，以及强过滤；不要随意放生。",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
+      "feedingLayer": "底层/水陆交界",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13812,7 +18274,7 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "中国常见水龟，性格相对稳定，适合有晒背区的水陆环境。成体仍需要较大空间和稳定过滤，不适合作为普通鱼缸混养生物。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 200 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -13821,14 +18283,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
-      "feedingLayer": "水面/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "需要晒背台和干燥休息区，水质脏容易腐皮腐甲。",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
+      "feedingLayer": "底层/水陆交界",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13842,7 +18308,7 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "又称中华花龟，背甲和颈部纹路明显。偏暖水环境，需要晒背区、强过滤和足够活动空间。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 200 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -13851,14 +18317,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
-      "feedingLayer": "水面/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "偏暖水，低温和脏水容易引发皮肤与甲壳问题。",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
+      "feedingLayer": "底层/水陆交界",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13872,7 +18342,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "小型蛋龟代表，背甲棱线明显，适合单养或专门龟缸。虽然体型较小，但仍会捕食小鱼小虾。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 100 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -13881,14 +18351,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
       "feedingLayer": "底层/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "需要可攀爬休息区，水位不要让幼体长期耗力换气。",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13902,7 +18376,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "体型较大的蛋龟，食性偏肉，咬合力和捕食风险更高。需要大空间、强过滤和专门饲养规划。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 200 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -13911,14 +18385,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
       "feedingLayer": "底层/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "成体空间压力明显，不适合小缸或社区鱼缸。",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13932,7 +18410,7 @@ export const fishData: Fish[] = [
     "phLevel": "7.5-8.5",
     "waterChangeCycle": 7,
     "description": "高度水栖的大型龟，外形独特但饲养门槛高。对水质、空间和稳定环境要求高，容易啃咬鱼类或造景。",
-    "diet": "肉食/杂食性：专用龟粮+沉性颗粒+小鱼虾+水生植物。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 200 升",
     "temperament": "Peaceful",
     "size": "Large",
@@ -13941,14 +18419,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+沉性颗粒+小鱼虾+水生植物",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
-      "feedingLayer": "中下层",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "高度水栖但需要巨大水体和稳定水质，新手不建议尝试。",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
+      "feedingLayer": "底层/水陆交界",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13962,7 +18444,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-7.5",
     "waterChangeCycle": 7,
     "description": "常见小型蛋龟，体型相对小，适合专门龟缸饲养。会捕食小鱼小虾，鱼缸混养风险较高。",
-    "diet": "肉食/杂食性：专用龟粮+冻红虫+小鱼虾+水生昆虫。频率：幼体每天少量，成体每周3-5次。",
+    "diet": "肉食/杂食性：专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫。频率：幼体每天少量，成体每周3-5次。",
     "tankSize": "至少 100 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -13971,14 +18453,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Carnivore/Omnivore",
       "feedingType": "肉食/杂食性",
-      "recommendedFoods": "专用龟粮+冻红虫+小鱼虾+水生昆虫",
+      "recommendedFoods": "专用龟粮/两栖饲料+冻红虫+蚯蚓+小型水生昆虫",
       "feedingFrequency": "幼体每天少量，成体每周3-5次",
-      "portionRule": "以10分钟内吃完为准，残饵及时取出，避免污染水质",
+      "portionRule": "以短时间吃完为准，残饵及时取出，避免污染水质",
       "feedingLayer": "底层/水陆交界",
-      "avoidFoods": "长期只喂肉；高盐高油人类食物；过量活饵",
-      "specialNotes": "体型虽小也不等于能混鱼，建议单独龟缸管理水质和晒背。",
+      "avoidFoods": "长期只喂单一肉类；高盐高油人类食物；过量活饵",
+      "specialNotes": "两栖/爬宠类与鱼类喂养逻辑不同，需要单独关注钙质、晒背或水陆环境。",
       "confidence": "0.72",
-      "sourceName": "archived_demo_restore"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -13992,7 +18478,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "电商常见小型群游鱼，黑色尾部和身体阴影感明显，适合草缸中层活动。建议成群饲养，状态更稳定。",
-    "diet": "杂食性：细颗粒饲料+薄片+丰年虾。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14001,14 +18487,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+薄片+丰年虾",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完，宁少勿多",
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中层",
-      "avoidFoods": "过量投喂；长期单一饲料",
-      "specialNotes": "新鱼入缸先少量投喂，稳定后再逐步恢复正常频率。",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
       "confidence": "0.74",
-      "sourceName": "market_gap_supplement_20260531"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14022,7 +18512,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "又常被称为三角灯，橙金色身体和黑色三角斑很有辨识度。群游效果好，适合新手草缸。",
-    "diet": "杂食性：细颗粒饲料+薄片+冷冻丰年虾。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14031,14 +18521,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+薄片+冷冻丰年虾",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完，避免残饵堆积",
-      "feedingLayer": "中上层",
-      "avoidFoods": "过量投喂；大颗粒饲料",
-      "specialNotes": "建议 6-10 条以上成群，深色背景和水草环境更容易显色。",
-      "confidence": "0.82",
-      "sourceName": "market_gap_supplement_20260531"
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
+      "feedingLayer": "中层",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14052,7 +18546,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.0",
     "waterChangeCycle": 7,
     "description": "小型橙红色灯鱼，常见于草缸和桌面缸。体型很小，适合密植草缸群养，不适合与大鱼同缸。",
-    "diet": "杂食性：超细颗粒饲料+丰年虾幼体。频率：每天1次少量。",
+    "diet": "杂食性：细颗粒饲料+丰年虾。频率：每天1-2次。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14061,14 +18555,24 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "超细颗粒饲料+丰年虾幼体",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "少量多次也可，每次1-2分钟内吃完",
+      "recommendedFoods": "细颗粒饲料+丰年虾",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中层",
-      "avoidFoods": "大颗粒饲料；过量投喂",
-      "specialNotes": "体型小，入缸初期要避免被过滤吸入口或大型鱼伤害。",
-      "confidence": "0.80",
-      "sourceName": "market_gap_supplement_20260531"
+      "avoidFoods": "过量投喂",
+      "specialNotes": "",
+      "confidence": "0.87",
+      "sourceName": "aquapedia_master_v2.csv",
+      "sourceUrl": "https://www.google.com/search?q=Hyphessobrycon+amandae+feeding+diet+aquarium",
+      "sourceFields": [
+        "Diet",
+        "Feeding_Type",
+        "Dietary_Needs",
+        "Feeding_Layer",
+        "Care_Guide"
+      ],
+      "needsReview": false,
+      "reviewReason": ""
     }
   },
   {
@@ -14082,7 +18586,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "又称黑灯，身体有明显黑白横带，耐养且群游稳定。适合作为新手灯科鱼补充。",
-    "diet": "杂食性：细颗粒饲料+薄片+冷冻饵料。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14091,14 +18595,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+薄片+冷冻饵料",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完",
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中层",
-      "avoidFoods": "过量投喂",
-      "specialNotes": "建议 6 条以上成群，水质稳定时更容易显色。",
-      "confidence": "0.82",
-      "sourceName": "market_gap_supplement_20260531"
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14112,7 +18620,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "体表有闪亮鳞片，成熟后观赏性强。比普通小灯鱼略大，适合中型草缸群养。",
-    "diet": "杂食性：细颗粒饲料+薄片+冻红虫/丰年虾。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 60 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14121,14 +18629,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+薄片+冻红虫/丰年虾",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完",
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
       "feedingLayer": "中层",
-      "avoidFoods": "长期单一红虫；过量投喂",
-      "specialNotes": "成鱼体型略大，建议预留足够游动空间。",
-      "confidence": "0.78",
-      "sourceName": "market_gap_supplement_20260531"
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14142,7 +18654,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "身体斜线和斜游姿态很有辨识度，是电商常见群游鱼。适合中小型草缸中上层活动。",
-    "diet": "杂食性：细颗粒饲料+薄片+丰年虾。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14151,14 +18663,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "细颗粒饲料+薄片+丰年虾",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完",
-      "feedingLayer": "中上层",
-      "avoidFoods": "过量投喂",
-      "specialNotes": "跳跃能力较强，建议鱼缸加盖或降低水位。",
-      "confidence": "0.80",
-      "sourceName": "market_gap_supplement_20260531"
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
+      "feedingLayer": "中层",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14172,7 +18688,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.0",
     "waterChangeCycle": 7,
     "description": "细长体型的小型鱼，雄鱼发色后腹部和体侧更鲜明。适合水草密植、弱酸软水环境。",
-    "diet": "杂食性：超细颗粒饲料+丰年虾幼体+微型冻饵。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14181,14 +18697,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "超细颗粒饲料+丰年虾幼体+微型冻饵",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "少量多次，1-2分钟内吃完",
-      "feedingLayer": "中上层",
-      "avoidFoods": "大颗粒饲料；过量投喂",
-      "specialNotes": "嘴小且抢食弱，混养时要确认能吃到足够食物。",
-      "confidence": "0.76",
-      "sourceName": "market_gap_supplement_20260531"
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
+      "feedingLayer": "中层",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14202,7 +18722,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "国内电商和古法缸常见小型冷水观赏鱼，适合从上方欣赏。耐温范围较宽，但需要清洁水体和防跳。",
-    "diet": "杂食性：微颗粒饲料+丰年虾幼体+水蚤。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 20 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14211,14 +18731,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "微颗粒饲料+丰年虾幼体+水蚤",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "1-2分钟内吃完，避免水面油膜和残饵",
-      "feedingLayer": "上层",
-      "avoidFoods": "大颗粒饲料；过量投喂",
-      "specialNotes": "适合古法缸和浅水容器，但必须防跳并避免夏季高温闷缸。",
-      "confidence": "0.78",
-      "sourceName": "market_gap_supplement_20260531"
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
+      "feedingLayer": "中层",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14232,7 +18756,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.5-8.0",
     "waterChangeCycle": 7,
     "description": "原生冷水观赏鱼，发色期雄鱼颜色鲜艳。适合溪流或原生缸，需要高溶氧和稳定水质。",
-    "diet": "杂食性：通用颗粒饲料+藻类+冻红虫。频率：每天1次少量。",
+    "diet": "杂食性：优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配。频率：每天1-2次。",
     "tankSize": "至少 60 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14241,14 +18765,18 @@ export const fishData: Fish[] = [
     "feedingProfile": {
       "dietType": "Omnivore",
       "feedingType": "杂食性",
-      "recommendedFoods": "通用颗粒饲料+藻类+冻红虫",
-      "feedingFrequency": "每天1次少量",
-      "portionRule": "2-3分钟内吃完，保持水体清洁",
-      "feedingLayer": "中下层",
-      "avoidFoods": "高温闷缸；过量投喂",
-      "specialNotes": "夏季需注意降温和增氧，原生缸建议加强水流。",
-      "confidence": "0.76",
-      "sourceName": "market_gap_supplement_20260531"
+      "recommendedFoods": "优质微颗粒/薄片饲料+丰年虾+冻红虫少量搭配",
+      "feedingFrequency": "每天1-2次",
+      "portionRule": "每次2-3分钟内吃完，宁少勿多",
+      "feedingLayer": "中层",
+      "avoidFoods": "过量投喂；长期单一饲料；变质饲料",
+      "specialNotes": "小型温和鱼更适合少量多次，群游鱼抢食弱的个体要单独观察。",
+      "confidence": "0.74",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14262,7 +18790,7 @@ export const fishData: Fish[] = [
     "phLevel": "7.0-8.0",
     "waterChangeCycle": 7,
     "description": "电商常见工具螺和观赏螺，能清理部分残饵和软藻。需要补钙和稳定水质，避免含铜药物。",
-    "diet": "杂食性：藻类+藻片+煮熟蔬菜+补钙食物。频率：以缸内藻类为主，藻少时每周2-3次补喂。",
+    "diet": "杂食/刮食性：藻类+虾粮/螺粮+焯熟蔬菜。频率：每周2-3次少量补喂。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14270,15 +18798,19 @@ export const fishData: Fish[] = [
     "housingReason": "性情温和，但可能被巧克力娃娃、部分慈鲷、龟类和大型肉食鱼啃咬；含铜药物对螺类风险很高。",
     "feedingProfile": {
       "dietType": "Omnivore",
-      "feedingType": "杂食性",
-      "recommendedFoods": "藻类+藻片+煮熟蔬菜+补钙食物",
-      "feedingFrequency": "以缸内藻类为主，藻少时每周2-3次补喂",
+      "feedingType": "杂食/刮食性",
+      "recommendedFoods": "藻类+虾粮/螺粮+焯熟蔬菜",
+      "feedingFrequency": "每周2-3次少量补喂",
       "portionRule": "2小时内吃完，残饵及时取出",
       "feedingLayer": "底层/缸壁",
-      "avoidFoods": "含铜药物；长期缺钙；过量残饵",
-      "specialNotes": "注意区分不同苹果螺/神秘螺商品名，部分品种繁殖快，需要控制投喂。",
+      "avoidFoods": "含铜药物；长期残饵；过量动物蛋白",
+      "specialNotes": "虾螺对水质和药物敏感，补喂要少，成熟缸内自然藻膜很重要。",
       "confidence": "0.78",
-      "sourceName": "market_gap_supplement_20260531"
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14292,7 +18824,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "常见前景草坪草，叶片小而密，光照充足时会贴地爬行。缺光时容易向上徒长，适合有 CO2 的草缸。",
-    "diet": "自养型：强光+CO2+根肥/液肥。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14300,15 +18832,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类不会主动攻击鱼虾，适合草缸和虾缸；主要注意避免被大型草食鱼翻拱或啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "强光+CO2+根肥/液肥",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "控制肥料和光照平衡，避免爆藻",
-      "feedingLayer": "前景草坪",
-      "avoidFoods": "过量液肥；长期弱光",
-      "specialNotes": "需要定期薄剪，避免草坪过厚导致底层腐烂。",
-      "confidence": "0.82",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14322,7 +18858,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "更矮小的牛毛毡类前景草，能形成细密草坪。适合新手草缸，但想铺满仍需要较强光照和稳定底床。",
-    "diet": "自养型：中强光+根肥/液肥，可选 CO2。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14330,15 +18866,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合与温和鱼虾混养；避免金鱼、慈鲷等翻底或啃草的鱼类。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中强光+根肥/液肥，可选 CO2",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "少量稳定施肥，观察新芽颜色调整",
-      "feedingLayer": "前景草坪",
-      "avoidFoods": "长期弱光；底床过脏",
-      "specialNotes": "修剪后及时吸走碎叶，避免卡在草坪里腐烂。",
-      "confidence": "0.80",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14352,7 +18892,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 7,
     "description": "电商常见红色中景草，叶背和新叶呈红紫色。想维持红色需要较强光照、铁肥和稳定 CO2。",
-    "diet": "自养型：中强光+CO2+铁肥/液肥。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 45 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14360,15 +18900,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合草缸混养；叶片相对柔嫩，需避开会啃食水草的鱼。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中强光+CO2+铁肥/液肥",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "以新叶颜色和藻相调整铁肥，不要猛加",
-      "feedingLayer": "中景/后景",
-      "avoidFoods": "弱光；过量铁肥；水质大幅波动",
-      "specialNotes": "适合做绿色草缸里的红色视觉焦点，修剪后可重新插枝繁殖。",
-      "confidence": "0.82",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14382,7 +18926,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-8.0",
     "waterChangeCycle": 7,
     "description": "皮实的有茎草，叶片圆润成对生长，适合新手中后景。对 CO2 要求不高，能适应低技术缸。",
-    "diet": "自养型：中等光照+液肥。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14390,15 +18934,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合温和鱼虾混养，可为鱼苗和虾提供遮蔽。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中等光照+液肥",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "修剪老茎并重新插枝，保持底部通风",
-      "feedingLayer": "中景/后景",
-      "avoidFoods": "长期遮光；底部缺光烂茎",
-      "specialNotes": "适合新缸建立期帮助吸收营养盐，但过密时需要修剪。",
-      "confidence": "0.80",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14412,7 +18960,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-8.0",
     "waterChangeCycle": 7,
     "description": "快生型中后景草，叶形羽裂，吸收营养盐能力强。适合新手和开缸期控藻，但需要定期修剪。",
-    "diet": "自养型：中等光照+液肥，可选 CO2。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14420,15 +18968,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合社区鱼缸，可提供遮蔽和吸收多余营养盐；避免被草食性鱼大量啃食。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中等光照+液肥，可选 CO2",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "生长快，修剪频率高于阴性草",
-      "feedingLayer": "中景/后景",
-      "avoidFoods": "长期缺光；过度拥挤",
-      "specialNotes": "可作为新缸吸肥草，稳定后根据造景需要控制数量。",
-      "confidence": "0.82",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14442,7 +18994,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "常见红色有茎草，适应力强，比高阶红草更容易出状态。适合新手尝试红草和中后景层次。",
-    "diet": "自养型：中强光+液肥，可选 CO2。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 40 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14450,15 +19002,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合温和鱼虾混养，能提供躲避和背景层次；避免草食性鱼啃食嫩叶。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中强光+液肥，可选 CO2",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "通过打头修剪促进分枝，避免底部掉叶",
-      "feedingLayer": "中景/后景",
-      "avoidFoods": "长期弱光；过密导致底部缺光",
-      "specialNotes": "光照越强越容易呈红色，低光下会偏绿或橙色。",
-      "confidence": "0.83",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14472,7 +19028,7 @@ export const fishData: Fish[] = [
     "phLevel": "5.5-7.5",
     "waterChangeCycle": 5,
     "description": "红色细叶中后景草，水下叶形像羽裂小伞。对光照、CO2 和微量元素要求高，更适合进阶草缸。",
-    "diet": "自养型：强光+CO2+综合液肥/铁肥。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 60 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14480,15 +19036,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类不会攻击鱼虾，但需要稳定草缸环境；不适合经常翻底或啃草的鱼缸。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "强光+CO2+综合液肥/铁肥",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "稳定少量施肥，避免水质和 CO2 大幅波动",
-      "feedingLayer": "中景/后景",
-      "avoidFoods": "弱光；CO2 波动；缺铁",
-      "specialNotes": "适合作为进阶红草点缀，不建议开缸初期直接大量种植。",
-      "confidence": "0.74",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14502,7 +19062,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "常见浮草，叶片在强光和低氮环境下会泛红，根系可为鱼苗和虾提供躲避。覆盖过多会遮光。",
-    "diet": "自养型：水面光照+水体营养盐。频率：按覆盖率和营养盐维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 20 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14510,15 +19070,19 @@ export const fishData: Fish[] = [
     "housingReason": "浮草适合虾缸和鱼苗缸，可吸收营养盐并提供遮蔽；需要避免覆盖水面影响下层水草。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "水面光照+水体营养盐",
-      "feedingFrequency": "按覆盖率和营养盐维护，不进行喂食",
-      "portionRule": "水面覆盖建议控制在 30%-50%",
-      "feedingLayer": "水面浮草",
-      "avoidFoods": "强水流打湿叶面；完全遮光",
-      "specialNotes": "红色状态通常需要强光和相对低氮，水面太满要及时捞除。",
-      "confidence": "0.80",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14532,7 +19096,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-7.5",
     "waterChangeCycle": 7,
     "description": "又常作为水蕨/水芹类水草出售，生长快，可漂浮也可扎根。适合开缸期吸收营养盐和提供遮蔽。",
-    "diet": "自养型：中等光照+水体营养盐。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Medium",
@@ -14540,15 +19104,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合社区鱼缸和鱼苗缸，可提供遮蔽；需要定期修剪避免占满水面。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中等光照+水体营养盐",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "生长快，定期移除老叶和过密植株",
-      "feedingLayer": "中景/水面",
-      "avoidFoods": "长期弱光；过密遮光",
-      "specialNotes": "适合新手和繁殖缸，但成景后可能需要控制数量。",
-      "confidence": "0.78",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   },
   {
@@ -14562,7 +19130,7 @@ export const fishData: Fish[] = [
     "phLevel": "6.0-8.0",
     "waterChangeCycle": 7,
     "description": "常见低维护前中景草，叶片像小水兰但更短，能通过走茎扩散。适合新手草缸和低技术缸。",
-    "diet": "自养型：中等光照+根肥/液肥。频率：按光照和肥料计划维护，不进行喂食。",
+    "diet": "光合作用：充足光照+根肥/液肥+稳定二氧化碳。频率：按水草状态每周少量补肥。",
     "tankSize": "至少 30 升",
     "temperament": "Peaceful",
     "size": "Small",
@@ -14570,15 +19138,19 @@ export const fishData: Fish[] = [
     "housingReason": "植物类适合与温和鱼虾混养；根系草需要避免被频繁翻底。",
     "feedingProfile": {
       "dietType": "Autotroph",
-      "feedingType": "自养型",
-      "recommendedFoods": "中等光照+根肥/液肥",
-      "feedingFrequency": "按光照和肥料计划维护，不进行喂食",
-      "portionRule": "走茎扩散后按造景边界修剪",
-      "feedingLayer": "前景/中景",
-      "avoidFoods": "频繁翻动底床；长期缺肥",
-      "specialNotes": "低技术缸也能养，但强光和肥力充足时扩散更快。",
-      "confidence": "0.82",
-      "sourceName": "market_plant_supplement_20260531"
+      "feedingType": "光合作用",
+      "recommendedFoods": "充足光照+根肥/液肥+稳定二氧化碳",
+      "feedingFrequency": "按水草状态每周少量补肥",
+      "portionRule": "少量多次，避免一次性过量导致藻类爆发",
+      "feedingLayer": "造景/底床",
+      "avoidFoods": "过量肥料；长时间弱光；底床贫瘠",
+      "specialNotes": "水草不是投喂对象，核心是光照、底床、肥料和二氧化碳平衡。",
+      "confidence": "0.75",
+      "sourceName": "rule_fallback",
+      "sourceUrl": "",
+      "sourceFields": [],
+      "needsReview": true,
+      "reviewReason": "未匹配到物种专属喂养资料，当前仅提供类别通用参考"
     }
   }
 ];

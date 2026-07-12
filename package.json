@@ -17,6 +17,7 @@
     "test:species-knowledge": "tsx scripts/assert_species_detail_knowledge.ts",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
+    "audit:species-knowledge": "python3 scripts/audit_species_knowledge.py",
     "refresh:species-assets": "python3 scripts/prepare_species_assets_and_data.py && python3 scripts/add_housing_profiles.py && python3 scripts/add_feeding_profiles_to_fish_data.py && python3 scripts/audit_species_images.py"
   },
   "dependencies": {

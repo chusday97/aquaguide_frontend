@@ -2,6 +2,7 @@
 收口 AquaGuide 当前未完成的体验与架构改造，优先统一混养判断规则，再逐步修复桌面布局、图鉴筛选分页、弹窗层级、收藏入口、养护百科布局和推荐兜底。
 
 ## 已完成
+- 已恢复物种喂养资料的来源与复核状态：同步脚本保留 `sourceUrl/sourceFields/needsReview/reviewReason`，模糊继承与规则模板不会再伪装成已核验事实；486 个物种中 438 个命中结构化资料、48 个明确降级、161 个进入待核验队列，并生成全量 `docs/species_knowledge_audit.csv`。类型检查、构建、物种知识、分类和混养专项测试均通过。（commit: 本次提交）
 - 已修复鱼种详情的混养与喂养资料映射：混养 Tab 改为当前物种与缸内其他活体逐对调用统一规则并展示状态、依据和行动；空缸明确显示尚未评估；`housingReason` 仅作为类别参考。喂养 Tab 不再把 `housingReason` 当造景资料或把 `description` 当风险，新增资料来源状态与专项断言；`npm run lint`、`npm run build`、`test:species-knowledge` 已通过。（commit: 本次提交）
 - 已为混养组合清空增加二次确认：显式“清空”和不建议结果的“重新选择组合”都会说明将移除的物种数量，确认后才清空，取消会保留当前组合；浏览器验收确认 2 种组合取消清空后仍保留，`npm run lint` 与 `npm run build` 已通过。（commit: `7207b76`）
 - 已将图鉴普通物种卡的详情交互收敛为单一入口：图片和标题改为纯展示，仅保留明确的“查看详情”按钮，避免同一卡片三个重复入口与返回焦点不确定；`npm run lint` 与 `npm run build` 已通过。（commit: `279add2`）
