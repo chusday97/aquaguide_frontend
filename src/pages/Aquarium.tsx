@@ -12,11 +12,9 @@ import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Searc
 import { DeceasedRecord } from '../types';
 import {
   askAquaGuideAI,
-  generateRecommendationAssist,
   generateRiskExplanation,
   generateTankBuildCopilot,
   type AiResponseSource,
-  type RecommendationAssistData,
   type RiskExplanationData,
   type TankBuildCopilotData,
 } from '../lib/aiClient';
@@ -594,17 +592,6 @@ const getSubstrateArchiveSpecies = (substrate?: string) => {
   );
 };
 
-const formatRecommendationReason = (text: string) => {
-  const fallback = '基于您当前鱼缸内的生物，我们为您推荐以下兼容性较好的品种。';
-  const normalized = (text || fallback).replace(/\s+/g, ' ').trim();
-  const lines = normalized
-    .split(/[。；;]\s*/)
-    .map(line => line.trim().replace(/[，,]\s*$/, ''))
-    .filter(Boolean);
-
-  return lines.length > 0 ? lines : [fallback];
-};
-
 type DiagnosisMode = 'home' | 'quiz' | 'result' | 'history';
 
 type DiagnosisQuizQuestion = DiagnosisQuestion;
@@ -678,12 +665,9 @@ export default function AquariumManager() {
   // UI States
   const [isAquariumMenuOpen, setIsAquariumMenuOpen] = useState(false);
   const [isAddFishOpen, setIsAddFishOpen] = useState(false);
-  const [isRecommendOpen, setIsRecommendOpen] = useState(false);
   const [isSmartRecommendOpen, setIsSmartRecommendOpen] = useState(false);
   const [smartRecommendMode, setSmartRecommendMode] = useState<RecommendationMode>('existing_livestock');
   const [smartPreference, setSmartPreference] = useState('新手友好 低维护');
-  const [smartAiAssist, setSmartAiAssist] = useState<RecommendationAssistData | null>(null);
-  const [isSmartAiLoading, setIsSmartAiLoading] = useState(false);
   const [smartSimulation, setSmartSimulation] = useState<SimulationResult | null>(null);
   const [smartAddQuantity, setSmartAddQuantity] = useState(1);
   const [isTankCopilotOpen, setIsTankCopilotOpen] = useState(false);
@@ -747,7 +731,6 @@ export default function AquariumManager() {
   const [waterChangeFeedback, setWaterChangeFeedback] = useState('');
 
   const [isRecommending, setIsRecommending] = useState(false);
-  const [aiRecommendations, setAiRecommendations] = useState<Fish[]>([]);
   const [aiReasoning, setAiReasoning] = useState<string>('');
   const [aiReasoningSource, setAiReasoningSource] = useState<AiResponseSource | null>(null);
 
@@ -1651,62 +1634,9 @@ export default function AquariumManager() {
     }
     setIsRecommending(false);
   };
-  const handleSmartRecommend = async () => {
-    if (!activeAquarium) return;
-    setIsRecommendOpen(true);
-    setIsRecommending(true);
-    setAiReasoning('');
-    setAiReasoningSource(null);
-    setAiRecommendations([]);
-
-    try {
-      const localRecommendationItems = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items;
-      const localRecommendations = localRecommendationItems
-        .map(item => fishData.find(fish => fish.id === item.speciesId))
-        .filter(Boolean) as Fish[];
-      setAiRecommendations(localRecommendations);
-
-      const assist = await generateRecommendationAssist({
-        aquarium: {
-          id: activeAquarium.id,
-          waterType: activeAquarium.waterType,
-          targetTemperature: activeAquarium.targetTemperature,
-          dimensions: activeAquarium.dimensions,
-        },
-        safeCandidates: localRecommendationItems.map(item => ({
-          speciesId: item.speciesId,
-          reason: item.reason,
-          status: item.compatibilityStatus,
-          passedRules: item.passedRules,
-          warningRules: item.warningRules,
-          missingData: item.missingData,
-        })),
-        ruleFacts: {
-          source: 'AquaGuide local compatibility policy',
-          aiCannotChangeCandidates: true,
-        },
-      });
-      setAiReasoningSource(assist.source);
-      setAiReasoning(assist.source === 'model'
-        ? [...assist.explanations, ...assist.stagedPlan].slice(0, 4).join('\n')
-        : 'AI 暂不可用，系统规则仍可使用。');
-    } catch(err) {
-      console.error(err);
-      setAiReasoningSource('fallback');
-      setAiReasoning('AI 暂不可用，系统规则仍可使用。');
-      const localRecommendations = recommendationService.recommendForAquarium(activeAquarium, fishData, 8).items
-        .map(item => fishData.find(fish => fish.id === item.speciesId))
-        .filter(Boolean) as Fish[];
-      setAiRecommendations(localRecommendations);
-    } finally {
-      setIsRecommending(false);
-    }
-  };
-
   const openSmartRecommendation = (mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank') => {
     setSmartRecommendMode(mode);
     setSmartSimulation(null);
-    setSmartAiAssist(null);
     setSmartAddQuantity(1);
     setIsSmartRecommendOpen(true);
   };
@@ -1797,25 +1727,6 @@ export default function AquariumManager() {
     setTankCopilotResult(null);
     setTankCopilotAnswers({});
     setTankCopilotError('可以重新描述目标，生成更具体的建缸方案。');
-  };
-
-  const handleRecommendationAssist = async () => {
-    setIsSmartAiLoading(true);
-    const assist = await generateRecommendationAssist({
-      mode: smartRecommendation.mode,
-      aquariumProfile: smartRecommendation.profile,
-      safeCandidates: smartRecommendation.direct,
-      adjustableCandidates: smartRecommendation.adjustable,
-      blockedSummary: smartRecommendation.blockedSummary,
-      userPreference: { naturalLanguage: smartPreference },
-      ruleFacts: {
-        source: 'AquaGuide local recommendation v2',
-        hardFilteredCandidateIds: Array.from(smartCandidateIds),
-        aiCannotAddBlockedSpecies: true,
-      },
-    });
-    setSmartAiAssist(assist);
-    setIsSmartAiLoading(false);
   };
 
   const openSmartSimulation = (candidate: RecommendationCandidate) => {
@@ -5369,106 +5280,6 @@ export default function AquariumManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Recommend Tank Mates Dialog */}
-      <Dialog open={isRecommendOpen} onOpenChange={setIsRecommendOpen}>
-        <DialogContent className="w-[90vw] max-w-[500px] rounded-sm border-border p-5">
-          <DialogHeader>
-            <DialogTitle className="font-serif italic text-xl text-ink font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-accent" />
-              智能混养推荐
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {isRecommending ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-4">
-                <Activity className="w-8 h-8 text-accent animate-spin" />
-                <p className="text-sm text-ink/70 font-bold animate-pulse">正在连线知识库进行智能筛选...</p>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 rounded-sm border border-accent/20 bg-accent/5 p-3">
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
-                      {activeAquarium.waterType === 'Saltwater' ? '海水缸' : '淡水缸'}
-                    </span>
-                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
-                      {activeAquarium.targetTemperature || 25}°C
-                    </span>
-                    <span className="rounded-full border border-accent/15 bg-white px-2.5 py-1 text-[11px] font-bold text-accent">
-                      已有 {activeAquarium.fishes.length} 种生物
-                    </span>
-                  </div>
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="text-[11px] font-black uppercase tracking-[1px] text-accent">推荐逻辑</div>
-                      {aiReasoningSource && (
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                          aiReasoningSource === 'model'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {aiReasoningSource === 'model' ? '模型回复' : '本地模板'}
-                        </span>
-                      )}
-                    </div>
-                    <ul className="space-y-2">
-                      {formatRecommendationReason(aiReasoning).map((line, index) => (
-                        <li key={`${line}-${index}`} className="grid grid-cols-[18px_1fr] gap-2 text-[13px] font-medium leading-relaxed text-ink/80">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-accent" />
-                          <span>{line}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-black text-ink">本地规则候选</h4>
-                  <span className="text-[11px] font-bold text-ink/45">可一键加入种草清单</span>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  {aiRecommendations.map(fish => (
-                    <div key={fish.id} className="grid grid-cols-[56px_1fr_auto] items-center gap-3 rounded-sm border border-border bg-white p-2 transition-colors hover:border-accent">
-                      <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-sm ${getSpeciesImageSurfaceClass(fish)}`}>
-                        <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className="truncate text-sm font-bold text-ink">{fish.name}</h4>
-                        <p className="truncate text-[10px] font-medium text-ink/60">{fish.category}</p>
-                        <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/50">
-                          {recommendationReasonById.get(fish.id) || '与当前鱼缸参数兼容'}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={`h-9 shrink-0 rounded-sm px-2 text-[11px] font-black ${
-                          wishlistFishIds.has(fish.id)
-                            ? 'border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100'
-                            : 'border-accent/30 text-accent hover:bg-accent hover:text-white'
-                        }`}
-                        onClick={() => toggleWishlist(fish.id)}
-                      >
-                        <Heart className={`mr-1 h-3.5 w-3.5 ${wishlistFishIds.has(fish.id) ? 'fill-current' : ''}`} />
-                        {wishlistFishIds.has(fish.id) ? '已种草' : '种草'}
-                      </Button>
-                    </div>
-                  ))}
-                  {aiRecommendations.length === 0 && (
-                    <div className="col-span-full text-center text-xs text-ink/50 py-4">
-                      未能找到匹配的推荐生物。
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsRecommendOpen(false)}>关闭</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={isTankCopilotOpen} onOpenChange={setIsTankCopilotOpen}>
         <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[780px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
           <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-4 text-left">
@@ -5728,7 +5539,6 @@ export default function AquariumManager() {
         setIsSmartRecommendOpen(open);
         if (!open) {
           setSmartSimulation(null);
-          setSmartAiAssist(null);
         }
       }}>
         <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[920px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
@@ -5754,7 +5564,6 @@ export default function AquariumManager() {
                     onClick={() => {
                       setSmartRecommendMode(mode.id);
                       setSmartSimulation(null);
-                      setSmartAiAssist(null);
                     }}
                     className={`rounded-[16px] px-4 py-3 text-left transition-colors ${
                       smartRecommendMode === mode.id ? 'bg-accent text-white shadow-sm' : 'bg-white text-ink hover:bg-white/80'
@@ -5906,31 +5715,6 @@ export default function AquariumManager() {
                   {smartRecommendation.blockedSummary.slice(0, 3).map(item => <div key={item}>• {item}</div>)}
                 </div>
               )}
-
-              <div className="rounded-[18px] border border-border/70 bg-bg/45 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-black text-ink">AI 辅助说明</div>
-                    <div className="mt-1 text-[11px] font-bold text-ink/45">不改变系统安全结论，只解释排序和加入节奏。</div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isSmartAiLoading}
-                    onClick={handleRecommendationAssist}
-                    className="h-9 rounded-full px-3 text-xs font-black"
-                  >
-                    {isSmartAiLoading ? '生成中...' : '生成解释'}
-                  </Button>
-                </div>
-                {(smartAiAssist?.explanations.length || smartAiAssist?.stagedPlan.length) ? (
-                  <div className="mt-3 grid gap-2 text-xs font-bold leading-relaxed text-ink/62">
-                    {[...(smartAiAssist?.explanations || []), ...(smartAiAssist?.stagedPlan || [])].slice(0, 5).map(item => <div key={item}>• {item}</div>)}
-                  </div>
-                ) : (
-                  <div className="mt-3 text-xs font-bold text-ink/42">未生成时，页面使用本地规则推荐。</div>
-                )}
-              </div>
 
               {smartSimulation && (
                 <div className="rounded-[22px] border border-accent/20 bg-emerald-50 p-4">

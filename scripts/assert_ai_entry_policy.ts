@@ -1,0 +1,29 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = process.cwd();
+const sourceRoots = ['src/pages', 'src/components'];
+const sourceFiles = sourceRoots.flatMap(relativeRoot => {
+  const absoluteRoot = path.join(root, relativeRoot);
+  const walk = (directory: string): string[] => fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) return walk(absolute);
+    return entry.name.endsWith('.tsx') ? [absolute] : [];
+  });
+  return walk(absoluteRoot);
+});
+
+const productSource = sourceFiles
+  .filter(file => !file.endsWith('/AIAssistant.tsx') && !file.endsWith('/ProjectStructurePreview.tsx'))
+  .map(file => fs.readFileSync(file, 'utf8'))
+  .join('\n');
+const appSource = fs.readFileSync(path.join(root, 'src/App.tsx'), 'utf8');
+
+assert.equal(productSource.includes('generateRiskAudit'), false, '产品页面不得直接调用旧 risk_audit。');
+assert.equal(productSource.includes('generateRecommendationAssist'), false, '产品页面不得直接调用旧 recommendation_assist。');
+assert.equal(appSource.includes('AIAssistant'), false, '独立 AI 助手不得出现在应用路由。');
+assert.equal(productSource.includes('AI 建缸规划'), true, '鱼缸页必须保留 AI 建缸规划主入口。');
+assert.equal(productSource.includes('让 AI 帮我解读'), true, '规则详情必须保留低频 AI 解读入口。');
+
+console.log('AI entry policy assertions passed');
