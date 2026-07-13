@@ -178,9 +178,7 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
     if (context.sourceId) {
       const source = document.getElementById(context.sourceId);
       if (source) {
-        source.focus({ preventScroll: true });
-        source.classList.add('workspace-section-highlight');
-        window.setTimeout(() => source.classList.remove('workspace-section-highlight'), 1200);
+        focusAndHighlight(source);
       }
     }
     return true;

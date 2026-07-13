@@ -68,11 +68,25 @@ try {
   const wishlistText = await page.locator('body').innerText();
   assert.match(wishlistText, /种草图鉴/);
   assert.doesNotMatch(wishlistText, /搜索鱼、虾|今日种草/);
+  await page.locator('#wishlist-card-sp_0001 button').first().click();
+  const speciesDialog = page.getByRole('dialog');
+  await speciesDialog.getByText('极火虾', { exact: true }).first().waitFor();
+  await speciesDialog.getByRole('button', { name: '返回' }).click();
+  await speciesDialog.waitFor({ state: 'hidden' });
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'wishlist-card-sp_0001');
+  assert.equal(await page.locator('#wishlist-card-sp_0001').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
   await page.goto(`${baseUrl}/care-favorites`, { waitUntil: 'domcontentloaded', timeout: 15000 });
   const careFavoritesText = await page.locator('body').innerText();
   assert.match(careFavoritesText, /养护收藏/);
   assert.doesNotMatch(careFavoritesText, /为当前鱼缸推荐|按问题快速查找/);
+  await page.locator('#care-favorite-guide_water_deteriorate button').first().click();
+  const careDialog = page.getByRole('dialog');
+  await careDialog.getByText('水质变差怎么办', { exact: true }).first().waitFor();
+  await careDialog.getByRole('button', { name: '关闭' }).click();
+  await careDialog.waitFor({ state: 'hidden' });
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'care-favorite-guide_water_deteriorate');
+  assert.equal(await page.locator('#care-favorite-guide_water_deteriorate').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
   await page.goto(`${baseUrl}/encyclopedia`, { waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.getByText('Mini 混养判断', { exact: true }).waitFor();
