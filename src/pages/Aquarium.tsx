@@ -906,7 +906,10 @@ export default function AquariumManager() {
     if (typeof window === 'undefined') return;
     if (window.location.hash === '#local-data') {
       openLocalDataManager();
+      return;
     }
+    const settingsPanel = window.location.hash.match(/^#settings-(size|parameters|equipment)$/)?.[1];
+    if (settingsPanel) openAquariumSettings(settingsPanel as 'size' | 'parameters' | 'equipment');
   }, []);
 
   const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {

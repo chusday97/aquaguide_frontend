@@ -433,7 +433,7 @@ function AnimatedFishBackground() {
 }
 
 export default function Encyclopedia() {
-  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
+  const { captureContext, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<'browse' | 'compatibility'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1744,6 +1744,15 @@ export default function Encyclopedia() {
           aquariums={aquariumSnapshots}
           activeAquariumId={currentAquarium?.id || targetAquariumId}
           onAddToAquarium={addCompatibilitySpeciesToAquarium}
+          onRequestTankInfo={(missingRuleCodes) => {
+            const panel = missingRuleCodes.some(code => /volume|size|tank/.test(code))
+              ? 'size'
+              : missingRuleCodes.some(code => /filter|heater|equipment/.test(code))
+                ? 'equipment'
+                : 'parameters';
+            navigateToView('/aquarium', `#settings-${panel}`);
+          }}
+          onViewAquarium={() => navigateToView('/aquarium')}
           onBrowseAtlas={() => {
             setViewMode('browse');
             void navigateToSection('atlas-toolbar', { updateHash: false });

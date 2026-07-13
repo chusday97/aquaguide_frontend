@@ -124,6 +124,30 @@ const cases: Array<{ name: string; run: () => boolean }> = [
     },
   },
   {
+    name: 'direct engine, calculator decision, and addition review share one status',
+    run: () => {
+      const candidate = makeFish({ waterTemperature: '24-28°C' });
+      const tank = makeTank({ equipment: { filter: '瀑布过滤', heater: false, oxygen: false, light: '普通灯' } });
+      const direct = evaluateTankCompatibility({
+        tank,
+        candidateSpecies: candidate,
+        candidateQuantity: 1,
+      });
+      const calculator = evaluateCompatibilityDecision({
+        tank,
+        items: [{ species: candidate, quantity: 1 }],
+      });
+      const addition = reviewSpeciesAdditions({
+        aquarium: tank,
+        items: [{ fishId: candidate.id, quantity: 1 }],
+        speciesCatalog: [candidate],
+      });
+      return direct.status === 'caution'
+        && calculator.status === direct.status
+        && addition?.status === direct.status;
+    },
+  },
+  {
     name: 'same species quantity counts toward load without self conflict',
     run: () => {
       const species = makeFish();

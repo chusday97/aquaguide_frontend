@@ -481,6 +481,8 @@ type CompatibilityRiskCalculatorProps = {
   onSpeciesIdsChange?: (ids: string[]) => void;
   onBrowseAtlas?: () => void;
   onAddToAquarium?: (items: { fishId: string; quantity: number }[]) => void | Promise<{ message?: string } | void>;
+  onRequestTankInfo?: (missingRuleCodes: string[]) => void;
+  onViewAquarium?: () => void;
   preferredSpeciesIds?: string[];
   aquariums?: Aquarium[];
   activeAquariumId?: string;
@@ -505,6 +507,8 @@ export function CompatibilityRiskCalculator({
   onSpeciesIdsChange,
   onBrowseAtlas,
   onAddToAquarium,
+  onRequestTankInfo,
+  onViewAquarium,
   preferredSpeciesIds = [],
   aquariums = [],
   activeAquariumId = '',
@@ -731,8 +735,12 @@ export function CompatibilityRiskCalculator({
       return;
     }
     if (resultAddPolicy === 'complete_information') {
-      setResultFeedback('当前信息不足，建议先补充鱼缸参数后再添加。');
-      setActiveModal('adjustment');
+      const missingRuleCodes = result.ruleResult?.missingData.map(rule => rule.code) || [];
+      if (onRequestTankInfo) {
+        onRequestTankInfo(missingRuleCodes);
+        return;
+      }
+      setResultFeedback('当前信息不足，请先补充鱼缸参数后再添加。');
       return;
     }
     if (resultAddPolicy === 'confirm') {
@@ -999,8 +1007,17 @@ export function CompatibilityRiskCalculator({
               </div>
 
               {resultFeedback && (
-                <div className="mb-3 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
-                  {resultFeedback}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+                  <span>{resultFeedback}</span>
+                  {addedSpeciesIds.length > 0 && onViewAquarium && (
+                    <button
+                      type="button"
+                      onClick={onViewAquarium}
+                      className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-emerald-800 shadow-sm"
+                    >
+                      查看我的鱼缸
+                    </button>
+                  )}
                 </div>
               )}
 
