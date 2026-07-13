@@ -1212,6 +1212,12 @@ export default function CareEncyclopedia() {
     void navigateToSection('care-results', { updateHash: false });
   };
 
+  const goToCareResultPage = (page: number) => {
+    const nextPage = Math.max(0, Math.min(careResultPageCount - 1, page));
+    setCareResultPage(nextPage);
+    void navigateToSection('care-results', { updateHash: false });
+  };
+
   const openCareDetail = (topicId: string, sourceId?: string, captureReturnContext = true) => {
     const topic = careTopicsData.find(item => item.id === topicId);
     if (!topic) return;
@@ -1656,7 +1662,7 @@ export default function CareEncyclopedia() {
             <button
               type="button"
               disabled={currentCareResultPage === 0}
-              onClick={() => setCareResultPage(page => Math.max(0, page - 1))}
+              onClick={() => goToCareResultPage(currentCareResultPage - 1)}
               className="h-9 rounded-full border border-border bg-white px-4 text-[12px] font-black text-ink/65 disabled:opacity-35"
             >
               上一页
@@ -1667,7 +1673,7 @@ export default function CareEncyclopedia() {
             <button
               type="button"
               disabled={currentCareResultPage >= careResultPageCount - 1}
-              onClick={() => setCareResultPage(page => Math.min(careResultPageCount - 1, page + 1))}
+              onClick={() => goToCareResultPage(currentCareResultPage + 1)}
               className="h-9 rounded-full border border-border bg-white px-4 text-[12px] font-black text-ink/65 disabled:opacity-35"
             >
               下一页

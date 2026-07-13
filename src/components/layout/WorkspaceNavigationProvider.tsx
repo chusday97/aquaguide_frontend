@@ -32,6 +32,12 @@ const getScrollTop = () => {
   return scroller ? scroller.scrollTop : window.scrollY;
 };
 
+const waitForLayout = () => new Promise<void>((resolve) => {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => resolve());
+  });
+});
+
 const getStickyOffset = (scroller: HTMLElement) => {
   const scrollerRect = scroller.getBoundingClientRect();
   let offset = 20;
@@ -159,7 +165,9 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
       navigate(targetUrl);
     }
 
-    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    // Route and list state can both change while a detail surface closes. Wait
+    // for the next painted layout before restoring the saved scroll position.
+    await waitForLayout();
     const scroller = getWorkspaceScroller();
     if (scroller) {
       scroller.scrollTo({ top: context.scrollTop, behavior: 'auto' });
@@ -168,7 +176,12 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
     }
 
     if (context.sourceId) {
-      document.getElementById(context.sourceId)?.focus({ preventScroll: true });
+      const source = document.getElementById(context.sourceId);
+      if (source) {
+        source.focus({ preventScroll: true });
+        source.classList.add('workspace-section-highlight');
+        window.setTimeout(() => source.classList.remove('workspace-section-highlight'), 1200);
+      }
     }
     return true;
   }, [location.hash, location.pathname, location.search, navigate]);
