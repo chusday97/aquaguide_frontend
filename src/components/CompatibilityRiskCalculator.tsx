@@ -357,6 +357,9 @@ function CompatibilityBottomSheet({
         onClick={onClose}
       />
       <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="compatibility-sheet-title"
         className="relative z-10 flex max-h-[85dvh] min-h-[70dvh] w-full max-w-[430px] animate-[compatSheetUp_180ms_ease-out] flex-col overflow-hidden rounded-t-[24px] bg-bg shadow-2xl"
         onPointerDown={(event) => {
           const startY = event.clientY;
@@ -378,25 +381,22 @@ function CompatibilityBottomSheet({
           <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-ink/12" />
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-[18px] font-black text-ink">{sheetTitle}</h3>
+              <h3 id="compatibility-sheet-title" className="text-[18px] font-black text-ink">{sheetTitle}</h3>
               <p className="mt-0.5 text-[11px] font-bold text-ink/45">{isAdjustment ? '只看现在能做什么。' : '看清是哪组生物需要谨慎。'}</p>
             </div>
-            <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink/55">
+            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/55" aria-label="关闭">
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 pb-24">
+        <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 pb-6">
           {isAdjustment ? (
             <div className="grid gap-3">
               <section className={`rounded-[18px] border p-3 ${meta.tone}`}>
                 <div className="text-[10px] font-black opacity-65">当前结论</div>
                 <div className="mt-1 text-[15px] font-black">{meta.label}：{riskConclusion}</div>
-              </section>
-              <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">为什么有风险</div>
-                <p className="mt-2 text-[12px] font-medium leading-relaxed text-ink/64">{getRiskExplanation(conflictTags, result.reasons)}</p>
+                <p className="mt-2 text-[12px] font-medium leading-relaxed opacity-70">{getRiskExplanation(conflictTags, result.reasons)}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {conflictTags.length > 0 ? conflictTags.map(tag => (
                     <span key={tag} className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">{tag}</span>
@@ -404,16 +404,23 @@ function CompatibilityBottomSheet({
                 </div>
               </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">建议怎么调整</div>
+                <div className="text-[13px] font-black text-ink">现在怎么做</div>
                 <div className="mt-2 grid gap-2">
-                  {actionHints.map(step => (
-                    <div key={step} className="rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">{step}</div>
+                  {actionHints.slice(0, 3).map((step, stepIndex) => (
+                    <div key={step} className="flex gap-2 rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">
+                      <span className="shrink-0">{stepIndex + 1}.</span>
+                      <span>{step}</span>
+                    </div>
                   ))}
                 </div>
               </section>
             </div>
           ) : (
             <div className="grid gap-3">
+              <section className={`rounded-[18px] border p-3 ${meta.tone}`}>
+                <div className="text-[10px] font-black opacity-60">当前结论</div>
+                <div className="mt-1 text-[15px] font-black">{meta.label}：{riskConclusion}</div>
+              </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="text-[10px] font-black text-ink/42">主要提醒对象</div>
                 <div className="mt-1 text-[15px] font-black text-ink">{primaryConflict.pair}</div>
@@ -424,16 +431,6 @@ function CompatibilityBottomSheet({
                     </span>
                   ))}
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">风险数量</div>
-                    <div className="mt-1 text-[12px] font-black text-ink">{primaryReasons.length} 项主要提醒</div>
-                  </div>
-                  <div className={`rounded-[14px] border px-3 py-2 ${meta.tone}`}>
-                    <div className="text-[10px] font-black opacity-60">风险等级</div>
-                    <div className="mt-1 text-[12px] font-black">{meta.label}</div>
-                  </div>
-                </div>
                 <div className="mt-2 grid gap-1.5 rounded-[14px] bg-bg px-3 py-2">
                   {primaryReasons.map(reason => (
                     <p key={reason} className="text-[12px] font-medium leading-relaxed text-ink/64">{reason}</p>
@@ -441,15 +438,18 @@ function CompatibilityBottomSheet({
                 </div>
                 {(mergedConflictCount > 0 || mergedReasonCount > 0) && (
                   <div className="mt-2 rounded-[14px] bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-700">
-                    已合并 {mergedConflictCount > 0 ? `${mergedConflictCount} 组对象` : ''}{mergedConflictCount > 0 && mergedReasonCount > 0 ? '、' : ''}{mergedReasonCount > 0 ? `${mergedReasonCount} 条依据` : ''}，详细规则可在结果页展开查看。
+                    另有 {mergedConflictCount > 0 ? `${mergedConflictCount} 组对象` : ''}{mergedConflictCount > 0 && mergedReasonCount > 0 ? '、' : ''}{mergedReasonCount > 0 ? `${mergedReasonCount} 条依据` : ''}，可在结果页展开查看。
                   </div>
                 )}
               </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="text-[13px] font-black text-ink">现在怎么做</div>
                 <div className="mt-2 grid gap-2">
-                  {actionHints.slice(0, 3).map(step => (
-                    <div key={step} className="rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">{step}</div>
+                  {actionHints.slice(0, 2).map((step, stepIndex) => (
+                    <div key={step} className="flex gap-2 rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">
+                      <span className="shrink-0">{stepIndex + 1}.</span>
+                      <span>{step}</span>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -457,11 +457,11 @@ function CompatibilityBottomSheet({
           )}
         </div>
 
-        <div className="modalFooter fixed bottom-0 left-1/2 z-20 grid w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-2 border-t border-white bg-white/95 backdrop-blur">
-          <button type="button" onClick={onAccept} className="rounded-full bg-emerald-700 text-[13px] font-black text-white">
+        <div className="modalFooter grid shrink-0 grid-cols-2 gap-2 border-t border-white bg-white/95 backdrop-blur">
+          <button type="button" onClick={onAccept} className="min-h-11 rounded-full bg-emerald-700 px-3 text-[13px] font-black text-white">
             {acceptLabel}
           </button>
-          <button type="button" onClick={onEdit} className="rounded-full border border-border bg-white text-[13px] font-black text-ink/62">
+          <button type="button" onClick={onEdit} className="min-h-11 rounded-full border border-border bg-white px-3 text-[13px] font-black text-ink/62">
             返回修改组合
           </button>
         </div>

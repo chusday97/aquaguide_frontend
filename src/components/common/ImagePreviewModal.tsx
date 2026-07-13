@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 
@@ -17,6 +17,8 @@ type ImagePreviewModalProps = {
 
 export function ImagePreviewModal({ images, index, open, onClose, onIndexChange }: ImagePreviewModalProps) {
   const [isZoomed, setIsZoomed] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const canNavigate = images.length > 1;
 
   const safeIndex = useMemo(() => {
@@ -32,13 +34,19 @@ export function ImagePreviewModal({ images, index, open, onClose, onIndexChange 
 
   useEffect(() => {
     if (!open) return;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusFrame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'ArrowLeft' && canNavigate) onIndexChange((safeIndex - 1 + images.length) % images.length);
       if (event.key === 'ArrowRight' && canNavigate) onIndexChange((safeIndex + 1) % images.length);
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
   }, [canNavigate, images.length, onClose, onIndexChange, open, safeIndex]);
 
   const portalTarget = typeof document === 'undefined' ? null : document.body;
@@ -75,9 +83,10 @@ export function ImagePreviewModal({ images, index, open, onClose, onIndexChange 
               {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
             </button>
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/18"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
