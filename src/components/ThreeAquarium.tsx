@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { getAquariumHardscapeSpecies, getAquariumPlantSpecies } from '../lib/speciesClassification';
+import { getSpeciesDisplayImage } from '../lib/speciesVisual';
 
 interface ThreeAquariumProps {
   aquarium: Aquarium;
@@ -40,6 +41,25 @@ type HardscapeRenderItem = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const useManagedTexture = (imageUrl: string) => {
+  const sourceTexture = useLoader(THREE.TextureLoader, imageUrl);
+  const texture = useMemo(() => {
+    const nextTexture = sourceTexture.clone();
+    nextTexture.colorSpace = THREE.SRGBColorSpace;
+    nextTexture.anisotropy = 8;
+    nextTexture.generateMipmaps = false;
+    nextTexture.minFilter = THREE.LinearFilter;
+    nextTexture.magFilter = THREE.LinearFilter;
+    nextTexture.wrapS = THREE.ClampToEdgeWrapping;
+    nextTexture.wrapT = THREE.ClampToEdgeWrapping;
+    nextTexture.needsUpdate = true;
+    return nextTexture;
+  }, [sourceTexture]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
+};
 
 const seededRandom = (seed: string) => {
   let hash = 2166136261;
@@ -478,17 +498,12 @@ function AquaticPlant({ x, z, height, tone, delay, kind, surface = false }: { x:
 
 function AquaticPlantSprite({ plant, height }: { plant: PlantRenderItem; height: number }) {
   const group = useRef<THREE.Group>(null);
-  const texture = useLoader(THREE.TextureLoader, plant.plantInfo!.image);
+  const texture = useManagedTexture(getSpeciesDisplayImage(plant.plantInfo!));
   const aspect = texture.image ? texture.image.width / Math.max(texture.image.height, 1) : 1;
   const isCarpet = /莫斯|牛毛|矮珍珠|挖耳|箦藻/.test(plant.kind);
   const isFloating = plant.surface;
   const spriteHeight = isFloating ? 0.45 : isCarpet ? 0.58 : 0.9;
   const spriteWidth = clamp(spriteHeight * aspect, 0.44, 1.4);
-
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.needsUpdate = true;
-  }, [texture]);
 
   useFrame((state) => {
     if (!group.current) return;
@@ -721,16 +736,11 @@ function RockCluster({ length, width, height, isSaltwater }: { length: number; w
 }
 
 function HardscapeSprite({ item, height }: { item: HardscapeRenderItem; height: number }) {
-  const texture = useLoader(THREE.TextureLoader, item.itemInfo.image);
+  const texture = useManagedTexture(getSpeciesDisplayImage(item.itemInfo));
   const aspect = texture.image ? texture.image.width / Math.max(texture.image.height, 1) : 1;
   const name = item.itemInfo.name;
   const spriteHeight = /砂|泥|底床/.test(name) ? 0.42 : /沉木|景观树/.test(name) ? 0.95 : 0.72;
   const spriteWidth = clamp(spriteHeight * aspect, 0.5, 1.65);
-
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.needsUpdate = true;
-  }, [texture]);
 
   return (
     <Billboard
@@ -846,19 +856,7 @@ function SwimmingFish({
   const shadowRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
 
-  const texture = useMemo(() => {
-    const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin('anonymous');
-    const tex = loader.load(fishInfo.image);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    tex.generateMipmaps = false;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.wrapS = THREE.ClampToEdgeWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    return tex;
-  }, [fishInfo.image]);
+  const texture = useManagedTexture(getSpeciesDisplayImage(fishInfo));
 
   const isBottomDweller =
     fishInfo.category === '龟类' ||
