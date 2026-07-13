@@ -78,6 +78,7 @@ import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
+import { trackSessionEvent } from '../services/analytics/session-events.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -2030,6 +2031,7 @@ export default function AquariumManager() {
     setIsDiagnosing(false);
     setDailyCheckInterpretation(null);
     setDailyCheckArticles([]);
+    trackSessionEvent('daily_check_started', { action: 'start', status: 'started', entry: 'aquarium' });
   };
 
   const handleOpenDiagnosisWithType = (typeId: string) => {
@@ -2236,6 +2238,9 @@ export default function AquariumManager() {
     showToast(problemType === '巡检'
       ? existingDailyRecord ? '已更新今天的检查记录' : '已保存今天的检查记录'
       : '已保存本次诊断');
+    if (problemType === '巡检') {
+      trackSessionEvent('daily_check_completed', { action: existingDailyRecord ? 'update' : 'complete', status: result.riskLevel, entry: 'aquarium' });
+    }
   };
 
   const handleDiagnosisFollowUp = () => {
@@ -4801,7 +4806,10 @@ export default function AquariumManager() {
                 {diagnosisIssueType === '巡检' && dailyCheckArticles[0] && (
                   <button
                     type="button"
-                    onClick={() => setSelectedDailyCheckArticle(dailyCheckArticles[0])}
+                    onClick={() => {
+                      setSelectedDailyCheckArticle(dailyCheckArticles[0]);
+                      trackSessionEvent('remedy_article_opened', { action: 'open', status: structuredDiagnosis.riskLevel, entry: 'daily-check-result' });
+                    }}
                     className="flex w-full items-center justify-between gap-3 rounded-[16px] bg-emerald-700 px-4 py-3 text-left text-white shadow-sm"
                   >
                     <span className="min-w-0">

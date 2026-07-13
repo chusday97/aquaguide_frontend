@@ -60,6 +60,7 @@ import {
 } from '../lib/speciesGrouping';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
+import { trackSessionEvent } from '../services/analytics/session-events.service';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
@@ -564,6 +565,18 @@ export default function Encyclopedia() {
   const miniCompatibilityResult = useMemo(() => (
     calculatorSpecies.length >= 2 ? evaluateSpeciesCombination(calculatorSpecies) : null
   ), [calculatorSpecies]);
+  const lastMiniEventRef = useRef('');
+  useEffect(() => {
+    if (!miniCompatibilityResult) return;
+    const eventKey = `${calculatorSpeciesIds.join(',')}::${miniCompatibilityResult.status}`;
+    if (lastMiniEventRef.current === eventKey) return;
+    lastMiniEventRef.current = eventKey;
+    trackSessionEvent('mini_result_generated', {
+      action: 'generate',
+      status: miniCompatibilityResult.status,
+      entry: 'encyclopedia',
+    });
+  }, [calculatorSpeciesIds, miniCompatibilityResult]);
   const discoveryPool = useMemo(
     () => allFishes,
     [allFishes]
@@ -1765,6 +1778,7 @@ export default function Encyclopedia() {
                 type="button"
                 onClick={() => {
                   setCompatibilitySelection(calculatorSpeciesIds);
+                  trackSessionEvent('mini_open_full', { action: 'open', status: miniCompatibilityResult.status, entry: 'encyclopedia' });
                   setViewMode('compatibility');
                 }}
                 className="h-10 shrink-0 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white"

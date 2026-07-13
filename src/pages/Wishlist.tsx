@@ -11,6 +11,7 @@ import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceCla
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
+import { trackSessionEvent } from '../services/analytics/session-events.service';
 import type { Aquarium, Fish } from '../types';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 
@@ -35,6 +36,9 @@ export default function Wishlist() {
   ), [favoriteIds]);
 
   useEffect(() => subscribeToFavorites(() => setFavoriteIds(new Set(getSpeciesFavoriteIds()))), []);
+  useEffect(() => {
+    trackSessionEvent('favorite_page_view', { action: 'view', status: 'species', entry: 'wishlist' });
+  }, []);
 
   const removeFavorite = (fishId: string) => {
     const next = new Set(favoriteIds);

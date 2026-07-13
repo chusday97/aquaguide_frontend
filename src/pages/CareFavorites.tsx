@@ -12,6 +12,7 @@ import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import type { Aquarium } from '../types';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 import { CareArticleDetail } from './CareEncyclopedia';
+import { trackSessionEvent } from '../services/analytics/session-events.service';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 
@@ -37,6 +38,9 @@ export default function CareFavorites() {
   ), [favorites]);
 
   useEffect(() => subscribeToFavorites(() => setFavorites(getCareFavorites())), []);
+  useEffect(() => {
+    trackSessionEvent('favorite_page_view', { action: 'view', status: 'care', entry: 'care-favorites' });
+  }, []);
 
   const toggleFavorite = (topic: CareTopic) => {
     const wasFavorite = Boolean(favorites[topic.id]);
