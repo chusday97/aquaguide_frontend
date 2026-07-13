@@ -71,10 +71,13 @@ const baseQuestionBank: Record<DiagnosisProblemType, DiagnosisQuestion[]> = {
     { id: 'livestockNibbling', question: '是否有生物啃草或翻底？', options: ['没有', '有啃草', '有翻底', '不确定'] },
   ],
   巡检: [
-    { id: 'breathing', question: '鱼的呼吸看起来正常吗？', options: ['正常', '偶尔浮头', '经常浮头', '呼吸明显急促', '不确定'] },
-    { id: 'waterLook', question: '水看起来怎么样？', options: ['清澈', '发白', '发绿', '有异味', '水面油膜', '不确定'] },
-    { id: 'recentAction', question: '最近 48 小时做过什么？', options: ['没有特别操作', '换水', '喂多了', '新鱼入缸', '加药', '不确定'] },
-    { id: 'behavior', question: '鱼的行为怎么样？', options: ['正常游动', '趴底不动', '不吃食', '躲藏', '追咬打架', '不确定'] },
+    { id: 'breathing', question: '鱼是否浮头或呼吸急促？', options: ['正常', '偶尔浮头', '经常浮头', '呼吸明显急促', '不确定'] },
+    { id: 'waterLook', question: '水体是否发白、发绿或浑浊？', options: ['清澈', '轻微浑浊', '明显浑浊', '发白', '发绿', '不确定'] },
+    { id: 'surfaceLook', question: '水面是否有持续泡沫或油膜？', options: ['没有泡沫或油膜', '少量短暂泡沫', '持续泡沫', '水面油膜', '不确定'] },
+    { id: 'odor', question: '鱼缸是否出现异味？', options: ['没有异味', '轻微腥味', '明显异味', '不确定'] },
+    { id: 'behavior', question: '鱼是否拒食、趴底、躲藏或追咬？', options: ['正常游动和进食', '拒食', '趴底不动', '持续躲藏', '追咬打架', '不确定'] },
+    { id: 'recentAction', question: '最近 48 小时做过什么？', options: ['没有特别操作', '换水', '清洗过滤', '喂多了', '加药', '新增生物', '不确定'] },
+    { id: 'userDescription', question: '还有其他情况想补充吗？', options: ['跳过'], optionalText: true },
   ],
   水质异常: [
     { id: 'mainProblem', question: '你看到的主要问题是什么？', options: ['水发白', '水发绿', '有异味', '水面油膜', '鱼浮头喘气', '不确定'] },

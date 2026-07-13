@@ -15,6 +15,8 @@
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
+- `src/services/diagnosis/`：巡检记录的同日更新策略。
+- `src/modules/diagnosis/`：每日检查问题、确定性规则与数据类型。
 - `src/lib/tankCompatibilityEngine.ts`：统一混养规则引擎。
 - `src/lib/speciesVisual.ts`：二维与 3D 物种素材解析。
 - `src/components/SpeciesDetailDialog.tsx`：共享物种详情。
@@ -24,4 +26,5 @@
 
 - `docs/LAYOUT_FEATURE_PARITY.md`：手机/桌面功能对照。
 - `scripts/`：规则、契约、素材与回归断言。
+- `CONTRACT.md`：每日检查与受控 AI 接口契约。
 - `PROGRESS.md`：项目内进度、决策与阻塞记录。

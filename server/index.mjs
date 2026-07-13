@@ -215,6 +215,33 @@ const buildTankCopilotPrompt = (context = {}) => {
   return { system, messages: [{ role: 'user', content: user }], temperature: 0.2, maxTokens: 1100, thinking: 'disabled' };
 };
 
+const buildTankDailyCheckPrompt = (context = {}) => {
+  const compactContext = JSON.stringify(context, null, 2).slice(0, 16000);
+  const system = [
+    '你是 AquaGuide 的每日鱼缸检查解释助手。',
+    '本地规则已经确定风险等级、立即动作、禁止动作和候选百科。你只能理解用户自然语言、整理可能关联和生成补充问题。',
+    '你不能降低 deterministicResult 的风险，不能删除或弱化立即动作和禁止动作，不能诊断疾病，不能给出自动用药建议。',
+    'recommendedArticleIds 只能来自 candidateArticles，不能虚构文章。',
+    '输出必须是合法 JSON，不要 Markdown，不要代码块，不要额外解释。',
+  ].join('\n');
+  const user = [
+    '请结合鱼缸快照、结构化回答、用户补充描述和本地确定性结果生成解释。',
+    '返回 JSON 必须符合：',
+    JSON.stringify({
+      summary: '一句话解释当前情况',
+      priority: 'routine | watch | urgent',
+      reasoning: ['只基于输入事实的关联原因'],
+      recommendedArticleIds: ['只能选择 candidateArticles 中的 id'],
+      clarifyingQuestions: ['最多 3 个需要用户补充的问题'],
+      disclaimer: '这是风险分诊和养护引导，不是疾病确诊或用药建议。',
+    }, null, 2),
+    '',
+    'context:',
+    compactContext,
+  ].join('\n');
+  return { system, messages: [{ role: 'user', content: user }], temperature: 0.15, maxTokens: 900, thinking: 'disabled' };
+};
+
 const parseJsonObject = (text) => {
   try {
     return JSON.parse(text);
@@ -331,6 +358,19 @@ const normalizeTankCopilotData = (data) => {
   };
 };
 
+const normalizeTankDailyCheckData = (data) => ({
+  summary: typeof data?.summary === 'string' ? data.summary.trim() : '',
+  priority: ['routine', 'watch', 'urgent'].includes(data?.priority) ? data.priority : 'watch',
+  reasoning: Array.isArray(data?.reasoning) ? data.reasoning.filter(item => typeof item === 'string').slice(0, 5) : [],
+  recommendedArticleIds: Array.isArray(data?.recommendedArticleIds)
+    ? data.recommendedArticleIds.filter(item => typeof item === 'string').slice(0, 3)
+    : [],
+  clarifyingQuestions: Array.isArray(data?.clarifyingQuestions)
+    ? data.clarifyingQuestions.filter(item => typeof item === 'string').slice(0, 3)
+    : [],
+  disclaimer: '这是风险分诊和养护引导，不是疾病确诊或用药建议。',
+});
+
 const fetchWithTimeout = async (url, options, timeoutMs = aiRequestTimeoutMs) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -372,6 +412,8 @@ app.post('/api/ai/chat', async (req, res) => {
         ? buildRecommendationAssistPrompt(context)
         : task === 'build_tank_copilot'
           ? buildTankCopilotPrompt(context)
+          : task === 'tank_daily_check_interpretation'
+            ? buildTankDailyCheckPrompt(context)
           : req.body || {};
 
   const { messages, system, temperature = 0.4, maxTokens = 1200, thinking = 'disabled' } = requestInput;
@@ -457,6 +499,16 @@ app.post('/api/ai/chat', async (req, res) => {
         source: 'model',
         generatedAt: new Date().toISOString(),
         data: normalizeTankCopilotData(parsed),
+      });
+    }
+    if (task === 'tank_daily_check_interpretation') {
+      const parsed = parseJsonObject(content);
+      return res.json({
+        ok: true,
+        task: 'tank_daily_check_interpretation',
+        source: 'model',
+        generatedAt: new Date().toISOString(),
+        data: normalizeTankDailyCheckData(parsed),
       });
     }
 

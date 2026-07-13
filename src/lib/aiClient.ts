@@ -11,7 +11,9 @@ interface AskAiOptions {
   thinking?: 'enabled' | 'disabled';
 }
 
-export type AiTaskName = 'risk_explanation' | 'risk_audit' | 'recommendation_assist' | 'build_tank_copilot';
+import type { TankDailyCheckContext, TankDailyCheckInterpretation } from '../modules/diagnosis/diagnosis.types';
+
+export type AiTaskName = 'risk_explanation' | 'risk_audit' | 'recommendation_assist' | 'build_tank_copilot' | 'tank_daily_check_interpretation';
 export type AiResponseSource = 'model' | 'fallback';
 export type AiFailureReason = 'not_configured' | 'network' | 'timeout' | 'invalid_json' | 'status_mismatch' | 'unknown';
 
@@ -84,6 +86,7 @@ export interface RecommendationAssistData extends AiResultMeta {
 }
 
 export type TankBuildCopilotData = TankCopilotResponse;
+export type TankDailyCheckInterpretationData = TankDailyCheckInterpretation & AiResultMeta & { fallback?: boolean };
 
 const fallbackRiskExplanation: RiskExplanationData = {
   statusRestatement: 'unknown',
@@ -122,6 +125,59 @@ const fallbackRecommendationAssist: RecommendationAssistData = {
   stagedPlan: ['先选择 1 个候选进入模拟', '确认负载和风险后再少量加入', '加入后观察 3-7 天'],
   questions: [],
   fallback: true,
+};
+
+const dailyPriorityRank: Record<TankDailyCheckInterpretation['priority'], number> = {
+  routine: 1,
+  watch: 2,
+  urgent: 3,
+};
+
+const getDeterministicDailyPriority = (context: TankDailyCheckContext): TankDailyCheckInterpretation['priority'] => (
+  context.deterministicResult.riskLevel === 'high'
+    ? 'urgent'
+    : context.deterministicResult.riskLevel === 'medium' || context.deterministicResult.riskLevel === 'unknown'
+      ? 'watch'
+      : 'routine'
+);
+
+const buildDailyCheckFallback = (context: TankDailyCheckContext): TankDailyCheckInterpretation => ({
+  summary: context.deterministicResult.summary,
+  priority: getDeterministicDailyPriority(context),
+  reasoning: [...context.deterministicResult.possibleCauses, ...context.deterministicResult.evidence].slice(0, 4),
+  recommendedArticleIds: context.candidateArticles.slice(0, 2).map(article => article.id),
+  clarifyingQuestions: context.deterministicResult.missingInfo.slice(0, 3).map(item => `请补充：${item}`),
+  disclaimer: '这是风险分诊和养护引导，不是疾病确诊或用药建议。',
+});
+
+export const sanitizeTankDailyCheckInterpretation = (
+  data: Partial<TankDailyCheckInterpretation> | undefined,
+  context: TankDailyCheckContext,
+): TankDailyCheckInterpretation => {
+  const fallback = buildDailyCheckFallback(context);
+  const allowedPriorities: TankDailyCheckInterpretation['priority'][] = ['routine', 'watch', 'urgent'];
+  const requestedPriority = allowedPriorities.includes(data?.priority as TankDailyCheckInterpretation['priority'])
+    ? data?.priority as TankDailyCheckInterpretation['priority']
+    : fallback.priority;
+  const priority = dailyPriorityRank[requestedPriority] < dailyPriorityRank[fallback.priority]
+    ? fallback.priority
+    : requestedPriority;
+  const candidateIds = new Set(context.candidateArticles.map(article => article.id));
+
+  return {
+    summary: typeof data?.summary === 'string' && data.summary.trim() ? data.summary.trim() : fallback.summary,
+    priority,
+    reasoning: Array.isArray(data?.reasoning)
+      ? data.reasoning.filter(item => typeof item === 'string' && item.trim()).slice(0, 5)
+      : fallback.reasoning,
+    recommendedArticleIds: Array.isArray(data?.recommendedArticleIds)
+      ? Array.from(new Set(data.recommendedArticleIds.filter(id => typeof id === 'string' && candidateIds.has(id)))).slice(0, 3)
+      : fallback.recommendedArticleIds,
+    clarifyingQuestions: Array.isArray(data?.clarifyingQuestions)
+      ? data.clarifyingQuestions.filter(item => typeof item === 'string' && item.trim()).slice(0, 3)
+      : fallback.clarifyingQuestions,
+    disclaimer: '这是风险分诊和养护引导，不是疾病确诊或用药建议。',
+  };
 };
 
 export const getAiUnavailableMessage = () => (
@@ -428,6 +484,33 @@ export const generateTankBuildCopilot = async (context: TankCopilotContext): Pro
     return withAiMeta(normalizeTankBuildCopilot(payload.data, context), 'build_tank_copilot', 'model');
   } catch (error) {
     return withAiMeta(fallback, 'build_tank_copilot', 'fallback', failureReasonFromError(error));
+  }
+};
+
+export const generateTankDailyCheckInterpretation = async (
+  context: TankDailyCheckContext,
+): Promise<TankDailyCheckInterpretationData> => {
+  const fallback = buildDailyCheckFallback(context);
+  try {
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'tank_daily_check_interpretation', context }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      return withAiMeta(fallback, 'tank_daily_check_interpretation', 'fallback', failureReasonFromResponse(response, payload));
+    }
+    if (payload?.task !== 'tank_daily_check_interpretation') {
+      return withAiMeta(fallback, 'tank_daily_check_interpretation', 'fallback', 'invalid_json');
+    }
+    return withAiMeta(
+      sanitizeTankDailyCheckInterpretation(payload.data, context),
+      'tank_daily_check_interpretation',
+      'model',
+    );
+  } catch (error) {
+    return withAiMeta(fallback, 'tank_daily_check_interpretation', 'fallback', failureReasonFromError(error));
   }
 };
 import type {

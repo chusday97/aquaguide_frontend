@@ -40,8 +40,55 @@ export type AquariumDiagnosisSnapshot = {
   recentWaterChange: string;
   recentFeeding: string;
   recentAddedSpecies: string;
+  dimensions?: string;
+  equipment?: string;
+  livestockCount?: number;
   healthScore?: number;
   riskCount?: number;
+};
+
+export interface TankDailyCheckContext {
+  aquariumSnapshot: AquariumDiagnosisSnapshot;
+  answers: DiagnosisAnswerMap;
+  userDescription?: string;
+  deterministicResult: DiagnosisOutput;
+  candidateArticles: Array<{
+    id: string;
+    title: string;
+    summary: string;
+  }>;
+}
+
+export interface TankDailyCheckInterpretation {
+  summary: string;
+  priority: 'routine' | 'watch' | 'urgent';
+  reasoning: string[];
+  recommendedArticleIds: string[];
+  clarifyingQuestions: string[];
+  disclaimer: string;
+}
+
+export type DiagnosisRecord = {
+  diagnosisId: string;
+  id?: string;
+  createdAt: string;
+  aquariumId: string;
+  source?: { type: 'manual' | 'care_article' | 'home'; title?: string };
+  problemType: string;
+  answers: DiagnosisAnswerMap;
+  structuredAnswers?: Array<{ questionId: string; question: string; answer: string }>;
+  resultSummary: string;
+  riskLevel: string;
+  riskCode?: DiagnosisRiskCode;
+  conclusion?: string;
+  keyMetrics?: Array<{ label: string; value: string }>;
+  suggestedActions: string[];
+  avoidActions?: string[];
+  observeItems?: string[];
+  missingInfo: string[];
+  optionalMissingInfo?: string[];
+  nextCheckAt?: string;
+  followUpNotes: string[];
 };
 
 export type DiagnosisRuleResult = {

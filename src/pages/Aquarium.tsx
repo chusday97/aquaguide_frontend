@@ -14,9 +14,11 @@ import {
   askAquaGuideAI,
   generateRiskExplanation,
   generateTankBuildCopilot,
+  generateTankDailyCheckInterpretation,
   type AiResponseSource,
   type RiskExplanationData,
   type TankBuildCopilotData,
+  type TankDailyCheckInterpretationData,
 } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
@@ -30,7 +32,7 @@ import {
   getEstimatedQuestionCount,
   isDiagnosisProblemType,
 } from '../modules/diagnosis/diagnosis.questionBank';
-import type { DiagnosisAnswerMap, DiagnosisOutput, DiagnosisProblemType, DiagnosisQuestion } from '../modules/diagnosis/diagnosis.types';
+import type { DiagnosisAnswerMap, DiagnosisOutput, DiagnosisProblemType, DiagnosisQuestion, DiagnosisRecord, TankDailyCheckContext } from '../modules/diagnosis/diagnosis.types';
 import {
   DISCOVERY_DAILY_LIMIT,
   DISCOVERY_STORAGE_KEY,
@@ -75,6 +77,7 @@ import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } fr
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import type { WorkspaceNavigationContext } from '../types/navigation';
+import { findDailyPatrolRecord, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -606,32 +609,6 @@ type DiagnosisResult = {
   nextCheckAt?: string;
 };
 
-type DiagnosisRecord = {
-  diagnosisId: string;
-  id?: string;
-  createdAt: string;
-  aquariumId: string;
-  source?: {
-    type: 'manual' | 'care_article' | 'home';
-    title?: string;
-  };
-  problemType: string;
-  answers: Record<string, string>;
-  structuredAnswers?: Array<{ questionId: string; question: string; answer: string }>;
-  resultSummary: string;
-  riskLevel: string;
-  riskCode?: 'low' | 'medium' | 'high' | 'unknown';
-  conclusion?: string;
-  keyMetrics?: Array<{ label: string; value: string }>;
-  suggestedActions: string[];
-  avoidActions?: string[];
-  observeItems?: string[];
-  missingInfo: string[];
-  optionalMissingInfo?: string[];
-  nextCheckAt?: string;
-  followUpNotes: string[];
-};
-
 type CareDiagnosisContext = {
   source: 'care';
   topicId: string;
@@ -695,6 +672,9 @@ export default function AquariumManager() {
   const [diagnosisRecords, setDiagnosisRecords] = useState<DiagnosisRecord[]>([]);
   const [selectedDiagnosisRecord, setSelectedDiagnosisRecord] = useState<DiagnosisRecord | null>(null);
   const [diagnosisSaveMessage, setDiagnosisSaveMessage] = useState('');
+  const [dailyCheckInterpretation, setDailyCheckInterpretation] = useState<TankDailyCheckInterpretationData | null>(null);
+  const [dailyCheckArticles, setDailyCheckArticles] = useState<typeof careTopicsData>([]);
+  const [selectedDailyCheckArticle, setSelectedDailyCheckArticle] = useState<(typeof careTopicsData)[number] | null>(null);
   const [careDiagnosisContext, setCareDiagnosisContext] = useState<CareDiagnosisContext | null>(null);
   const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(tankBuildTemplates[0].id);
   const [isTankArchiveExpanded, setIsTankArchiveExpanded] = useState(false);
@@ -2029,6 +2009,27 @@ export default function AquariumManager() {
     setDiagnosisFullText('');
     setDiagnosisText('');
     setDiagnosisSaveMessage('');
+    setDailyCheckInterpretation(null);
+    setDailyCheckArticles([]);
+  };
+
+  const handleOpenDailyCheck = () => {
+    if (!activeAquarium) return;
+    setDiagnosisAquariumId(activeAquarium.id);
+    setIsDiagnosisOpen(true);
+    setDiagnosisIssueType('巡检');
+    setDiagnosisMode('quiz');
+    setDiagnosisQuestionIndex(0);
+    setDiagnosisQuizAnswers({});
+    setDiagnosisFollowUps([]);
+    setDiagnosisResult(null);
+    setDiagnosisQuestion('');
+    setDiagnosisSaveMessage('');
+    setSelectedDiagnosisRecord(null);
+    setCareDiagnosisContext(null);
+    setIsDiagnosing(false);
+    setDailyCheckInterpretation(null);
+    setDailyCheckArticles([]);
   };
 
   const handleOpenDiagnosisWithType = (typeId: string) => {
@@ -2049,6 +2050,8 @@ export default function AquariumManager() {
     setIsDiagnosing(false);
     setDiagnosisFullText('');
     setDiagnosisText('');
+    setDailyCheckInterpretation(null);
+    setDailyCheckArticles([]);
   };
 
   const handleStartDiagnosisQuiz = (typeId: string) => {
@@ -2063,6 +2066,8 @@ export default function AquariumManager() {
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
+    setDailyCheckInterpretation(null);
+    setDailyCheckArticles([]);
   };
 
   const handleDiagnosisAnswer = (questionId: string, answer: string) => {
@@ -2071,11 +2076,92 @@ export default function AquariumManager() {
     setDiagnosisSaveMessage('');
   };
 
-  const handleRunDiagnosis = () => {
+  const handleRunDiagnosis = async () => {
     const result = buildStructuredDiagnosis();
     setDiagnosisResult(result);
     setDiagnosisMode('result');
     setDiagnosisSaveMessage('');
+    setDailyCheckInterpretation(null);
+    setDailyCheckArticles([]);
+
+    if (diagnosisIssueType !== '巡检' || !diagnosisAquarium) return;
+    const summary = getDiagnosisTankSummary();
+    const snapshot = {
+      aquariumId: diagnosisAquarium.id,
+      waterType: summary.water,
+      temperature: summary.temperature,
+      volume: summary.volume,
+      stocked: summary.stocked,
+      recentWaterChange: summary.waterChange,
+      recentFeeding: summary.recentFeeding,
+      recentAddedSpecies: summary.recentAddedSpecies,
+      dimensions: summary.dimensions,
+      equipment: summary.equipment,
+      livestockCount: summary.livestockCount,
+      healthScore,
+      riskCount: riskReminderCount,
+    };
+    const localOutput = buildDiagnosisResult({
+      aquarium: diagnosisAquarium,
+      snapshot,
+      problemType: '巡检',
+      answers: diagnosisQuizAnswers,
+      careTopics: careTopicsData,
+      previousDiagnosisRecords: recentDiagnosisRecords,
+      sourceContext: { source: 'home', title: '每日鱼缸检查' },
+    });
+    const deterministicResult: DiagnosisOutput = {
+      ...localOutput,
+      riskLevel: result.riskLevel,
+      riskLabel: result.risk,
+      summary: result.verdict,
+      currentAction: result.currentAction,
+      actions: result.actions,
+      avoidActions: result.avoid,
+      possibleCauses: result.reasons,
+      observeItems: result.observe,
+      missingInfo: result.missing,
+      evidence: result.evidence,
+      keyMetrics: result.keyMetrics,
+    };
+    const candidateArticles = deterministicResult.matchedArticles.map(article => ({
+      id: article.id,
+      title: article.title,
+      summary: article.summary,
+    }));
+    setDailyCheckArticles(candidateArticles
+      .map(article => careTopicsData.find(topic => topic.id === article.id))
+      .filter((topic): topic is (typeof careTopicsData)[number] => Boolean(topic)));
+
+    const userDescription = diagnosisQuizAnswers.userDescription?.trim();
+    const observedKeys = ['breathing', 'waterLook', 'surfaceLook', 'odor', 'behavior'];
+    const normalAnswers = new Set(['正常', '清澈', '没有泡沫或油膜', '没有异味', '正常游动和进食']);
+    const hasAbnormalAnswer = observedKeys.some(key => {
+      const answer = diagnosisQuizAnswers[key];
+      return Boolean(answer && !normalAnswers.has(answer));
+    });
+    if (!hasAbnormalAnswer && (!userDescription || userDescription === '跳过')) return;
+
+    const context: TankDailyCheckContext = {
+      aquariumSnapshot: snapshot,
+      answers: diagnosisQuizAnswers,
+      userDescription: userDescription && userDescription !== '跳过' ? userDescription : undefined,
+      deterministicResult,
+      candidateArticles,
+    };
+    setIsDiagnosing(true);
+    try {
+      const interpretation = await generateTankDailyCheckInterpretation(context);
+      setDailyCheckInterpretation(interpretation);
+      if (interpretation.recommendedArticleIds.length > 0) {
+        const recommended = interpretation.recommendedArticleIds
+          .map(id => careTopicsData.find(topic => topic.id === id))
+          .filter((topic): topic is (typeof careTopicsData)[number] => Boolean(topic));
+        if (recommended.length > 0) setDailyCheckArticles(recommended);
+      }
+    } finally {
+      setIsDiagnosing(false);
+    }
   };
 
   const handleDiagnosisNext = () => {
@@ -2085,7 +2171,7 @@ export default function AquariumManager() {
       setDiagnosisQuestionIndex(prev => prev + 1);
       return;
     }
-    handleRunDiagnosis();
+    void handleRunDiagnosis();
   };
 
   const handleDiagnosisPrevious = () => {
@@ -2109,7 +2195,10 @@ export default function AquariumManager() {
         question: question.question,
         answer: diagnosisQuizAnswers[question.id],
       }));
-    const id = Math.random().toString(36).substring(2, 10);
+    const existingDailyRecord = problemType === '巡检'
+      ? findDailyPatrolRecord(diagnosisRecords, targetAquarium.id)
+      : undefined;
+    const id = existingDailyRecord?.diagnosisId || Math.random().toString(36).substring(2, 10);
     const record: DiagnosisRecord = {
       diagnosisId: id,
       id,
@@ -2118,7 +2207,7 @@ export default function AquariumManager() {
       source: careDiagnosisContext
         ? { type: 'care_article', title: careDiagnosisContext.title }
         : { type: 'home' },
-      problemType: diagnosisIssueType,
+      problemType,
       answers: diagnosisQuizAnswers,
       structuredAnswers,
       resultSummary: result.verdict,
@@ -2137,11 +2226,16 @@ export default function AquariumManager() {
         ...diagnosisFollowUps.map(item => `问：${item.question}；答：${item.answer}`),
       ],
     };
-    const nextRecords = [record, ...diagnosisRecords].slice(0, 50);
+    const nextRecords = upsertDiagnosisRecord(diagnosisRecords, record);
     setDiagnosisRecords(nextRecords);
     localStorage.setItem('aquarium_diagnosis_records', JSON.stringify(nextRecords));
     patchLocalAppState({ diagnosisRecords: nextRecords }, { debounce: true });
-    setDiagnosisSaveMessage('已保存到诊断记录，下次诊断会参考最近记录。');
+    setDiagnosisSaveMessage(problemType === '巡检'
+      ? existingDailyRecord ? '已更新今天的检查记录。' : '已保存今天的检查记录。'
+      : '已保存到诊断记录，下次诊断会参考最近记录。');
+    showToast(problemType === '巡检'
+      ? existingDailyRecord ? '已更新今天的检查记录' : '已保存今天的检查记录'
+      : '已保存本次诊断');
   };
 
   const handleDiagnosisFollowUp = () => {
@@ -3428,7 +3522,22 @@ export default function AquariumManager() {
     : todayTaskCount > 0
       ? `今天有 ${todayTaskCount} 项建议处理。`
       : '今天暂无紧急任务，可以正常观察。';
+  const todayDailyCheckRecord = findDailyPatrolRecord(diagnosisRecords, activeAquarium.id);
+  const dailyCheckStatus = !todayDailyCheckRecord
+    ? '今日未检查'
+    : todayDailyCheckRecord.riskCode === 'high' || todayDailyCheckRecord.riskCode === 'medium' || todayDailyCheckRecord.riskCode === 'unknown'
+      ? '建议重新检查'
+      : '今日已检查';
   const commonActions = [
+    {
+      id: 'dailyTankCheck',
+      label: '每日鱼缸检查',
+      description: dailyCheckStatus,
+      icon: <Activity className="h-4 w-4" />,
+      onClick: handleOpenDailyCheck,
+      tone: dailyCheckStatus === '建议重新检查' ? 'warning' as const : todayDailyCheckRecord ? 'normal' as const : 'info' as const,
+      active: Boolean(todayDailyCheckRecord),
+    },
     {
       id: 'recordWaterChange',
       label: waterChangedToday ? '撤回换水记录' : '记录本次换水',
@@ -4407,10 +4516,12 @@ export default function AquariumManager() {
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Activity className="h-5 w-5 text-emerald-700" />
-              一键诊断
+              {diagnosisIssueType === '巡检' ? '每日鱼缸检查' : '一键诊断'}
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
-              像做一个小测试一样，回答几个问题后生成处理建议。
+              {diagnosisIssueType === '巡检'
+                ? '检查鱼的呼吸、水体、水面、异味、行为和最近操作。'
+                : '像做一个小测试一样，回答几个问题后生成处理建议。'}
             </DialogDescription>
           </DialogHeader>
 
@@ -4660,6 +4771,46 @@ export default function AquariumManager() {
                     {diagnosisSaveMessage}
                   </div>
                 )}
+                {diagnosisIssueType === '巡检' && isDiagnosing && (
+                  <div className="rounded-[14px] border border-sky-100 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700">
+                    AI 正在整理你的补充描述；本地风险和处理步骤已先生成。
+                  </div>
+                )}
+                {diagnosisIssueType === '巡检' && dailyCheckInterpretation && (
+                  <div className="rounded-[16px] border border-violet-100 bg-violet-50/70 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[12px] font-black text-violet-800">补充解读</div>
+                      <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-violet-700">
+                        {dailyCheckInterpretation.source === 'model' ? 'AI 模型回复' : '本地安全兜底'}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/70">{dailyCheckInterpretation.summary}</p>
+                    {dailyCheckInterpretation.reasoning.length > 0 && (
+                      <div className="mt-2 grid gap-1">
+                        {dailyCheckInterpretation.reasoning.slice(0, 3).map(item => (
+                          <div key={item} className="rounded-[11px] bg-white/80 px-2.5 py-2 text-[10px] font-medium leading-relaxed text-ink/62">{item}</div>
+                        ))}
+                      </div>
+                    )}
+                    {dailyCheckInterpretation.clarifyingQuestions.length > 0 && (
+                      <p className="mt-2 text-[10px] font-bold leading-relaxed text-violet-900/65">可继续补充：{dailyCheckInterpretation.clarifyingQuestions.join('；')}</p>
+                    )}
+                    <p className="mt-2 text-[9px] font-bold text-ink/38">{dailyCheckInterpretation.disclaimer}</p>
+                  </div>
+                )}
+                {diagnosisIssueType === '巡检' && dailyCheckArticles[0] && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDailyCheckArticle(dailyCheckArticles[0])}
+                    className="flex w-full items-center justify-between gap-3 rounded-[16px] bg-emerald-700 px-4 py-3 text-left text-white shadow-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[10px] font-black text-white/65">按百科步骤补救</span>
+                      <span className="mt-0.5 block truncate text-[13px] font-black">{dailyCheckArticles[0].title}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0" />
+                  </button>
+                )}
               </section>
 
               <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
@@ -4740,7 +4891,9 @@ export default function AquariumManager() {
             {diagnosisMode === 'result' && (
               <>
                 <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">重新诊断</Button>
-                <Button onClick={handleSaveDiagnosisRecord} disabled={!structuredDiagnosis} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">保存本次诊断</Button>
+                <Button onClick={handleSaveDiagnosisRecord} disabled={!structuredDiagnosis} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
+                  {diagnosisIssueType === '巡检' ? (todayDailyCheckRecord ? '更新今天记录' : '保存今天记录') : '保存本次诊断'}
+                </Button>
               </>
             )}
             {diagnosisMode === 'history' && (
@@ -4749,6 +4902,45 @@ export default function AquariumManager() {
                 <Button onClick={() => handleStartDiagnosisQuiz(selectedDiagnosisRecord?.problemType || '巡检')} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">按此问题再诊断</Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(selectedDailyCheckArticle)} onOpenChange={(open) => !open && setSelectedDailyCheckArticle(null)}>
+        <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[560px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
+          <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
+            <DialogTitle className="text-xl font-black text-ink">{selectedDailyCheckArticle?.title}</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-ink/55">来自养护百科的安全补救步骤；关闭后会回到本次检查结果。</DialogDescription>
+          </DialogHeader>
+          {selectedDailyCheckArticle && (
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <section className="rounded-[18px] border border-emerald-100 bg-emerald-50/70 p-3">
+                <div className="text-[11px] font-black text-emerald-800">核心结论</div>
+                <p className="mt-1 text-[13px] font-bold leading-relaxed text-ink">{selectedDailyCheckArticle.summary}</p>
+              </section>
+              <section className="mt-3 rounded-[18px] bg-white p-3 shadow-sm">
+                <div className="text-[13px] font-black text-ink">按顺序处理</div>
+                <div className="mt-2 grid gap-2">
+                  {selectedDailyCheckArticle.firstSteps.map((step, index) => (
+                    <div key={step} className="grid grid-cols-[26px_1fr] gap-2 rounded-[13px] bg-bg p-2.5 text-[11px] font-medium leading-relaxed text-ink/68">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-black text-white">{index + 1}</span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="mt-3 rounded-[18px] border border-red-100 bg-red-50 p-3">
+                <div className="text-[13px] font-black text-red-800">暂时不要做</div>
+                <div className="mt-2 grid gap-1.5">
+                  {selectedDailyCheckArticle.avoid.map(item => (
+                    <div key={item} className="rounded-[12px] bg-white/80 px-3 py-2 text-[11px] font-medium leading-relaxed text-red-900/72">{item}</div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
+          <DialogFooter className="shrink-0 border-t border-border bg-white p-4">
+            <Button onClick={() => setSelectedDailyCheckArticle(null)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white">返回检查结果</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

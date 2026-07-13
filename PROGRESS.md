@@ -2,6 +2,7 @@
 按核心体验优先级依次完成混养闭环、弹窗降噪、按钮行为清理和核心路径缩短；每阶段独立验证并提交。
 
 ## 已完成
+- 状态：`已完成`。完成每日鱼缸检查与受控 AI 解读：我的鱼缸核心操作区显示“今日未检查 / 今日已检查 / 建议重新检查”，巡检覆盖呼吸、水体、泡沫/油膜、异味、行为、近期操作和自由描述；本地规则先给出风险、立即动作、禁止动作和候选百科，仅异常或自由描述时调用 `tank_daily_check_interpretation`。前后端均约束 AI 不得降低风险或推荐候选外文章，失败时保留本地结果；补救文章在检查结果上层打开，关闭后返回结果。同缸同自然日巡检通过 `diagnosisRecords` 更新原记录，不新增存储集合，也不保存 AI 原始回复。`CONTRACT.md` 与诊断类型已同步；专项测试覆盖未配置、超时、任务非法、降级风险、虚构文章及跨日记录策略。`npm run lint`、`npm run build`、服务端语法检查与 `test:daily-check` 通过。（commit: 本次提交）
 - 状态：`已完成`。完成图鉴 Mini 混养判断：统一规则引擎新增 `species_only` 范围，只比较所选生物的水体、温度、pH、性情、单养和捕食关系，不读取当前鱼缸；Mini 只显示所选对象、四态结论和一条主因，唯一主操作进入完整 `tank` 计算并通过会话级选择服务保留组合，不提供直接入缸。专项测试覆盖兼容、谨慎、不建议、资料不足及选择顺序，既有 11 项完整混养测试无回归；`npm run lint`、`npm run build` 与 `git diff --check` 通过。（commit: 本次提交）
 - 状态：`已完成`。新增独立 `/wishlist` 与 `/care-favorites` 路由：页面只展示收藏数量、收藏内容、删除操作和空状态，不带入图鉴筛选、今日种草或养护推荐；桌面侧栏与手机端明确入口均改为直接路由。物种和养护详情在收藏页内打开，关闭后恢复原卡片与滚动位置；继续复用既有收藏服务、旧存储 key 和共享详情实现。`npm run lint`、`npm run build`、`test:favorites` 与 `git diff --check` 通过。（commit: 本次提交）
 - 状态：`已完成`。完成设备级布局壳分离：启动时按真实设备识别 `phone / desktop`，iPhone 与 Android 手机进入 `MobileAppShell`，iPad、Android 平板、桌面和桌面触控设备进入 `DesktopAppShell`；判定不监听窗口宽度，桌面缩窄仍保留桌面侧栏与桌面画布。新增功能对照文档和 8 项设备策略断言，`npm run lint`、`npm run build`、`test:layout-mode` 与 `git diff --check` 通过。（commit: 本次提交）
