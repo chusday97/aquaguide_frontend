@@ -1355,7 +1355,7 @@ export default function AquariumManager() {
     setTankActionMessage(hasTodayRecord ? '已撤回今日换水记录' : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
   };
 
-  const handleDailyAdviceAction = (action: 'start' | 'complete' | 'snooze' | 'toggle_steps' | 'open_ai_chat') => {
+  const handleDailyAdviceAction = (action: 'start' | 'complete' | 'snooze' | 'toggle_steps') => {
     const task = dailyAdviceViewModel.task;
 
     if (action === 'toggle_steps') {
@@ -1364,6 +1364,10 @@ export default function AquariumManager() {
     }
 
     if (action === 'start') {
+      if (task?.type === 'water_change') {
+        handleTankWaterChange();
+        return;
+      }
       setIsDailyAdviceDetailsOpen(true);
       setTankActionMessage(task ? '已展开今日建议步骤，请按步骤处理。' : '今天没有必须处理的任务，保持常规观察即可。');
       return;
@@ -1389,10 +1393,6 @@ export default function AquariumManager() {
         setTankActionMessage('已记录：明天再次提醒。换水周期未改变。');
       }
       return;
-    }
-
-    if (action === 'open_ai_chat') {
-      setIsDailyAdviceDetailsOpen(true);
     }
   };
 

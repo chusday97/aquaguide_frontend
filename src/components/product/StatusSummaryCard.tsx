@@ -66,8 +66,7 @@ type DailyAdviceAction =
   | 'start'
   | 'complete'
   | 'snooze'
-  | 'toggle_steps'
-  | 'open_ai_chat';
+  | 'toggle_steps';
 
 type StatusSummaryCardProps = {
   advice: DailyAdviceViewModel;
@@ -106,7 +105,16 @@ export function StatusSummaryCard({
 }: StatusSummaryCardProps) {
   const Icon = advice.level === 'normal' ? CheckCircle2 : AlertTriangle;
   const task = advice.task;
-  const primaryButtonLabel = task ? '开始处理' : '记录鱼缸状态';
+  const recordsImmediately = task?.type === 'water_change';
+  const primaryButtonLabel = task?.type === 'water_change'
+    ? '记录本次换水'
+    : task?.type === 'observation'
+      ? '开始观察'
+      : task?.type === 'setup'
+        ? '查看设置建议'
+        : task?.type === 'data_check'
+          ? '查看缺失信息'
+          : '查看鱼缸状态';
   const canCompleteTask = Boolean(task);
   const primaryStatusItem = advice.statusItems[0];
 
@@ -155,7 +163,7 @@ export function StatusSummaryCard({
             </TagPill>
           </div>
 
-          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <div className={`mt-3 grid gap-2 ${recordsImmediately ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-1'}`}>
             <Button
               type="button"
               onClick={() => onAction('start')}
@@ -163,14 +171,16 @@ export function StatusSummaryCard({
             >
               <span className="truncate">{primaryButtonLabel}</span>
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onAction('toggle_steps')}
-              className="h-10 shrink-0 rounded-full border-ink/10 bg-white px-4 text-[12px] font-black text-ink/70"
-            >
-              查看详情
-            </Button>
+            {recordsImmediately && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onAction('toggle_steps')}
+                className="h-10 shrink-0 rounded-full border-ink/10 bg-white px-4 text-[12px] font-black text-ink/70"
+              >
+                查看详情
+              </Button>
+            )}
           </div>
         </div>
       </div>
