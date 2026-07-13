@@ -2,6 +2,7 @@
 收口 AquaGuide 当前未完成的体验与架构改造，优先统一混养判断规则，再逐步修复桌面布局、图鉴筛选分页、弹窗层级、收藏入口、养护百科布局和推荐兜底。
 
 ## 已完成
+- 已完成 Copilot 候选与 fallback 安全策略：模型返回的候选 ID 会再次限制在本地安全/可调整候选池，虚构的缺失问题和不可执行动作会被丢弃，动作文案由本地固定；AI 未配置、超时或非法响应时，fallback 会根据真实缺失信息和候选池选择“完善信息 / 查看候选 / 重新描述目标”，不再固定套用同一答案。`npm run lint`、`npm run build` 与 Copilot 契约断言均通过。（commit: 本次提交）
 - 已接通 AI 建缸 Copilot 的三个真实产品动作：完善信息会打开并定位鱼缸设置；查看候选只展示模型所选且仍存在于本地安全/可调整候选池的物种；模拟添加确认会再次经过统一物种添加服务，阻断或缺信息时不会写入真实鱼缸。`npm run lint` 与 `npm run build` 已通过；本次浏览器验收因当前 in-app browser 安全策略禁止访问 `localhost:3000`，未执行页面点击验证。（commit: 本次提交）
 - 已固定 AI 建缸 Copilot 的三步数据契约：目标、补充答案、鱼缸摘要、本地安全/可调整候选与阻断原因使用独立结构传输；前后端统一为 `goalUnderstanding / missingQuestions / recommendedActions / selectedCandidateIds / blockedExplanation`，鱼缸页不再读取旧 `reply / nextAction / safeCandidates` 字段，候选只按本地规则 ID 池匹配。`npm run lint` 与 `npm run build` 已通过；新增契约断言脚本，但本次因运行环境禁止 `tsx` IPC 且沙箱外授权额度受限，未实际执行该专项脚本。（commit: 本次提交）
 - 已完成 AI 对外入口审计与收敛：移除页面层旧“智能混养推荐”死弹窗和 `recommendation_assist` 排序解释入口，独立 `AIAssistant` 保持无路由状态；页面仅保留鱼缸页“AI 建缸规划”和规则详情中的低频“让 AI 帮我解读”。新增入口策略文档与自动断言，`npm run lint`、`npm run build`、`test:ai-entry-policy` 已通过。（commit: 本次提交）

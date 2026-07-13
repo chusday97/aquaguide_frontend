@@ -124,18 +124,6 @@ const fallbackRecommendationAssist: RecommendationAssistData = {
   fallback: true,
 };
 
-const fallbackTankBuildCopilot: Omit<TankCopilotResponse, 'source' | 'generatedAt' | 'task'> = {
-  goalUnderstanding: 'AI 暂不可用，当前目标将由本地规则继续处理。',
-  missingQuestions: [],
-  planSummary: '先补齐鱼缸尺寸、水温、过滤和加热信息，再查看本地规则候选。',
-  recommendedActions: [{
-    type: 'complete_tank_info',
-    label: '完善鱼缸信息',
-  }],
-  selectedCandidateIds: [],
-  blockedExplanation: [],
-};
-
 export const getAiUnavailableMessage = () => (
   'AI 后端还没有配置 API Key。请在项目根目录创建 .env.local，并写入 AI_API_KEY=你的Key，然后重启 npm run dev。'
 );
@@ -289,7 +277,11 @@ const normalizeCopilotQuestion = (item: unknown, index: number): CopilotQuestion
   };
 };
 
-const normalizeTankBuildCopilot = (data: Record<string, unknown> | undefined): Omit<TankCopilotResponse, 'source' | 'generatedAt' | 'task'> => {
+const normalizeTankBuildCopilot = (
+  data: Record<string, unknown> | undefined,
+  context: TankCopilotContext,
+): CopilotResponseCore => {
+  const fallback = buildLocalTankCopilotFallback(context);
   const allowedActions: TankCopilotActionType[] = ['complete_tank_info', 'view_safe_candidates', 'start_addition_simulation', 'restart_goal'];
   const rawActions = Array.isArray(data?.recommendedActions) ? data.recommendedActions : [];
   const recommendedActions = rawActions.map((item): TankCopilotAction | null => {
@@ -302,24 +294,24 @@ const normalizeTankBuildCopilot = (data: Record<string, unknown> | undefined): O
     };
   }).filter((item): item is TankCopilotAction => Boolean(item)).slice(0, 2);
 
-  return {
+  return sanitizeTankCopilotResponse({
     goalUnderstanding: typeof data?.goalUnderstanding === 'string' && data.goalUnderstanding.trim()
       ? data.goalUnderstanding.trim()
-      : fallbackTankBuildCopilot.goalUnderstanding,
+      : fallback.goalUnderstanding,
     missingQuestions: Array.isArray(data?.missingQuestions)
       ? data.missingQuestions.map(normalizeCopilotQuestion).filter((item): item is CopilotQuestion => Boolean(item)).slice(0, 3)
       : [],
     planSummary: typeof data?.planSummary === 'string' && data.planSummary.trim()
       ? data.planSummary.trim()
-      : fallbackTankBuildCopilot.planSummary,
-    recommendedActions: recommendedActions.length > 0 ? recommendedActions : fallbackTankBuildCopilot.recommendedActions,
+      : fallback.planSummary,
+    recommendedActions: recommendedActions.length > 0 ? recommendedActions : fallback.recommendedActions,
     selectedCandidateIds: Array.isArray(data?.selectedCandidateIds)
       ? data.selectedCandidateIds.filter(item => typeof item === 'string' && item.trim()).slice(0, 6) as string[]
       : [],
     blockedExplanation: Array.isArray(data?.blockedExplanation)
       ? data.blockedExplanation.filter(item => typeof item === 'string' && item.trim()).slice(0, 5) as string[]
       : [],
-  };
+  }, context);
 };
 
 export const generateRiskExplanation = async (context: unknown): Promise<RiskExplanationData> => {
@@ -413,6 +405,7 @@ export const generateRecommendationAssist = async (context: unknown): Promise<Re
 };
 
 export const generateTankBuildCopilot = async (context: TankCopilotContext): Promise<TankBuildCopilotData> => {
+  const fallback = buildLocalTankCopilotFallback(context);
   try {
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -425,16 +418,16 @@ export const generateTankBuildCopilot = async (context: TankCopilotContext): Pro
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', failureReasonFromResponse(response, payload));
+      return withAiMeta(fallback, 'build_tank_copilot', 'fallback', failureReasonFromResponse(response, payload));
     }
 
     if (payload?.task !== 'build_tank_copilot') {
-      return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', 'invalid_json');
+      return withAiMeta(fallback, 'build_tank_copilot', 'fallback', 'invalid_json');
     }
 
-    return withAiMeta(normalizeTankBuildCopilot(payload.data), 'build_tank_copilot', 'model');
+    return withAiMeta(normalizeTankBuildCopilot(payload.data, context), 'build_tank_copilot', 'model');
   } catch (error) {
-    return withAiMeta(fallbackTankBuildCopilot, 'build_tank_copilot', 'fallback', failureReasonFromError(error));
+    return withAiMeta(fallback, 'build_tank_copilot', 'fallback', failureReasonFromError(error));
   }
 };
 import type {
@@ -444,3 +437,8 @@ import type {
   TankCopilotContext,
   TankCopilotResponse,
 } from '../modules/copilot/copilot.types';
+import {
+  buildLocalTankCopilotFallback,
+  sanitizeTankCopilotResponse,
+  type CopilotResponseCore,
+} from '../modules/copilot/copilot.policy';

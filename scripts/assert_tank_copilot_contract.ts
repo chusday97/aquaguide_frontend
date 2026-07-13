@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Aquarium } from '../src/types';
 import type { SmartRecommendationOutput } from '../src/modules/recommendation/recommendation.schema';
+import {
+  buildLocalTankCopilotFallback,
+  sanitizeTankCopilotResponse,
+} from '../src/modules/copilot/copilot.policy';
 import { buildTankCopilotContext } from '../src/modules/copilot/tankBuildCopilot';
 
 const aquarium: Aquarium = {
@@ -89,6 +93,42 @@ assert.equal(context.aquariumSummary.livestockCount, 3);
 assert.deepEqual(context.safeCandidates.map(item => item.speciesId), ['species-safe']);
 assert.deepEqual(context.adjustableCandidates.map(item => item.speciesId), ['species-adjustable']);
 assert.equal('fishData' in context, false, 'Copilot 请求不得包含完整 fishData。');
+
+const sanitized = sanitizeTankCopilotResponse({
+  goalUnderstanding: '模型理解结果',
+  missingQuestions: [
+    { id: 'invented-size', prompt: '请补充尺寸', informationKey: 'tank_size' },
+    { id: 'preference', prompt: '偏好什么观赏风格？', informationKey: 'preference' },
+  ],
+  planSummary: '模型方案',
+  recommendedActions: [
+    { type: 'complete_tank_info', label: '任意文案' },
+    { type: 'start_addition_simulation', label: '任意文案' },
+  ],
+  selectedCandidateIds: ['species-safe', 'species-outside-local-pool'],
+  blockedExplanation: ['本地阻断说明'],
+}, context);
+
+assert.deepEqual(sanitized.selectedCandidateIds, ['species-safe'], '模型不得把本地候选池之外的物种加入方案。');
+assert.deepEqual(sanitized.missingQuestions.map(item => item.informationKey), ['preference'], '模型不得追问本地未判定为缺失的鱼缸信息。');
+assert.deepEqual(sanitized.recommendedActions, [{
+  type: 'start_addition_simulation',
+  label: '进入模拟添加',
+}], '无缺失信息时不得展示完善信息动作，动作标签必须由本地固定。');
+
+const localCandidateFallback = buildLocalTankCopilotFallback(context);
+assert.equal(localCandidateFallback.recommendedActions[0]?.type, 'view_safe_candidates');
+assert.deepEqual(localCandidateFallback.selectedCandidateIds, ['species-safe', 'species-adjustable']);
+
+const missingInfoFallback = buildLocalTankCopilotFallback({
+  ...context,
+  missingInformation: ['缺少鱼缸容量', '缺少过滤设备'],
+});
+assert.equal(missingInfoFallback.recommendedActions[0]?.type, 'complete_tank_info');
+assert.deepEqual(
+  missingInfoFallback.missingQuestions.map(item => item.informationKey),
+  ['tank_size', 'filter'],
+);
 
 const aquariumPage = fs.readFileSync(path.join(process.cwd(), 'src/pages/Aquarium.tsx'), 'utf8');
 for (const legacyField of ['tankCopilotResult.reply', 'tankCopilotResult.safeCandidates', 'tankCopilotResult.nextAction']) {
