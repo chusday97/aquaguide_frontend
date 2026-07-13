@@ -467,8 +467,17 @@ const visibilityOverrideIds = new Set([
   'sp_0455',
   'sp_0456',
   'sp_0457',
-  'sp_0458',
   'sp_0459',
+  'sp_0467',
+  'sp_0468',
+  'sp_0469',
+  'sp_0470',
+  'sp_0471',
+  'sp_0472',
+  'sp_0473',
+  'sp_0474',
+  'sp_0475',
+  'sp_0476',
 ]);
 
 const paleBodyPattern = /白金|白子|白化|雪白|白玉|白云|白裙|玻璃|透明|银|水母|海月|蛋黄水母|Platinum|Albino|White|Glass|Silver|Aurelia|Chrysaora|Cotylorhiza/i;
