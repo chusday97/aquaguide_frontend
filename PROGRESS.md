@@ -2,6 +2,7 @@
 收口 AquaGuide 当前未完成的体验与架构改造，优先统一混养判断规则，再逐步修复桌面布局、图鉴筛选分页、弹窗层级、收藏入口、养护百科布局和推荐兜底。
 
 ## 已完成
+- 状态：`已完成`。已完成混养决策流闭环收口：混养结果的信息不足动作可直接定位鱼缸设置的尺寸、参数或设备区域；添加成功后可回到当前鱼缸；鱼缸页支持相应设置 hash；专项断言确认同一输入经统一引擎、结果页决策和添加复核返回一致状态。`npm run lint`、`npm run build`、11 项混养专项断言及图鉴混养页面 smoke 均通过；构建仍保留既有大包警告。（commit: `65e6574`）
 - 已完成 Copilot 候选与 fallback 安全策略：模型返回的候选 ID 会再次限制在本地安全/可调整候选池，虚构的缺失问题和不可执行动作会被丢弃，动作文案由本地固定；AI 未配置、超时或非法响应时，fallback 会根据真实缺失信息和候选池选择“完善信息 / 查看候选 / 重新描述目标”，不再固定套用同一答案。`npm run lint`、`npm run build` 与 Copilot 契约断言均通过。（commit: 本次提交）
 - 已接通 AI 建缸 Copilot 的三个真实产品动作：完善信息会打开并定位鱼缸设置；查看候选只展示模型所选且仍存在于本地安全/可调整候选池的物种；模拟添加确认会再次经过统一物种添加服务，阻断或缺信息时不会写入真实鱼缸。`npm run lint` 与 `npm run build` 已通过；本次浏览器验收因当前 in-app browser 安全策略禁止访问 `localhost:3000`，未执行页面点击验证。（commit: 本次提交）
 - 已固定 AI 建缸 Copilot 的三步数据契约：目标、补充答案、鱼缸摘要、本地安全/可调整候选与阻断原因使用独立结构传输；前后端统一为 `goalUnderstanding / missingQuestions / recommendedActions / selectedCandidateIds / blockedExplanation`，鱼缸页不再读取旧 `reply / nextAction / safeCandidates` 字段，候选只按本地规则 ID 池匹配。`npm run lint` 与 `npm run build` 已通过；新增契约断言脚本，但本次因运行环境禁止 `tsx` IPC 且沙箱外授权额度受限，未实际执行该专项脚本。（commit: 本次提交）
