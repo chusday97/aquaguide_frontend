@@ -10,10 +10,9 @@ import { fishData } from '../data/fishData';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
+import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import type { Aquarium, Fish } from '../types';
 import type { WorkspaceNavigationContext } from '../types/navigation';
-
-const COMPATIBILITY_SELECTION_KEY = 'aquaguide_compatibility_selection';
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -59,7 +58,7 @@ export default function Wishlist() {
   };
 
   const continueToCompatibility = (fish: Fish) => {
-    sessionStorage.setItem(COMPATIBILITY_SELECTION_KEY, JSON.stringify([fish.id]));
+    setCompatibilitySelection([fish.id]);
     navigate('/encyclopedia#compatibility');
   };
 

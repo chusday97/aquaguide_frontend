@@ -14,6 +14,7 @@
 
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
+- `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
 - `src/lib/tankCompatibilityEngine.ts`：统一混养规则引擎。
 - `src/lib/speciesVisual.ts`：二维与 3D 物种素材解析。
 - `src/components/SpeciesDetailDialog.tsx`：共享物种详情。

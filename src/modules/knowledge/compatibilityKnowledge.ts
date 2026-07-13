@@ -114,6 +114,7 @@ const mergeDirectionalResults = (results: TankCompatibilityResult[]): TankCompat
       ruleVersion: results[0]?.metadata.ruleVersion || 'tank-compatibility-v1',
       speciesDataVersion: results[0]?.metadata.speciesDataVersion || 'local-fish-data-v1',
       calculatedAt: new Date().toISOString(),
+      scope: results[0]?.metadata.scope || 'tank',
     },
   };
 };
@@ -198,6 +199,7 @@ const buildAggregateResult = (pairResults: PairCompatibilityResult[]): TankCompa
       ruleVersion: pairResults[0]?.rawResult.metadata.ruleVersion || 'tank-compatibility-v1',
       speciesDataVersion: pairResults[0]?.rawResult.metadata.speciesDataVersion || 'local-fish-data-v1',
       calculatedAt: new Date().toISOString(),
+      scope: pairResults[0]?.rawResult.metadata.scope || 'tank',
     },
   };
 };

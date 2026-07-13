@@ -1,9 +1,11 @@
 import type { Aquarium, Fish } from '../types';
+import { isSaltwaterSpecies } from '../modules/species/species.service';
 import { evaluateSpeciesForAquarium, getAquariumVolumeLiters } from './speciesFitEngine';
 
 export type TankCompatibilityStatus = 'compatible' | 'caution' | 'not_recommended' | 'insufficient_data';
 export type TankCompatibilityRiskLevel = 'none' | 'low' | 'medium' | 'high' | 'unknown';
 export type TankCompatibilityAddPolicy = 'allow' | 'confirm' | 'complete_information' | 'block';
+export type TankCompatibilityScope = 'tank' | 'species_only';
 
 export type TankCompatibilityRule = {
   code: string;
@@ -25,6 +27,7 @@ export type TankCompatibilityResult = {
     ruleVersion: string;
     speciesDataVersion: string;
     calculatedAt: string;
+    scope: TankCompatibilityScope;
   };
 };
 
@@ -33,6 +36,7 @@ export type EvaluateTankCompatibilityInput = {
   existingSpecies?: Array<Fish | { species?: Fish | null; record?: { quantity?: number } | null }>;
   candidateSpecies?: Fish | null;
   candidateQuantity?: number;
+  scope?: TankCompatibilityScope;
 };
 
 const RULE_VERSION = 'tank-compatibility-v1';
@@ -129,11 +133,13 @@ export const evaluateTankCompatibility = ({
   existingSpecies = [],
   candidateSpecies,
   candidateQuantity = 1,
+  scope = 'tank',
 }: EvaluateTankCompatibilityInput): TankCompatibilityResult => {
   const metadata = {
     ruleVersion: RULE_VERSION,
     speciesDataVersion: SPECIES_DATA_VERSION,
     calculatedAt: new Date().toISOString(),
+    scope,
   };
   const passedRules: TankCompatibilityRule[] = [];
   const warningRules: TankCompatibilityRule[] = [];
@@ -156,6 +162,110 @@ export const evaluateTankCompatibility = ({
     };
   }
 
+  const currentLivestock = normalizeExistingSpecies(existingSpecies);
+  const currentSpecies = currentLivestock
+    .map(item => item.species)
+    .filter(species => species.id !== candidateSpecies.id);
+
+  if (scope === 'species_only') {
+    if (currentSpecies.length === 0) {
+      missingData.push(asRule('missing_species_pair', '还需选择生物', '至少选择两种生物，才能判断它们之间的混养关系。', 'high'));
+    }
+
+    currentSpecies.forEach(existing => {
+      const pairName = `${existing.name} 与 ${candidateSpecies.name}`;
+      if (isSaltwaterSpecies(existing) !== isSaltwaterSpecies(candidateSpecies)) {
+        blockingRules.push(asRule('species_water_type_conflict', '水体类型冲突', `${pairName} 分属淡水与海水环境，不能混养。`, 'high'));
+      } else {
+        passedRules.push(asRule('species_water_type_match', '水体类型一致', `${pairName} 的水体类型一致。`, 'info'));
+      }
+
+      const existingTemperature = parseRange(existing.waterTemperature);
+      const candidateTemperature = parseRange(candidateSpecies.waterTemperature);
+      if (!existingTemperature || !candidateTemperature) {
+        missingData.push(asRule('species_temperature_missing', '温度资料不足', `${pairName} 缺少可比较的温度区间。`, 'medium'));
+      } else if (!rangesOverlap(existingTemperature, candidateTemperature)) {
+        blockingRules.push(asRule('temperature_no_overlap', '温度区间不重合', `${pairName} 的适宜温度没有交集。`, 'high'));
+      } else {
+        passedRules.push(asRule('temperature_overlap', '温度区间有交集', `${pairName} 可以找到共同温度区间。`, 'info'));
+      }
+
+      const existingPh = parseRange(existing.phLevel);
+      const candidatePh = parseRange(candidateSpecies.phLevel);
+      if (!existingPh || !candidatePh) {
+        missingData.push(asRule('species_ph_missing', 'pH 资料不足', `${pairName} 缺少可比较的 pH 区间。`, 'medium'));
+      } else if (!rangesOverlap(existingPh, candidatePh)) {
+        warningRules.push(asRule('ph_range_gap', 'pH 区间差异较大', `${pairName} 的 pH 区间没有明确交集。`, 'medium'));
+      } else {
+        passedRules.push(asRule('ph_range_overlap', 'pH 区间有交集', `${pairName} 可以找到共同 pH 区间。`, 'info'));
+      }
+
+      if (existing.housingMode === '建议单养' || candidateSpecies.housingMode === '建议单养') {
+        const singleSpecies = existing.housingMode === '建议单养' ? existing : candidateSpecies;
+        blockingRules.push(asRule('single_housing_required', '存在单养倾向', `${singleSpecies.name} 更适合单养，不建议作为普通混养组合。`, 'high'));
+      }
+
+      const predator = [existing, candidateSpecies].find(item => (
+        item.size === 'Large'
+        || item.temperament === 'Aggressive'
+        || /掠食|捕食|吞食|龙鱼|雷龙|地图|雀鳝|大型/i.test(`${item.name} ${item.description}`)
+      ));
+      const smaller = predator?.id === existing.id ? candidateSpecies : existing;
+      if (predator && smaller.size === 'Small' && predator.id !== smaller.id) {
+        blockingRules.push(asRule('predation_risk', '捕食或吞食风险', `${predator.name} 可能捕食或吞食 ${smaller.name}。`, 'high'));
+      }
+
+      const territorialCount = [existing, candidateSpecies].filter(item => item.temperament === 'Territorial').length;
+      if (territorialCount >= 2) {
+        blockingRules.push(asRule('territorial_conflict', '领地冲突', `${pairName} 都有明显领地倾向。`, 'high'));
+      } else if ([existing, candidateSpecies].some(item => item.temperament === 'Aggressive' || item.temperament === 'Territorial')) {
+        warningRules.push(asRule('temperament_caution', '性情需要观察', `${pairName} 中存在攻击性或领地倾向，需要准备躲避空间。`, 'medium'));
+      } else {
+        passedRules.push(asRule('temperament_match', '性情未见明显冲突', `${pairName} 暂未发现明确性情阻断。`, 'info'));
+      }
+    });
+
+    const finalPassedRules = dedupeRules(passedRules);
+    const finalWarningRules = dedupeRules(warningRules);
+    const finalBlockingRules = dedupeRules(blockingRules);
+    const finalMissingData = dedupeRules(missingData);
+    const hasBlockingMissingData = finalMissingData.some(item => item.severity === 'high' || item.severity === 'medium');
+    const status: TankCompatibilityStatus = finalBlockingRules.length > 0
+      ? 'not_recommended'
+      : hasBlockingMissingData
+        ? 'insufficient_data'
+        : finalWarningRules.length > 0
+          ? 'caution'
+          : 'compatible';
+    const riskLevel: TankCompatibilityRiskLevel = status === 'not_recommended'
+      ? 'high'
+      : status === 'insufficient_data'
+        ? 'unknown'
+        : status === 'caution' ? 'medium' : 'none';
+    const names = [candidateSpecies, ...currentSpecies].map(item => item.name).join('、');
+    const summary = status === 'not_recommended'
+      ? finalBlockingRules[0]?.evidence || '所选组合存在明确阻断。'
+      : status === 'insufficient_data'
+        ? finalMissingData[0]?.evidence || '所选组合资料不足。'
+        : status === 'caution'
+          ? finalWarningRules[0]?.evidence || '所选组合需要谨慎观察。'
+          : `${names} 暂未发现明确混养冲突。`;
+
+    return {
+      status,
+      riskLevel,
+      summary,
+      passedRules: finalPassedRules,
+      warningRules: finalWarningRules,
+      blockingRules: finalBlockingRules,
+      missingData: finalMissingData,
+      suggestions: status === 'compatible'
+        ? ['进入完整计算，结合鱼缸环境确认容量、设备和负载。']
+        : ['进入完整计算查看详细依据与鱼缸环境影响。'],
+      metadata,
+    };
+  }
+
   if (!tank) {
     missingData.push(asRule('missing_tank', '缺少当前鱼缸', '请先选择一个鱼缸，再判断混养适配。', 'high'));
     return {
@@ -171,10 +281,6 @@ export const evaluateTankCompatibility = ({
     };
   }
 
-  const currentLivestock = normalizeExistingSpecies(existingSpecies);
-  const currentSpecies = currentLivestock
-    .map(item => item.species)
-    .filter(species => species.id !== candidateSpecies.id);
   const livestock = currentLivestock.map(item => ({ species: item.species, record: { quantity: item.quantity } }));
   const fit = evaluateSpeciesForAquarium(candidateSpecies, tank, livestock);
 
@@ -341,6 +447,46 @@ export const getTankCompatibilityStatusLabel = (status: TankCompatibilityStatus)
     default:
       return '信息不足';
   }
+};
+
+export const evaluateSpeciesCombination = (species: Fish[]): TankCompatibilityResult => {
+  const uniqueSpecies = Array.from(new Map(species.filter(item => item?.id).map(item => [item.id, item])).values());
+  if (uniqueSpecies.length < 2) {
+    return evaluateTankCompatibility({
+      scope: 'species_only',
+      candidateSpecies: uniqueSpecies[0] || null,
+      existingSpecies: [],
+    });
+  }
+
+  const results = uniqueSpecies.slice(1).map((candidateSpecies, index) => evaluateTankCompatibility({
+    scope: 'species_only',
+    candidateSpecies,
+    existingSpecies: uniqueSpecies.slice(0, index + 1),
+  }));
+  const rank: Record<TankCompatibilityStatus, number> = {
+    compatible: 0,
+    caution: 1,
+    insufficient_data: 2,
+    not_recommended: 3,
+  };
+  const primary = [...results].sort((a, b) => rank[b.status] - rank[a.status])[0];
+  const passedRules = dedupeRules(results.flatMap(result => result.passedRules));
+  const warningRules = dedupeRules(results.flatMap(result => result.warningRules));
+  const blockingRules = dedupeRules(results.flatMap(result => result.blockingRules));
+  const missingData = dedupeRules(results.flatMap(result => result.missingData));
+
+  return {
+    ...primary,
+    summary: primary.status === 'compatible'
+      ? `${uniqueSpecies.map(item => item.name).join('、')} 暂未发现明确混养冲突。`
+      : primary.summary,
+    passedRules,
+    warningRules,
+    blockingRules,
+    missingData,
+    suggestions: Array.from(new Set(results.flatMap(result => result.suggestions))).slice(0, 5),
+  };
 };
 
 export const getTankCompatibilityAddPolicy = (
