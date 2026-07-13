@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
+import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
 import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
@@ -149,7 +150,7 @@ function BottomNavigation() {
   return (
     <>
       {/* ── 移动端：底部标签栏 ── */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
         <div className="grid grid-cols-3 gap-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -416,9 +417,11 @@ export default function App() {
     <AppErrorBoundary>
       <Router>
         <ToastProvider>
-          <WorkspaceNavigationProvider>
-            <AppShell />
-          </WorkspaceNavigationProvider>
+          <LayoutModeProvider>
+            <WorkspaceNavigationProvider>
+              <AppShell />
+            </WorkspaceNavigationProvider>
+          </LayoutModeProvider>
         </ToastProvider>
       </Router>
     </AppErrorBoundary>
@@ -427,12 +430,9 @@ export default function App() {
 
 function AppShell() {
   const location = useLocation();
+  const { isPhoneLayout } = useLayoutMode();
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
-  const [isPhoneShell, setIsPhoneShell] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('aquaguide_desktop_sidebar_collapsed') === 'true';
@@ -441,7 +441,6 @@ function AppShell() {
     }
   });
 
-  const isDesktopShell = !isPhoneShell;
   const desktopShellStyle = useMemo(() => ({
     '--desktop-sidebar-width': isDesktopSidebarCollapsed ? '76px' : '280px',
   }) as CSSProperties, [isDesktopSidebarCollapsed]);
@@ -499,19 +498,6 @@ function AppShell() {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const phoneMedia = window.matchMedia('(max-width: 767px)');
-    const sync = () => {
-      setIsPhoneShell(phoneMedia.matches);
-    };
-    sync();
-    phoneMedia.addEventListener('change', sync);
-    return () => {
-      phoneMedia.removeEventListener('change', sync);
-    };
-  }, []);
-
   if (isStructurePreview) {
     return (
       <Suspense fallback={<PageLoading />}>
@@ -534,15 +520,47 @@ function AppShell() {
     );
   }
 
+  if (isPhoneLayout) return <MobileAppShell />;
+
+  return (
+    <DesktopAppShell
+      collapsed={isDesktopSidebarCollapsed}
+      onToggleCollapsed={toggleDesktopSidebar}
+      style={desktopShellStyle}
+    />
+  );
+}
+
+function WorkspaceRoutes() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/aquarium" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/encyclopedia" element={<Encyclopedia />} />
+        <Route path="/care" element={<CareEncyclopedia />} />
+        <Route path="/aquarium" element={<AquariumManager />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
+function DesktopAppShell({
+  collapsed,
+  onToggleCollapsed,
+  style,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  style: CSSProperties;
+}) {
   return (
     <div
-      className={cn(
-        'aquaguide-app flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink md:h-[100dvh] md:overflow-hidden',
-        isDesktopShell ? 'desktop-shell-active' : 'phone-shell-active',
-      )}
-      style={desktopShellStyle}
+      className="aquaguide-app desktop-shell-active flex min-h-[100dvh] flex-col overflow-hidden bg-[#dfe8e5] text-ink"
+      style={style}
+      data-layout-mode="desktop"
     >
-      <DesktopSidebar collapsed={isDesktopSidebarCollapsed} onToggleCollapsed={toggleDesktopSidebar} />
+      <DesktopSidebar collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
       <div className="desktop-too-narrow" role="status" aria-live="polite">
         <div className="rounded-[28px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-accent">
@@ -554,23 +572,31 @@ function AppShell() {
           </p>
         </div>
       </div>
-      {/* 主内容区：移动端保持居中卡片风格，桌面端占满剩余空间 */}
-      <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl md:mx-0 md:h-[100dvh] md:max-w-none md:bg-transparent md:shadow-none md:overflow-hidden">
-        <main className="app-scrollbar-hidden desktop-workspace-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))] md:h-[100dvh] md:min-h-0 md:px-6 md:pb-3 md:pt-6">
-          <div className="desktop-canvas mx-auto w-full max-w-full min-w-0 overflow-x-hidden md:overflow-visible">
-            <Suspense fallback={<PageLoading />}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/aquarium" replace />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/encyclopedia" element={<Encyclopedia />} />
-                <Route path="/care" element={<CareEncyclopedia />} />
-                <Route path="/aquarium" element={<AquariumManager />} />
-              </Routes>
-            </Suspense>
+      <div className="app-main-shell flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent">
+        <main className="app-scrollbar-hidden desktop-workspace-scroll min-h-0 flex-1 overflow-y-auto">
+          <div className="desktop-canvas mx-auto w-full">
+            <WorkspaceRoutes />
           </div>
         </main>
       </div>
-      {isPhoneShell && <BottomNavigation />}
+    </div>
+  );
+}
+
+function MobileAppShell() {
+  return (
+    <div
+      className="aquaguide-app phone-shell-active flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink"
+      data-layout-mode="phone"
+    >
+      <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl">
+        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))]">
+          <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
+            <WorkspaceRoutes />
+          </div>
+        </main>
+      </div>
+      <BottomNavigation />
     </div>
   );
 }

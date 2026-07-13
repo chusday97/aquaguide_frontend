@@ -72,7 +72,7 @@ body,
   width: 100%;
   padding: 24px var(--desktop-content-gap, 18px) 12px !important;
   overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow-x: auto !important;
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -87,7 +87,7 @@ body,
 .aquaguide-app.desktop-shell-active .desktop-canvas {
   width: min(100%, var(--desktop-canvas-width, 1280px)) !important;
   max-width: var(--desktop-canvas-width, 1280px) !important;
-  min-width: 0;
+  min-width: min(720px, var(--desktop-canvas-width, 1280px));
   min-height: 100%;
   margin-inline: auto;
   overflow: visible !important;

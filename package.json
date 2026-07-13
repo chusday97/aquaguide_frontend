@@ -19,6 +19,7 @@
     "test:copilot-contract": "tsx scripts/assert_tank_copilot_contract.ts",
     "test:copilot-evaluation": "tsx scripts/evaluate_tank_copilot.ts",
     "test:3d-assets": "tsx scripts/assert_3d_species_assets.ts",
+    "test:layout-mode": "tsx scripts/assert_layout_mode_policy.ts",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
     "audit:species-knowledge": "python3 scripts/audit_species_knowledge.py",
