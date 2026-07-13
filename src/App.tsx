@@ -23,6 +23,8 @@ import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/fa
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
 const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const CareFavorites = lazy(() => import('./pages/CareFavorites'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 const Login = lazy(() => import('./pages/Login'));
 
@@ -183,7 +185,11 @@ function BottomNavigation() {
 function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const location = useLocation();
   const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
-  const activePath = navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
+  const activePath = location.pathname === '/wishlist'
+    ? '/encyclopedia'
+    : location.pathname === '/care-favorites'
+      ? '/care'
+      : navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
   const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
   const activeMenu = useMemo(() => {
     if (activePath === '/encyclopedia') return [...desktopSubMenus['/encyclopedia']];
@@ -196,16 +202,14 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
       label: `种草图鉴${favoriteCounts.species ? ` ${favoriteCounts.species}` : ''}`,
       description: favoriteCounts.species ? '查看已收藏生物' : '暂无收藏生物',
       icon: Heart,
-      path: '/encyclopedia',
-      hash: '#wishlist',
+      path: '/wishlist',
     },
     {
       id: 'care-favorites',
       label: `养护收藏${favoriteCounts.care ? ` ${favoriteCounts.care}` : ''}`,
       description: favoriteCounts.care ? '查看收藏文章' : '暂无收藏文章',
       icon: Library,
-      path: '/care',
-      hash: '#care-favorites',
+      path: '/care-favorites',
     },
   ], [favoriteCounts]);
 
@@ -230,8 +234,8 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
     navigateToView(activePath, hash);
   };
 
-  const handleUtilityNav = (path: string, hash: string) => {
-    navigateToView(path, hash);
+  const handleUtilityNav = (path: string) => {
+    navigateToRoute(path);
   };
 
   return (
@@ -339,12 +343,12 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
             <div className="mb-3 grid gap-2">
               {fixedUtilityItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path && location.hash === item.hash;
+                const isActive = location.pathname === item.path;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => handleUtilityNav(item.path, item.hash)}
+                    onClick={() => handleUtilityNav(item.path)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left shadow-sm transition-colors',
                       isActive
@@ -374,13 +378,13 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           <div className="grid shrink-0 gap-2 border-t border-ink/6 px-3 py-4">
             {fixedUtilityItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path && location.hash === item.hash;
+              const isActive = location.pathname === item.path;
               return (
                 <button
                   key={item.id}
                   type="button"
                   title={item.label}
-                  onClick={() => handleUtilityNav(item.path, item.hash)}
+                  onClick={() => handleUtilityNav(item.path)}
                   className={cn(
                     'relative flex h-11 w-full items-center justify-center rounded-[16px] shadow-sm transition-colors',
                     isActive ? 'bg-white text-accent ring-1 ring-emerald-100' : 'bg-white/75 text-ink/50 hover:bg-white hover:text-accent'
@@ -539,6 +543,8 @@ function WorkspaceRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
         <Route path="/care" element={<CareEncyclopedia />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/care-favorites" element={<CareFavorites />} />
         <Route path="/aquarium" element={<AquariumManager />} />
       </Routes>
     </Suspense>

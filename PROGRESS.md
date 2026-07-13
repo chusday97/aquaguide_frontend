@@ -2,6 +2,7 @@
 按核心体验优先级依次完成混养闭环、弹窗降噪、按钮行为清理和核心路径缩短；每阶段独立验证并提交。
 
 ## 已完成
+- 状态：`已完成`。新增独立 `/wishlist` 与 `/care-favorites` 路由：页面只展示收藏数量、收藏内容、删除操作和空状态，不带入图鉴筛选、今日种草或养护推荐；桌面侧栏与手机端明确入口均改为直接路由。物种和养护详情在收藏页内打开，关闭后恢复原卡片与滚动位置；继续复用既有收藏服务、旧存储 key 和共享详情实现。`npm run lint`、`npm run build`、`test:favorites` 与 `git diff --check` 通过。（commit: 本次提交）
 - 状态：`已完成`。完成设备级布局壳分离：启动时按真实设备识别 `phone / desktop`，iPhone 与 Android 手机进入 `MobileAppShell`，iPad、Android 平板、桌面和桌面触控设备进入 `DesktopAppShell`；判定不监听窗口宽度，桌面缩窄仍保留桌面侧栏与桌面画布。新增功能对照文档和 8 项设备策略断言，`npm run lint`、`npm run build`、`test:layout-mode` 与 `git diff --check` 通过。（commit: 本次提交）
 - 状态：`已完成`。修复 3D 鱼缸素材不同步：鱼、水草与硬景统一使用 `getSpeciesDisplayImage` 解析覆盖素材，纹理基于解析后的版本化 URL 加载，并为每个渲染实例克隆和释放纹理，避免继续复用旧贴图；新增 3D 素材一致性断言。`npm run lint`、`npm run build`、`test:3d-assets` 与 `git diff --check` 通过；Three.js 代码块体积仍为既有约 939KB。（commit: 本次提交）
 - 状态：`已完成`。新增 AI 建缸 Copilot 自动评估集，覆盖缺失信息、候选安全边界、非法动作、模型虚构候选、AI 未配置、网络失败、超时与非法 JSON 等 20 个场景；全部通过，当前通过率 100%。（commit: 本次提交）

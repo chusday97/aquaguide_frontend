@@ -1101,7 +1101,7 @@ const buildStepDiagnosisResult = ({
 
 export default function CareEncyclopedia() {
   const location = useLocation();
-  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
+  const { captureContext, navigateToRoute, navigateToSection, restoreContext } = useWorkspaceNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
   const [highFrequencyFilter, setHighFrequencyFilter] = useState('全部');
@@ -1490,7 +1490,7 @@ export default function CareEncyclopedia() {
           <button
             type="button"
             ref={favoriteShelfRef}
-            onClick={() => setIsFavoritesOpen(true)}
+            onClick={() => navigateToRoute('/care-favorites')}
             className="shrink-0 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
           >
             我的收藏{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
@@ -1508,7 +1508,7 @@ export default function CareEncyclopedia() {
           <button
             type="button"
             ref={favoriteShelfRef}
-            onClick={() => setIsFavoritesOpen(true)}
+            onClick={() => navigateToRoute('/care-favorites')}
             className="shrink-0 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
           >
             我的收藏{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
@@ -2381,7 +2381,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
   );
 }
 
-function CareArticleDetail({
+export function CareArticleDetail({
   topic,
   scrollRef,
   checkedActions,
