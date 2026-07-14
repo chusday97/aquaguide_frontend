@@ -22,7 +22,7 @@
 - `src/lib/tankCompatibilityEngine.ts`：统一混养规则引擎。
 - `src/lib/speciesVisual.ts`：二维与 3D 物种素材解析。
 - `src/components/SpeciesDetailDialog.tsx`：共享物种详情。
-- `src/components/common/AdaptiveDetailContent.tsx`：桌面右侧抽屉与手机底部详情面板。
+- `src/components/common/AdaptiveDetailContent.tsx`：桌面中央详情弹窗与手机底部详情面板。
 - `src/components/common/AdaptiveTaskContent.tsx`：桌面与手机的沉浸式任务流程表面。
 - `src/components/ThreeAquarium.tsx`：3D 鱼缸。
 
@@ -31,6 +31,7 @@
 - `docs/README.md`：当前产品文档总入口与事实来源说明。
 - `docs/01-definition/`：PRD、用户故事、竞品分析与当前产品状态。
 - `docs/02-design/`：信息架构、交互说明、设计系统、数据模型与 AI/API 边界。
+- `docs/02-design/demos/`：养护详情 A/B/C 三套高保真方案与可复现原型。
 - `docs/03-development/`：技术架构、模块结构、本地运行、QA 与日志入口。
 - `docs/04-planning/PRODUCT_GAPS_AND_ROADMAP.md`：证据化卡点、优先级与迭代顺序。
 - `docs/LAYOUT_FEATURE_PARITY.md`：手机/桌面功能对照。

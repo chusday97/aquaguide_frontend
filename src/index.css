@@ -72,7 +72,7 @@ body,
   width: 100%;
   padding: 24px var(--desktop-content-gap, 18px) 12px !important;
   overflow-y: auto !important;
-  overflow-x: auto !important;
+  overflow-x: hidden !important;
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -87,11 +87,55 @@ body,
 .aquaguide-app.desktop-shell-active .desktop-canvas {
   width: min(100%, var(--desktop-canvas-width, 1280px)) !important;
   max-width: var(--desktop-canvas-width, 1280px) !important;
-  min-width: min(720px, var(--desktop-canvas-width, 1280px));
+  min-width: 0;
   min-height: 100%;
   margin-inline: auto;
   overflow: visible !important;
   transform: none !important;
+}
+
+.care-workspace-shell {
+  container: care-workspace / inline-size;
+}
+
+[data-surface="centered-dialog"] {
+  width: min(900px, calc(100vw - 64px)) !important;
+  max-width: 900px !important;
+  max-height: 88dvh !important;
+}
+
+.care-workspace-grid {
+  align-items: start;
+  min-width: 0;
+}
+
+@container care-workspace (min-width: 760px) {
+  .care-workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .care-left-panel {
+    grid-column: 1;
+  }
+
+  #care-recommendations {
+    grid-row: 1;
+  }
+
+  #care-search {
+    grid-row: 2;
+  }
+
+  #care-categories {
+    grid-row: 3;
+  }
+
+  .care-results-panel {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
 }
 
 .aquaguide-app.desktop-shell-active .md\:hidden {

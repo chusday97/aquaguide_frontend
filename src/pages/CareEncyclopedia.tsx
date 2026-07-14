@@ -1481,7 +1481,8 @@ export default function CareEncyclopedia() {
   };
 
   return (
-    <div className="page-frame-wide flex min-w-0 flex-col gap-3 overflow-x-hidden pb-24 md:grid md:grid-cols-[minmax(390px,460px)_minmax(0,1fr)] md:items-start md:gap-4">
+    <div className="page-frame-wide care-workspace-shell min-w-0 overflow-x-hidden">
+      <div className="care-workspace-grid flex min-w-0 flex-col gap-3 pb-24">
       <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -1500,25 +1501,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      <section className="hidden rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:hidden">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
-            <p className="mt-1 text-[12px] font-medium text-ink/55">按问题快速查找养护方法</p>
-          </div>
-          <button
-            type="button"
-            ref={favoriteShelfRef}
-            onClick={() => navigateToRoute('/care-favorites')}
-            className="shrink-0 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
-          >
-            我的收藏{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
-            <ChevronRight className="ml-0.5 inline h-3.5 w-3.5" />
-          </button>
-        </div>
-      </section>
-
-      <section id="care-recommendations" className={`scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1 md:row-start-1 ${(!searchTerm.trim() && careWorkspacePage === 'home') ? '' : 'hidden md:block'}`}>
+      <section id="care-recommendations" className={`care-left-panel scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm ${(!searchTerm.trim() && careWorkspacePage === 'home') ? '' : 'hidden md:block'}`}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-ink">为当前鱼缸推荐</div>
@@ -1573,7 +1556,7 @@ export default function CareEncyclopedia() {
             </div>
       </section>
 
-      <section id="care-search" ref={careSearchRef} className="scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1">
+      <section id="care-search" ref={careSearchRef} className="care-left-panel scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
           <Input
@@ -1594,7 +1577,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      <section id="care-categories" className={`${searchTerm.trim() ? 'hidden md:block' : ''} scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:col-start-1`}>
+      <section id="care-categories" className={`${searchTerm.trim() ? 'hidden md:block' : ''} care-left-panel scroll-mt-4 rounded-[18px] border border-white/80 bg-white p-3 shadow-sm`}>
           <div className="mb-2 text-[15px] font-black text-ink">我现在想处理什么？</div>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-2 md:gap-3">
             {careCategoryEntrances.map(item => {
@@ -1622,7 +1605,7 @@ export default function CareEncyclopedia() {
           </div>
       </section>
 
-      <section id="care-results" ref={contentListRef} className="scroll-mt-4 grid grid-cols-1 gap-3 md:col-start-2 md:row-start-1 md:row-span-5">
+      <section id="care-results" ref={contentListRef} className="care-results-panel scroll-mt-4 grid min-w-0 grid-cols-1 gap-3">
         <div className="rounded-[18px] border border-white/80 bg-white px-4 py-3 shadow-sm">
           <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -1658,6 +1641,13 @@ export default function CareEncyclopedia() {
             />
           ))}
         </div>
+        {filteredTopics.length === 0 && (
+          <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50">
+            {careViewMode === 'favorites'
+              ? '还没有收藏的养护问题。看到常用问题时，点文章右上角爱心就会加入这里。'
+              : '没有找到相关内容，可以试试：水浑、浮头、过水、换水、死鱼。'}
+          </div>
+        )}
         {filteredTopics.length > careResultPageSize && (
           <div className="flex items-center justify-center gap-2 rounded-[18px] bg-white/80 px-3 py-3 shadow-sm">
             <button
@@ -1682,14 +1672,6 @@ export default function CareEncyclopedia() {
           </div>
         )}
       </section>
-
-      {filteredTopics.length === 0 && (
-        <div className="rounded-[18px] border border-dashed border-border bg-white p-8 text-center text-sm font-bold text-ink/50 md:col-start-2">
-          {careViewMode === 'favorites'
-            ? '还没有收藏的养护问题。看到常用问题时，点文章右上角爱心就会加入这里。'
-            : '没有找到相关内容，可以试试：水浑、浮头、过水、换水、死鱼。'}
-        </div>
-      )}
 
       <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && closeCareDetail()}>
         <AdaptiveDetailContent>
@@ -1906,6 +1888,7 @@ export default function CareEncyclopedia() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
@@ -2607,40 +2590,42 @@ export function CareArticleDetail({
   return (
     <div className="flex max-h-[88vh] flex-col bg-white">
       <div ref={scrollRef} className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto max-w-[680px] p-4 pb-32 pt-8 md:max-w-[700px]">
-          <button type="button" onClick={onPreview} data-care-detail-hero className="block w-full" aria-label={`查看${topic.title}大图`}>
-            <CareImage topic={topic} className="h-[260px] w-full rounded-[20px]" showPreviewHint />
-          </button>
+        <div className="mx-auto max-w-[780px] p-4 pb-8 pt-7">
+          <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-stretch">
+            <button type="button" onClick={onPreview} data-care-detail-hero className="block min-w-0" aria-label={`查看${topic.title}大图`}>
+              <CareImage topic={topic} className="h-[170px] w-full rounded-[20px] md:h-full md:min-h-[210px]" showPreviewHint />
+            </button>
 
-          <div className="mt-4">
-            <div className="mb-2 flex flex-wrap items-center gap-1.5">
-              {meta.topicTags.map(tag => (
-                <span key={tag} className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/50">{tag}</span>
-              ))}
-              <span className={`rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
-                {meta.urgencyTag}
-              </span>
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                {meta.topicTags.map(tag => (
+                  <span key={tag} className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/50">{tag}</span>
+                ))}
+                <span className={`rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
+                  {meta.urgencyTag}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <h2 className="min-w-0 flex-1 text-[22px] font-black leading-tight text-ink">{careGuide.title}</h2>
+                <button
+                  type="button"
+                  onClick={(event) => onToggleFavorite(event.currentTarget)}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg transition-colors ${
+                    favorite ? 'text-rose-500' : 'text-ink/35'
+                  }`}
+                  aria-label={favorite ? '取消收藏' : '收藏百科'}
+                >
+                  <Heart className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
+                </button>
+              </div>
+              <section className="mt-3 rounded-[18px] border border-emerald-100 bg-emerald-50/55 p-3.5">
+                <div className="text-[12px] font-black text-emerald-800">核心结论</div>
+                <p className="mt-1 text-[14px] font-black leading-relaxed text-ink">{careGuide.summary}</p>
+                <p className="mt-2 text-[12px] font-medium leading-relaxed text-emerald-900/62">
+                  适用场景：{careGuide.suitableFor}
+                </p>
+              </section>
             </div>
-            <div className="flex items-start gap-2">
-              <h2 className="min-w-0 flex-1 text-[21px] font-black leading-tight text-ink">{careGuide.title}</h2>
-              <button
-                type="button"
-                onClick={(event) => onToggleFavorite(event.currentTarget)}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg transition-colors ${
-                  favorite ? 'text-rose-500' : 'text-ink/35'
-                }`}
-                aria-label={favorite ? '取消收藏' : '收藏百科'}
-              >
-                <Heart className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
-              </button>
-            </div>
-            <section className="mt-3 rounded-[18px] border border-emerald-100 bg-emerald-50/55 p-3">
-              <div className="text-[12px] font-black text-emerald-800">核心结论</div>
-              <p className="mt-1 text-[14px] font-black leading-relaxed text-ink">{careGuide.summary}</p>
-              <p className="mt-2 text-[12px] font-medium leading-relaxed text-emerald-900/62">
-                适用场景：{careGuide.suitableFor}
-              </p>
-            </section>
           </div>
 
           {meta.guideType === 'diagnosis' ? (
