@@ -1,5 +1,31 @@
 # AquaGuide Data Contract
 
+## 应用内养护计划
+
+本轮继续使用现有 `aqua_care_reminders` 存储键，不新增数据库、Supabase 表或 localStorage 集合。提醒只在应用内展示，不申请浏览器系统通知权限。
+
+```ts
+interface CareReminderRecord {
+  id: string;
+  sourceTopicId: string;
+  title: string;
+  type: string;
+  createdAt: string;
+  scheduledFor: string;
+  aquariumId?: string;
+  label?: string;
+  completedAt?: string;
+}
+```
+
+约束：
+
+- 同一 `sourceTopicId + aquariumId` 只保留一条未完成计划；再次设置时更新日期。
+- `scheduledFor` 使用 ISO 时间字符串，界面按用户本地自然日派生“今日 / 即将到期 / 已逾期”。
+- 旧记录根据 `label` 中的小时或天数推算日期；无法识别时使用 `createdAt` 次日。
+- 完成、改期和删除均由养护活动服务写入，删除前必须二次确认。
+- 不实现系统推送、后台执行、重复周期或独立提醒中心。
+
 ## 我的水族册与派生成就
 
 本轮不新增数据库、Supabase 表、API 或 localStorage 集合。水族册继续读取现有数据源：

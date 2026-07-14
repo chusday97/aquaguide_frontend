@@ -83,6 +83,15 @@ import { trackSessionEvent } from '../services/analytics/session-events.service'
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { recordSpeciesMemorial } from '../services/collection/memorial.service';
 import { persistAquariums } from '../services/aquarium/aquarium-state.service';
+import {
+  completeCareReminder,
+  deleteCareReminder,
+  getCareReminders,
+  getCareReminderStatus,
+  rescheduleCareReminder,
+  subscribeToCareActivity,
+  type CareReminderRecord,
+} from '../services/care/care-activity.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -633,7 +642,7 @@ const loadWishlistFishIds = () => {
 };
 
 export default function AquariumManager() {
-  const { captureContext, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
+  const { captureContext, navigateToRoute, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
   const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -716,7 +725,9 @@ export default function AquariumManager() {
   const [aiReasoningSource, setAiReasoningSource] = useState<AiResponseSource | null>(null);
 
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistFishIds());
-  const [isWishlistExpanded, setIsWishlistExpanded] = useState(false);
+  const [careReminders, setCareRemindersState] = useState<CareReminderRecord[]>(() => getCareReminders());
+  const [pendingReminderDelete, setPendingReminderDelete] = useState<CareReminderRecord | null>(null);
+  const [pendingReminderReschedule, setPendingReminderReschedule] = useState<CareReminderRecord | null>(null);
   const [discoveryState, setDiscoveryState] = useState<DiscoveryDeckState>(() => loadDiscoveryState());
   const [discoveryDragStartX, setDiscoveryDragStartX] = useState<number | null>(null);
   const [discoveryDragX, setDiscoveryDragX] = useState(0);
@@ -772,6 +783,10 @@ export default function AquariumManager() {
     setObservationRecords(appState.observationRecords);
     setPriorityTaskStatus(appState.riskReminderState || {});
   }, []);
+
+  useEffect(() => subscribeToCareActivity(() => {
+    setCareRemindersState(getCareReminders());
+  }), []);
 
   useEffect(() => {
     let isMounted = true;
@@ -864,6 +879,46 @@ export default function AquariumManager() {
     const updated = [...aquariums, newAq];
     saveAquariums(updated);
     setActiveId(newAq.id);
+    showToast(`已新建“${newAq.name}”`);
+  };
+
+  const openTankArchive = () => {
+    setIsTankArchiveExpanded(true);
+    window.requestAnimationFrame(() => {
+      void navigateToSection('aquarium-records', { updateHash: false });
+    });
+  };
+
+  const handleCompleteReminder = (reminder: CareReminderRecord) => {
+    try {
+      completeCareReminder(reminder.id);
+      showToast('养护计划已完成');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '养护计划没有更新成功。', 'error');
+    }
+  };
+
+  const handleRescheduleReminder = (reminder: CareReminderRecord, days: number) => {
+    const scheduled = new Date();
+    scheduled.setDate(scheduled.getDate() + days);
+    try {
+      rescheduleCareReminder(reminder.id, scheduled.toISOString(), `${days} 天后提醒`);
+      setPendingReminderReschedule(null);
+      showToast(`已改为 ${days} 天后提醒`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '养护计划没有改期成功。', 'error');
+    }
+  };
+
+  const handleDeleteReminder = () => {
+    if (!pendingReminderDelete) return;
+    try {
+      deleteCareReminder(pendingReminderDelete.id);
+      setPendingReminderDelete(null);
+      showToast('养护计划已删除');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '养护计划没有删除成功。', 'error');
+    }
   };
 
   const requestDeleteAquarium = (id: string) => {
@@ -2422,6 +2477,10 @@ export default function AquariumManager() {
   if (!activeAquarium) return null;
 
   const currentFishesDetails = activeAquarium.fishes.map(af => fishData.find(f => f.id === af.fishId)).filter(Boolean) as Fish[];
+  const activeCareReminders = careReminders
+    .filter(reminder => !reminder.completedAt && (!reminder.aquariumId || reminder.aquariumId === activeAquarium.id))
+    .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+  const dueCareReminders = activeCareReminders.filter(reminder => ['overdue', 'today'].includes(getCareReminderStatus(reminder)));
   const heaterStockedItems = activeAquarium.fishes
     .map(aqFish => ({ aqFish, fish: fishData.find(f => f.id === aqFish.fishId) }))
     .filter((item): item is { aqFish: AquariumFish; fish: Fish } => Boolean(item.fish) && needsHeaterForSpecies(item.fish));
@@ -3329,6 +3388,7 @@ export default function AquariumManager() {
     : '暂无';
   const selectedWaterDateHasRecord = waterChangeHistory.includes(selectedWaterChangeDate);
   const totalStockedQuantity = activeAquarium.fishes.reduce((sum, fish) => sum + Math.max(1, fish.quantity || 1), 0);
+  const stockedSpeciesCount = new Set(activeAquarium.fishes.map(fish => fish.fishId)).size;
   const hasStockedAnimals = totalStockedQuantity > 0;
   const hasDimensionConfig = Boolean(
     activeAquarium.dimensions?.length
@@ -3592,6 +3652,14 @@ export default function AquariumManager() {
       active: fedToday,
     },
     {
+      id: 'viewTankSpecies',
+      label: '缸内物种',
+      description: hasStockedAnimals ? `${stockedSpeciesCount} 种 · 共 ${totalStockedQuantity} 只/条` : '当前还没有生物',
+      icon: <BookOpen className="h-4 w-4" />,
+      onClick: openTankArchive,
+      tone: hasStockedAnimals ? 'info' as const : 'muted' as const,
+    },
+    {
       id: 'addSpecies',
       label: '添加生物',
       description: tankHealthStatus === '风险' ? '先处理风险后添加' : '从图鉴加入鱼缸',
@@ -3725,13 +3793,13 @@ export default function AquariumManager() {
           </div>
           <button
             type="button"
-            onClick={() => setIsWishlistExpanded(prev => !prev)}
+            onClick={() => navigateToRoute('/collection?tab=wishlist')}
             className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-rose-500 transition-colors hover:bg-white"
           >
             <span className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <Heart className={`h-4 w-4 ${wishlistFishes.length > 0 ? 'fill-current' : ''}`} />
-                <span className="text-[13px] font-black">种草图鉴</span>
+                <span className="text-[13px] font-black">水族册种草</span>
               </span>
               <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black">{wishlistFishes.length}</span>
             </span>
@@ -3756,6 +3824,49 @@ export default function AquariumManager() {
           </button>
         </div>
       </aside>
+      <section className="aquarium-desktop-header relative hidden min-w-0 items-center justify-between gap-3 rounded-[20px] border border-white/80 bg-white/72 px-4 py-3 shadow-sm md:flex">
+        <div className="relative min-w-0">
+          <button
+            type="button"
+            onClick={() => setIsAquariumMenuOpen(prev => !prev)}
+            className="flex min-w-[220px] items-center gap-3 rounded-[16px] bg-white px-3 py-2 text-left shadow-sm ring-1 ring-ink/5"
+            aria-expanded={isAquariumMenuOpen}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700"><Droplets className="h-4 w-4" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-black text-ink">{activeAquarium.name}</span>
+              <span className="block text-[10px] font-bold text-ink/42">{aquariums.length} 个鱼缸 · 点击切换</span>
+            </span>
+            <ChevronRight className={`h-4 w-4 text-ink/35 transition-transform ${isAquariumMenuOpen ? 'rotate-90' : ''}`} />
+          </button>
+          {isAquariumMenuOpen && (
+            <div className="absolute left-0 top-[calc(100%+8px)] z-[80] w-[300px] rounded-[20px] border border-white/80 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
+              {aquariums.map(aquarium => (
+                <button
+                  key={aquarium.id}
+                  type="button"
+                  onClick={() => { setActiveId(aquarium.id); setIsAquariumMenuOpen(false); }}
+                  className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-left ${aquarium.id === activeId ? 'bg-emerald-50 text-emerald-800' : 'hover:bg-bg'}`}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[12px] font-black">{aquarium.name}</span>
+                    <span className="block text-[9px] font-bold opacity-55">{new Set(aquarium.fishes.map(fish => fish.fishId)).size} 种生物</span>
+                  </span>
+                  {aquarium.id === activeId && <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black">当前</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="button" variant="outline" onClick={openTankArchive} className="h-10 rounded-full border-border bg-white px-4 text-[12px] font-black text-ink/68">
+            <BookOpen className="mr-1.5 h-4 w-4" />缸内物种 {stockedSpeciesCount}
+          </Button>
+          <Button type="button" onClick={handleAddAquarium} className="h-10 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white hover:bg-emerald-800">
+            <Plus className="mr-1.5 h-4 w-4" />新建鱼缸
+          </Button>
+        </div>
+      </section>
       {/* Aquarium Tabs */}
       <section className="aquarium-toolbar order-[0] min-w-0 pb-1 pt-[58px] md:pt-0 md:hidden">
         <div className="fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-[430px] min-w-0 items-center gap-2 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-0 md:z-40 md:max-w-[760px] md:rounded-[28px] md:border md:border-white/80 md:bg-white/78 md:px-4 md:py-3 md:shadow-sm">
@@ -3858,14 +3969,14 @@ export default function AquariumManager() {
           <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setIsWishlistExpanded(prev => !prev)}
+              onClick={() => navigateToRoute('/collection?tab=wishlist')}
               className="flex h-8 items-center gap-1 rounded-full border border-rose-100 bg-white px-2.5 text-[11px] font-black text-rose-500 shadow-sm"
-              title="查看种草图鉴"
+              title="查看水族册种草"
             >
               <Heart className={`h-3.5 w-3.5 ${wishlistFishes.length > 0 ? 'fill-current' : ''}`} />
-              <span className="hidden min-[380px]:inline">种草图鉴</span>
+              <span className="hidden min-[380px]:inline">水族册</span>
               <span>{wishlistFishes.length}</span>
-              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isWishlistExpanded ? 'rotate-90' : ''}`} />
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -3879,48 +3990,6 @@ export default function AquariumManager() {
           </div>
         </div>
 
-        {isWishlistExpanded && (
-          <div className="mt-2 overflow-hidden rounded-sm border border-rose-100 bg-rose-50/60 shadow-sm">
-            {wishlistFishes.length === 0 ? (
-              <div className="rounded-sm border border-dashed border-rose-200 bg-white/60 px-3 py-4 text-center text-[11px] font-medium text-ink/50">
-                还没有种草，滑动“今天想养哪一种”或在图鉴里点心愿按钮。
-              </div>
-            ) : (
-              <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 bg-[#FBFAF6] px-2.5 py-3 md:grid-cols-7 lg:grid-cols-8 md:gap-2">
-                {wishlistFishes.map(fish => (
-                  <div key={fish.id} className="group relative min-w-0 text-center">
-                    <button
-                      type="button"
-                      aria-label={`移除${fish.name}`}
-                      onClick={() => toggleWishlist(fish.id)}
-                      className="absolute right-0 top-0 z-10 rounded-full bg-white/90 p-0.5 text-rose-400 shadow-sm hover:text-rose-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                    <button
-                      id={`aquarium-wishlist-species-${fish.id}`}
-                      type="button"
-                      onClick={() => openWishlistSpeciesDetail(fish, `aquarium-wishlist-species-${fish.id}`)}
-                      className="block w-full rounded-[12px] text-center transition-colors hover:bg-rose-50/55 focus:outline-none focus:ring-2 focus:ring-rose-100"
-                      aria-label={`查看${fish.name}详情`}
-                    >
-                      <div className={`relative mx-auto flex h-[46px] w-full items-end justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(fish)}`}>
-                        <img
-                          src={getSpeciesDisplayImage(fish)}
-                          alt={fish.name}
-                          className={`max-h-[44px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(fish)}`}
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                      <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-rose-500">{fish.name}</div>
-                      <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-ink/38">{getArchiveCategory(fish)}</div>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </section>
 
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
@@ -4040,8 +4109,46 @@ export default function AquariumManager() {
         </div>
       </section>
 
+      <section id="care-plan" className="aquarium-care-plan order-[4] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
+        <SectionHeader
+          title="养护计划"
+          subtitle={dueCareReminders.length > 0 ? `${dueCareReminders.length} 项今天需要处理` : activeCareReminders.length > 0 ? '计划会按本地日期提醒你。' : '从养护指南设置观察或维护日期。'}
+        />
+        {activeCareReminders.length > 0 ? (
+          <div className="mt-3 grid gap-2">
+            {activeCareReminders.slice(0, 3).map(reminder => {
+              const status = getCareReminderStatus(reminder);
+              const statusLabel = status === 'overdue' ? '已逾期' : status === 'today' ? '今天' : '即将到期';
+              const statusClass = status === 'overdue' ? 'bg-red-50 text-red-700' : status === 'today' ? 'bg-amber-50 text-amber-800' : 'bg-sky-50 text-sky-700';
+              return (
+                <article key={reminder.id} className="rounded-[16px] border border-border/70 bg-white p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-black text-ink">{reminder.title}</div>
+                      <div className="mt-1 text-[10px] font-bold text-ink/45">{format(new Date(reminder.scheduledFor), 'MM月dd日')} · {reminder.label || '复查养护状态'}</div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${statusClass}`}>{statusLabel}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button type="button" onClick={() => navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`)} className="h-8 rounded-full bg-emerald-700 px-3 text-[10px] font-black text-white hover:bg-emerald-800">查看指引</Button>
+                    <Button type="button" variant="outline" onClick={() => handleCompleteReminder(reminder)} className="h-8 rounded-full border-emerald-100 px-3 text-[10px] font-black text-emerald-700">完成</Button>
+                    <button type="button" onClick={() => setPendingReminderReschedule(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-ink/48 hover:bg-bg">改期</button>
+                    <button type="button" onClick={() => setPendingReminderDelete(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-red-500 hover:bg-red-50">删除</button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-[16px] border border-dashed border-border bg-white/70 px-3 py-3">
+            <div className="text-[11px] font-bold text-ink/48">还没有养护计划，可以从操作指南设置。</div>
+            <Button type="button" variant="outline" onClick={() => navigateToRoute('/care')} className="h-8 shrink-0 rounded-full px-3 text-[10px] font-black">浏览指南</Button>
+          </div>
+        )}
+      </section>
+
       {recommendedActionCandidates.length > 0 && (
-      <section id="next-actions" className="aquarium-recommend order-[4] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
+      <section id="next-actions" className="aquarium-recommend order-[5] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <SectionHeader title="下一步行动" subtitle={tankActionMessage || nextStepMessage} />
         <div className="mt-3">
           <div className="grid grid-cols-1 gap-2">
@@ -4064,7 +4171,7 @@ export default function AquariumManager() {
       )}
 
       {/* Visual Tank Placeholder */}
-      <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[5] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
+      <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[6] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
         <Suspense
           fallback={
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
@@ -4158,7 +4265,7 @@ export default function AquariumManager() {
       </div>
 
       {/* Tank Species Archive */}
-      <section id="aquarium-records" className="aquarium-archive order-[6] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
+      <section id="aquarium-records" className="aquarium-archive order-[7] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
@@ -4167,7 +4274,7 @@ export default function AquariumManager() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[14px] font-black text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-              缸内内容
+              缸内物种与配置
             </div>
             <div className="mt-0.5 text-[10px] font-bold text-ink/45">
               {hasStockedAnimals
@@ -4209,7 +4316,7 @@ export default function AquariumManager() {
             <div className="min-w-0 text-center">
               <div className="flex items-center justify-center gap-1.5 text-[20px] font-black leading-none text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-                缸内内容
+                缸内物种与配置
               </div>
               <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
             </div>
@@ -4323,7 +4430,7 @@ export default function AquariumManager() {
       </section>
 
       {deceasedArchiveItems.length > 0 && (
-        <section className="order-[7] overflow-hidden rounded-[18px] border border-white/80 bg-white/70 p-3 shadow-sm">
+        <section className="order-[8] overflow-hidden rounded-[18px] border border-white/80 bg-white/70 p-3 shadow-sm">
           <button
             type="button"
             onClick={() => setIsDeceasedArchiveExpanded(prev => !prev)}
@@ -4365,6 +4472,35 @@ export default function AquariumManager() {
           )}
         </section>
       )}
+
+      <Dialog open={Boolean(pendingReminderReschedule)} onOpenChange={(open) => !open && setPendingReminderReschedule(null)}>
+        <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-border bg-white p-5">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-ink">养护计划改期</DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">选择新的复查日期，原计划会直接更新。</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 grid gap-2">
+            {[1, 3, 7].map(days => (
+              <Button key={days} type="button" variant="outline" onClick={() => pendingReminderReschedule && handleRescheduleReminder(pendingReminderReschedule, days)} className="h-11 justify-start rounded-[16px] border-border bg-bg px-4 text-[12px] font-black text-ink/70">
+                {days === 1 ? '明天' : `${days} 天后`}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(pendingReminderDelete)} onOpenChange={(open) => !open && setPendingReminderDelete(null)}>
+        <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-red-100 bg-white p-5">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-ink">删除养护计划</DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">将删除“{pendingReminderDelete?.title}”的提醒，指南收藏和完成记录不受影响。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2">
+            <Button type="button" variant="outline" onClick={() => setPendingReminderDelete(null)} className="h-10 rounded-full">取消</Button>
+            <Button type="button" onClick={handleDeleteReminder} className="h-10 rounded-full bg-red-600 text-white hover:bg-red-700">删除</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pendingDeleteAquariumId} onOpenChange={(open) => !open && setPendingDeleteAquariumId(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-red-100 bg-white p-5">
@@ -4468,6 +4604,25 @@ export default function AquariumManager() {
               <div className="bg-white/82 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[10px] font-bold text-ink shadow-sm border border-white/60">
                 {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || '25'}°C · 约{tankVolumeLiters}L
               </div>
+            </div>
+            <div className="app-scrollbar-hidden absolute inset-x-3 bottom-3 z-20 flex gap-2 overflow-x-auto rounded-[18px] bg-white/82 p-2 shadow-lg backdrop-blur-md md:hidden">
+              {Array.from(new Set(activeAquarium.fishes.map(item => item.fishId))).map(fishId => {
+                const fishInfo = fishData.find(fish => fish.id === fishId);
+                if (!fishInfo) return null;
+                const quantity = activeAquarium.fishes.filter(item => item.fishId === fishId).reduce((sum, item) => sum + (item.quantity || 1), 0);
+                return (
+                  <button
+                    key={fishId}
+                    type="button"
+                    onClick={() => setActive3DSpecies(active3DSpecies === fishId ? null : fishId)}
+                    className={`flex min-w-[128px] items-center gap-2 rounded-[14px] border p-2 text-left ${active3DSpecies === fishId ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-white bg-white/88 text-ink/65'}`}
+                  >
+                    <img src={getSpeciesDisplayImage(fishInfo)} alt={fishInfo.name} className={`h-9 w-9 object-contain ${getSpeciesImageClass(fishInfo)}`} />
+                    <span className="min-w-0"><span className="block truncate text-[11px] font-black">{fishInfo.name}</span><span className="text-[9px] font-bold opacity-55">{quantity} 只/条</span></span>
+                  </button>
+                );
+              })}
+              {activeAquarium.fishes.length === 0 && <div className="px-3 py-2 text-[11px] font-bold text-ink/45">还没有缸内物种。</div>}
             </div>
             </div>
             <aside className="hidden min-h-0 border-l border-white/70 bg-white/78 p-4 backdrop-blur md:block">

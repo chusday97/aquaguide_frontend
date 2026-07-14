@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, PointerEvent, ReactNode, RefObject } from 'react';
+import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,13 +21,13 @@ import {
   type CareFavoriteMap,
 } from '../services/favorites/favorites.service';
 import {
-  getCareReminders,
   getCompletedCareOperations,
   getSavedCareChecklists,
-  setCareReminders,
   setCompletedCareOperations,
   setSavedCareChecklists,
+  upsertCareReminder,
 } from '../services/care/care-activity.service';
+import { useToast } from '../components/common/ToastProvider';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
@@ -1111,6 +1111,7 @@ const buildStepDiagnosisResult = ({
 export default function CareEncyclopedia() {
   const location = useLocation();
   const { captureContext, navigateToRoute, navigateToSection, restoreContext } = useWorkspaceNavigation();
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
   const [highFrequencyFilter, setHighFrequencyFilter] = useState('全部');
@@ -1124,7 +1125,6 @@ export default function CareEncyclopedia() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isCareFilterOpen, setIsCareFilterOpen] = useState(false);
   const [draftCareCategory, setDraftCareCategory] = useState(activeCategory);
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [careViewMode, setCareViewMode] = useState<CareViewMode>('all');
   const [draftCareViewMode, setDraftCareViewMode] = useState<CareViewMode>('all');
   const [favorites, setFavorites] = useState<CareFavoriteMap>(() => getCareFavorites());
@@ -1132,12 +1132,7 @@ export default function CareEncyclopedia() {
   const [isSavingShareCard, setIsSavingShareCard] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
-  const [carouselDragStart, setCarouselDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [carouselDeltaX, setCarouselDeltaX] = useState(0);
-  const [carouselPausedUntil, setCarouselPausedUntil] = useState(0);
-  const [isCarouselHovering, setIsCarouselHovering] = useState(false);
   const [flyingFavorites, setFlyingFavorites] = useState<FlyingFavorite[]>([]);
-  const carouselDraggedRef = useRef(false);
   const recommendationCarouselRef = useRef<HTMLDivElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const favoriteShelfRef = useRef<HTMLButtonElement | null>(null);
@@ -1183,15 +1178,6 @@ export default function CareEncyclopedia() {
   }, [location.hash, navigateToSection]);
 
   useEffect(() => {
-    if (careRecommendations.length <= 1) return;
-    const timer = window.setInterval(() => {
-      if (Date.now() < carouselPausedUntil || isCarouselHovering || carouselDragStart) return;
-      setActiveBannerIndex(prev => (prev + 1) % careRecommendations.length);
-    }, 4000);
-    return () => window.clearInterval(timer);
-  }, [careRecommendations.length, carouselDragStart, carouselPausedUntil, isCarouselHovering]);
-
-  useEffect(() => {
     const node = recommendationCarouselRef.current;
     if (!node || careRecommendations.length === 0) return;
     const normalizedIndex = activeBannerIndex % careRecommendations.length;
@@ -1200,16 +1186,11 @@ export default function CareEncyclopedia() {
     node.scrollTo({ left: card.offsetLeft - node.offsetLeft, behavior: 'smooth' });
   }, [activeBannerIndex, careRecommendations.length]);
 
-  const pauseCarousel = () => {
-    setCarouselPausedUntil(Date.now() + 6000);
-  };
-
   useEffect(() => subscribeToFavorites(() => {
     setFavorites(getCareFavorites());
   }), []);
 
   const goToBanner = (index: number) => {
-    pauseCarousel();
     setActiveBannerIndex((index + careRecommendations.length) % Math.max(1, careRecommendations.length));
   };
 
@@ -1240,18 +1221,21 @@ export default function CareEncyclopedia() {
     }, 0);
   };
 
+  useEffect(() => {
+    const topicId = new URLSearchParams(location.search).get('topic');
+    if (!topicId || selectedTopic?.id === topicId) return;
+    openCareDetail(topicId, undefined, false);
+  }, [location.search, selectedTopic?.id]);
+
   const closeCareDetail = () => {
     setSelectedTopic(null);
+    if (new URLSearchParams(location.search).has('topic')) {
+      navigateToRoute('/care');
+      return;
+    }
     const context = detailNavigationContextRef.current;
     detailNavigationContextRef.current = null;
     if (context) void restoreContext(context);
-  };
-
-  const openBannerTopic = (topic: CareTopic, index: number, force = false) => {
-    if (!force && carouselDraggedRef.current) return;
-    setActiveBannerIndex(index);
-    pauseCarousel();
-    openCareDetail(topic.id);
   };
 
   const launchFavoriteFly = (source?: HTMLElement) => {
@@ -1274,13 +1258,15 @@ export default function CareEncyclopedia() {
   };
 
   const toggleFavorite = (topic: CareTopic, source?: HTMLElement) => {
-    if (!favorites[topic.id]) launchFavoriteFly(source);
+    const isAdding = !favorites[topic.id];
+    if (isAdding) launchFavoriteFly(source);
     const next = toggleCareFavorite({
       id: topic.id,
       title: getDisplayTitle(topic),
       favoritedAt: new Date().toISOString(),
     });
     setFavorites(next);
+    showToast(isAdding ? '已收录到水族册' : '已从水族册移除');
   };
 
   const filteredTopics = useMemo(() => {
@@ -1351,13 +1337,6 @@ export default function CareEncyclopedia() {
       .slice(0, 3);
   }, [favorites]);
 
-  const favoriteTopics = useMemo(() => (
-    Object.values(favorites)
-      .sort((a, b) => new Date(b.favoritedAt).getTime() - new Date(a.favoritedAt).getTime())
-      .map(item => careTopicsData.find(topic => topic.id === item.id))
-      .filter((topic): topic is CareTopic => Boolean(topic))
-  ), [favorites]);
-
   const currentCareScopeLabel = careViewMode === 'favorites'
     ? '我的收藏'
     : activeCategory === '全部'
@@ -1385,37 +1364,6 @@ export default function CareEncyclopedia() {
     setPreviewImages([{ src: image, title: topic.title }]);
     setPreviewIndex(0);
     setIsPreviewOpen(true);
-  };
-
-  const handleCarouselPointerDown = (event: PointerEvent<HTMLElement>) => {
-    setCarouselDragStart({ x: event.clientX, y: event.clientY });
-    setCarouselDeltaX(0);
-    carouselDraggedRef.current = false;
-    pauseCarousel();
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handleCarouselPointerMove = (event: PointerEvent<HTMLElement>) => {
-    if (!carouselDragStart) return;
-    const deltaX = event.clientX - carouselDragStart.x;
-    const deltaY = event.clientY - carouselDragStart.y;
-    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 12) return;
-    if (Math.abs(deltaX) > 40) carouselDraggedRef.current = true;
-    setCarouselDeltaX(deltaX);
-  };
-
-  const handleCarouselPointerUp = () => {
-    if (!carouselDragStart) return;
-    if (carouselDeltaX < -40) {
-      goToBanner(activeBannerIndex + 1);
-    } else if (carouselDeltaX > 40) {
-      goToBanner(activeBannerIndex - 1);
-    }
-    setCarouselDragStart(null);
-    setCarouselDeltaX(0);
-    window.setTimeout(() => {
-      carouselDraggedRef.current = false;
-    }, 80);
   };
 
   const toggleValue = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
@@ -1490,8 +1438,8 @@ export default function CareEncyclopedia() {
 
   return (
     <div className="page-frame-wide care-workspace-shell min-w-0 overflow-x-hidden">
-      <div className="care-workspace-grid flex min-w-0 flex-col gap-3 pb-24">
-      <section className="rounded-[18px] border border-white/80 bg-white p-3 shadow-sm md:hidden">
+      <div className="care-workspace-grid flex min-w-0 flex-col gap-3 pb-4 md:pb-8">
+      <section className="px-1 py-1 md:hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[20px] font-black leading-tight text-ink">养护百科</h1>
@@ -1500,10 +1448,10 @@ export default function CareEncyclopedia() {
           <button
             type="button"
             ref={favoriteShelfRef}
-            onClick={() => navigateToRoute('/care-favorites')}
+            onClick={() => navigateToRoute('/collection?tab=care')}
             className="shrink-0 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
           >
-            我的收藏{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
+            水族册养护{favoriteCount > 0 ? ` ${favoriteCount}` : ''}
             <ChevronRight className="ml-0.5 inline h-3.5 w-3.5" />
           </button>
         </div>
@@ -1515,16 +1463,11 @@ export default function CareEncyclopedia() {
                 <div className="text-[16px] font-black text-ink">为当前鱼缸推荐</div>
                 <p className="mt-0.5 line-clamp-1 text-[11px] font-bold text-ink/45">根据鱼缸：{aquariumSummary}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-bg px-2.5 py-1 text-[10px] font-black text-ink/42">左右滑动查看更多</span>
+              <span className="shrink-0 rounded-full bg-bg px-2.5 py-1 text-[10px] font-black text-ink/42">{activeBannerIndex + 1}/{careRecommendations.length}</span>
             </div>
             <div
               ref={recommendationCarouselRef}
-              className="app-scrollbar-hidden -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 md:overflow-hidden"
-              onScroll={(event) => {
-                const node = event.currentTarget;
-                const cardWidth = node.querySelector<HTMLElement>('[data-care-recommend-card]')?.offsetWidth || node.clientWidth;
-                setActiveBannerIndex(Math.round(node.scrollLeft / Math.max(1, cardWidth + 12)));
-              }}
+              className="app-scrollbar-hidden flex overflow-hidden"
             >
               {careRecommendations.map(({ topic, reason }, index) => (
                 <button
@@ -1533,16 +1476,16 @@ export default function CareEncyclopedia() {
                   type="button"
                   data-care-recommend-card
                   onClick={() => openCareDetail(topic.id, `care-recommendation-${topic.id}`)}
-                  className="grid min-w-[84%] snap-center grid-cols-[42%_1fr] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:min-w-full md:max-w-full md:grid-cols-[42%_1fr] md:gap-3"
+                  className="grid min-w-full grid-cols-[104px_minmax(0,1fr)] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:grid-cols-[42%_1fr] md:gap-3"
                 >
-                  <span className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[16px] bg-white/70">
+                  <span className="relative flex h-[112px] items-center justify-center overflow-hidden rounded-[16px] bg-white/70 md:h-[148px]">
                     <CareImage topic={topic} className="h-full w-full" />
                   </span>
                   <span className="min-w-0 py-1 text-left">
                     <span className="block text-[10px] font-black text-emerald-700">{reason}</span>
-                    <span className="mt-1.5 line-clamp-2 block text-[17px] font-black leading-tight text-ink">{getDisplayTitle(topic)}</span>
-                    <span className="mt-1.5 line-clamp-3 block text-[12px] font-medium leading-relaxed text-ink/58">{topic.summary}</span>
-                    <span className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700">
+                    <span className="mt-1 line-clamp-2 block text-[15px] font-black leading-tight text-ink md:text-[17px]">{getDisplayTitle(topic)}</span>
+                    <span className="mt-1 line-clamp-2 block text-[11px] font-medium leading-relaxed text-ink/58 md:text-[12px]">{topic.summary}</span>
+                    <span className="mt-1.5 inline-flex items-center text-[11px] font-black text-emerald-700">
                       打开指南 <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
                     </span>
                   </span>
@@ -1614,7 +1557,7 @@ export default function CareEncyclopedia() {
       </section>
 
       <section id="care-results" ref={contentListRef} className="care-results-panel scroll-mt-4 grid min-w-0 grid-cols-1 gap-3">
-        <div className="rounded-[18px] border border-white/80 bg-white px-4 py-3 shadow-sm">
+        <div className={`${!searchTerm.trim() && careViewMode === 'all' && activeCategory === '全部' ? 'hidden md:block' : ''} px-1 py-1 md:rounded-[18px] md:border md:border-white/80 md:bg-white md:px-4 md:py-3 md:shadow-sm`}>
           <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[15px] font-black text-ink">
@@ -1699,58 +1642,11 @@ export default function CareEncyclopedia() {
               }}
               onPreview={() => openPreview(selectedTopic)}
               onSelectRelated={(topic) => openCareDetail(topic.id, undefined, false)}
+              onOpenCollection={() => navigateToRoute('/collection?tab=care')}
               activeAquarium={activeAquarium}
             />
           )}
         </AdaptiveDetailContent>
-      </Dialog>
-
-      <Dialog open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen}>
-        <DialogContent className="flex max-h-[82dvh] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[24px] border-border bg-bg p-0">
-          <div className="shrink-0 border-b border-white bg-white px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[16px] font-black text-ink">我的收藏</div>
-                <div className="mt-0.5 text-[11px] font-bold text-ink/45">已收藏 {favoriteCount} 篇养护内容。</div>
-              </div>
-              <Heart className="h-5 w-5 text-rose-500" />
-            </div>
-          </div>
-          <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3">
-            {favoriteTopics.length > 0 ? (
-              <div className="grid gap-2">
-                {favoriteTopics.map(topic => (
-                  <button
-                    key={topic.id}
-                    type="button"
-                    onClick={() => {
-                      setIsFavoritesOpen(false);
-                      openCareDetail(topic.id);
-                    }}
-                    className="grid grid-cols-[54px_1fr_auto] items-center gap-2 rounded-[16px] bg-white p-2 text-left shadow-sm transition-colors hover:bg-emerald-50"
-                  >
-                    <CareImage topic={topic} className="h-[54px] w-[54px] rounded-[14px]" />
-                    <span className="min-w-0">
-                      <span className="line-clamp-1 block text-[13px] font-black text-ink">{getDisplayTitle(topic)}</span>
-                      <span className="line-clamp-2 block text-[11px] font-medium leading-relaxed text-ink/48">{topic.summary}</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-ink/28" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-[18px] border border-dashed border-border bg-white px-5 py-8 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-500">
-                  <Heart className="h-5 w-5" />
-                </div>
-                <div className="mt-3 text-sm font-black text-ink">还没有收藏</div>
-                <p className="mx-auto mt-1 max-w-[250px] text-[11px] font-medium leading-relaxed text-ink/50">
-                  看到常用养护文章时，点击文章右上角爱心就会加入这里。
-                </p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
       </Dialog>
 
       {flyingFavorites.map(item => (
@@ -2383,6 +2279,7 @@ export function CareArticleDetail({
   onOpenShare,
   onPreview,
   onSelectRelated,
+  onOpenCollection,
   activeAquarium,
 }: {
   topic: CareTopic;
@@ -2394,6 +2291,7 @@ export function CareArticleDetail({
   onOpenShare: () => void;
   onPreview: () => void;
   onSelectRelated: (topic: CareTopic) => void;
+  onOpenCollection?: () => void;
   activeAquarium: Aquarium | null;
 }) {
   const meta = getCareGuideMeta(topic);
@@ -2427,7 +2325,7 @@ export function CareArticleDetail({
   }, [topic.id]);
   const primaryCtaLabel = meta.guideType === 'procedure'
     ? isNewFishAcclimationTopic(topic)
-      ? '设置 3 天观察提醒'
+      ? isOperationCompleted ? '已完成过水' : '标记已完成过水'
       : isWaterChangeGuide
         ? isOperationCompleted ? '已记录本次换水' : '标记已完成换水'
         : isOperationCompleted ? '已标记完成' : isFilterGuide ? '标记已完成清洗' : '标记已完成操作'
@@ -2440,7 +2338,7 @@ export function CareArticleDetail({
           : '设置提醒';
   const secondaryLabel: string | null = meta.guideType === 'procedure'
     ? isNewFishAcclimationTopic(topic)
-      ? isOperationCompleted ? '已完成过水' : '标记已完成过水'
+      ? '设置 3 天观察提醒'
       : isWaterChangeGuide
         ? '设置下次换水提醒'
         : null
@@ -2448,14 +2346,26 @@ export function CareArticleDetail({
       ? isFryGuide ? '设置开口喂食提醒' : '设置阶段护理提醒'
       : null;
 
+  const getScheduledFor = (label = '') => {
+    const scheduled = new Date();
+    const hourMatch = label.match(/(\d+)\s*小时/);
+    const dayMatch = label.match(/(\d+)\s*天后/);
+    if (hourMatch) scheduled.setHours(scheduled.getHours() + Number(hourMatch[1]));
+    else if (/明天/.test(label)) scheduled.setDate(scheduled.getDate() + 1);
+    else scheduled.setDate(scheduled.getDate() + Number(dayMatch?.[1] || 1));
+    return scheduled.toISOString();
+  };
+
   const addReminder = (label?: string, storageType: string = meta.guideType, successMessage?: string) => {
-    const reminders = getCareReminders();
-    const next = [
-      { id: topic.id, title: getDisplayTitle(topic), type: storageType, createdAt: new Date().toISOString(), label },
-      ...reminders.filter(item => item.id !== topic.id),
-    ].slice(0, 30);
     try {
-      setCareReminders(next);
+      upsertCareReminder({
+        sourceTopicId: topic.id,
+        title: getDisplayTitle(topic),
+        type: storageType,
+        scheduledFor: getScheduledFor(label),
+        aquariumId: activeAquarium?.id,
+        label,
+      });
       setCtaFeedback(successMessage || '提醒已设置');
     } catch (error) {
       setCtaFeedback(error instanceof Error ? error.message : '提醒保存失败');
@@ -2546,7 +2456,7 @@ export function CareArticleDetail({
   const handleSecondaryCta = () => {
     if (meta.guideType === 'procedure') {
       if (isNewFishAcclimationTopic(topic)) {
-        markOperationCompleted('已完成过水');
+        openReminderSheet('newFish');
         return;
       }
       if (isWaterChangeGuide) {
@@ -2572,7 +2482,7 @@ export function CareArticleDetail({
   const handlePrimaryCta = (source: HTMLElement) => {
     if (meta.guideType === 'procedure') {
       if (isNewFishAcclimationTopic(topic)) {
-        openReminderSheet('newFish');
+        markOperationCompleted('已完成过水');
         return;
       }
       markOperationCompleted(isWaterChangeGuide ? '已完成换水' : isFilterGuide ? '已完成清洗' : '已完成操作');
@@ -2591,8 +2501,7 @@ export function CareArticleDetail({
     }
     if (meta.guideType === 'knowledge') {
       if (!favorite) onToggleFavorite(source);
-      setCtaFeedback(favorite ? '这篇指南已收藏' : '已收藏，可在我的收藏中查看');
-      window.setTimeout(() => setCtaFeedback(''), 1800);
+      setCtaFeedback(favorite ? '这篇指南已收录到水族册' : '已收录到水族册');
       return;
     }
     openReminderSheet('general');
@@ -2601,10 +2510,10 @@ export function CareArticleDetail({
   return (
     <div className="flex max-h-[88vh] flex-col bg-white">
       <div ref={scrollRef} className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto max-w-[780px] p-4 pb-8 pt-7">
-          <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-stretch">
+        <div className="mx-auto max-w-[850px] p-4 pb-8 pt-7">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] md:items-stretch">
             <button type="button" onClick={onPreview} data-care-detail-hero className="block min-w-0" aria-label={`查看${topic.title}大图`}>
-              <CareImage topic={topic} className="h-[170px] w-full rounded-[20px] md:h-full md:min-h-[210px]" showPreviewHint />
+              <CareImage topic={topic} className="h-[270px] w-full rounded-[20px] md:h-full md:min-h-[430px]" showPreviewHint />
             </button>
 
             <div className="min-w-0">
@@ -2636,6 +2545,22 @@ export function CareArticleDetail({
                   适用场景：{careGuide.suitableFor}
                 </p>
               </section>
+              {meta.guideType === 'procedure' && procedureSteps.length > 0 && (
+                <section className="mt-3 rounded-[18px] border border-border bg-white p-3 shadow-sm">
+                  <div className="text-[12px] font-black text-ink">现在按顺序做</div>
+                  <div className="mt-2 grid gap-2">
+                    {procedureSteps.slice(0, 3).map((item, index) => (
+                      <div key={`${item.title}-${item.description}`} className="grid grid-cols-[26px_1fr] gap-2 rounded-[14px] bg-bg/70 p-2.5">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-black text-white">{index + 1}</span>
+                        <span className="min-w-0">
+                          <span className="block text-[12px] font-black text-ink">{item.title}</span>
+                          <span className="mt-0.5 line-clamp-2 block text-[10px] font-medium leading-relaxed text-ink/55">{item.description}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
 
@@ -2654,31 +2579,12 @@ export function CareArticleDetail({
             <section className="mt-4 rounded-[22px] border border-emerald-100 bg-[#F8FCF8] p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[16px] font-black text-ink">核心步骤</div>
-                  <div className="mt-0.5 text-[11px] font-bold text-ink/45">先按顺序做，保持温度和水质平稳。</div>
+                  <div className="text-[16px] font-black text-ink">操作后注意</div>
+                  <div className="mt-0.5 text-[11px] font-bold text-ink/45">完成操作后，继续观察状态并保持环境平稳。</div>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
                   {meta.urgencyTag}
                 </span>
-              </div>
-
-              <div className="mt-3 grid gap-0">
-                {procedureSteps.map((item, index) => (
-                  <div key={`${item.title}-${item.description}`} className="grid grid-cols-[34px_1fr] gap-2">
-                    <div className="relative flex justify-center">
-                      <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 text-[12px] font-black text-white shadow-sm">
-                        {index + 1}
-                      </span>
-                      {index < procedureSteps.length - 1 && <span className="absolute top-7 h-full w-px bg-emerald-100" />}
-                    </div>
-                    <div className={`pb-4 ${index === procedureSteps.length - 1 ? 'pb-0' : ''}`}>
-                      <div className="rounded-[16px] bg-white px-3 py-3 shadow-sm">
-                        <div className="text-[14px] font-black text-ink">{item.title}</div>
-                        <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/62">{item.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
 
               {procedureReminders.length > 0 && (
@@ -2819,8 +2725,17 @@ export function CareArticleDetail({
             </Button>
           )}
           {ctaFeedback && (
-            <div className="rounded-full bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700 md:col-span-2">
-              {ctaFeedback}
+            <div className="flex items-center justify-center gap-2 rounded-[18px] bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700 md:col-span-2">
+              <span>{ctaFeedback}</span>
+              {ctaFeedback.includes('水族册') && onOpenCollection && (
+                <button
+                  type="button"
+                  onClick={onOpenCollection}
+                  className="shrink-0 rounded-full bg-white px-2.5 py-1 text-emerald-800 shadow-sm ring-1 ring-emerald-100"
+                >
+                  去水族册查看
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, ChevronRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
+import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
 import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalculator';
 import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage/local-app-state';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
@@ -1237,7 +1237,7 @@ export default function Encyclopedia() {
         ))}
           <button
             type="button"
-            onClick={() => navigateToRoute('/wishlist')}
+            onClick={() => navigateToRoute('/collection?tab=wishlist')}
             className="h-10 rounded-full text-[13px] font-black text-rose-500 transition-colors hover:bg-rose-50"
           >
             <Heart className="mr-1 inline h-3.5 w-3.5" />种草 {wishlistFishIds.size}
@@ -1671,30 +1671,55 @@ export default function Encyclopedia() {
 
       {resultItemCount > resultPageSize && (
         <div id="atlas-pagination-bottom" className="mt-5 flex w-full justify-center">
-          <div className="inline-flex max-w-full flex-col items-center gap-2 rounded-[22px] border border-white/80 bg-white/88 px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:rounded-full sm:px-4">
+          <div className="grid w-full max-w-[390px] grid-cols-[44px_44px_minmax(64px,1fr)_44px_44px] items-center gap-1.5 rounded-full border border-white/80 bg-white/88 px-2 py-2 shadow-sm backdrop-blur-sm md:hidden">
+            <button
+              type="button"
+              onClick={() => goToResultPage(0)}
+              disabled={currentResultPage === 0}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
+              aria-label="图鉴首页"
+              title="首页"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => goToResultPage(currentResultPage - 1)}
               disabled={currentResultPage === 0}
-              className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/28 disabled:shadow-none"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
               aria-label="上一组图鉴"
+              title="上一组"
             >
-              <ChevronRight className="h-4 w-4 rotate-180" />
-              上一组
+              <ChevronLeft className="h-4 w-4" />
             </button>
-            <div className="min-w-[104px] rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">
-              第 {currentResultPage + 1} / {resultPageCount} 组
+            <div className="rounded-full bg-emerald-50 px-2 py-2 text-center text-[12px] font-black tabular-nums text-emerald-800 ring-1 ring-emerald-100">
+              {currentResultPage + 1} / {resultPageCount}
             </div>
             <button
               type="button"
               onClick={() => goToResultPage(currentResultPage + 1)}
               disabled={currentResultPage >= resultPageCount - 1}
-              className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/28 disabled:shadow-none"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
               aria-label="下一组图鉴"
+              title="下一组"
             >
-              下一组
               <ChevronRight className="h-4 w-4" />
             </button>
+            <button
+              type="button"
+              onClick={() => goToResultPage(resultPageCount - 1)}
+              disabled={currentResultPage >= resultPageCount - 1}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
+              aria-label="图鉴尾页"
+              title="尾页"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="hidden max-w-full items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur-sm md:inline-flex">
+            <button type="button" onClick={() => goToResultPage(currentResultPage - 1)} disabled={currentResultPage === 0} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28"><ChevronLeft className="h-4 w-4" />上一组</button>
+            <div className="min-w-[104px] rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">第 {currentResultPage + 1} / {resultPageCount} 组</div>
+            <button type="button" onClick={() => goToResultPage(currentResultPage + 1)} disabled={currentResultPage >= resultPageCount - 1} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28">下一组<ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
       )}

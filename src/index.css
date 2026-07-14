@@ -497,9 +497,11 @@ body,
   .aquarium-desktop-layout {
     display: grid;
     grid-template-columns: minmax(300px, 0.95fr) minmax(380px, 1fr) minmax(300px, 0.95fr);
-    grid-template-rows: minmax(290px, auto) minmax(430px, auto);
+    grid-template-rows: auto minmax(290px, auto) auto minmax(430px, auto);
     grid-template-areas:
+      "header header header"
       "status actions discovery"
+      "careplan careplan careplan"
       "tank tank tank";
     gap: 18px;
     align-items: stretch;
@@ -517,6 +519,14 @@ body,
   .aquarium-toolbar {
     display: none !important;
     grid-area: toolbar;
+  }
+
+  .aquarium-desktop-header {
+    grid-area: header;
+  }
+
+  .aquarium-care-plan {
+    grid-area: careplan;
   }
 
   .aquarium-tank {
@@ -633,10 +643,12 @@ body,
   .aquarium-desktop-layout {
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto auto minmax(360px, auto);
+    grid-template-rows: auto auto auto auto minmax(360px, auto);
     grid-template-areas:
+      "header header"
       "status actions"
       "discovery discovery"
+      "careplan careplan"
       "tank tank";
   }
 
@@ -650,11 +662,13 @@ body,
 @media (min-width: 768px) and (max-width: 999px) {
   .aquarium-desktop-layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(320px, auto);
+    grid-template-rows: auto auto auto auto auto minmax(320px, auto);
     grid-template-areas:
+      "header"
       "status"
       "actions"
       "discovery"
+      "careplan"
       "tank";
   }
 

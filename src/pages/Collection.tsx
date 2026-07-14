@@ -184,6 +184,7 @@ export default function Collection() {
               <BookHeart className="h-3.5 w-3.5" /> 自然水族册
             </div>
             <h1 className="text-[24px] font-black tracking-tight text-ink">我的水族册</h1>
+            <p className="mt-1 text-[12px] font-bold text-ink/45">种草 · 养护 · 纪念 · 勋章</p>
             <p className="mt-1 text-[12px] font-bold text-ink/48">把想养的、学会的和认真守护过的，都放在这里。</p>
           </div>
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-emerald-800 text-white shadow-[0_14px_30px_rgba(6,78,59,0.2)]">
