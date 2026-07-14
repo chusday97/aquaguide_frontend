@@ -61,6 +61,7 @@ import {
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
+import { recordSpeciesMemorial } from '../services/collection/memorial.service';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
@@ -1985,14 +1986,12 @@ export default function Encyclopedia() {
         onAddToCalculator={handleAddToCalculator}
         onToggleWishlist={toggleWishlist}
         onGoCalculator={() => { closeAtlasDetail(false); setViewMode('compatibility'); }}
-        onRecordDeath={(fish) => {
-          const appState = loadAppStateFromStorage();
-          const records = appState.deceasedRecords.length > 0
-            ? [...appState.deceasedRecords]
-            : JSON.parse(localStorage.getItem('deceasedRecords') || '[]');
-          records.push({ id: Math.random().toString(36).substring(2, 9), fishId: fish.id, date: new Date().toISOString() });
-          localStorage.setItem('deceasedRecords', JSON.stringify(records));
-          patchLocalAppState({ deceasedRecords: records }, { debounce: true });
+        onOpenTankSettings={(panel) => {
+          closeAtlasDetail(false);
+          navigateToView('/aquarium', `#settings-${panel}`);
+        }}
+        onRecordDeath={(fish, input) => {
+          recordSpeciesMemorial({ fishId: fish.id, ...input });
           setDetailFeedback(`已记录 ${fish.name} 为逝去的生物。`);
         }}
       />

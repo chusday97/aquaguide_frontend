@@ -86,7 +86,8 @@ try {
   assert.equal(await speciesDialog.getAttribute('data-surface'), 'centered-dialog');
   await speciesDialog.getByRole('button', { name: '返回' }).click();
   await speciesDialog.waitFor({ state: 'hidden' });
-  assert.equal(await page.evaluate(() => document.activeElement?.id), 'collection-wishlist-sp_0001');
+  await page.waitForFunction(() => document.getElementById('collection-wishlist-sp_0001')?.classList.contains('workspace-section-highlight'));
+  assert.equal(await page.locator('#collection-wishlist-sp_0001').evaluate(element => element === document.activeElement || element.contains(document.activeElement)), true);
   assert.equal(await page.locator('#collection-wishlist-sp_0001').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
   await page.goto(`${baseUrl}/care-favorites`, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -102,7 +103,8 @@ try {
   assert.equal(await careDialog.getAttribute('data-surface'), 'centered-dialog');
   await careDialog.getByRole('button', { name: '关闭' }).click();
   await careDialog.waitFor({ state: 'hidden' });
-  assert.equal(await page.evaluate(() => document.activeElement?.id), 'collection-care-guide_water_deteriorate');
+  await page.waitForFunction(() => document.getElementById('collection-care-guide_water_deteriorate')?.classList.contains('workspace-section-highlight'));
+  assert.equal(await page.locator('#collection-care-guide_water_deteriorate').evaluate(element => element === document.activeElement || element.contains(document.activeElement)), true);
   assert.equal(await page.locator('#collection-care-guide_water_deteriorate').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
   await page.getByRole('button', { name: '勋章', exact: true }).click();

@@ -24,6 +24,7 @@
     "test:daily-check": "tsx scripts/test-daily-check-contract.ts",
     "test:session-events": "tsx scripts/test-session-events.ts",
     "test:collection": "tsx scripts/test-collection-achievements.ts",
+    "test:memorial": "tsx scripts/test-memorial-service.ts",
     "test:product-actions": "tsx scripts/audit-product-actions.ts",
     "test:core-ui": "node scripts/verify-core-experience.mjs",
     "audit:images": "python3 scripts/audit_species_images.py",

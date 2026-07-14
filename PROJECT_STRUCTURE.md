@@ -14,6 +14,7 @@
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
 - `src/services/collection/`：水族册聚合读取与 8 枚派生成就计算。
+- `src/services/collection/memorial.service.ts`：生命纪念校验、兼容存储写入与统一变更通知。
 - `src/modules/collection/`：水族册页签、纪念条目与成就进度类型。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
@@ -38,6 +39,7 @@
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/test-collection-achievements.ts`：水族册聚合与 8 枚勋章追溯断言。
+- `scripts/test-memorial-service.ts`：日期/原因校验、旧键兼容和跨页面变更事件断言。
 - `scripts/audit-product-actions.ts`：路由页面空操作、日志操作、原生 alert 与重复伪 CTA 审计。
 - `CONTRACT.md`：每日检查与受控 AI 接口契约。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。

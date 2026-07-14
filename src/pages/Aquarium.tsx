@@ -80,6 +80,8 @@ import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigation
 import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
+import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
+import { recordSpeciesMemorial } from '../services/collection/memorial.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -630,7 +632,7 @@ const loadWishlistFishIds = () => {
 };
 
 export default function AquariumManager() {
-  const { captureContext, navigateToSection, restoreContext } = useWorkspaceNavigation();
+  const { captureContext, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
   const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -734,12 +736,12 @@ export default function AquariumManager() {
     setSelectedWishlistFish(fish);
   };
 
-  const closeAquariumSpeciesDetail = () => {
+  const closeAquariumSpeciesDetail = (restoreReturnContext = true) => {
     setSelectedAqFish(null);
     setSelectedWishlistFish(null);
     const context = speciesDetailNavigationContextRef.current;
     speciesDetailNavigationContextRef.current = null;
-    if (context) void restoreContext(context);
+    if (restoreReturnContext && context) void restoreContext(context);
   };
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
@@ -786,7 +788,7 @@ export default function AquariumManager() {
   }, []);
 
   useEffect(() => {
-    if (isSettingsOpen) {
+    if (!isSettingsOpen) {
       setActiveSettingsPanel(null);
     }
   }, [isSettingsOpen]);
@@ -884,17 +886,11 @@ export default function AquariumManager() {
     setIsLocalDataOpen(true);
   };
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.location.hash === '#local-data') {
-      openLocalDataManager();
+  const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {
+    if (!activeAquarium) {
+      showToast('暂时无法打开设置，请先选择一个鱼缸。', 'error');
       return;
     }
-    const settingsPanel = window.location.hash.match(/^#settings-(size|parameters|equipment)$/)?.[1];
-    if (settingsPanel) openAquariumSettings(settingsPanel as 'size' | 'parameters' | 'equipment');
-  }, []);
-
-  const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {
     setSettingsForm(activeAquarium);
     setIsPlantListExpanded(panel === 'plants');
     setIsScapeListExpanded(panel === 'substrate');
@@ -950,6 +946,16 @@ export default function AquariumManager() {
   };
 
   const activeAquarium = aquariums.find(a => a.id === activeId);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeAquarium) return;
+    if (window.location.hash === '#local-data') {
+      openLocalDataManager();
+      return;
+    }
+    const settingsPanel = window.location.hash.match(/^#settings-(size|parameters|equipment)$/)?.[1];
+    if (settingsPanel) openAquariumSettings(settingsPanel as 'size' | 'parameters' | 'equipment');
+  }, [activeAquarium?.id]);
   const diagnosisAquarium = aquariums.find(a => a.id === (diagnosisAquariumId || activeId)) || activeAquarium;
   const pendingDeleteAquarium = aquariums.find(a => a.id === pendingDeleteAquariumId);
 
@@ -6846,6 +6852,9 @@ export default function AquariumManager() {
           if (!open) closeAquariumSpeciesDetail();
         }}
         onAddToCalculator={(fish) => {
+          const nextCompatibilitySelection = new Set(getCompatibilitySelection());
+          nextCompatibilitySelection.add(fish.id);
+          setCompatibilitySelection(nextCompatibilitySelection);
           setSelectedAddFishItems(prev => (
             prev.some(item => item.fishId === fish.id)
               ? prev.filter(item => item.fishId !== fish.id)
@@ -6854,15 +6863,18 @@ export default function AquariumManager() {
           setTankActionMessage(selectedAddFishItems.some(item => item.fishId === fish.id) ? `已撤回 ${fish.name} 的混养计算选择。` : `已选择 ${fish.name} 参与混养计算。`);
         }}
         onToggleWishlist={(fishId) => toggleWishlist(fishId)}
-        onRecordDeath={selectedAqFish ? (fish) => {
+        onGoCalculator={() => {
+          closeAquariumSpeciesDetail(false);
+          navigateToView('/encyclopedia', '#compatibility');
+        }}
+        onOpenTankSettings={(panel) => {
+          closeAquariumSpeciesDetail(false);
+          openAquariumSettings(panel);
+        }}
+        onRecordDeath={selectedAqFish ? (fish, input) => {
           if (!selectedAqFish) return;
-          const nextDeceasedRecords = [
-            ...deceasedRecords,
-            { id: Math.random().toString(36).substring(2, 9), fishId: fish.id, date: new Date().toISOString() }
-          ];
-          setDeceasedRecords(nextDeceasedRecords);
-          localStorage.setItem('deceasedRecords', JSON.stringify(nextDeceasedRecords));
-          patchLocalAppState({ deceasedRecords: nextDeceasedRecords }, { debounce: true });
+          const { records } = recordSpeciesMemorial({ fishId: fish.id, ...input });
+          setDeceasedRecords(records);
           if ((selectedAqFish.aqFish.quantity || 1) > 1) {
             handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
           } else {

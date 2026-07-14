@@ -80,6 +80,7 @@ export default function Collection() {
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const returnContextRef = useRef<WorkspaceNavigationContext | null>(null);
+  const detailFinalFocusRef = useRef<HTMLElement | null>(null);
   const previousUnlockedRef = useRef(new Set(snapshot.achievements.filter(item => item.unlocked).map(item => item.id)));
   const detailScrollRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +113,7 @@ export default function Collection() {
   const switchTab = (tab: CollectionTab) => setSearchParams({ tab });
   const openFromCard = (sourceId: string) => {
     returnContextRef.current = captureContext(sourceId);
+    detailFinalFocusRef.current = document.getElementById(sourceId);
   };
   const restoreCard = () => {
     const context = returnContextRef.current;
@@ -220,7 +222,7 @@ export default function Collection() {
       {activeTab === 'wishlist' && (wishlistFishes.length ? (
         <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {wishlistFishes.slice(0, visibleCount).map(fish => (
-            <article key={fish.id} id={`collection-wishlist-${fish.id}`} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
+            <article key={fish.id} id={`collection-wishlist-${fish.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-wishlist-${fish.id}`); setSelectedFish(fish); }} className="group text-left">
                 <span className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-[16px] bg-bg ${getSpeciesImageSurfaceClass(fish)}`}>
                   <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain transition-transform duration-200 group-hover:scale-[1.03] ${getSpeciesImageClass(fish)}`} loading="lazy" decoding="async" />
@@ -244,7 +246,7 @@ export default function Collection() {
       {activeTab === 'care' && (careTopics.length ? (
         <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {careTopics.slice(0, visibleCount).map(topic => (
-            <article key={topic.id} id={`collection-care-${topic.id}`} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
+            <article key={topic.id} id={`collection-care-${topic.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-care-${topic.id}`); setSelectedTopic(topic); }} className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 text-left">
                 <img src={topic.imageUrl} alt="" className="h-[86px] w-[86px] rounded-[15px] bg-bg object-cover" loading="lazy" decoding="async" />
                 <span className="min-w-0">
@@ -335,6 +337,7 @@ export default function Collection() {
         owned={Boolean(selectedFish && ownedIds.has(selectedFish.id))}
         inCalculator={false}
         inWishlist={Boolean(selectedFish && snapshot.wishlistIds.includes(selectedFish.id))}
+        finalFocusElement={detailFinalFocusRef.current}
         onOpenChange={(open) => { if (!open) { setSelectedFish(null); restoreCard(); } }}
         onAddToCalculator={(fish) => { setCompatibilitySelection([fish.id]); navigate('/encyclopedia#compatibility'); }}
         onToggleWishlist={(fishId) => {
@@ -349,7 +352,7 @@ export default function Collection() {
       />
 
       <Dialog open={Boolean(selectedTopic)} onOpenChange={(open) => { if (!open) { setSelectedTopic(null); restoreCard(); } }}>
-        <AdaptiveDetailContent>
+        <AdaptiveDetailContent finalFocus={detailFinalFocusRef}>
           {selectedTopic && (
             <CareArticleDetail
               key={selectedTopic.id}
@@ -369,7 +372,7 @@ export default function Collection() {
       </Dialog>
 
       <Dialog open={Boolean(selectedMemorial)} onOpenChange={(open) => { if (!open) { setSelectedMemorial(null); restoreCard(); } }}>
-        <AdaptiveDetailContent className="flex flex-col">
+        <AdaptiveDetailContent className="flex flex-col" finalFocus={detailFinalFocusRef}>
           {selectedMemorial && (() => {
             const fish = fishData.find(item => item.id === selectedMemorial.fishId);
             return (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -57,12 +57,20 @@ type SpeciesDetailDialogProps = {
   inCalculator: boolean;
   inWishlist: boolean;
   detailFeedback?: string;
+  finalFocusElement?: HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onAddToTank?: (fish: Fish) => void;
   onAddToCalculator: (fish: Fish) => void;
   onToggleWishlist: (fishId: string) => void;
   onGoCalculator?: () => void;
-  onRecordDeath?: (fish: Fish) => void;
+  onOpenTankSettings?: (panel: 'size' | 'parameters' | 'equipment') => void;
+  onRecordDeath?: (fish: Fish, input: { date: string; reason: string }) => void | Promise<void>;
+};
+
+const getLocalDateValue = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 };
 
 const parseRange = (value: string) => {
@@ -396,11 +404,13 @@ export function SpeciesDetailDialog({
   inCalculator,
   inWishlist,
   detailFeedback,
+  finalFocusElement,
   onOpenChange,
   onAddToTank,
   onAddToCalculator,
   onToggleWishlist,
   onGoCalculator,
+  onOpenTankSettings,
   onRecordDeath,
 }: SpeciesDetailDialogProps) {
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
@@ -411,6 +421,12 @@ export function SpeciesDetailDialog({
   const [activeTab, setActiveTab] = useState<'environment' | 'compatibility' | 'care'>('environment');
   const [activeMetric, setActiveMetric] = useState<FitDimension | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState('');
+  const [isDeathFormOpen, setIsDeathFormOpen] = useState(false);
+  const [deathDate, setDeathDate] = useState(getLocalDateValue);
+  const [deathReason, setDeathReason] = useState('');
+  const [deathError, setDeathError] = useState('');
+  const [isRecordingDeath, setIsRecordingDeath] = useState(false);
+  const deathReasonRef = useRef<HTMLTextAreaElement | null>(null);
   const selectedFit = useMemo(() => fish ? getSpeciesFitAssessment(fish, aquariumContext) : null, [fish, aquariumContext]);
   const displayFit = selectedFit;
   const selectedTaxonomy = fish ? getCareTaxonomyPath(fish) : null;
@@ -427,7 +443,17 @@ export function SpeciesDetailDialog({
     setActiveTab('environment');
     setActiveMetric(null);
     setInlineFeedback('');
+    setIsDeathFormOpen(false);
+    setDeathDate(getLocalDateValue());
+    setDeathReason('');
+    setDeathError('');
+    setIsRecordingDeath(false);
   }, [open, fish?.id]);
+
+  useEffect(() => {
+    if (!isDeathFormOpen) return;
+    window.requestAnimationFrame(() => deathReasonRef.current?.focus());
+  }, [isDeathFormOpen]);
 
   const handleAiExplain = async () => {
     if (!fish || !selectedFit || aiExplanationLoading) return;
@@ -490,16 +516,22 @@ export function SpeciesDetailDialog({
   }, [fish, aquariumContext]);
 
   const mainActionLabel = useMemo(() => {
-    if (!displayFit) return '去完善环境';
-    if (owned || displayFit.alreadyInTank || displayFit.status === 'alreadyInTank') return '查看当前鱼缸';
+    if (!displayFit || !aquariumContext) return '去设置鱼缸';
+    if (owned || displayFit.alreadyInTank || displayFit.status === 'alreadyInTank') return '检查混养';
     if (displayFit.status === 'suitable') return '加入当前鱼缸';
-    if (displayFit.status === 'unsuitable' || displayFit.status === 'setupNeeded' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return '调整鱼缸条件';
-    return '去完善环境';
-  }, [displayFit, owned]);
+    if (displayFit.status === 'unsuitable' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return '查看混养风险';
+    return '完善鱼缸设置';
+  }, [aquariumContext, displayFit, owned]);
+
+  const getMetricSettingsPanel = (metric: FitDimension) => {
+    if (metric.type === 'space') return 'size' as const;
+    if (metric.type === 'filter' || metric.type === 'heater') return 'equipment' as const;
+    if (metric.type === 'temperature' || metric.type === 'water_type') return 'parameters' as const;
+    return null;
+  };
 
   const getMetricActionLabel = (metric: FitDimension) => {
     if (metric.status === 'ok') return '我知道了';
-    if (metric.type === 'water_parameter') return '补充 pH / 硬度';
     if (metric.type === 'filter') return '配置过滤';
     if (metric.type === 'heater') return '配置加热';
     if (metric.type === 'temperature') return '设置目标温度';
@@ -510,19 +542,55 @@ export function SpeciesDetailDialog({
 
   const handleMainAction = () => {
     if (!fish || !displayFit) return;
+    if (!aquariumContext) {
+      onOpenTankSettings?.('size');
+      return;
+    }
     if ((displayFit.status === 'suitable') && onAddToTank && !owned && !displayFit.alreadyInTank) {
       onAddToTank(fish);
       return;
     }
     if (owned || displayFit.alreadyInTank || displayFit.status === 'alreadyInTank') {
-      onOpenChange(false);
+      if (!inCalculator) onAddToCalculator(fish);
+      onGoCalculator?.();
       return;
     }
-    const firstIssue = metricCards.find(item => item.status !== 'ok');
+    if (displayFit.status === 'unsuitable' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') {
+      if (!inCalculator) onAddToCalculator(fish);
+      onGoCalculator?.();
+      return;
+    }
+    const firstIssue = metricCards.find(item => item.status !== 'ok' && getMetricSettingsPanel(item));
     if (firstIssue) {
       setActiveMetric(firstIssue);
     } else {
-      setInlineFeedback('当前结果以系统规则为准，可先在鱼缸设置里完善环境信息。');
+      onOpenTankSettings?.('parameters');
+    }
+  };
+
+  const handleOpenCalculator = () => {
+    if (!fish) return;
+    if (!inCalculator) onAddToCalculator(fish);
+    onGoCalculator?.();
+  };
+
+  const handleRecordDeath = async () => {
+    if (!fish || !onRecordDeath || isRecordingDeath) return;
+    if (!deathDate || !deathReason.trim()) {
+      setDeathError('请填写日期和原因后再保存。');
+      deathReasonRef.current?.focus();
+      return;
+    }
+    setIsRecordingDeath(true);
+    setDeathError('');
+    try {
+      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim() });
+      setIsDeathFormOpen(false);
+      setInlineFeedback(`已保存 ${fish.name} 的生命纪念。`);
+    } catch (error) {
+      setDeathError(error instanceof Error ? error.message : '保存失败，请稍后重试。');
+    } finally {
+      setIsRecordingDeath(false);
     }
   };
 
@@ -543,7 +611,7 @@ export function SpeciesDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <AdaptiveDetailContent>
+        <AdaptiveDetailContent showCloseButton={false} finalFocus={finalFocusElement ? () => finalFocusElement : undefined}>
           {fish && displayFit && (
             <div className="flex min-h-0 flex-1 flex-col bg-white">
               <div className="modalHeader flex items-center justify-between border-b border-border bg-white px-4 py-3">
@@ -583,9 +651,9 @@ export function SpeciesDetailDialog({
 
                   <div className="mt-3 grid grid-cols-3 gap-2 rounded-[18px] border border-border bg-white p-2 shadow-sm">
                     {[
-                      { label: inCalculator ? '已选择' : '混养计算', icon: Calculator, active: inCalculator, action: () => onAddToCalculator(fish) },
+                      { label: '检查混养', icon: Calculator, active: inCalculator, action: handleOpenCalculator },
                       { label: inWishlist ? '已种草' : '加入种草', icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
-                      onRecordDeath ? { label: '记录死亡', icon: Skull, active: false, action: () => onRecordDeath(fish) } : null,
+                      onRecordDeath ? { label: '更多操作', icon: Skull, active: false, action: () => setIsDeathFormOpen(true) } : null,
                     ].filter(Boolean).map(item => {
                       const actionItem = item as { label: string; icon: typeof Calculator; active: boolean; action: () => void };
                       const Icon = actionItem.icon;
@@ -623,7 +691,7 @@ export function SpeciesDetailDialog({
                     <div className="mt-4 grid gap-4">
                       {(() => {
                         const tone = getAssessmentTone(displayFit.status);
-                        const keyIssues = [...displayFit.confirmations.map(item => item.advice), ...displayFit.risks.map(item => item.advice)].slice(0, 3);
+                        const keyIssues = aquariumContext ? [...displayFit.confirmations.map(item => item.advice), ...displayFit.risks.map(item => item.advice)].slice(0, 3) : ['选择或创建鱼缸后，系统会结合水体、温度、空间和设备给出判断。'];
                         const fallbackIssues = displayFit.status === 'suitable' || displayFit.status === 'alreadyInTank'
                           ? ['当前温度、空间和水体条件基本匹配', '继续观察鱼只状态', '后续添加生物前再做混养评估']
                           : ['当前鱼缸缺少完整环境信息', '部分水质或设备条件需要确认', '补充后可重新评估适配结果'];
@@ -633,7 +701,7 @@ export function SpeciesDetailDialog({
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   {tone === 'suitable' ? <CheckCircle2 className="h-7 w-7 text-emerald-600" /> : <AlertTriangle className={`h-7 w-7 ${tone === 'risk' ? 'text-red-600' : 'text-amber-600'}`} />}
-                                  <h3 className="text-[19px] font-black leading-tight text-ink">{displayFit.title}</h3>
+                                  <h3 className="text-[19px] font-black leading-tight text-ink">{aquariumContext ? displayFit.title : '尚未选择鱼缸'}</h3>
                                 </div>
                                 <div className="mt-3 grid gap-2">
                                   {(keyIssues.length > 0 ? keyIssues : fallbackIssues).slice(0, 3).map(item => (
@@ -654,7 +722,7 @@ export function SpeciesDetailDialog({
                         );
                       })()}
 
-                      <section className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
+                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <h3 className="text-[15px] font-black text-ink">环境关键指标</h3>
@@ -677,9 +745,9 @@ export function SpeciesDetailDialog({
                             );
                           })}
                         </div>
-                      </section>
+                      </section>}
 
-                      <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
+                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <h3 className="text-[15px] font-black text-ink">系统适配结果</h3>
@@ -691,7 +759,7 @@ export function SpeciesDetailDialog({
                           <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round((metricSummary.matched / metricSummary.total) * 100)}%` }} />
                         </div>
                         <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/55">{metricSummary.pending > 0 ? '信息尚未完整，补充后可进行完整评估。' : displayFit.conclusion}</p>
-                      </section>
+                      </section>}
 
                       <details className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
@@ -777,7 +845,7 @@ export function SpeciesDetailDialog({
                             })}
                           </div>
                         )}
-                        <Button variant="outline" className="mt-3 h-10 rounded-full px-5 text-[12px] font-black" onClick={() => onAddToCalculator(fish)}><Calculator className="mr-2 h-4 w-4" />调整混养组合</Button>
+                        <Button variant="outline" className="mt-3 h-10 rounded-full px-5 text-[12px] font-black" onClick={handleOpenCalculator}><Calculator className="mr-2 h-4 w-4" />调整混养组合</Button>
                       </section>
                       {(fish.housingMode || fish.housingReason) && (
                         <details className="rounded-[16px] border border-border bg-white/70 p-3">
@@ -873,9 +941,32 @@ export function SpeciesDetailDialog({
                       <div className="flex justify-between gap-3 text-[13px] font-bold text-ink/60"><span>目标范围</span><span className="text-ink">{activeMetric.requirement || '按鱼种需求确认'}</span></div>
                     </div>
                     <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink/55">{activeMetric.advice || '当前页面不直接写入鱼缸设置，请到鱼缸设置中完善后重新评估。'}</p>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" onClick={() => setActiveMetric(null)}>我知道了</Button>
-                      <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => { setInlineFeedback(`请在鱼缸设置中${getMetricActionLabel(activeMetric)}，保存后系统会重新评估。`); setActiveMetric(null); }}>{getMetricActionLabel(activeMetric)}</Button>
+                    {getMetricSettingsPanel(activeMetric) && onOpenTankSettings && (
+                      <Button className="mt-4 h-11 w-full rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => {
+                        const panel = getMetricSettingsPanel(activeMetric);
+                        if (!panel) return;
+                        setActiveMetric(null);
+                        onOpenTankSettings(panel);
+                      }}>{getMetricActionLabel(activeMetric)}</Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isDeathFormOpen && (
+                <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/30 px-4" role="dialog" aria-modal="true" aria-labelledby="death-record-title">
+                  <button type="button" className="absolute inset-0" aria-label="取消记录" onClick={() => !isRecordingDeath && setIsDeathFormOpen(false)} />
+                  <div className="relative w-full max-w-[440px] rounded-[24px] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
+                    <h3 id="death-record-title" className="text-[18px] font-black text-ink">记录生命纪念</h3>
+                    <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">保存后会同步更新鱼缸、水族册和“认真复盘”勋章。</p>
+                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-date">日期</label>
+                    <input id="death-date" type="date" value={deathDate} onChange={event => setDeathDate(event.target.value)} disabled={isRecordingDeath} className="mt-2 h-11 w-full rounded-[14px] border border-border bg-white px-3 text-[14px] font-bold text-ink outline-none focus:border-accent" />
+                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-reason">原因与复盘</label>
+                    <textarea ref={deathReasonRef} id="death-reason" value={deathReason} onChange={event => setDeathReason(event.target.value)} disabled={isRecordingDeath} rows={4} placeholder="例如：发现时的状态、可能原因和以后会注意什么" className="mt-2 w-full resize-none rounded-[14px] border border-border bg-white p-3 text-[14px] font-medium leading-relaxed text-ink outline-none focus:border-accent" />
+                    {deathError && <p className="mt-2 rounded-[12px] bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700" role="alert">{deathError}</p>}
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                      <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" disabled={isRecordingDeath} onClick={() => setIsDeathFormOpen(false)}>取消</Button>
+                      <Button className="h-11 rounded-full bg-ink text-sm font-black text-white hover:bg-ink/90" disabled={isRecordingDeath} onClick={handleRecordDeath}>{isRecordingDeath ? '正在保存…' : '确认保存'}</Button>
                     </div>
                   </div>
                 </div>
