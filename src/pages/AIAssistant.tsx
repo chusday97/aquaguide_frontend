@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import posthog from 'posthog-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -176,6 +177,7 @@ export default function AIAssistant() {
 
     setMessages(prev => [...prev, userMessage]);
     if (!textToSubmit) setInput('');
+    posthog.capture('ai_message_sent', { is_suggested: Boolean(textToSubmit) });
     setIsLoading(true);
 
     try {

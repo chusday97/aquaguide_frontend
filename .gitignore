@@ -10,3 +10,4 @@ coverage/
 .git_corrupt_*/
 __pycache__/
 *.pyc
+.env.local

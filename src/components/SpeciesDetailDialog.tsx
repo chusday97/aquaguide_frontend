@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import posthog from 'posthog-js';
 import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -434,7 +435,8 @@ export function SpeciesDetailDialog({
   const resolvedImageSrc = fish ? (imageSrc || getSpeciesDisplayImage(fish)) : '';
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !fish) return;
+    posthog.capture('species_detail_viewed', { species_id: fish.id, source });
     setAiExplanation(null);
     setAiExplanationLoading(false);
   }, [open, fish?.id]);
