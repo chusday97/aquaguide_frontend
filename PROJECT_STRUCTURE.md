@@ -18,7 +18,7 @@
 - `src/modules/collection/`：水族册页签、纪念条目与成就进度类型。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/aquarium/aquarium-state.service.ts`：鱼缸集合兼容存储、当前鱼缸校验与统一变更通知。
-- `src/services/care/care-activity.service.ts`：提醒、完成操作与护理清单的旧键兼容写入。
+- `src/services/care/care-activity.service.ts`：应用内养护计划、完成操作与护理清单的旧键兼容写入。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
 - `src/services/diagnosis/`：巡检记录的同日更新策略。
 - `src/modules/diagnosis/`：每日检查问题、确定性规则与数据类型。
@@ -34,12 +34,13 @@
 - `docs/README.md`：当前产品文档总入口与事实来源说明。
 - `docs/01-definition/`：PRD、用户故事、竞品分析与当前产品状态。
 - `docs/02-design/`：信息架构、交互说明、设计系统、数据模型与 AI/API 边界。
-- `docs/02-design/demos/`：养护详情 A/B/C 三套高保真方案与可复现原型。
+- `docs/02-design/demos/`：养护详情 A/B/C 三套桌面与手机高保真方案及可复现原型。
 - `docs/03-development/`：技术架构、模块结构、本地运行、QA 与日志入口。
 - `docs/04-planning/PRODUCT_GAPS_AND_ROADMAP.md`：证据化卡点、优先级与迭代顺序。
 - `docs/LAYOUT_FEATURE_PARITY.md`：手机/桌面功能对照。
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
+- `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。
 - `scripts/test-collection-achievements.ts`：水族册聚合与 8 枚勋章追溯断言。
 - `scripts/test-memorial-service.ts`：日期/原因校验、旧键兼容和跨页面变更事件断言。
 - `scripts/test-business-state-services.ts`：鱼缸、巡检与养护业务写入服务断言。

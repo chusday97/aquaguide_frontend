@@ -41,7 +41,7 @@ erDiagram
 | `aquarium_diagnosis_records` | 旧诊断记录 | 兼容读取 |
 | `deceasedRecords` | 死亡记录 | 现有记录键，暂不迁移 |
 | `aquapediaDiscoveryDeck` | 图鉴发现卡组状态 | 辅助状态 |
-| `aqua_care_reminders` | 养护提醒 | 旧/辅助功能状态 |
+| `aqua_care_reminders` | 应用内养护计划 | 绑定文章、明确日期、可选鱼缸、完成状态；兼容旧文字提醒 |
 | `aqua_care_completed_operations` | 已完成养护操作 | 辅助状态 |
 | `aqua_care_saved_checklists` | 保存的检查清单 | 辅助状态 |
 
@@ -76,4 +76,3 @@ flowchart LR
 - 当前没有跨设备同步、云端备份或冲突合并。
 - Supabase 当前主要用于可选身份能力，不代表业务数据已经云端化。
 - 云端同步需要单独完成数据库、权限、迁移、恢复和隐私设计；在方案确认前不得直接迁移。
-
