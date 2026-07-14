@@ -1,5 +1,7 @@
 # AquaGuide 交互流程体验与改进建议报告
 
+> **历史审计（部分结论与截图已失效）**：本文记录早期页面走查，保留用于追溯，不再作为当前交互标准。请以[当前交互说明](./02-design/INTERACTION_SPEC.md)、[当前产品状态](./01-definition/CURRENT_PRODUCT_STATUS.md)和真实页面为准。原本机截图不随仓库分发，已移除失效引用。
+
 本报告通过 Playwright 模拟真实用户，对线上运行的 AquaGuide 应用进行端到端的交互体验与流程跑通。我们在测试过程中截取了高分辨率图像，用以还原真实的用户使用场景，并深入排查了交互设计中的痛点和技术漏洞。
 
 ---
@@ -8,28 +10,28 @@
 
 ### 1. 图鉴首页 (Encyclopedia Home)
 我们在进入图鉴首页时，UI 以精美的卡片布局呈现。在顶部的“每日发现”模块中，用户可以通过卡牌滑动来获取随机的生物知识科普，有效降低了图鉴本身密集排版的无趣感。
-![图鉴首页](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step1_encyclopedia_home.png)
+（历史截图未随仓库保留）
 
 ### 2. 生物搜索 (Species Search)
 当我们在主搜索栏中输入“白金”时，图鉴即时响应并展现出了包含“白金红鼻剪刀”、“白金胡子 (大帆)”、“白金半月斗鱼”在内的白金系列生物卡片。
 此前由于抠图过度导致身体全空心的问题已通过 BFS 还原算法修复，白金鱼类的身体轮廓、纹理均已正常呈现，背景也被柔和的淡色阴影底托卡片包裹。
-![生物搜索](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step2_search_platinum.png)
+（历史截图未随仓库保留）
 
 ### 3. 详情弹窗 (Species Detail Dialog)
 点击“白金红鼻剪刀”卡片后，详情弹窗弹出。弹窗展示了生物的系统化喂食画像、水质参数区间、混养提示与繁殖指南。白色主体的质感在弹窗阴影框中得到了完好保留。
-![详情弹窗](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step3_species_detail.png)
+（历史截图未随仓库保留）
 
 ### 4. 混养计算器首屏 (Compatibility Calculator)
 切换到 `#compatibility` 页面，进入混养计算器。计算器提供了搜索入口以及基于当前缸体自动推荐候选的轮播横条。
-![混养计算器](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step4_compatibility_calculator.png)
+（历史截图未随仓库保留）
 
 ### 5. 混养结果计算 (Calculation Results)
 我们在计算器中添加了“白金红鼻剪刀”和“黑壳虾”。由于天使鱼/剪刀鱼对虾类有吞食风险，引擎瞬间给出了“谨慎尝试”的安全评级，并列出了潜在的冲突点（体型差异、捕食风险），同时提示了优化建议。
-![混养结果](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step5_compatibility_result.png)
+（历史截图未随仓库保留）
 
 ### 6. 我的鱼缸主页 (Aquarium Home)
 最后我们访问了鱼缸管理主页。该页面成功挂载了 3D 渲染画布，并在侧边栏展示了当前设备参数。
-![鱼缸主页](/Users/chuchu/.gemini/antigravity/brain/d57bcb40-4a84-4e55-8a24-0d05a1bcda83/step6_aquarium_home.png)
+（历史截图未随仓库保留）
 
 ---
 

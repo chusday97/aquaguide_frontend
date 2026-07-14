@@ -28,6 +28,11 @@
 
 ## 文档与验证
 
+- `docs/README.md`：当前产品文档总入口与事实来源说明。
+- `docs/01-definition/`：PRD、用户故事、竞品分析与当前产品状态。
+- `docs/02-design/`：信息架构、交互说明、设计系统、数据模型与 AI/API 边界。
+- `docs/03-development/`：技术架构、模块结构、本地运行、QA 与日志入口。
+- `docs/04-planning/PRODUCT_GAPS_AND_ROADMAP.md`：证据化卡点、优先级与迭代顺序。
 - `docs/LAYOUT_FEATURE_PARITY.md`：手机/桌面功能对照。
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
@@ -39,3 +44,7 @@
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。
 - `docs/03-development/UX_REFACTOR_TECH.md`：实现架构与数据流。
 - `PROGRESS.md`：项目内进度、决策与阻塞记录。
+
+## 内部实验
+
+- `src/pages/ThreeDemo.tsx` 与 `/3d-demo`：3D 独立验证入口，不进入正式导航和核心发布验收。

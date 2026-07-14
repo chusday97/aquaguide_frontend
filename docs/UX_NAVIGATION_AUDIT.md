@@ -1,5 +1,7 @@
 # AquaGuide CTA 与导航行为审计
 
+> **历史专项审计**：本文保留当时的执行证据，不再单独充当当前行为契约。现行标准见[交互说明](./02-design/INTERACTION_SPEC.md)，未完成问题见[产品卡点与路线图](./04-planning/PRODUCT_GAPS_AND_ROADMAP.md)。
+
 ## 目的
 
 本文件是 AquaGuide 按钮、弹窗、路由和长页面定位的行为契约。任何可点击入口都必须产生至少一种可观察结果：

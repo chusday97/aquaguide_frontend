@@ -45,7 +45,7 @@ Based on the species image quality standards and pixel analysis:
 
 ## 3. IMAGE_OVERRIDES Mapping Configuration (IMAGE_OVERRIDES 映射文件)
 
-All visibility and display overrides are mapped and managed centrally in [speciesVisual.ts](file:///Users/chuchu/Documents/New%20project/aquaguide_frontend/src/lib/speciesVisual.ts):
+All visibility and display overrides are mapped and managed centrally in [speciesVisual.ts](../src/lib/speciesVisual.ts):
 
 - Added `sp_0062` and `sp_0362` to the `visibilityOverrideIds` set:
   ```typescript

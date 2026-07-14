@@ -1,5 +1,7 @@
 # AquaGuide 功能框架梳理与系统不足分析报告
 
+> **历史审计（部分结论已失效）**：本文保留用于追溯早期判断，不再作为当前产品事实依据。天气联动、客户端暴露 AI Key、旧弹窗与旧收藏结构等描述已与现状不符。请以[当前产品文档索引](./README.md)、[当前产品状态](./01-definition/CURRENT_PRODUCT_STATUS.md)和代码为准。
+
 本报告对 AquaGuide 产品的功能架构进行了系统性梳理，并站在资深系统架构师与产品经理的角度，指出了该系统当前在技术架构、用户体验及安全可靠性上的关键不足。
 
 ---
@@ -49,7 +51,7 @@ graph TD
 ## 二、 核心功能模块详解
 
 ### 1. 鱼缸智能管理 (Aquarium Management)
-- **3D 模拟仿真**：使用 Three.js 异步加载 [ThreeAquarium](file:///Users/chuchu/Documents/New%20project/aquaguide_frontend/src/components/ThreeAquarium.tsx)，动态渲染用户当前选购的鱼类、水草、底砂及硬景空间关系。
+- **3D 模拟仿真**：使用 Three.js 异步加载 [ThreeAquarium](../src/components/ThreeAquarium.tsx)，动态渲染用户当前选购的鱼类、水草、底砂及硬景空间关系。
 - **建缸指南与模板**：内置了“新手阴性草缸”、“灯鱼草缸”、“三湖慈鲷缸”等标准成熟模版，能够根据用户输入的缸体尺寸，自动匹配设备配置与底砂水草配比。
 - **水体容量计算**：基于尺寸（长、宽、高）和安全系数（通常为 85% 水体高度）计算净水体积，计算出最大建议生物承载量。
 
@@ -88,13 +90,13 @@ graph TD
 - **建议**：将诊断逻辑和混养风险判定规则转化为结构化的 JSON 规则定义，通过 API 从后端拉取，由前端通用的规则解析执行器（Rule Engine）动态解释执行。
 
 ### 3. 海量静态数据包带来的性能压力 (Huge Synchronous Data Pack)
-- **不足**：整个生物数据库 [fishData.ts](file:///Users/chuchu/Documents/New%20project/aquaguide_frontend/src/data/fishData.ts) 达 685KB，是一个巨型的 TypeScript 静态数组。
+- **不足**：整个生物数据库 [fishData.ts](../src/data/fishData.ts) 体积较大，是一个巨型的 TypeScript 静态数组。
   - 在首次加载页面时，会阻塞主线程，影响 First Contentful Paint (FCP)。
   - 在进行图鉴筛选或输入搜索时，前端在大列表上同步执行多条件过滤和 `useMemo` 计算，在低端移动设备上会出现打字卡顿或渲染抖动。
 - **建议**：将海量数据包进行分片（Lazy Loading / Code Splitting），或者直接存入前端本地数据库（如 IndexedDB / RxDB），使用 Web Workers 进行多线程异步筛选，保障 UI 交互处于 60 FPS。
 
 ### 4. 客户端暴露 API 金钥的安全风险 (Client-Side API Keys Exposure)
-- **不足**：AI 问答模块直接在客户端 [aiClient.ts](file:///Users/chuchu/Documents/New%20project/aquaguide_frontend/src/lib/aiClient.ts) 里发起网络请求，这暗示了 API Key（如 DeepSeek Key）极有可能是直接在客户端硬编码或通过环境变量打包进前端混淆包（Vite chunks）里的。
+- **历史判断（已失效）**：早期报告曾推测 [aiClient.ts](../src/lib/aiClient.ts) 可能直接调用模型。当前实现已经通过 Express BFF 读取服务端密钥，浏览器不直接持有模型密钥。
   - 用户只需简单的抓包或反编译 JS 文件，即可提取您的 DeepSeek API 密钥，造成资费损失和安全隐患。
 - **建议**：必须将 AI 请求重构为经过后端中转（BFF 模式 - Backend For Frontend）。前端只调用自己的后端 API（如 `/api/ai-chat`），由后端服务器安全地携带 API Key 转发给 DeepSeek，并执行输入输出审计及并发限流限制。
 
