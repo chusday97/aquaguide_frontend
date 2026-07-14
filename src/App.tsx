@@ -26,6 +26,8 @@ const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
 const Collection = lazy(() => import('./pages/Collection'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 const Login = lazy(() => import('./pages/Login'));
+const ThreeDemo = lazy(() => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo })));
+
 
 const createWatermarkedImageSrc = (image: HTMLImageElement) => {
   const width = image.naturalWidth || image.width;
@@ -549,6 +551,7 @@ function WorkspaceRoutes() {
         <Route path="/wishlist" element={<Navigate to="/collection?tab=wishlist" replace />} />
         <Route path="/care-favorites" element={<Navigate to="/collection?tab=care" replace />} />
         <Route path="/aquarium" element={<AquariumManager />} />
+        <Route path="/3d-demo" element={<ThreeDemo />} />
       </Routes>
     </Suspense>
   );

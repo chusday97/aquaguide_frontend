@@ -16,6 +16,7 @@ import type { PreviewImage } from './common/ImagePreviewModal';
 import { AdaptiveDetailContent } from './common/AdaptiveDetailContent';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
+const Interactive3DFishWrapper = lazy(() => import('./Interactive3DFishWrapper'));
 
 type FitStatus = 'ok' | 'warning' | 'danger' | 'info';
 type DetailSource = 'atlas' | 'aquarium';
@@ -627,9 +628,18 @@ export function SpeciesDetailDialog({
                 <div className="p-4 pb-28">
                   <div className="rounded-[20px] border border-border bg-white p-3 shadow-sm">
                     <div className="grid grid-cols-[128px_1fr] gap-3">
-                      <button type="button" onClick={openPreview} data-species-detail-hero className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-2 shadow-sm`} aria-label={`放大查看${fish.name}图片`}>
-                        <img src={resolvedImageSrc} alt={fish.name} className={`h-[88%] w-[88%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
-                      </button>
+                      {fish.id === 'sp_0260' ? (
+                        <Suspense fallback={<div className="flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 bg-slate-50 text-[10px] text-slate-400">3D 加载中...</div>}>
+                          <Interactive3DFishWrapper
+                            imageUrl={resolvedImageSrc}
+                            className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-0 shadow-sm overflow-hidden`}
+                          />
+                        </Suspense>
+                      ) : (
+                        <button type="button" onClick={openPreview} data-species-detail-hero className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-2 shadow-sm`} aria-label={`放大查看${fish.name}图片`}>
+                          <img src={resolvedImageSrc} alt={fish.name} className={`h-[88%] w-[88%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
+                        </button>
+                      )}
                       <div className="min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
