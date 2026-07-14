@@ -902,6 +902,24 @@ function SwimmingFish({
       fishVisualRef.current.scale.x = direction;
     }
 
+    if (fishMeshRef.current) {
+      const geometry = fishMeshRef.current.geometry as THREE.PlaneGeometry;
+      const position = geometry.attributes.position;
+      const widthHalf = bodyLength / 2;
+      const isSlowDweller = isBottomDweller || fishInfo.category === '龟类';
+      const swimFreq = isSlowDweller ? 6 : 14; 
+      const swimAmp = isSlowDweller ? 0.03 : 0.12;
+      
+      for (let i = 0; i < position.count; i++) {
+        const x = position.getX(i);
+        const factor = (widthHalf - x) / bodyLength; // 0 at head, 1 at tail
+        const wave = Math.sin(x * (4.8 / bodyLength) - time * swimFreq + offset) * swimAmp * factor * baseSize;
+        position.setZ(i, wave);
+      }
+      position.needsUpdate = true;
+      geometry.computeVertexNormals();
+    }
+
     if (shadowRef.current) {
       const heightRatio = clamp((yPos + yLimit / 2) / yLimit, 0, 1);
       shadowRef.current.position.y = -yLimit / 2 - yPos + 0.18;
@@ -925,16 +943,19 @@ function SwimmingFish({
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
         <group ref={fishVisualRef}>
           <mesh ref={fishMeshRef} onClick={handleInternalClick} position={[0, 0, 0.06]} renderOrder={30}>
-            <planeGeometry args={[bodyLength, bodyHeight]} />
-            <meshBasicMaterial
+            <planeGeometry args={[bodyLength, bodyHeight, 16, 2]} />
+            <meshStandardMaterial
               map={texture}
+              bumpMap={texture}
+              bumpScale={0.02}
+              roughness={0.25}
+              metalness={0.15}
               transparent
               opacity={1}
               side={THREE.DoubleSide}
               depthWrite={false}
-              depthTest={false}
+              depthTest={true}
               alphaTest={0.03}
-              toneMapped={false}
             />
           </mesh>
         </group>
