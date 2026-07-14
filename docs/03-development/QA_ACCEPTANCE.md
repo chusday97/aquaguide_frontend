@@ -61,7 +61,7 @@
 - 列表初次加载有结构匹配骨架；空结果有解释和有效下一步。
 - 写操作有 loading、禁用、防重复、成功与失败反馈。
 - 删除、清空、记录死亡有对象明确的二次确认。
-- 抽屉、底部面板和确认弹窗具备焦点限制、Esc 和返回焦点。
+- 桌面中央详情、手机底部面板和确认弹窗具备焦点限制、Esc 和返回焦点。
 
 ## 5. 自动验证命令
 
@@ -72,6 +72,8 @@ npm run test:compatibility
 npm run test:mini-compatibility
 npm run test:favorites
 npm run test:collection
+npm run test:memorial
+npm run test:state-services
 npm run test:daily-check
 npm run test:copilot-contract
 npm run test:copilot-evaluation
@@ -92,4 +94,3 @@ npm run test:core-ui
 - 删除或死亡记录无确认直接写入。
 - 保存失败无用户可见反馈。
 - 正式导航出现内部 `/3d-demo` 或没有实现的概念入口。
-

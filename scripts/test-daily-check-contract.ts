@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { generateTankDailyCheckInterpretation, sanitizeTankDailyCheckInterpretation } from '../src/lib/aiClient';
 import type { DiagnosisRecord, TankDailyCheckContext } from '../src/modules/diagnosis/diagnosis.types';
 import { findDailyPatrolRecord, upsertDiagnosisRecord } from '../src/services/diagnosis/diagnosis-records.service';
+import { buildDiagnosisResult } from '../src/modules/diagnosis/diagnosis.rules';
+import type { Aquarium } from '../src/types';
 
 const context: TankDailyCheckContext = {
   aquariumSnapshot: {
@@ -44,6 +46,41 @@ const constrained = sanitizeTankDailyCheckInterpretation({
 assert.equal(constrained.priority, 'urgent', 'AI 不得降低本地高风险');
 assert.deepEqual(constrained.recommendedArticleIds, ['safe-article'], '虚构文章必须被丢弃');
 assert.match(constrained.disclaimer, /不是疾病确诊/);
+
+const aquarium: Aquarium = {
+  id: 'tank-1',
+  name: '规则测试缸',
+  fishes: [],
+  dimensions: { length: '60', width: '30', height: '36' },
+  waterType: 'Freshwater',
+  targetTemperature: '25',
+  equipment: { filter: '瀑布过滤', heater: true, oxygen: true, light: '普通灯' },
+};
+const buildPatrol = (answers: Record<string, string>) => buildDiagnosisResult({
+  aquarium,
+  snapshot: { ...context.aquariumSnapshot, riskCount: 0 },
+  problemType: '巡检',
+  answers,
+  careTopics: [],
+  previousDiagnosisRecords: [],
+});
+
+const deterministicCases = [
+  { name: '正常', answers: { breathing: '正常', clarity: '清澈', odor: '无异味' }, risk: 'low', rule: 'normal-patrol' },
+  { name: '浮头', answers: { breathing: '经常浮头' }, risk: 'high', rule: 'frequent-breathing-warning' },
+  { name: '泡沫', answers: { surface: '持续泡沫' }, risk: 'medium', rule: 'water-clarity-check' },
+  { name: '异味', answers: { odor: '明显异味' }, risk: 'medium', rule: 'water-clarity-check' },
+  { name: '浑浊', answers: { clarity: '明显浑浊' }, risk: 'medium', rule: 'water-clarity-check' },
+  { name: '拒食', answers: { appetite: '连续一天不吃' }, risk: 'medium', rule: 'appetite-behavior-watch' },
+  { name: '多项异常', answers: { breathing: '经常浮头', odor: '明显异味', appetite: '拒食' }, risk: 'high', rule: 'water-breathing-high-risk' },
+];
+deterministicCases.forEach(testCase => {
+  const result = buildPatrol(testCase.answers);
+  assert.equal(result.riskLevel, testCase.risk, testCase.name);
+  assert.ok(result.matchedRules.includes(testCase.rule), `${testCase.name}: ${result.matchedRules.join(',')}`);
+  assert.ok(result.actions.length > 0, `${testCase.name} 应提供立即动作`);
+  assert.ok(result.avoidActions.length > 0, `${testCase.name} 应提供禁止动作`);
+});
 
 const originalFetch = globalThis.fetch;
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), {

@@ -20,6 +20,14 @@ import {
   toggleCareFavorite,
   type CareFavoriteMap,
 } from '../services/favorites/favorites.service';
+import {
+  getCareReminders,
+  getCompletedCareOperations,
+  getSavedCareChecklists,
+  setCareReminders,
+  setCompletedCareOperations,
+  setSavedCareChecklists,
+} from '../services/care/care-activity.service';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
@@ -2441,16 +2449,17 @@ export function CareArticleDetail({
       : null;
 
   const addReminder = (label?: string, storageType: string = meta.guideType, successMessage?: string) => {
-    const reminders = safeJsonParse<Array<{ id: string; title: string; type: string; createdAt: string; label?: string }>>(
-      localStorage.getItem('aqua_care_reminders'),
-      [],
-    );
+    const reminders = getCareReminders();
     const next = [
       { id: topic.id, title: getDisplayTitle(topic), type: storageType, createdAt: new Date().toISOString(), label },
       ...reminders.filter(item => item.id !== topic.id),
     ].slice(0, 30);
-    localStorage.setItem('aqua_care_reminders', JSON.stringify(next));
-    setCtaFeedback(successMessage || '提醒已设置');
+    try {
+      setCareReminders(next);
+      setCtaFeedback(successMessage || '提醒已设置');
+    } catch (error) {
+      setCtaFeedback(error instanceof Error ? error.message : '提醒保存失败');
+    }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
 
@@ -2498,25 +2507,23 @@ export function CareArticleDetail({
   };
 
   const markOperationCompleted = (label: string) => {
-    const completed = safeJsonParse<Array<{ id: string; title: string; label: string; aquariumId?: string; completedAt: string }>>(
-      localStorage.getItem('aqua_care_completed_operations'),
-      [],
-    );
+    const completed = getCompletedCareOperations();
     const next = [
       { id: topic.id, title: getDisplayTitle(topic), label, aquariumId: activeAquarium?.id, completedAt: new Date().toISOString() },
       ...completed.filter(item => item.id !== topic.id),
     ].slice(0, 50);
-    localStorage.setItem('aqua_care_completed_operations', JSON.stringify(next));
-    setIsOperationCompleted(true);
-    setCtaFeedback(label.includes('换水') ? '已记录本次换水' : '已标记完成');
+    try {
+      setCompletedCareOperations(next);
+      setIsOperationCompleted(true);
+      setCtaFeedback(label.includes('换水') ? '已记录本次换水' : '已标记完成');
+    } catch (error) {
+      setCtaFeedback(error instanceof Error ? error.message : '操作记录保存失败');
+    }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
 
   const saveChecklist = () => {
-    const saved = safeJsonParse<Array<{ id: string; title: string; savedAt: string; actions: string[] }>>(
-      localStorage.getItem('aqua_care_saved_checklists'),
-      [],
-    );
+    const saved = getSavedCareChecklists();
     const next = [
       {
         id: topic.id,
@@ -2526,9 +2533,13 @@ export function CareArticleDetail({
       },
       ...saved.filter(item => item.id !== topic.id),
     ].slice(0, 30);
-    localStorage.setItem('aqua_care_saved_checklists', JSON.stringify(next));
-    setIsChecklistSaved(true);
-    setCtaFeedback('护理清单已保存');
+    try {
+      setSavedCareChecklists(next);
+      setIsChecklistSaved(true);
+      setCtaFeedback('护理清单已保存');
+    } catch (error) {
+      setCtaFeedback(error instanceof Error ? error.message : '护理清单保存失败');
+    }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
 

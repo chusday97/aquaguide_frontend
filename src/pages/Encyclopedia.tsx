@@ -62,6 +62,7 @@ import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigation
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { recordSpeciesMemorial } from '../services/collection/memorial.service';
+import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
@@ -957,8 +958,7 @@ export default function Encyclopedia() {
       return;
     }
 
-    localStorage.setItem('aquariums', JSON.stringify(execution.aquariums));
-    patchLocalAppState({ aquariums: execution.aquariums, currentAquariumId: aquarium.id }, { debounce: true });
+    persistAquariums(execution.aquariums, aquarium.id);
     setOwnedFishIds(prev => new Set(prev).add(fish.id));
     setLastAddedToTankMessage(`已将 ${fish.name} 添加到 ${aquarium.name}。建议接下来观察 3-7 天。`);
     closeAtlasDetail();
@@ -1002,8 +1002,7 @@ export default function Encyclopedia() {
         : '当前组合不允许加入鱼缸。');
     }
 
-    localStorage.setItem('aquariums', JSON.stringify(execution.aquariums));
-    patchLocalAppState({ aquariums: execution.aquariums, currentAquariumId: activeAquarium.id });
+    persistAquariums(execution.aquariums, activeAquarium.id);
 
     const updatedActiveAquarium = execution.aquariums.find(item => item.id === activeAquarium.id) || activeAquarium;
     setCurrentAquarium(updatedActiveAquarium);
@@ -1208,9 +1207,9 @@ export default function Encyclopedia() {
   ];
 
   return (
-    <div className="page-frame-wide flex min-w-0 flex-col gap-6 overflow-x-hidden pt-[58px] md:pt-0 md:overflow-visible">
+    <div className="encyclopedia-workspace page-frame-wide flex min-w-0 flex-col gap-6 overflow-x-hidden pt-[58px] md:pt-0 md:overflow-visible">
       {!isOverlayOpen && (
-      <div className="fixed inset-x-0 top-0 z-[60] mx-auto grid w-full max-w-[430px] grid-cols-2 gap-1 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-3 md:max-w-[560px] md:rounded-[30px] md:p-2 md:hidden">
+      <div className="atlas-mobile-toolbar fixed inset-x-0 top-0 z-[60] mx-auto grid w-full max-w-[430px] grid-cols-2 gap-1 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-3 md:max-w-[560px] md:rounded-[30px] md:p-2 md:hidden">
         <div className="col-span-2 grid grid-cols-3 gap-1 rounded-full bg-white/90 p-1 ring-1 ring-border/70">
         {atlasModeItems.map(item => (
           <button
@@ -1296,8 +1295,8 @@ export default function Encyclopedia() {
 
       {viewMode === 'browse' ? (
       <div className="flex flex-col gap-5">
-      <div id="atlas-toolbar" data-workspace-sticky="true" className="atlas-sticky-toolbar grid grid-cols-1 gap-4 md:grid-cols-[420px_minmax(0,1fr)] md:items-center md:gap-3 md:rounded-[22px] md:border md:border-white/80 md:bg-white/82 md:p-3 md:shadow-sm">
-        <div className="relative min-w-0 md:mx-auto md:max-w-[560px] md:mx-0 md:w-[420px] md:max-w-[420px] md:flex-none">
+      <div id="atlas-toolbar" data-workspace-sticky="true" className="atlas-sticky-toolbar flex flex-wrap gap-4 md:items-center md:gap-3 md:rounded-[22px] md:border md:border-white/80 md:bg-white/82 md:p-3 md:shadow-sm">
+        <div style={{ flex: '1 1 420px' }} className="relative min-w-0 md:mx-auto md:max-w-[560px] min-[1200px]:mx-0 min-[1200px]:max-w-[420px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/42" />
           <Input
             placeholder="搜索鱼、虾、螺、水草或用途"
@@ -1318,7 +1317,7 @@ export default function Encyclopedia() {
           </button>
         </div>
 
-        <section className="mx-auto flex w-full max-w-[720px] flex-col gap-2 md:mx-0 md:min-w-0 md:max-w-none">
+        <section style={{ flex: '1 1 420px' }} className="mx-auto flex w-full min-w-0 max-w-[720px] flex-col gap-2 md:mx-0 md:max-w-none">
           <div className="flex items-center justify-between gap-3 md:hidden">
             <div>
               <div className="text-[15px] font-black text-ink">快速找</div>
@@ -1359,7 +1358,7 @@ export default function Encyclopedia() {
           </div>
         </section>
 
-        <div id="atlas-results" className="atlas-result-summary mx-auto grid w-full max-w-[960px] gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm md:col-span-2 md:max-w-none md:grid-cols-1 md:items-center md:px-4 md:py-3 xl:grid-cols-[minmax(220px,1fr)_auto_minmax(280px,360px)]">
+        <div id="atlas-results" style={{ flex: '1 0 100%' }} className="atlas-result-summary mx-auto grid w-full max-w-[960px] gap-3 rounded-[14px] border border-border/70 bg-white px-3 py-2 shadow-sm md:max-w-none md:grid-cols-1 md:items-center md:px-4 md:py-3 xl:grid-cols-[minmax(220px,1fr)_auto_minmax(280px,360px)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-[13px] font-black text-ink">
@@ -2206,31 +2205,6 @@ export default function Encyclopedia() {
                     </div>
                   </details>
 
-                  <details className="rounded-[16px] border border-border bg-bg/45 p-3">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-black text-ink/55">
-                      <MoreHorizontal className="h-4 w-4" /> 更多低频操作
-                    </summary>
-                    <Button
-                      variant="outline"
-                      className="mt-3 h-9 w-full rounded-full border-border text-xs font-black text-ink/55"
-                      onClick={() => {
-                        const appState = loadAppStateFromStorage();
-                        const records = appState.deceasedRecords.length > 0
-                          ? [...appState.deceasedRecords]
-                          : JSON.parse(localStorage.getItem('deceasedRecords') || '[]');
-                        records.push({
-                          id: Math.random().toString(36).substring(2, 9),
-                          fishId: selectedFish.id,
-                          date: new Date().toISOString()
-                        });
-                        localStorage.setItem('deceasedRecords', JSON.stringify(records));
-                        patchLocalAppState({ deceasedRecords: records }, { debounce: true });
-                        setDetailFeedback(`已记录 ${selectedFish.name} 为逝去的生物。`);
-                      }}
-                    >
-                      <Skull className="mr-1 h-4 w-4" /> 记录死亡
-                    </Button>
-                  </details>
                 </div>
               </div>
             </ScrollArea>

@@ -109,7 +109,11 @@ try {
 
   await page.getByRole('button', { name: '勋章', exact: true }).click();
   await page.waitForFunction(() => location.pathname === '/collection' && new URLSearchParams(location.search).get('tab') === 'achievements');
+  await page.getByText('勋章会自动解锁，无需领取', { exact: true }).waitFor();
   await page.getByText('初心缸主', { exact: true }).waitFor();
+  assert.ok(await page.locator('[data-achievement-status="unlocked"]').count() > 0);
+  assert.ok(await page.locator('[data-achievement-status="locked"], [data-achievement-status="in_progress"]').count() > 0);
+  assert.match(await page.locator('[data-achievement-status]').first().innerText(), /当前 \d+.*目标 \d+/s);
 
   await page.goto(`${baseUrl}/encyclopedia`, { waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.getByText('Mini 混养判断', { exact: true }).waitFor();

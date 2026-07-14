@@ -163,6 +163,20 @@ export const evaluateDiagnosisRules = (input: BuildDiagnosisInput): DiagnosisRul
     });
   }
 
+  if (has('不吃食', '拒食', '连续一天不吃', '连续两天不吃') && !has('今天刚入缸', '1-3 天', '新鱼', '有新增生物')) {
+    addRule({
+      ruleId: 'appetite-behavior-watch',
+      riskLevel: has('连续两天不吃', '趴底不动', '呼吸明显急促') ? 'high' : 'medium',
+      summary: '拒食需要结合呼吸、活动和近期操作继续观察，先排除水质与应激因素。',
+      actions: ['暂停本次加餐并捞出残饵', '检查水温、过滤出水和水体气味', '观察是否趴底、躲藏或呼吸急促'],
+      avoidActions: ['不要反复投喂试探', '不要原因不明就下药', '不要频繁捞鱼检查'],
+      possibleCauses: ['环境应激', '水质或温度波动', '疾病早期表现'],
+      observeItems: ['下一次是否恢复抢食', '是否出现趴底或浮头', '是否只有单条鱼拒食'],
+      missingInfo: ['拒食持续时间', '最近换水/加药/新增生物记录'],
+      matchedArticleIds: articleIds,
+    });
+  }
+
   if (has('吃不完剩很多', '吃不完沉底', '喂多了', '水变浑', '偏多', '有残饵')) {
     addRule({
       ruleId: 'overfeeding-cloudy-water',

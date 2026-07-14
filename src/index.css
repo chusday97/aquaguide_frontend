@@ -98,6 +98,113 @@ body,
   container: care-workspace / inline-size;
 }
 
+.collection-workspace {
+  container: collection-workspace / inline-size;
+}
+
+.encyclopedia-workspace {
+  container: encyclopedia-workspace / inline-size;
+}
+
+.aquaguide-app.desktop-shell-active .aquarium-toolbar,
+.aquaguide-app.desktop-shell-active .atlas-mobile-toolbar {
+  display: none !important;
+}
+
+.aquaguide-app.desktop-shell-active .encyclopedia-workspace {
+  padding-top: 0 !important;
+}
+
+.aquaguide-app.desktop-shell-active .encyclopedia-workspace #atlas-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.aquaguide-app.desktop-shell-active .encyclopedia-workspace .atlas-sticky-toolbar > .relative {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+@container encyclopedia-workspace (min-width: 440px) {
+  .aquaguide-app.desktop-shell-active .encyclopedia-workspace #atlas-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container encyclopedia-workspace (min-width: 760px) {
+  .aquaguide-app.desktop-shell-active .encyclopedia-workspace #atlas-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container encyclopedia-workspace (min-width: 1040px) {
+  .aquaguide-app.desktop-shell-active .encyclopedia-workspace #atlas-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .aquaguide-app.desktop-shell-active .atlas-sticky-toolbar {
+    position: sticky;
+    top: -16px;
+    z-index: 80;
+    margin-bottom: 12px;
+    padding: 24px 8px 12px;
+    border-radius: 18px;
+    background: #dfe8e5;
+    box-shadow: 0 16px 28px rgba(27, 77, 62, 0.1);
+  }
+}
+
+.collection-summary-grid,
+.collection-tab-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.collection-wishlist-grid,
+.collection-care-grid,
+.collection-memorial-grid,
+.collection-achievement-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container collection-workspace (min-width: 440px) {
+  .collection-summary-grid,
+  .collection-tab-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .collection-wishlist-grid,
+  .collection-care-grid,
+  .collection-memorial-grid,
+  .collection-achievement-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container collection-workspace (min-width: 760px) {
+  .collection-wishlist-grid,
+  .collection-achievement-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .collection-care-grid,
+  .collection-memorial-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container collection-workspace (min-width: 1040px) {
+  .collection-wishlist-grid,
+  .collection-achievement-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .collection-care-grid,
+  .collection-memorial-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 [data-surface="centered-dialog"] {
   width: min(900px, calc(100vw - 64px)) !important;
   max-width: 900px !important;
@@ -523,6 +630,38 @@ body,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .aquarium-desktop-layout {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto minmax(360px, auto);
+    grid-template-areas:
+      "status actions"
+      "discovery discovery"
+      "tank tank";
+  }
+
+  .aquarium-tank {
+    height: min(52dvh, 520px) !important;
+    min-height: 360px !important;
+  }
+
+}
+
+@media (min-width: 768px) and (max-width: 999px) {
+  .aquarium-desktop-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(320px, auto);
+    grid-template-areas:
+      "status"
+      "actions"
+      "discovery"
+      "tank";
+  }
+
+  .aquarium-tank {
+    height: min(48dvh, 440px) !important;
+    min-height: 320px !important;
+  }
 }
 
 * {

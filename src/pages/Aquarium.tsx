@@ -78,10 +78,11 @@ import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } fr
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import type { WorkspaceNavigationContext } from '../types/navigation';
-import { findDailyPatrolRecord, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
+import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { recordSpeciesMemorial } from '../services/collection/memorial.service';
+import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -854,9 +855,8 @@ export default function AquariumManager() {
   }, []);
 
   const saveAquariums = (newAquariums: Aquarium[]) => {
-    setAquariums(newAquariums);
-    localStorage.setItem('aquariums', JSON.stringify(newAquariums));
-    patchLocalAppState({ aquariums: newAquariums, currentAquariumId: activeId || newAquariums[0]?.id || '' }, { debounce: true });
+    const saved = persistAquariums(newAquariums, activeId || newAquariums[0]?.id || '');
+    setAquariums(saved.aquariums);
   };
 
   const handleAddAquarium = () => {
@@ -2236,9 +2236,7 @@ export default function AquariumManager() {
       ],
     };
     const nextRecords = upsertDiagnosisRecord(diagnosisRecords, record);
-    setDiagnosisRecords(nextRecords);
-    localStorage.setItem('aquarium_diagnosis_records', JSON.stringify(nextRecords));
-    patchLocalAppState({ diagnosisRecords: nextRecords }, { debounce: true });
+    setDiagnosisRecords(persistDiagnosisRecords(nextRecords));
     setDiagnosisSaveMessage(problemType === '巡检'
       ? existingDailyRecord ? '已更新今天的检查记录。' : '已保存今天的检查记录。'
       : '已保存到诊断记录，下次诊断会参考最近记录。');
@@ -7005,33 +7003,6 @@ export default function AquariumManager() {
                     <span className="font-serif text-lg">{differenceInDays(new Date(), new Date(selectedAqFish.aqFish.entryDate))} 天</span>
                   </div>
                   <div className="flex gap-2 mt-2">
-                    <Button 
-                      variant="ghost" 
-                      className="flex-1 text-ink/70 hover:bg-gray-100 hover:text-ink text-xs font-bold border border-border"
-                      onClick={() => {
-                        const nextDeceasedRecords = [
-                          ...deceasedRecords,
-                          {
-                          id: Math.random().toString(36).substring(2, 9),
-                          fishId: selectedAqFish.fish.id,
-                          date: new Date().toISOString()
-                          }
-                        ];
-                        setDeceasedRecords(nextDeceasedRecords);
-                        localStorage.setItem('deceasedRecords', JSON.stringify(nextDeceasedRecords));
-                        patchLocalAppState({ deceasedRecords: nextDeceasedRecords }, { debounce: true });
-                        
-                        // Decrease quantity or remove fish
-                        if ((selectedAqFish.aqFish.quantity || 1) > 1) {
-                          handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
-                        } else {
-                          handleRemoveFish(selectedAqFish.aqFish.id);
-                          setSelectedAqFish(null);
-                        }
-                      }}
-                    >
-                      <Skull className="w-4 h-4 mr-2" /> 记录死亡
-                    </Button>
                     <Button 
                       variant="ghost" 
                       className="flex-1 text-[#D32F2F] hover:bg-[#FFF4F4] hover:text-[#D32F2F] text-xs font-bold border border-[#FFD6D6]"

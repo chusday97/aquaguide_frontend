@@ -46,6 +46,8 @@ AquaGuide 以“先用确定性规则给出安全边界，再由 AI 解释”为
 ### 04 计划
 
 - [产品卡点与路线图](./04-planning/PRODUCT_GAPS_AND_ROADMAP.md)
+- [3D、物种数据与图片性能基线](./04-planning/THREE_AND_ASSET_PERFORMANCE_BASELINE.md)
+- [云同步方案评估](./04-planning/CLOUD_SYNC_EVALUATION.md)（只评估，不实施）
 
 ## 单一事实来源
 

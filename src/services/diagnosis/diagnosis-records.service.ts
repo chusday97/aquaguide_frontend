@@ -1,4 +1,5 @@
 import type { DiagnosisRecord } from '../../modules/diagnosis/diagnosis.types';
+import { loadAppStateFromStorage, patchLocalAppState } from '../storage/local-app-state';
 
 export const getLocalDayKey = (dateLike: string | Date) => {
   const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
@@ -36,3 +37,12 @@ export const findDailyPatrolRecord = (
   && record.aquariumId === aquariumId
   && getLocalDayKey(record.createdAt) === getLocalDayKey(date)
 ));
+
+export const persistDiagnosisRecords = (records: DiagnosisRecord[]) => {
+  patchLocalAppState({ diagnosisRecords: records });
+  const saved = loadAppStateFromStorage().diagnosisRecords as DiagnosisRecord[];
+  if (saved.length !== records.length) {
+    throw new Error('检查记录没有保存成功，请检查浏览器存储权限后重试。');
+  }
+  return saved;
+};

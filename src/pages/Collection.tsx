@@ -176,7 +176,7 @@ export default function Collection() {
   };
 
   return (
-    <div className="page-frame mx-auto flex w-full min-w-0 max-w-[1180px] flex-col gap-4 pb-24">
+    <div className="collection-workspace page-frame mx-auto flex w-full min-w-0 max-w-[1180px] flex-col gap-4 pb-24">
       <header className="overflow-hidden rounded-[28px] border border-white/80 bg-[linear-gradient(135deg,#ffffff_0%,#edf7f1_58%,#dfeee8_100%)] p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -190,7 +190,7 @@ export default function Collection() {
             <BookHeart className="h-6 w-6" />
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-4 gap-2" aria-label="水族册数量摘要">
+        <div className="collection-summary-grid mt-5 grid gap-2" aria-label="水族册数量摘要">
           {tabConfig.map(item => (
             <div key={item.id} className="rounded-[16px] bg-white/75 px-2 py-2.5 text-center shadow-sm">
               <div className="text-[16px] font-black text-ink">{snapshot.counts[item.id]}</div>
@@ -200,7 +200,7 @@ export default function Collection() {
         </div>
       </header>
 
-      <nav className="sticky top-0 z-20 grid grid-cols-4 gap-1 rounded-[18px] border border-white/80 bg-white/92 p-1.5 shadow-sm backdrop-blur" aria-label="水族册分类">
+      <nav className="collection-tab-grid sticky top-0 z-20 grid gap-1 rounded-[18px] border border-white/80 bg-white/92 p-1.5 shadow-sm backdrop-blur" aria-label="水族册分类">
         {tabConfig.map(item => {
           const Icon = item.icon;
           const active = activeTab === item.id;
@@ -220,7 +220,7 @@ export default function Collection() {
       </nav>
 
       {activeTab === 'wishlist' && (wishlistFishes.length ? (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+        <section className="collection-wishlist-grid grid gap-3">
           {wishlistFishes.slice(0, visibleCount).map(fish => (
             <article key={fish.id} id={`collection-wishlist-${fish.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-wishlist-${fish.id}`); setSelectedFish(fish); }} className="group text-left">
@@ -244,7 +244,7 @@ export default function Collection() {
       ) : renderEmpty(Heart, '还没有种草生物', '在图鉴中收藏想进一步了解的生物，它会出现在这里。', { label: '浏览图鉴', route: '/encyclopedia' }))}
 
       {activeTab === 'care' && (careTopics.length ? (
-        <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <section className="collection-care-grid grid gap-3">
           {careTopics.slice(0, visibleCount).map(topic => (
             <article key={topic.id} id={`collection-care-${topic.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-care-${topic.id}`); setSelectedTopic(topic); }} className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 text-left">
@@ -266,7 +266,7 @@ export default function Collection() {
       ) : renderEmpty(BookOpenCheck, '还没有养护收藏', '把常用的处理步骤收藏起来，出现问题时可以更快找到。', { label: '查养护百科', route: '/care' }))}
 
       {activeTab === 'memorial' && (snapshot.memorials.length ? (
-        <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <section className="collection-memorial-grid grid gap-3">
           {snapshot.memorials.slice(0, visibleCount).map(record => {
             const fish = fishData.find(item => item.id === record.fishId);
             return (
@@ -293,30 +293,47 @@ export default function Collection() {
       ) : renderEmpty(Skull, '还没有生命纪念', '在物种详情中记录离缸或死亡后，这里会保留时间与复盘信息。', { label: '返回我的鱼缸', route: '/aquarium' }))}
 
       {activeTab === 'achievements' && (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {snapshot.achievements.map(achievement => {
-            const Icon = achievementIcons[achievement.id];
-            const progress = Math.round((achievement.current / achievement.target) * 100);
-            return (
-              <article key={achievement.id} className={`flex min-h-[210px] flex-col rounded-[22px] border p-4 shadow-sm ${achievement.unlocked ? 'border-amber-200 bg-[linear-gradient(145deg,#fffdf5,#f6f1dc)]' : 'border-white/80 bg-white'}`}>
-                <div className={`flex h-12 w-12 items-center justify-center rounded-[18px] ${achievement.unlocked ? 'bg-amber-400 text-amber-950 shadow-[0_10px_24px_rgba(217,160,45,0.25)]' : 'bg-slate-100 text-ink/28'}`}>
-                  {achievement.unlocked ? <Check className="absolute h-3 w-3 translate-x-4 -translate-y-4 rounded-full bg-emerald-600 p-0.5 text-white" /> : null}
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h2 className="mt-3 text-[15px] font-black text-ink">{achievement.title}</h2>
-                <p className="mt-1 min-h-[36px] text-[10px] font-bold leading-[18px] text-ink/44">{achievement.description}</p>
-                <div className="mt-auto pt-3">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-ink/8"><div className={`h-full rounded-full ${achievement.unlocked ? 'bg-amber-400' : 'bg-emerald-600'}`} style={{ width: `${progress}%` }} /></div>
-                  <div className="mt-1.5 text-[9px] font-black text-ink/38">{achievement.unlocked ? '已解锁' : `${achievement.current} / ${achievement.target}`}</div>
+        <section className="grid gap-3">
+          <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/80 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-700 text-white"><Medal className="h-5 w-5" /></div>
+              <div>
+                <h2 className="text-[15px] font-black text-ink">勋章会自动解锁，无需领取</h2>
+                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">系统根据已有鱼缸、巡检、换水、收藏和复盘记录计算。完成记录后，这里会自动更新。</p>
+              </div>
+            </div>
+          </div>
+          <div className="collection-achievement-grid grid gap-3">
+            {snapshot.achievements.map(achievement => {
+              const Icon = achievementIcons[achievement.id];
+              const progress = Math.min(100, Math.round((achievement.current / achievement.target) * 100));
+              const remaining = Math.max(0, achievement.target - achievement.current);
+              const status = achievement.unlocked ? 'unlocked' : achievement.current > 0 ? 'in_progress' : 'locked';
+              return (
+                <article key={achievement.id} data-achievement-status={status} className={`flex min-h-[250px] min-w-0 flex-col rounded-[22px] border p-4 shadow-sm ${status === 'unlocked' ? 'border-amber-300 bg-[linear-gradient(145deg,#fffdf5,#f6f1dc)]' : status === 'in_progress' ? 'border-emerald-200 bg-emerald-50/65' : 'border-slate-200 bg-white'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-[18px] ${status === 'unlocked' ? 'bg-amber-400 text-amber-950 shadow-[0_10px_24px_rgba(217,160,45,0.25)]' : status === 'in_progress' ? 'bg-emerald-700 text-white' : 'border border-slate-200 bg-slate-100 text-slate-500'}`}>
+                      {achievement.unlocked && <Check className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-emerald-700 p-1 text-white" />}
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${status === 'unlocked' ? 'border-amber-300 bg-amber-100 text-amber-900' : status === 'in_progress' ? 'border-emerald-200 bg-white text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>{status === 'unlocked' ? '已解锁' : status === 'in_progress' ? '进行中' : '未开始'}</span>
+                  </div>
+                  <h2 className="mt-3 text-[16px] font-black text-ink">{achievement.title}</h2>
+                  <p className="mt-1 text-[11px] font-bold leading-[18px] text-ink/48">{achievement.unlocked ? `已完成：${achievement.description}` : `目标：${achievement.description}`}</p>
+                  <div className="mt-4 rounded-[14px] bg-white/80 p-3">
+                    <div className="flex items-center justify-between gap-3 text-[11px] font-black text-ink/58"><span>当前 {achievement.current}</span><span>目标 {achievement.target}</span></div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${status === 'unlocked' ? 'bg-amber-400' : 'bg-emerald-700'}`} style={{ width: `${progress}%` }} /></div>
+                    <p className="mt-2 text-[11px] font-black text-ink/62">{achievement.unlocked ? '目标已完成' : `还差 ${remaining}`}</p>
+                  </div>
                   {achievement.nextAction && (
-                    <button type="button" onClick={() => navigate(achievement.nextAction!.route)} className="mt-2 h-8 w-full rounded-full bg-emerald-50 text-[10px] font-black text-emerald-800">
-                      {achievement.nextAction.label}
+                    <button type="button" onClick={() => navigate(achievement.nextAction!.route)} className="mt-auto h-10 w-full rounded-full bg-emerald-800 px-3 text-[11px] font-black text-white hover:bg-emerald-900">
+                      下一步：{achievement.nextAction.label}
                     </button>
                   )}
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
         </section>
       )}
 
