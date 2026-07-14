@@ -9,11 +9,13 @@
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/Wishlist.tsx`：独立种草图鉴。
 - `src/pages/CareFavorites.tsx`：独立养护收藏。
+- `src/pages/Collection.tsx`：我的水族册四类内容（实施中）。
 
 ## 共享业务
 
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
+- `src/services/collection/`：水族册聚合读取与派生成就计算（实施中）。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
 - `src/services/diagnosis/`：巡检记录的同日更新策略。
@@ -29,4 +31,8 @@
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、独立收藏、详情返回、Mini 与每日检查浏览器验收。
 - `CONTRACT.md`：每日检查与受控 AI 接口契约。
+- `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。
+- `docs/02-design/UX_REFACTOR_CONCEPTS.md`：三套设计方向与默认自然水族册方案。
+- `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。
+- `docs/03-development/UX_REFACTOR_TECH.md`：实现架构与数据流。
 - `PROGRESS.md`：项目内进度、决策与阻塞记录。

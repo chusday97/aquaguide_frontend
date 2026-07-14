@@ -4,6 +4,7 @@
 
 ### Added
 
+- 我的水族册、派生成就与分层交互的数据契约和设计基线。
 - 真实设备级 `MobileAppShell` / `DesktopAppShell` 与设备策略断言。
 - 独立种草图鉴 `/wishlist` 和养护收藏 `/care-favorites` 页面。
 - 3D 与普通物种卡素材一致性断言。
