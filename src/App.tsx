@@ -8,11 +8,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { cn } from '@/lib/utils';
 import {
   Activity,
+  BookHeart,
   BookOpen,
   ChevronLeft,
   Database,
   Droplets,
-  Heart,
   Library,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
@@ -23,8 +23,7 @@ import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/fa
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
 const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
-const Wishlist = lazy(() => import('./pages/Wishlist'));
-const CareFavorites = lazy(() => import('./pages/CareFavorites'));
+const Collection = lazy(() => import('./pages/Collection'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 const Login = lazy(() => import('./pages/Login'));
 
@@ -138,6 +137,11 @@ const navItems = [
   { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
 ];
 
+const mobileNavItems = [
+  ...navItems,
+  { path: '/collection', label: '水族册', description: '收藏、纪念与勋章', icon: BookHeart },
+];
+
 const desktopSubMenus = {
   '/encyclopedia': [
     { id: 'browse', label: '浏览图鉴', description: '查找生物和分类', icon: BookOpen, hash: '#browse' },
@@ -153,8 +157,8 @@ function BottomNavigation() {
     <>
       {/* ── 移动端：底部标签栏 ── */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
-        <div className="grid grid-cols-3 gap-1">
-          {navItems.map((item) => {
+        <div className="grid grid-cols-4 gap-1">
+          {mobileNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
             return (
@@ -186,9 +190,11 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
   const location = useLocation();
   const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
   const activePath = location.pathname === '/wishlist'
-    ? '/encyclopedia'
+    ? '/collection'
     : location.pathname === '/care-favorites'
-      ? '/care'
+      ? '/collection'
+      : location.pathname === '/collection'
+        ? '/collection'
       : navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
   const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
   const activeMenu = useMemo(() => {
@@ -198,18 +204,14 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
 
   const fixedUtilityItems = useMemo(() => [
     {
-      id: 'species-wishlist',
-      label: `种草图鉴${favoriteCounts.species ? ` ${favoriteCounts.species}` : ''}`,
-      description: favoriteCounts.species ? '查看已收藏生物' : '暂无收藏生物',
-      icon: Heart,
-      path: '/wishlist',
-    },
-    {
-      id: 'care-favorites',
-      label: `养护收藏${favoriteCounts.care ? ` ${favoriteCounts.care}` : ''}`,
-      description: favoriteCounts.care ? '查看收藏文章' : '暂无收藏文章',
-      icon: Library,
-      path: '/care-favorites',
+      id: 'collection',
+      label: '我的水族册',
+      description: favoriteCounts.species + favoriteCounts.care > 0
+        ? `种草 ${favoriteCounts.species} · 养护 ${favoriteCounts.care}`
+        : '收藏、纪念与勋章',
+      icon: BookHeart,
+      path: '/collection',
+      count: favoriteCounts.species + favoriteCounts.care,
     },
   ], [favoriteCounts]);
 
@@ -391,7 +393,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  {(item.id === 'species-wishlist' ? favoriteCounts.species : favoriteCounts.care) > 0 && (
+                  {item.count > 0 && (
                     <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
                   )}
                 </button>
@@ -543,8 +545,9 @@ function WorkspaceRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
         <Route path="/care" element={<CareEncyclopedia />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/care-favorites" element={<CareFavorites />} />
+        <Route path="/collection" element={<Collection />} />
+        <Route path="/wishlist" element={<Navigate to="/collection?tab=wishlist" replace />} />
+        <Route path="/care-favorites" element={<Navigate to="/collection?tab=care" replace />} />
         <Route path="/aquarium" element={<AquariumManager />} />
       </Routes>
     </Suspense>

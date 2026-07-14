@@ -23,6 +23,8 @@
     "test:mini-compatibility": "tsx scripts/test-mini-compatibility.ts",
     "test:daily-check": "tsx scripts/test-daily-check-contract.ts",
     "test:session-events": "tsx scripts/test-session-events.ts",
+    "test:collection": "tsx scripts/test-collection-achievements.ts",
+    "test:product-actions": "tsx scripts/audit-product-actions.ts",
     "test:core-ui": "node scripts/verify-core-experience.mjs",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",

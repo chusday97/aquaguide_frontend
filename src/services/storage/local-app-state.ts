@@ -3,6 +3,7 @@ import type { DiscoveryDeckState } from '../../modules/recommendation/recommenda
 
 export const AQUARIUM_APP_STATE_KEY = 'aquarium_app_state_v1';
 export const AQUARIUM_APP_STATE_VERSION = 1;
+export const APP_STATE_CHANGED_EVENT = 'aquaguide:app-state-changed';
 
 export type LocalEventRecord = {
   id: string;
@@ -80,6 +81,11 @@ const normalizeState = (value: Partial<LocalAppState> | null | undefined): Local
 let pendingTimer: number | null = null;
 let pendingState: LocalAppState | null = null;
 
+const emitAppStateChanged = () => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(APP_STATE_CHANGED_EVENT));
+};
+
 export const loadAppStateFromStorage = (): LocalAppState => {
   const stored = safeParse<Partial<LocalAppState> | null>(localStorage.getItem(AQUARIUM_APP_STATE_KEY), null);
   if (stored) return normalizeState(stored);
@@ -106,6 +112,7 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
       if (normalized.discoveryState) {
         localStorage.setItem('aquapediaDiscoveryDeck', JSON.stringify(normalized.discoveryState));
       }
+      emitAppStateChanged();
     } catch (error) {
       console.warn('AquaGuide local app state save failed', error);
     }
@@ -129,6 +136,7 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
         if (pendingState.discoveryState) {
           localStorage.setItem('aquapediaDiscoveryDeck', JSON.stringify(pendingState.discoveryState));
         }
+        emitAppStateChanged();
       } catch (error) {
         console.warn('AquaGuide local app state debounced save failed', error);
       }
@@ -142,6 +150,19 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
 export const patchLocalAppState = (patch: Partial<LocalAppState>, options: { debounce?: boolean } = {}) => {
   const current = loadAppStateFromStorage();
   return saveAppStateToStorage({ ...current, ...patch, version: AQUARIUM_APP_STATE_VERSION }, options);
+};
+
+export const subscribeToAppState = (listener: () => void) => {
+  if (typeof window === 'undefined') return () => undefined;
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === AQUARIUM_APP_STATE_KEY) listener();
+  };
+  window.addEventListener(APP_STATE_CHANGED_EVENT, listener);
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    window.removeEventListener(APP_STATE_CHANGED_EVENT, listener);
+    window.removeEventListener('storage', handleStorage);
+  };
 };
 
 export const clearLocalAppState = () => {

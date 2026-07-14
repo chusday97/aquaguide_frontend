@@ -62,6 +62,7 @@ import { TemplatePlanCard } from '../components/product/TemplatePlanCard';
 import { ActionCenterCard, type ActionCenterStatus } from '../components/product/ActionCenterCard';
 import { QuickActionGrid } from '../components/product/QuickActionGrid';
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
+import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import {
   getTankCompatibilityAddPolicy,
@@ -1657,7 +1658,7 @@ export default function AquariumManager() {
       setTankCopilotResult(result);
       setTankCopilotError('');
     } catch {
-      setTankCopilotError('AI 建缸规划暂时不可用，请稍后重试。');
+      setTankCopilotError('AI 建缸助手暂时不可用，请稍后重试。');
     } finally {
       setIsTankCopilotLoading(false);
     }
@@ -3596,8 +3597,8 @@ export default function AquariumManager() {
     },
     {
       id: 'smartRecommend',
-      label: 'AI 建缸规划',
-      description: '先理解目标再筛方案',
+      label: 'AI 建缸助手',
+      description: '说目标，补条件，看方案',
       icon: <Sparkles className="h-4 w-4" />,
       onClick: () => openTankBuildCopilot(),
       tone: 'normal' as const,
@@ -4517,7 +4518,7 @@ export default function AquariumManager() {
       </Dialog>
 
       <Dialog open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
-        <DialogContent className="flex h-[88dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[560px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <AdaptiveTaskContent className="bg-bg md:max-w-[620px]">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Activity className="h-5 w-5 text-emerald-700" />
@@ -4911,7 +4912,7 @@ export default function AquariumManager() {
               </>
             )}
           </DialogFooter>
-        </DialogContent>
+        </AdaptiveTaskContent>
       </Dialog>
 
       <Dialog open={Boolean(selectedDailyCheckArticle)} onOpenChange={(open) => !open && setSelectedDailyCheckArticle(null)}>
@@ -5109,7 +5110,7 @@ export default function AquariumManager() {
                   setAddFishCompatibilityReview(null);
                 }
               }}>
-        <DialogContent className="flex h-[88dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[520px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <AdaptiveTaskContent className="bg-bg md:max-w-[680px]">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="text-xl font-black text-ink">添加生物到鱼缸</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
@@ -5496,18 +5497,18 @@ export default function AquariumManager() {
                       </div>
             </DialogFooter>
           )}
-        </DialogContent>
+        </AdaptiveTaskContent>
       </Dialog>
 
       <Dialog open={isTankCopilotOpen} onOpenChange={setIsTankCopilotOpen}>
-        <DialogContent className="flex max-h-[88dvh] w-[94vw] max-w-[780px] flex-col overflow-hidden rounded-[24px] border-border bg-white p-0">
+        <AdaptiveTaskContent>
           <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-4 text-left">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Sparkles className="h-5 w-5 text-accent" />
-              AI 建缸规划
+              AI 建缸助手
             </DialogTitle>
             <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
-              AI 理解目标，本地规则筛安全边界；不会直接改鱼缸数据。
+              告诉我想养什么，我帮你补齐条件并整理安全方案。
             </DialogDescription>
           </DialogHeader>
           <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-4">
@@ -5728,15 +5729,7 @@ export default function AquariumManager() {
               </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 border-t border-border/70 px-5 pb-5 pt-4 sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 rounded-full px-6 text-sm font-black"
-              onClick={() => setIsTankCopilotOpen(false)}
-            >
-              关闭
-            </Button>
+          <DialogFooter className="shrink-0 border-t border-border/70 px-5 pb-5 pt-4 sm:justify-end">
             <Button
               type="button"
               className="h-11 rounded-full bg-accent px-6 text-sm font-black text-white"
@@ -5747,7 +5740,7 @@ export default function AquariumManager() {
               {tankCopilotPrimaryLabel}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </AdaptiveTaskContent>
       </Dialog>
 
       <Dialog open={isSmartRecommendOpen} onOpenChange={(open) => {
@@ -6110,7 +6103,7 @@ export default function AquariumManager() {
 
       {/* Tank Build Plan Modal */}
       <Dialog open={isBuildPlanOpen} onOpenChange={setIsBuildPlanOpen}>
-        <DialogContent className="flex h-[90dvh] max-h-[calc(100dvh-24px)] w-[94vw] max-w-[620px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <AdaptiveTaskContent className="bg-bg md:max-w-[700px]">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Layers3 className="h-5 w-5 text-emerald-700" />
@@ -6306,12 +6299,12 @@ export default function AquariumManager() {
               {selectedAdaptedBuildPlan.ctaLabel}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </AdaptiveTaskContent>
       </Dialog>
 
       {/* Settings Modal */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="flex h-[90dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[760px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
+        <AdaptiveTaskContent className="bg-bg">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="text-xl font-black text-ink">鱼缸设置</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
@@ -6697,7 +6690,7 @@ export default function AquariumManager() {
               setIsSettingsOpen(false);
             }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">保存设置</Button>
           </DialogFooter>
-        </DialogContent>
+        </AdaptiveTaskContent>
       </Dialog>
 
       {/* Guide Modal */}

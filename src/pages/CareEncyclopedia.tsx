@@ -13,6 +13,7 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import { AdaptiveDetailContent } from '../components/common/AdaptiveDetailContent';
 import {
   getCareFavorites,
   subscribeToFavorites,
@@ -1691,7 +1692,7 @@ export default function CareEncyclopedia() {
       )}
 
       <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && closeCareDetail()}>
-        <DialogContent className="modalCardWide w-[92vw] max-w-[560px] overflow-hidden rounded-[24px] border-border p-0 md:max-w-[900px]">
+        <AdaptiveDetailContent>
           {selectedTopic && (
             <CareArticleDetail
               key={selectedTopic.id}
@@ -1711,7 +1712,7 @@ export default function CareEncyclopedia() {
               activeAquarium={activeAquarium}
             />
           )}
-        </DialogContent>
+        </AdaptiveDetailContent>
       </Dialog>
 
       <Dialog open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen}>

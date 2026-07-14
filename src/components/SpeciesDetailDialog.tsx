@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/species/species.service';
@@ -13,6 +13,7 @@ import { evaluateCompatibilityDecision } from '../modules/knowledge/compatibilit
 import { buildSpeciesCarePresentation } from '../modules/knowledge/speciesCarePresentation';
 import type { PairCompatibilityResult } from '../modules/knowledge/knowledge.types';
 import type { PreviewImage } from './common/ImagePreviewModal';
+import { AdaptiveDetailContent } from './common/AdaptiveDetailContent';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 
@@ -542,7 +543,7 @@ export function SpeciesDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="modalCard w-[min(640px,calc(100vw-32px))] max-w-[640px] md:max-w-[720px] lg:max-w-[900px] p-0 border-border rounded-[28px]">
+        <AdaptiveDetailContent>
           {fish && displayFit && (
             <div className="flex min-h-0 flex-1 flex-col bg-white">
               <div className="modalHeader flex items-center justify-between border-b border-border bg-white px-4 py-3">
@@ -1110,7 +1111,7 @@ export function SpeciesDetailDialog({
               </div>
             </div>
           )}
-        </DialogContent>
+        </AdaptiveDetailContent>
       </Dialog>
 
       {isPreviewOpen && (
