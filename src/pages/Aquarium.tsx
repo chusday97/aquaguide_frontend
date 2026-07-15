@@ -3451,6 +3451,11 @@ export default function AquariumManager() {
   const activeDiagnosisQuestions = getDiagnosisQuestions(activeDiagnosisProblemType, diagnosisQuizAnswers);
   const activeDiagnosisQuestion = activeDiagnosisQuestions[diagnosisQuestionIndex];
   const currentDiagnosisAnswer = activeDiagnosisQuestion ? diagnosisQuizAnswers[activeDiagnosisQuestion.id] || '' : '';
+  const isDailyCheckQuiz = diagnosisMode === 'quiz' && activeDiagnosisProblemType === '巡检';
+  const dailyCheckRequiredQuestions = activeDiagnosisQuestions.filter(question => !question.optionalText);
+  const dailyCheckAnsweredCount = dailyCheckRequiredQuestions.filter(question => Boolean(diagnosisQuizAnswers[question.id])).length;
+  const isDailyCheckReady = dailyCheckRequiredQuestions.length > 0
+    && dailyCheckAnsweredCount === dailyCheckRequiredQuestions.length;
   const diagnosisProgressPercent = activeDiagnosisQuestions.length > 0
     ? ((diagnosisQuestionIndex + 1) / activeDiagnosisQuestions.length) * 100
     : 0;
@@ -4834,7 +4839,73 @@ export default function AquariumManager() {
                 </>
               )}
 
-              {diagnosisMode === 'quiz' && activeDiagnosisQuestion && (
+              {diagnosisMode === 'quiz' && isDailyCheckQuiz && (
+                <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[13px] font-black text-ink">一次完成今天检查</div>
+                        <p className="mt-0.5 text-[11px] font-medium text-ink/50">按实际观察选择，补充描述可以留空。</p>
+                      </div>
+                      <div className="shrink-0 text-[11px] font-black text-emerald-700">
+                        {dailyCheckAnsweredCount} / {dailyCheckRequiredQuestions.length}
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg">
+                      <div
+                        className="h-full rounded-full bg-emerald-600 transition-all"
+                        style={{ width: `${dailyCheckRequiredQuestions.length > 0 ? (dailyCheckAnsweredCount / dailyCheckRequiredQuestions.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {activeDiagnosisQuestions.map((question, index) => {
+                      const answer = diagnosisQuizAnswers[question.id] || '';
+                      return (
+                        <div key={question.id} className="rounded-[16px] bg-bg p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-emerald-700">
+                              {index + 1}
+                            </span>
+                            <div className="text-[13px] font-black leading-relaxed text-ink">{question.question}</div>
+                          </div>
+                          {question.optionalText ? (
+                            <Input
+                              value={answer === '跳过' ? '' : answer}
+                              onChange={(event) => handleDiagnosisAnswer(question.id, event.target.value)}
+                              placeholder="可选：补充一句你看到的异常"
+                              className="mt-2 h-10 rounded-[12px] bg-white text-sm"
+                            />
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {question.options.map(option => {
+                                const selected = answer === option;
+                                return (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => handleDiagnosisAnswer(question.id, option)}
+                                    className={`rounded-full border px-3 py-2 text-[11px] font-black transition-colors ${
+                                      selected
+                                        ? 'border-emerald-700 bg-emerald-700 text-white'
+                                        : 'border-border bg-white text-ink/58 hover:border-emerald-200'
+                                    }`}
+                                  >
+                                    {option}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {diagnosisMode === 'quiz' && !isDailyCheckQuiz && activeDiagnosisQuestion && (
                 <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
                   <div>
                     <div className="flex items-center justify-between gap-3">
@@ -5077,9 +5148,21 @@ export default function AquariumManager() {
             {diagnosisMode === 'home' && <Button onClick={() => setIsDiagnosisOpen(false)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">关闭</Button>}
             {diagnosisMode === 'quiz' && (
               <>
-                <Button variant="outline" onClick={handleDiagnosisPrevious} className="h-10 rounded-full text-sm font-bold">上一题</Button>
-                <Button onClick={handleDiagnosisNext} disabled={!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
-                  {diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? '一键诊断' : '下一题'}
+                <Button
+                  variant="outline"
+                  onClick={isDailyCheckQuiz ? () => setDiagnosisMode('home') : handleDiagnosisPrevious}
+                  className="h-10 rounded-full text-sm font-bold"
+                >
+                  {isDailyCheckQuiz ? '返回' : '上一题'}
+                </Button>
+                <Button
+                  onClick={isDailyCheckQuiz ? () => void handleRunDiagnosis() : handleDiagnosisNext}
+                  disabled={isDailyCheckQuiz ? !isDailyCheckReady : (!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText)}
+                  className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
+                >
+                  {isDailyCheckQuiz
+                    ? `生成检查结果${isDailyCheckReady ? '' : `（还差 ${dailyCheckRequiredQuestions.length - dailyCheckAnsweredCount} 项）`}`
+                    : diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? '一键诊断' : '下一题'}
                 </Button>
               </>
             )}
@@ -5342,6 +5425,58 @@ export default function AquariumManager() {
                     </Button>
                   </div>
                 </div>
+              ) : addFishCompatibilityReview ? (
+                <section className={`grid gap-3 rounded-[20px] border p-4 shadow-sm ${
+                  addFishCompatibilityReview.status === 'not_recommended'
+                    ? 'border-red-200 bg-red-50'
+                    : addFishCompatibilityReview.status === 'insufficient_data'
+                      ? 'border-sky-100 bg-sky-50'
+                      : 'border-amber-100 bg-amber-50'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-black text-ink/45">第 2 步：混养复核</div>
+                      <div className="mt-1 text-lg font-black text-ink">
+                        {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
+                      </div>
+                      <p className="mt-1 text-[12px] font-bold leading-relaxed text-ink/62">
+                        {addFishCompatibilityReview.status === 'not_recommended'
+                          ? '当前组合命中阻断风险，不能直接加入这个鱼缸。'
+                          : addFishCompatibilityReview.status === 'insufficient_data'
+                            ? '鱼缸关键信息不足，请先补全后再判断。'
+                            : '存在需要注意的条件，确认理解风险后才能加入。'}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-ink/55 shadow-sm">
+                      {addFishCompatibilityReview.evaluations.length} 种生物
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {addFishCompatibilityReview.evaluations.map(evaluation => (
+                      <div key={evaluation.fish.id} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-[14px] bg-white/82 px-3 py-2 shadow-sm">
+                        <span className="min-w-0">
+                          <span className="block truncate text-[12px] font-black text-ink">{evaluation.fish.name} x {evaluation.quantity}</span>
+                          <span className="mt-0.5 block truncate text-[10px] font-bold text-ink/45">{evaluation.result.summary}</span>
+                        </span>
+                        <span className="shrink-0 text-[10px] font-black text-ink/60">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {addFishCompatibilityReview.keyRules.length > 0 && (
+                    <div className="rounded-[14px] bg-white/72 p-3">
+                      <div className="text-[11px] font-black text-ink">最关键的依据</div>
+                      <div className="mt-2 grid gap-1.5">
+                        {addFishCompatibilityReview.keyRules.slice(0, 3).map(rule => (
+                          <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[11px] font-medium leading-relaxed text-ink/62">
+                            <span className="font-black text-ink/72">{rule.title}：</span>{rule.evidence}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
               ) : (
                 <>
 
@@ -5569,50 +5704,6 @@ export default function AquariumManager() {
                       })}
                             </div>
 
-                            {addFishCompatibilityReview && (
-                              <div className={`rounded-[16px] border p-3 text-[12px] font-bold leading-relaxed ${
-                                addFishCompatibilityReview.status === 'not_recommended'
-                                  ? 'border-red-200 bg-red-50 text-red-800'
-                                  : addFishCompatibilityReview.status === 'insufficient_data'
-                                    ? 'border-sky-100 bg-sky-50 text-sky-900'
-                                    : 'border-amber-100 bg-amber-50 text-amber-900'
-                              }`}>
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <div className="text-[12px] font-black">添加前混养预检</div>
-                                    <p className="mt-1">
-                                      {addFishCompatibilityReview.status === 'not_recommended'
-                                        ? '命中阻断风险，默认不能加入当前鱼缸。'
-                                        : addFishCompatibilityReview.status === 'insufficient_data'
-                                          ? '关键信息不足，不能显示“适合”。可先补信息，或确认后谨慎少量加入。'
-                                          : '存在需要确认的混养风险，确认后才会写入鱼缸。'}
-                                    </p>
-                                  </div>
-                                  <span className="shrink-0 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black">
-                                    {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
-                                  </span>
-                                </div>
-                                <div className="mt-2 grid gap-1">
-                                  {addFishCompatibilityReview.evaluations.map(evaluation => (
-                                    <div key={evaluation.fish.id} className="flex items-center justify-between gap-2 rounded-full bg-white/70 px-2 py-1">
-                                      <span className="truncate">{evaluation.fish.name} x {evaluation.quantity}</span>
-                                      <span className="shrink-0 text-[10px] font-black">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                {addFishCompatibilityReview.keyRules.length > 0 && (
-                                  <div className="mt-2 grid gap-1 rounded-[12px] bg-white/55 p-2">
-                                    {addFishCompatibilityReview.keyRules.map(rule => (
-                                      <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[10px] leading-relaxed">
-                                        <span className="font-black">{rule.title}</span>
-                                        <span className="ml-1 opacity-75">{rule.evidence}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-        
                             <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-bold leading-relaxed text-emerald-900">
                       {selectedAddSpeciesCount === 1 ? (
                         <>

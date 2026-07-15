@@ -2001,22 +2001,9 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
   const currentLivestock = useMemo(() => getCurrentLivestock(targetAquarium), [targetAquarium]);
   const volumeLiters = getTankVolumeLiters(targetAquarium);
   const diagnosisQuestions = useMemo(() => getStepDiagnosisQuestions(diagnosisState.issueType), [diagnosisState.issueType]);
-  const activeQuestionIndex = Math.min(Math.max(diagnosisState.questionIndex, 0), diagnosisQuestions.length - 1);
-  const activeQuestion = diagnosisQuestions[activeQuestionIndex];
   const answeredCount = diagnosisQuestions.filter(question => diagnosisState.answers[question.id]).length;
-  const isQuestionStep = diagnosisState.currentStep === 2;
-  const isSummaryStep = diagnosisState.currentStep === 3;
-  const isResultStep = diagnosisState.currentStep === 4 && diagnosisState.result;
-  const progressLabel = isQuestionStep
-    ? `第 ${activeQuestionIndex + 1} 题 / 共 ${diagnosisQuestions.length} 题`
-    : `第 ${diagnosisState.currentStep} 步 / 共 4 步`;
-  const progressPercent = diagnosisState.currentStep === 1
-    ? 25
-    : diagnosisState.currentStep === 2
-      ? 25 + (answeredCount / diagnosisQuestions.length) * 45
-      : diagnosisState.currentStep === 3
-        ? 80
-        : 100;
+  const isResultStep = diagnosisState.currentStep === 2 && Boolean(diagnosisState.result);
+  const isReady = diagnosisQuestions.length > 0 && answeredCount === diagnosisQuestions.length;
   const issueMeta = stepDiagnosisIssues.find(item => item.id === diagnosisState.issueType) || stepDiagnosisIssues[0];
 
   const updateAnswer = (key: keyof StepDiagnosisAnswers, value: StepDiagnosisAnswerValue) => {
@@ -2027,180 +2014,146 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
     }));
   };
 
-  const goNext = () => {
-    setDiagnosisState(prev => {
-      if (prev.currentStep === 1) return { ...prev, currentStep: 2, questionIndex: 0, result: null };
-      if (prev.currentStep === 2) {
-        const nextQuestionIndex = activeQuestionIndex + 1;
-        if (nextQuestionIndex < diagnosisQuestions.length) return { ...prev, questionIndex: nextQuestionIndex, result: null };
-        return { ...prev, currentStep: 3, result: null };
-      }
-      if (prev.currentStep === 3) {
-        const result = buildStepDiagnosisResult({
-          aquarium: targetAquarium,
-          livestock: currentLivestock,
-          answers: prev.answers,
-          issueType: prev.issueType,
-        });
-        return { ...prev, currentStep: 4, result };
-      }
-      return prev;
+  const showResult = () => {
+    if (!isReady) return;
+    const result = buildStepDiagnosisResult({
+      aquarium: targetAquarium,
+      livestock: currentLivestock,
+      answers: diagnosisState.answers,
+      issueType: diagnosisState.issueType,
     });
+    setDiagnosisState(prev => ({ ...prev, currentStep: 2, result }));
   };
 
-  const goPrevious = () => {
-    setDiagnosisState(prev => {
-      if (prev.currentStep <= 1) return prev;
-      if (prev.currentStep === 4) return { ...prev, currentStep: 3, result: null };
-      if (prev.currentStep === 3) return { ...prev, currentStep: 2, result: null };
-      if (prev.currentStep === 2 && prev.questionIndex > 0) return { ...prev, questionIndex: prev.questionIndex - 1, result: null };
-      return { ...prev, currentStep: 1, result: null };
-    });
+  const resetDiagnosis = () => {
+    setDiagnosisState(prev => ({ ...prev, currentStep: 1, questionIndex: 0, answers: {}, result: null }));
   };
-
-  const moveQuestion = (direction: 1 | -1) => {
-    const nextIndex = activeQuestionIndex + direction;
-    if (nextIndex < 0) {
-      setDiagnosisState(prev => ({ ...prev, currentStep: 1, questionIndex: 0, result: null }));
-      return;
-    }
-    if (nextIndex >= diagnosisQuestions.length) {
-      setDiagnosisState(prev => ({ ...prev, currentStep: 3, result: null }));
-      return;
-    }
-    setDiagnosisState(prev => ({
-      ...prev,
-      currentStep: 2,
-      questionIndex: nextIndex,
-      result: null,
-    }));
-  };
-
-  const canGoNext = diagnosisState.currentStep === 1
-    || diagnosisState.currentStep === 3
-    || (isQuestionStep && Boolean(diagnosisState.answers[activeQuestion.id]));
-  const bottomButtonText = diagnosisState.currentStep === 3
-    ? '生成诊断'
-    : isResultStep
-      ? '查看处理建议'
-      : '下一步';
 
   return (
     <section className="mt-4 rounded-[22px] border border-emerald-100 bg-[#F8FCF8] p-3 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[16px] font-black text-ink">分步诊断</div>
-          <div className="mt-0.5 text-[11px] font-bold text-ink/45">{progressLabel}</div>
+          <div className="text-[16px] font-black text-ink">问题自查</div>
+          <div className="mt-0.5 text-[11px] font-bold text-ink/45">
+            {isResultStep ? '自查结果' : `一次填完 · 已回答 ${answeredCount}/${diagnosisQuestions.length}`}
+          </div>
         </div>
-        {diagnosisState.currentStep > 1 && (
+        {isResultStep && (
           <button
             type="button"
-            onClick={isQuestionStep ? () => moveQuestion(-1) : goPrevious}
+            onClick={resetDiagnosis}
             className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-emerald-700 shadow-sm"
           >
-            返回
+            重新自查
           </button>
         )}
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white">
-        <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${progressPercent}%` }} />
+        <div
+          className="h-full rounded-full bg-emerald-700 transition-all"
+          style={{ width: `${isResultStep ? 100 : diagnosisQuestions.length > 0 ? (answeredCount / diagnosisQuestions.length) * 100 : 0}%` }}
+        />
       </div>
 
-      {diagnosisState.currentStep === 1 && (
-        <div className="mt-3 grid gap-2">
-          {stepDiagnosisIssues.map(issue => {
-            const selected = diagnosisState.issueType === issue.id;
-            return (
-              <button
-                key={issue.id}
-                type="button"
-                onClick={() => setDiagnosisState(prev => ({ ...prev, issueType: issue.id, questionIndex: 0, answers: {}, result: null }))}
-                className={`rounded-[16px] border px-3 py-3 text-left transition-colors ${
-                  selected ? 'border-emerald-300 bg-white text-emerald-900 shadow-sm' : 'border-transparent bg-white/65 text-ink/68'
-                }`}
-              >
-                <div className="text-[13px] font-black">{issue.label}</div>
-                <div className="mt-0.5 text-[11px] font-medium leading-relaxed opacity-70">{issue.description}</div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {isQuestionStep && activeQuestion && (
-        <div className="mt-3 rounded-[18px] bg-white p-3 shadow-sm">
-          <div className="text-[11px] font-black text-emerald-700">{issueMeta.label}</div>
-          <div className="mt-1 text-[16px] font-black leading-relaxed text-ink">{activeQuestion.question}</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {activeQuestion.options.map(option => {
-              const selected = diagnosisState.answers[activeQuestion.id] === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateAnswer(activeQuestion.id, option.value)}
-                  className={`rounded-full border px-3 py-2 text-[12px] font-black transition-colors ${
-                    selected ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-border bg-bg text-ink/55'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
+      {!isResultStep && (
+        <div className="mt-3 grid gap-3">
+          <div className="rounded-[18px] bg-white p-3 shadow-sm">
+            <div className="text-[12px] font-black text-ink">你主要看到了什么？</div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {stepDiagnosisIssues.map(issue => {
+                const selected = diagnosisState.issueType === issue.id;
+                return (
+                  <button
+                    key={issue.id}
+                    type="button"
+                    onClick={() => setDiagnosisState(prev => ({ ...prev, issueType: issue.id, questionIndex: 0, answers: {}, result: null }))}
+                    className={`rounded-full border px-3 py-2 text-[11px] font-black transition-colors ${
+                      selected ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-border bg-bg text-ink/58'
+                    }`}
+                    title={issue.description}
+                  >
+                    {issue.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="mt-3 rounded-[14px] bg-emerald-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-emerald-900/70">
-            诊断结果将在完成后生成，请继续回答剩余问题。
-          </div>
-        </div>
-      )}
 
-      {(isSummaryStep || isResultStep) && (
-        <div className="mt-3 rounded-[18px] bg-white p-3 shadow-sm">
-          <div className="mb-2 text-[13px] font-black text-ink">当前鱼缸摘要</div>
-          {aquariums.length > 1 && !isResultStep && (
-            <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-              {aquariums.map(aquarium => (
-                <button
-                  key={aquarium.id}
-                  type="button"
-                  onClick={() => setDiagnosisState(prev => ({ ...prev, targetAquariumId: aquarium.id, result: null }))}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black ${
-                    diagnosisState.targetAquariumId === aquarium.id ? 'bg-emerald-700 text-white' : 'bg-bg text-ink/55'
-                  }`}
-                >
-                  {aquarium.name}
-                </button>
-              ))}
+          {aquariums.length > 1 && (
+            <div className="rounded-[18px] bg-white p-3 shadow-sm">
+              <div className="text-[12px] font-black text-ink">检查哪个鱼缸？</div>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {aquariums.map(aquarium => (
+                  <button
+                    key={aquarium.id}
+                    type="button"
+                    onClick={() => setDiagnosisState(prev => ({ ...prev, targetAquariumId: aquarium.id, result: null }))}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black ${
+                      diagnosisState.targetAquariumId === aquarium.id ? 'bg-emerald-700 text-white' : 'bg-bg text-ink/55'
+                    }`}
+                  >
+                    {aquarium.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2 md:desktop-card-grid md:gap-3">
-            {[
-              { label: '鱼缸', value: targetAquarium?.name || '未选择' },
-              { label: '容量', value: targetAquarium ? `${volumeLiters}L` : '未设置' },
-              { label: '水温', value: targetAquarium ? `${targetAquarium.targetTemperature || 25}°C` : '未设置' },
-              { label: '水质', value: targetAquarium?.waterType === 'Saltwater' ? '海水' : '淡水' },
-              { label: '过滤', value: targetAquarium?.equipment?.filter || '未设置' },
-              { label: '最近换水', value: targetAquarium?.lastWaterChangeDate ? new Date(targetAquarium.lastWaterChangeDate).toLocaleDateString('zh-CN') : '暂无记录' },
-            ].map(item => (
-              <div key={item.label} className="rounded-[13px] bg-bg px-3 py-2">
-                <div className="text-[10px] font-black text-ink/38">{item.label}</div>
-                <div className="mt-0.5 truncate text-[12px] font-black text-ink">{item.value}</div>
+
+          <div className="grid gap-2">
+            {diagnosisQuestions.map((question, index) => (
+              <div key={question.id} className="rounded-[18px] bg-white p-3 shadow-sm">
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-black text-emerald-700">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <div className="text-[11px] font-black text-emerald-700">{issueMeta.label}</div>
+                    <div className="mt-0.5 text-[14px] font-black leading-relaxed text-ink">{question.question}</div>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {question.options.map(option => {
+                    const selected = diagnosisState.answers[question.id] === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => updateAnswer(question.id, option.value)}
+                        className={`rounded-full border px-3 py-2 text-[11px] font-black transition-colors ${
+                          selected ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-border bg-bg text-ink/55'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
-          <div className="mt-2 rounded-[13px] bg-emerald-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-emerald-900">
-            当前活体：{currentLivestock.length > 0 ? currentLivestock.map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`).join('、') : '暂无活体生物'}
-          </div>
-          {!isResultStep && (
-            <div className="mt-2 rounded-[13px] bg-blue-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-blue-800">
-              确认鱼缸信息后点击“生成诊断”，才会展示今日建议和暂时避免。
-            </div>
-          )}
+
+          <Button
+            type="button"
+            onClick={showResult}
+            disabled={!isReady}
+            className="h-11 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
+          >
+            {isReady ? '查看自查结果' : `还差 ${diagnosisQuestions.length - answeredCount} 项`}
+          </Button>
         </div>
       )}
 
       {isResultStep && diagnosisState.result && (
         <div className="mt-3 grid gap-3">
+          <div className="rounded-[18px] bg-white p-3 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[12px] font-black text-ink">本次参考</div>
+              <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/55">{issueMeta.label}</span>
+            </div>
+            <div className="mt-2 text-[11px] font-bold leading-relaxed text-ink/58">
+              {targetAquarium ? `${targetAquarium.name} · ${volumeLiters || '未设置'}L · ${currentLivestock.length} 种活体` : '未选择鱼缸，结果仅根据观察回答生成'}
+            </div>
+          </div>
           <div className={`rounded-[18px] px-3 py-3 ${
             diagnosisState.result.riskLevel === 'high' ? 'bg-red-50' :
             diagnosisState.result.riskLevel === 'medium' ? 'bg-amber-50' :
@@ -2208,16 +2161,15 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
             'bg-emerald-50'
           }`}>
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[12px] font-black text-ink/45">诊断结论</div>
+              <div className="text-[12px] font-black text-ink/45">自查结论</div>
               <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-ink/60">{diagnosisState.result.riskLabel}</span>
             </div>
             <div className="mt-1 text-[14px] font-black leading-relaxed text-ink">{diagnosisState.result.conclusion}</div>
           </div>
           {[
-            { title: '判断依据', items: diagnosisState.result.evidence },
-            { title: '可能原因', items: diagnosisState.result.causes },
-            { title: '今日建议', items: diagnosisState.result.todayActions },
+            { title: '现在先做', items: diagnosisState.result.todayActions },
             { title: '暂时避免', items: diagnosisState.result.avoidActions },
+            { title: '判断依据', items: diagnosisState.result.evidence },
             { title: '继续观察', items: diagnosisState.result.observeItems },
           ].map(section => (
             <div key={section.title} className="rounded-[18px] bg-white p-3 shadow-sm">
@@ -2231,43 +2183,11 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
               </div>
             </div>
           ))}
+          <Button type="button" onClick={resetDiagnosis} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800">
+            重新自查
+          </Button>
         </div>
       )}
-
-      <div className="mt-3 flex gap-2">
-        {isQuestionStep && activeQuestionIndex > 0 && (
-          <Button type="button" variant="outline" onClick={() => moveQuestion(-1)} className="h-10 rounded-full text-sm font-black">
-            上一题
-          </Button>
-        )}
-        {isQuestionStep && activeQuestionIndex < diagnosisQuestions.length - 1 ? (
-          <Button
-            type="button"
-            onClick={() => moveQuestion(1)}
-            disabled={!diagnosisState.answers[activeQuestion.id]}
-            className="h-10 flex-1 rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
-          >
-            下一题
-          </Button>
-        ) : !isResultStep ? (
-          <Button
-            type="button"
-            onClick={goNext}
-            disabled={!canGoNext}
-            className="h-10 flex-1 rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
-          >
-            {bottomButtonText}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={() => setDiagnosisState(prev => ({ ...prev, currentStep: 1, questionIndex: 0, answers: {}, result: null }))}
-            className="h-10 flex-1 rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800"
-          >
-            重新诊断
-          </Button>
-        )}
-      </div>
     </section>
   );
 }

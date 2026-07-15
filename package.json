@@ -28,6 +28,8 @@
     "test:state-services": "tsx scripts/test-business-state-services.ts",
     "test:product-actions": "tsx scripts/audit-product-actions.ts",
     "test:responsive-images": "python3 scripts/test_responsive_images.py",
+    "test:three-step-paths": "tsx scripts/test-three-step-paths.ts",
+    "test:three-step-ui": "node scripts/verify-three-step-experience.mjs",
     "test:core-ui": "node scripts/verify-core-experience.mjs",
     "test:mobile-care-ui": "node scripts/verify-mobile-care-experience.mjs",
     "audit:images": "python3 scripts/audit_species_images.py",
