@@ -31,6 +31,7 @@ AquaGuide 以“先用确定性规则给出安全边界，再由 AI 解释”为
 
 - [信息架构](./02-design/INFORMATION_ARCHITECTURE.md)
 - [交互规范](./02-design/INTERACTION_SPEC.md)
+- [正式用户路径登记](./02-design/USER_PATH_REGISTRY.md)
 - [设计系统](./02-design/DESIGN_SYSTEM.md)
 - [数据模型](./02-design/DATA_MODEL.md)
 - [AI 与 API](./02-design/AI_AND_API_SPEC.md)
