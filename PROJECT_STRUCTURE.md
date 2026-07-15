@@ -36,6 +36,7 @@
 
 ## 文档与验证
 
+- `.project-journal/`：按工作区证据规则维护可追溯事件、证据索引、事实卡和证据缺口；职业材料仅使用 verified 结论。
 - `docs/README.md`：当前产品文档总入口与事实来源说明。
 - `docs/01-definition/`：PRD、用户故事、竞品分析与当前产品状态。
 - `docs/02-design/`：信息架构、交互说明、设计系统、数据模型与 AI/API 边界。

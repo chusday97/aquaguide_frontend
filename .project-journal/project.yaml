@@ -1,0 +1,54 @@
+schema_version: 1
+project_id: PRJ-aquaguide
+project_name: AquaGuide
+project_time:
+  start: null
+  end: null
+project_type: Web 水族管理与决策辅助产品
+target_users:
+  - 水族新手
+user_problem: 管理鱼缸、选择物种、判断混养并在异常时获得安全养护指引
+project_goal: 让核心任务可发现、可恢复，并在三步内到达具体页面
+user_role: []
+project_status: 核心体验收口中
+core_features:
+  - 鱼缸管理与今日行动
+  - 物种图鉴与统一混养判断
+  - 每日检查与养护百科
+  - 水族册与生命纪念
+  - 受控 AI 建缸助手
+tech_stack:
+  - React
+  - TypeScript
+  - Vite
+  - Three.js
+  - Playwright
+target_roles:
+  - AI产品运营
+  - AI应用运营
+  - Agent产品运营
+deployment:
+  status: local_preview_verified
+  url: null
+  evidence_ids:
+    - EVD-20260715-006
+current_version: codex/aquaguide-ux-refactor@194cbcb
+source_availability:
+  readme: available
+  repository_structure: available
+  dependencies: available
+  git_history: available
+  git_diff: available
+  tests: available
+  configuration: available
+  api: available
+  database: not_applicable
+  deployment: unavailable
+  project_docs: available
+  ai_conversations: restricted
+  execution_records: available
+  artifacts: available
+  screenshots: unavailable
+  user_background: unavailable
+created_at: 2026-07-15T14:20:00+08:00
+updated_at: 2026-07-15T14:20:00+08:00

@@ -57,7 +57,8 @@ try {
     assert.equal(await page.locator('nav.fixed.inset-x-0.bottom-0').count(), bottomCount, `${name} bottom nav`);
     if (name === 'iphone') {
       await page.goto(`${baseUrl}/collection?tab=wishlist`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      await page.getByRole('heading', { name: '我的水族册', exact: true }).waitFor();
+      await page.waitForFunction(() => location.pathname === '/collection/wishlist');
+      await page.getByRole('heading', { name: '种草图鉴', exact: true }).waitFor();
       await page.locator('#collection-wishlist-sp_0001 button').first().click();
       const phoneDetail = page.locator('[role="dialog"][data-surface="bottom-sheet"]:visible');
       await phoneDetail.waitFor();
@@ -74,10 +75,10 @@ try {
   page.setDefaultTimeout(15000);
 
   await page.goto(`${baseUrl}/wishlist`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.waitForFunction(() => location.pathname === '/collection' && new URLSearchParams(location.search).get('tab') === 'wishlist');
-  await page.getByRole('heading', { name: '我的水族册', exact: true }).waitFor();
+  await page.waitForFunction(() => location.pathname === '/collection/wishlist');
+  await page.getByRole('heading', { name: '种草图鉴', exact: true }).waitFor();
   const wishlistText = await page.locator('body').innerText();
-  assert.match(wishlistText, /我的水族册/);
+  assert.match(wishlistText, /自然水族册/);
   assert.match(wishlistText, /种草图鉴/);
   assert.doesNotMatch(wishlistText, /搜索鱼、虾|今日种草/);
   await page.locator('#collection-wishlist-sp_0001 button').first().click();
@@ -91,10 +92,10 @@ try {
   assert.equal(await page.locator('#collection-wishlist-sp_0001').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
   await page.goto(`${baseUrl}/care-favorites`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.waitForFunction(() => location.pathname === '/collection' && new URLSearchParams(location.search).get('tab') === 'care');
-  await page.getByRole('heading', { name: '我的水族册', exact: true }).waitFor();
+  await page.waitForFunction(() => location.pathname === '/collection/care');
+  await page.getByRole('heading', { name: '养护收藏', exact: true }).waitFor();
   const careFavoritesText = await page.locator('body').innerText();
-  assert.match(careFavoritesText, /我的水族册/);
+  assert.match(careFavoritesText, /自然水族册/);
   assert.match(careFavoritesText, /养护收藏/);
   assert.doesNotMatch(careFavoritesText, /为当前鱼缸推荐|按问题快速查找/);
   await page.locator('#collection-care-guide_water_deteriorate button').first().click();
@@ -107,8 +108,8 @@ try {
   assert.equal(await page.locator('#collection-care-guide_water_deteriorate').evaluate(element => element === document.activeElement || element.contains(document.activeElement)), true);
   assert.equal(await page.locator('#collection-care-guide_water_deteriorate').evaluate(element => element.classList.contains('workspace-section-highlight')), true);
 
-  await page.getByRole('button', { name: '勋章', exact: true }).click();
-  await page.waitForFunction(() => location.pathname === '/collection' && new URLSearchParams(location.search).get('tab') === 'achievements');
+  await page.goto(`${baseUrl}/collection/achievements`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForFunction(() => location.pathname === '/collection/achievements');
   await page.getByText('勋章会自动解锁，无需领取', { exact: true }).waitFor();
   await page.getByText('初心缸主', { exact: true }).waitFor();
   assert.ok(await page.locator('[data-achievement-status="unlocked"]').count() > 0);
@@ -132,9 +133,8 @@ try {
   assert.equal(await dialog.getAttribute('data-surface'), 'task-flow');
   for (const answer of ['正常', '清澈', '没有泡沫或油膜', '没有异味', '正常游动和进食', '没有特别操作']) {
     await dialog.getByRole('button', { name: answer, exact: true }).click();
-    await dialog.getByRole('button', { name: '下一题' }).click();
   }
-  await dialog.getByRole('button', { name: '一键诊断' }).click();
+  await dialog.getByRole('button', { name: '生成检查结果', exact: true }).click();
   await dialog.getByText('结构化诊断结果').waitFor();
   await dialog.getByRole('button', { name: '保存今天记录' }).click();
   await dialog.getByText(/已保存今天的检查记录/).waitFor();

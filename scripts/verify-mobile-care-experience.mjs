@@ -71,8 +71,8 @@ try {
   assert.equal(await recommendation.evaluate(element => element.parentElement?.scrollLeft || 0), 0, 'recommendation does not reveal adjacent cards');
   assert.equal(await phonePage.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, 'care page has no horizontal overflow');
   await phonePage.getByRole('button', { name: /水族册养护/ }).click();
-  await phonePage.waitForFunction(() => location.pathname === '/collection' && new URLSearchParams(location.search).get('tab') === 'care');
-  await phonePage.getByText('种草 · 养护 · 纪念 · 勋章', { exact: true }).waitFor();
+  await phonePage.waitForFunction(() => location.pathname === '/collection/care');
+  await phonePage.getByRole('heading', { name: '养护收藏', exact: true }).waitFor();
 
   await phonePage.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
   await phonePage.getByRole('button', { name: /缸内物种/ }).last().waitFor();
