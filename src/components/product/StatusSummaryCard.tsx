@@ -1,9 +1,16 @@
-import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Clock3 } from 'lucide-react';
+import { AlertTriangle, Bot, CheckCircle2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TagPill, type TagPillTone } from './TagPill';
 
 export type AquariumStatusLevel = 'normal' | 'needs_attention' | 'urgent' | 'insufficient_data';
+
+export type DailyActionType =
+  | 'urgent_recovery'
+  | 'compatibility_review'
+  | 'care_plan'
+  | 'water_change'
+  | 'daily_check'
+  | 'routine';
 
 export type DailyAquariumStatus = {
   pendingTaskCount: number;
@@ -30,53 +37,37 @@ export type TaskTrigger = {
   value?: Record<string, string | number | boolean>;
 };
 
-export type DailyAdviceTask = {
+export type DailyActionTask = {
   id: string;
-  type: 'water_change' | 'observation' | 'setup' | 'data_check';
+  actionType: DailyActionType;
   title: string;
   priority: 'normal' | 'medium' | 'high';
   reason: string;
   evidence: string;
+  primaryLabel?: string;
+  targetId?: string;
   trigger: TaskTrigger;
-  steps: string[];
-  observationNote: string;
 };
 
-export type DailyAdviceViewModel = {
+export type DailyActionViewModel = {
   level: AquariumStatusLevel;
   label: string;
   sourceLabel: string;
-  referenceTank: {
-    name: string;
-    waterType: string;
-    temperature: string;
-  };
   status: DailyAquariumStatus;
-  task: DailyAdviceTask | null;
-  statusItems: Array<{
-    title: string;
-    value: string;
-    tone: TagPillTone;
-    note?: string;
-  }>;
+  task: DailyActionTask;
   reasoning: string[];
 };
 
-type DailyAdviceAction =
-  | 'start'
-  | 'complete'
-  | 'snooze'
-  | 'toggle_steps';
-
 type StatusSummaryCardProps = {
-  advice: DailyAdviceViewModel;
-  showDetails: boolean;
+  action: DailyActionViewModel;
+  showWhy: boolean;
   aiAnswer?: string;
   aiError?: string;
   aiSource?: 'model' | 'fallback' | null;
   isAiLoading?: boolean;
   onAskAI: (question: string) => void;
-  onAction: (action: DailyAdviceAction) => void;
+  onPrimaryAction: () => void;
+  onToggleWhy: () => void;
 };
 
 const levelTone: Record<AquariumStatusLevel, TagPillTone> = {
@@ -87,239 +78,97 @@ const levelTone: Record<AquariumStatusLevel, TagPillTone> = {
 };
 
 const levelStyles: Record<AquariumStatusLevel, string> = {
-  normal: 'border-emerald-100 bg-white text-emerald-700',
-  needs_attention: 'border-amber-100 bg-white text-amber-700',
-  urgent: 'border-red-100 bg-white text-red-600',
-  insufficient_data: 'border-sky-100 bg-white text-sky-700',
+  normal: 'border-emerald-100 bg-[linear-gradient(145deg,#ffffff,#edf8f1)] text-emerald-700',
+  needs_attention: 'border-amber-100 bg-[linear-gradient(145deg,#ffffff,#fff8e8)] text-amber-700',
+  urgent: 'border-red-100 bg-[linear-gradient(145deg,#ffffff,#fff2f2)] text-red-600',
+  insufficient_data: 'border-sky-100 bg-[linear-gradient(145deg,#ffffff,#eff8ff)] text-sky-700',
 };
 
 export function StatusSummaryCard({
-  advice,
-  showDetails,
+  action,
+  showWhy,
   aiAnswer,
   aiError,
   aiSource = null,
   isAiLoading = false,
   onAskAI,
-  onAction,
+  onPrimaryAction,
+  onToggleWhy,
 }: StatusSummaryCardProps) {
-  const Icon = advice.level === 'normal' ? CheckCircle2 : AlertTriangle;
-  const task = advice.task;
-  const recordsImmediately = task?.type === 'water_change';
-  const primaryButtonLabel = task?.type === 'water_change'
-    ? '记录本次换水'
-    : task?.type === 'observation'
-      ? '开始观察'
-      : task?.type === 'setup'
-        ? '查看设置建议'
-        : task?.type === 'data_check'
-          ? '查看缺失信息'
-          : '查看鱼缸状态';
-  const canCompleteTask = Boolean(task);
-  const primaryStatusItem = advice.statusItems[0];
-
-  const handleDetailsOpenChange = (open: boolean) => {
-    if (open !== showDetails) {
-      onAction('toggle_steps');
-    }
-  };
+  const Icon = action.level === 'normal' ? CheckCircle2 : AlertTriangle;
+  const canExplainWithAi = ['urgent_recovery', 'compatibility_review'].includes(action.task.actionType);
+  const hasPrimaryAction = Boolean(action.task.primaryLabel);
 
   return (
-    <section className={`flex h-full min-h-[220px] flex-col overflow-visible rounded-[18px] border p-4 shadow-sm ${levelStyles[advice.level]}`}>
+    <section className={`flex min-h-[220px] flex-col rounded-[20px] border p-4 shadow-sm ${levelStyles[action.level]}`} data-daily-action={action.task.actionType}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[13px] font-black text-ink">今日建议</div>
+          <div className="text-[13px] font-black text-ink">今日行动</div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <TagPill tone={levelTone[advice.level]}>{advice.label}</TagPill>
-            <TagPill tone={advice.status.pendingTaskCount > 0 ? 'warning' : 'normal'}>
-              {advice.status.pendingTaskCount > 0 ? `今天有 ${advice.status.pendingTaskCount} 项待处理` : '今天暂无必须处理'}
-            </TagPill>
+            <TagPill tone={levelTone[action.level]}>{action.label}</TagPill>
+            <span className="text-[10px] font-black text-ink/38">{action.sourceLabel}</span>
           </div>
         </div>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
-          <Icon className="h-6 w-6" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-sm">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
 
-      <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[16px] bg-white/75 p-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-black text-ink/45">今日优先任务</div>
-          <h3 className="mt-1 line-clamp-2 text-[16px] font-black leading-snug text-ink [text-wrap:pretty]">
-            {task ? task.title : '今天保持常规观察'}
-          </h3>
-          <p className="mt-2 line-clamp-2 text-[12px] font-bold leading-relaxed text-ink/65">
-            {task ? task.reason : '当前没有来自养护记录的必须处理任务。'}
-          </p>
-        </div>
+      <div className="mt-4 rounded-[17px] bg-white/78 p-4">
+        <h2 className="text-[18px] font-black leading-snug text-ink [text-wrap:pretty]">{action.task.title}</h2>
+        <p className="mt-2 text-[12px] font-bold leading-5 text-ink/60">{action.task.reason}</p>
 
-        <div className="mt-auto pt-3">
-          <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/70 px-3 py-2">
-            <div className="min-w-0">
-              <div className="truncate text-[10px] font-black text-ink/45">{primaryStatusItem?.title || '鱼缸状态'}</div>
-              <div className="mt-0.5 truncate text-[12px] font-black text-ink">{primaryStatusItem?.value || advice.sourceLabel}</div>
-            </div>
-            <TagPill tone={primaryStatusItem?.tone || levelTone[advice.level]}>
-              {primaryStatusItem?.tone === 'normal' ? '已记录' : primaryStatusItem?.tone === 'danger' || primaryStatusItem?.tone === 'warning' ? '需处理' : '需确认'}
-            </TagPill>
-          </div>
+        <button
+          type="button"
+          aria-expanded={showWhy}
+          onClick={onToggleWhy}
+          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[11px] font-black text-ink/52 transition-colors hover:bg-white hover:text-emerald-800"
+        >
+          为什么
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showWhy ? 'rotate-180' : ''}`} />
+        </button>
 
-          <div className={`mt-3 grid gap-2 ${recordsImmediately ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-1'}`}>
-            <Button
-              type="button"
-              onClick={() => onAction('start')}
-              className="h-10 min-w-0 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white shadow-none hover:bg-emerald-800"
-            >
-              <span className="truncate">{primaryButtonLabel}</span>
-            </Button>
-            {recordsImmediately && (
+        {showWhy && (
+          <div className="mt-2 rounded-[14px] border border-ink/6 bg-white/80 p-3" aria-live="polite">
+            <ul className="grid gap-2">
+              {action.reasoning.slice(0, 3).map(reason => (
+                <li key={reason} className="flex gap-2 text-[11px] font-bold leading-5 text-ink/58">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+            {canExplainWithAi && !aiAnswer && !aiError && (
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onAction('toggle_steps')}
-                className="h-10 shrink-0 rounded-full border-ink/10 bg-white px-4 text-[12px] font-black text-ink/70"
+                disabled={isAiLoading}
+                onClick={() => onAskAI('请用三句话解释为什么这件事现在优先，以及我下一步要注意什么。')}
+                className="mt-3 h-9 rounded-full border-emerald-100 bg-white px-3 text-[11px] font-black text-emerald-800"
               >
-                查看详情
+                <Bot className="mr-1.5 h-3.5 w-3.5" />
+                {isAiLoading ? '正在解释…' : '让 AI 简短解释'}
               </Button>
             )}
+            {(aiAnswer || aiError) && (
+              <div className={`mt-3 rounded-[12px] px-3 py-2 text-[11px] font-bold leading-5 ${aiError ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-900'}`}>
+                <div className="mb-1 text-[9px] font-black opacity-55">{aiSource === 'model' ? '模型解释' : '本地提示'}</div>
+                {aiAnswer || aiError}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
-      <Dialog open={showDetails} onOpenChange={handleDetailsOpenChange}>
-        <DialogContent className="flex max-h-[86dvh] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[24px] border-border bg-bg p-0">
-          <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
-            <DialogTitle className="text-xl font-black text-ink">今日建议详情</DialogTitle>
-            <DialogDescription className="text-xs font-bold leading-relaxed text-ink/55">
-              系统根据当前鱼缸记录生成，AI 只负责解释建议。
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 pb-8">
-            <div className={`rounded-[18px] border p-4 ${levelStyles[advice.level]}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <TagPill tone={levelTone[advice.level]}>{advice.label}</TagPill>
-                  <h3 className="mt-3 text-[18px] font-black leading-snug text-ink">
-                    {task ? task.title : '今天保持常规观察'}
-                  </h3>
-                  <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/65">
-                    {task ? task.reason : '当前没有来自养护记录的必须处理任务。'}
-                  </p>
-                  {task && (
-                    <p className="mt-2 text-[11px] font-bold leading-relaxed text-ink/45">
-                      依据：{task.evidence}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-[14px] border border-ink/8 bg-white px-3 py-2 text-[11px] font-bold text-ink/55">
-                  <div className="text-[10px] font-black text-ink/35">参考鱼缸</div>
-                  <div className="mt-1 font-black text-ink">{advice.referenceTank.name}</div>
-                  <div className="mt-1">{advice.referenceTank.waterType}</div>
-                  <div>{advice.referenceTank.temperature}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              {advice.statusItems.map(item => (
-                <div key={item.title} className="min-w-0 rounded-[14px] bg-white px-3 py-2 shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-black text-ink/45">{item.title}</div>
-                    <TagPill tone={item.tone}>{item.tone === 'normal' ? '已记录' : item.tone === 'danger' || item.tone === 'warning' ? '需处理' : '需确认'}</TagPill>
-                  </div>
-                  <div className="mt-1 text-[12px] font-black leading-snug text-ink [overflow-wrap:anywhere]">{item.value}</div>
-                  {item.note && <div className="mt-1 text-[10px] font-bold leading-snug text-ink/45">{item.note}</div>}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 rounded-[16px] bg-white p-3 shadow-sm">
-              <div className="flex items-center gap-2 text-[12px] font-black text-ink">
-                <ClipboardList className="h-4 w-4 text-emerald-700" />
-                为什么建议今天处理？
-              </div>
-              <div className="mt-3 grid gap-2">
-                {advice.reasoning.map(reason => (
-                  <div key={reason} className="rounded-[12px] bg-bg px-3 py-2 text-[12px] font-bold leading-relaxed text-ink/65">
-                    {reason}
-                  </div>
-                ))}
-              </div>
-              {task && (
-                <div className="mt-3 rounded-[12px] border border-emerald-100 bg-emerald-50/70 p-3">
-                  <div className="text-[11px] font-black text-emerald-700">处理步骤</div>
-                  <ol className="mt-2 grid gap-2">
-                    {task.steps.map((step, index) => (
-                      <li key={step} className="flex gap-2 text-[12px] font-bold leading-relaxed text-ink/70">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[10px] text-white">
-                          {index + 1}
-                        </span>
-                        <span>{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                  <div className="mt-2 rounded-[10px] bg-white px-3 py-2 text-[11px] font-bold text-ink/55">
-                    {task.observationNote}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-[16px] border border-ink/6 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-[12px] font-black text-ink">
-                  <Bot className="h-4 w-4 text-emerald-700" />
-                  AI 简短解读
-                </div>
-                <Button
-                  type="button"
-                  disabled={isAiLoading}
-                  onClick={() => onAskAI('请用三句话解释今天这条建议的依据和下一步。')}
-                  className="h-8 rounded-full bg-emerald-700 px-3 text-[11px] font-black text-white shadow-none hover:bg-emerald-800 disabled:opacity-45"
-                >
-                  {isAiLoading ? <Clock3 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
-                  {isAiLoading ? '生成中' : '解释这条建议'}
-                </Button>
-              </div>
-              <div className="mt-2 text-[10px] font-bold leading-relaxed text-ink/42">
-                系统建议由本地记录生成，AI 只解释原因，不改变处理结论。
-              </div>
-              {(aiAnswer || aiError) && (
-                <div className="mt-2 rounded-[12px] bg-bg px-3 py-2 text-[11px] font-bold leading-relaxed text-ink/62">
-                  <div className={`mb-1 w-fit rounded-full px-2 py-0.5 text-[10px] font-black ${
-                    aiSource === 'model'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {aiSource === 'model' ? '模型回复' : '本地模板'}
-                  </div>
-                  {aiSource === 'fallback' ? 'AI 暂不可用，系统规则仍可使用。' : aiError || aiAnswer}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="grid shrink-0 grid-cols-2 gap-2 border-t border-border bg-white px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-4 sm:space-x-0">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!canCompleteTask}
-              onClick={() => onAction('snooze')}
-              className="h-11 rounded-full border-ink/10 bg-white text-[13px] font-black text-ink/70 disabled:opacity-45"
-            >
-              推迟一天
-            </Button>
-            <Button
-              type="button"
-              disabled={!canCompleteTask}
-              onClick={() => onAction('complete')}
-              className="h-11 rounded-full bg-emerald-700 text-[13px] font-black text-white shadow-none hover:bg-emerald-800 disabled:opacity-45"
-            >
-              标记完成
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {hasPrimaryAction && (
+        <Button
+          type="button"
+          onClick={onPrimaryAction}
+          className="mt-auto h-11 w-full rounded-full bg-emerald-800 px-4 text-[12px] font-black text-white shadow-none hover:bg-emerald-900"
+        >
+          {action.task.primaryLabel}
+        </Button>
+      )}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,7 @@ import {
   saveAppStateToStorage,
   type LocalEventRecord,
 } from '../services/storage/local-app-state';
-import { StatusSummaryCard, type AquariumStatusLevel, type DailyAdviceTask, type DailyAdviceViewModel } from '../components/product/StatusSummaryCard';
+import { StatusSummaryCard, type AquariumStatusLevel, type DailyActionTask, type DailyActionViewModel } from '../components/product/StatusSummaryCard';
 import type { TodayTaskStatus } from '../components/product/TodayTaskCard';
 import { SectionHeader } from '../components/product/SectionHeader';
 import { TagPill } from '../components/product/TagPill';
@@ -643,6 +644,8 @@ const loadWishlistFishIds = () => {
 
 export default function AquariumManager() {
   const { captureContext, navigateToRoute, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
+  const routeLocation = useLocation();
+  const routeNavigate = useNavigate();
   const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -692,7 +695,6 @@ export default function AquariumManager() {
   const [careDiagnosisContext, setCareDiagnosisContext] = useState<CareDiagnosisContext | null>(null);
   const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(tankBuildTemplates[0].id);
   const [isTankArchiveExpanded, setIsTankArchiveExpanded] = useState(false);
-  const [isDeceasedArchiveExpanded, setIsDeceasedArchiveExpanded] = useState(false);
   const [tankArchiveCategory, setTankArchiveCategory] = useState('全部');
   const [isTankContentFilterOpen, setIsTankContentFilterOpen] = useState(false);
   const [draftTankArchiveCategory, setDraftTankArchiveCategory] = useState('全部');
@@ -702,6 +704,7 @@ export default function AquariumManager() {
   const [isScapeListExpanded, setIsScapeListExpanded] = useState(false);
   const settingsBodyRef = useRef<HTMLDivElement | null>(null);
   const settingPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const handledAddSpeciesRequestRef = useRef('');
   
   // 3D Highlight state
   const [active3DSpecies, setActive3DSpecies] = useState<string | null>(null);
@@ -759,7 +762,7 @@ export default function AquariumManager() {
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
   const [fedToday, setFedToday] = useState(false);
   const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, string>>({});
-  const [isDailyAdviceDetailsOpen, setIsDailyAdviceDetailsOpen] = useState(false);
+  const [isDailyActionWhyOpen, setIsDailyActionWhyOpen] = useState(false);
   const [dailyAdviceAiAnswer, setDailyAdviceAiAnswer] = useState('');
   const [dailyAdviceAiError, setDailyAdviceAiError] = useState('');
   const [dailyAdviceAiSource, setDailyAdviceAiSource] = useState<AiResponseSource | null>(null);
@@ -1001,6 +1004,33 @@ export default function AquariumManager() {
   };
 
   const activeAquarium = aquariums.find(a => a.id === activeId);
+
+  useEffect(() => {
+    const params = new URLSearchParams(routeLocation.search);
+    if (params.get('action') !== 'add-species') {
+      handledAddSpeciesRequestRef.current = '';
+      return;
+    }
+    if (!activeAquarium) return;
+    const speciesId = params.get('species') || '';
+    const requestKey = `${activeAquarium.id}:${speciesId}`;
+    if (handledAddSpeciesRequestRef.current === requestKey) return;
+    handledAddSpeciesRequestRef.current = requestKey;
+    const fish = fishData.find(item => item.id === speciesId);
+    if (!fish) {
+      showToast('没有找到这条生命纪念对应的物种', 'error');
+      routeNavigate('/aquarium', { replace: true });
+      return;
+    }
+    setAddFishSuccess(null);
+    setAddFishDatePicker(null);
+    setAddFishCompatibilityReview(null);
+    setFishSearchTerm('');
+    setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
+    setIsAddFishOpen(true);
+    showToast(`已预选“${fish.name}”，加入前会再次检查混养风险`);
+    routeNavigate('/aquarium', { replace: true });
+  }, [activeAquarium, routeLocation.search, routeNavigate, showToast]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !activeAquarium) return;
@@ -1398,44 +1428,34 @@ export default function AquariumManager() {
     setTankActionMessage(hasTodayRecord ? '已撤回今日换水记录' : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
   };
 
-  const handleDailyAdviceAction = (action: 'start' | 'complete' | 'snooze' | 'toggle_steps') => {
-    const task = dailyAdviceViewModel.task;
-
-    if (action === 'toggle_steps') {
-      setIsDailyAdviceDetailsOpen(prev => !prev);
-      return;
-    }
-
-    if (action === 'start') {
-      if (task?.type === 'water_change') {
-        handleTankWaterChange();
-        return;
-      }
-      setIsDailyAdviceDetailsOpen(true);
-      setTankActionMessage(task ? '已展开今日建议步骤，请按步骤处理。' : '今天没有必须处理的任务，保持常规观察即可。');
-      return;
-    }
-
-    if (action === 'complete') {
-      if (!task) return;
-      if (task.type === 'water_change') {
-        handleTankWaterChange();
+  const handleDailyActionPrimary = () => {
+    const task = dailyActionViewModel.task;
+    if (task.actionType === 'urgent_recovery') {
+      if (todayDailyCheckRecord) {
+        setSelectedDiagnosisRecord(todayDailyCheckRecord);
+        setDiagnosisMode('history');
+        setIsDiagnosisOpen(true);
       } else {
-        setTankActionMessage('已记录本次处理。');
+        handleOpenDailyCheck();
       }
       return;
     }
-
-    if (action === 'snooze') {
-      if (!task) return;
-      const overdueDays = Number(task.trigger.value?.overdueDays || 0);
-      const confirmMessage = overdueDays > 0
-        ? `换水计划已经逾期 ${overdueDays} 天，仍要推迟到明天吗？`
-        : '确认把这项建议推迟到明天吗？';
-      if (window.confirm(confirmMessage)) {
-        setTankActionMessage('已记录：明天再次提醒。换水周期未改变。');
-      }
+    if (task.actionType === 'compatibility_review') {
+      setIsConflictDialogOpen(true);
       return;
+    }
+    if (task.actionType === 'care_plan') {
+      const reminder = activeCareReminders.find(item => item.id === task.targetId);
+      if (reminder) handleCompleteReminder(reminder);
+      else showToast('这条养护计划已经更新，请查看最新任务。', 'error');
+      return;
+    }
+    if (task.actionType === 'water_change') {
+      handleTankWaterChange();
+      return;
+    }
+    if (task.actionType === 'daily_check') {
+      handleOpenDailyCheck();
     }
   };
 
@@ -1452,17 +1472,17 @@ export default function AquariumManager() {
         temperature: activeAquarium.targetTemperature,
         speciesCount: activeAquarium.fishes.reduce((sum, fish) => sum + Math.max(1, fish.quantity || 1), 0),
       } : null,
-      currentTask: dailyAdviceViewModel.task ? {
-        id: dailyAdviceViewModel.task.id,
-        type: dailyAdviceViewModel.task.type,
-        title: dailyAdviceViewModel.task.title,
-        priority: dailyAdviceViewModel.task.priority,
-        trigger: dailyAdviceViewModel.task.trigger,
-      } : null,
-      status: dailyAdviceViewModel.status,
+      currentTask: {
+        id: dailyActionViewModel.task.id,
+        type: dailyActionViewModel.task.actionType,
+        title: dailyActionViewModel.task.title,
+        priority: dailyActionViewModel.task.priority,
+        trigger: dailyActionViewModel.task.trigger,
+      },
+      status: dailyActionViewModel.status,
       dataFreshness: {
         latestWaterChangeDate,
-        missingData: dailyAdviceViewModel.status.missingData,
+        missingData: dailyActionViewModel.status.missingData,
       },
     };
 
@@ -1474,7 +1494,7 @@ export default function AquariumManager() {
     try {
       const text = await askAquaGuideAI({
         system: [
-          '你是 AquaGuide 今日建议解释助手。',
+          '你是 AquaGuide 今日行动解释助手。',
           '只能解释输入中的事实、缺失信息、建议步骤和还需要补充的信息。',
           '不能编造未记录的异常，不能把“暂无记录”说成“没有风险”。',
           '回答要短，最多 4 句。',
@@ -2753,14 +2773,6 @@ export default function AquariumManager() {
       return [...prev, { fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }];
     });
   };
-  const handleReAddDeceasedFish = (fish: Fish) => {
-    setAddFishSuccess(null);
-    setAddFishDatePicker(null);
-    setAddFishCompatibilityReview(null);
-    setFishSearchTerm('');
-    setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
-    setIsAddFishOpen(true);
-  };
   const addFishIntro = activeAquarium.fishes.length === 0
     ? '当前为空缸，建议先选择新手友好、适合建立生态的起步生物。'
     : '根据当前鱼缸状态，优先推荐新手友好、适合后续搭配的生物。';
@@ -3335,14 +3347,6 @@ export default function AquariumManager() {
     底砂: '暂无底砂配置。',
     造景: '暂无造景配置。',
   };
-  const deceasedArchiveItems = deceasedRecords
-    .map(record => {
-      const fish = fishData.find(item => item.id === record.fishId);
-      return fish ? { record, fish } : null;
-    })
-    .filter((item): item is { record: DeceasedRecord; fish: Fish } => Boolean(item))
-    .sort((a, b) => new Date(b.record.date).getTime() - new Date(a.record.date).getTime());
-
   // Water change calculation
   const shortestCycle = currentFishesDetails.length > 0 ? Math.min(...currentFishesDetails.map(f => f.waterChangeCycle)) : 7;
   const lastChangeDate = new Date(activeAquarium.lastWaterChangeDate || new Date());
@@ -3443,104 +3447,128 @@ export default function AquariumManager() {
     ...(!activeAquarium.targetTemperature ? ['当前水温'] : []),
   ];
   const knownRiskLevel = conflicts.length >= 3 ? 'high' : conflicts.length > 0 ? 'medium' : 'none_recorded';
-  const dailyAdviceTask: DailyAdviceTask | null = waterChangedToday
-    ? null
-    : isChangeOverdue || daysUntilChange <= 1
-      ? {
-        id: `water-change-${activeAquarium.id}`,
-        type: 'water_change',
-        title: '今天优先完成本次换水',
-        priority: isChangeOverdue ? 'high' : 'medium',
-        reason: isChangeOverdue
-          ? `换水计划已逾期 ${waterChangeOverdueDays} 天。`
-          : '换水计划今天需要处理。',
-        evidence: latestWaterChangeDate
-          ? '上次换水记录与设定的换水周期'
-          : '缺少上次换水记录，建议先补充或完成一次换水记录',
-        trigger: {
-          type: isChangeOverdue ? 'maintenance_overdue' : 'maintenance_due',
-          source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule',
-          value: {
-            overdueDays: waterChangeOverdueDays,
-            latestWaterChangeDate: latestWaterChangeDate || '',
-            shortestCycle,
-          },
-        },
-        steps: [
-          '准备经过处理且温度接近的水。',
-          '按当前稳定方案完成换水。',
-          '记录本次换水日期。',
-          '换水后观察鱼群是否出现明显异常。',
-        ],
-        observationNote: '换水后进行常规状态观察；只有用户记录了异常时，系统才会显示当前异常。',
-      }
-      : null;
-  const dailyAdviceLevel: AquariumStatusLevel = knownRiskLevel === 'high'
+  const todayDailyCheckRecord = findDailyPatrolRecord(diagnosisRecords, activeAquarium.id);
+  const unresolvedPatrol = todayDailyCheckRecord && ['high', 'medium', 'unknown'].includes(todayDailyCheckRecord.riskCode || 'unknown')
+    ? todayDailyCheckRecord
+    : null;
+  const blockingCompatibilityRisk = tankRiskItems.find(item => item.severity === 'danger');
+  const overdueCareReminder = activeCareReminders.find(reminder => getCareReminderStatus(reminder) === 'overdue');
+  const todayCareReminder = activeCareReminders.find(reminder => getCareReminderStatus(reminder) === 'today');
+
+  let dailyActionTask: DailyActionTask;
+  if (unresolvedPatrol) {
+    dailyActionTask = {
+      id: unresolvedPatrol.diagnosisId,
+      actionType: 'urgent_recovery',
+      title: '继续处理今天发现的异常',
+      priority: 'high',
+      reason: unresolvedPatrol.resultSummary || '今天的巡检仍有需要继续观察或处理的异常。',
+      evidence: '来自今天保存的每日鱼缸检查',
+      primaryLabel: '继续处理异常',
+      targetId: unresolvedPatrol.diagnosisId,
+      trigger: { type: 'user_reported_abnormality', source: 'user_observation' },
+    };
+  } else if (blockingCompatibilityRisk) {
+    dailyActionTask = {
+      id: `compatibility-${activeAquarium.id}`,
+      actionType: 'compatibility_review',
+      title: '先处理缸内混养风险',
+      priority: 'high',
+      reason: blockingCompatibilityRisk.title,
+      evidence: blockingCompatibilityRisk.detail,
+      primaryLabel: '查看混养风险',
+      trigger: { type: 'new_species_added', source: 'aquarium_stock' },
+    };
+  } else if (overdueCareReminder) {
+    dailyActionTask = {
+      id: overdueCareReminder.id,
+      actionType: 'care_plan',
+      title: overdueCareReminder.title,
+      priority: 'high',
+      reason: '这项养护计划已经逾期，今天先完成并记录结果。',
+      evidence: `计划日期：${format(new Date(overdueCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
+      primaryLabel: '完成养护计划',
+      targetId: overdueCareReminder.id,
+      trigger: { type: 'maintenance_overdue', source: 'maintenance_schedule' },
+    };
+  } else if (!waterChangedToday && isChangeOverdue) {
+    dailyActionTask = {
+      id: `water-change-${activeAquarium.id}`,
+      actionType: 'water_change',
+      title: '记录本次换水',
+      priority: 'high',
+      reason: `换水计划已逾期 ${waterChangeOverdueDays} 天。`,
+      evidence: latestWaterChangeDate ? `上次换水：${latestWaterChangeDate}` : '还没有可用的上次换水记录',
+      primaryLabel: '记录本次换水',
+      trigger: { type: 'maintenance_overdue', source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule' },
+    };
+  } else if (todayCareReminder) {
+    dailyActionTask = {
+      id: todayCareReminder.id,
+      actionType: 'care_plan',
+      title: todayCareReminder.title,
+      priority: 'medium',
+      reason: '这项养护计划今天到期。',
+      evidence: `计划日期：${format(new Date(todayCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
+      primaryLabel: '完成养护计划',
+      targetId: todayCareReminder.id,
+      trigger: { type: 'maintenance_due', source: 'maintenance_schedule' },
+    };
+  } else if (!waterChangedToday && daysUntilChange <= 1) {
+    dailyActionTask = {
+      id: `water-change-${activeAquarium.id}`,
+      actionType: 'water_change',
+      title: '记录本次换水',
+      priority: 'medium',
+      reason: '换水计划今天需要处理。',
+      evidence: latestWaterChangeDate ? `上次换水：${latestWaterChangeDate}` : '还没有可用的上次换水记录',
+      primaryLabel: '记录本次换水',
+      trigger: { type: 'maintenance_due', source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule' },
+    };
+  } else if (!todayDailyCheckRecord) {
+    dailyActionTask = {
+      id: `daily-check-${activeAquarium.id}`,
+      actionType: 'daily_check',
+      title: '完成今天的鱼缸检查',
+      priority: 'normal',
+      reason: '今天还没有记录鱼群、水面和气味是否正常。',
+      evidence: '当前鱼缸今天没有巡检记录',
+      primaryLabel: '开始今日检查',
+      trigger: { type: 'scheduled_task', source: 'user_observation' },
+    };
+  } else {
+    dailyActionTask = {
+      id: `routine-${activeAquarium.id}`,
+      actionType: 'routine',
+      title: '今天没有必须处理',
+      priority: 'normal',
+      reason: '今日检查已完成，当前没有到期计划或阻断级风险。',
+      evidence: '基于今天的巡检、养护计划和混养规则记录',
+      trigger: { type: 'scheduled_task', source: 'aquarium_stock' },
+    };
+  }
+
+  const dailyActionLevel: AquariumStatusLevel = ['urgent_recovery', 'compatibility_review'].includes(dailyActionTask.actionType)
     ? 'urgent'
-    : dailyAdviceTask
+    : dailyActionTask.priority === 'high' || dailyActionTask.priority === 'medium'
       ? 'needs_attention'
-      : dailyAdviceMissingData.length >= 2 && !hasStockedAnimals
-        ? 'insufficient_data'
-        : 'normal';
-  const dailyAdviceViewModel: DailyAdviceViewModel = {
-    level: dailyAdviceLevel,
-    label: dailyAdviceLevel === 'urgent'
-      ? '需要立即处理'
-      : dailyAdviceLevel === 'needs_attention'
-        ? '需要处理'
-        : dailyAdviceLevel === 'insufficient_data'
-          ? '信息不足'
-          : '状态稳定',
-    sourceLabel: dailyAdviceTask?.trigger.source === 'water_change_record' ? '基于养护记录' : '基于鱼缸记录',
-    referenceTank: {
-      name: activeAquarium.name,
-      waterType: activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水',
-      temperature: activeAquarium.targetTemperature ? `${activeAquarium.targetTemperature}°C` : '未设置水温',
-    },
+      : 'normal';
+  const dailyActionViewModel: DailyActionViewModel = {
+    level: dailyActionLevel,
+    label: dailyActionLevel === 'urgent' ? '优先处理' : dailyActionLevel === 'needs_attention' ? '今天完成' : dailyActionTask.actionType === 'routine' ? '已完成' : '今日待办',
+    sourceLabel: dailyActionTask.actionType === 'care_plan' || dailyActionTask.actionType === 'water_change' ? '基于养护记录' : dailyActionTask.actionType === 'urgent_recovery' || dailyActionTask.actionType === 'daily_check' ? '基于巡检记录' : '基于鱼缸规则',
     status: {
-      pendingTaskCount: dailyAdviceTask ? 1 : 0,
+      pendingTaskCount: dailyActionTask.actionType === 'routine' ? 0 : 1,
       maintenanceStatus: waterChangedToday ? 'normal' : isChangeOverdue ? 'overdue' : daysUntilChange <= 1 ? 'due' : 'normal',
       knownRiskLevel,
       dataStatus: dailyAdviceMissingData.length === 0 ? 'sufficient' : dailyAdviceMissingData.length >= 2 ? 'insufficient' : 'partial',
       missingData: dailyAdviceMissingData,
     },
-    task: dailyAdviceTask,
-    statusItems: [
-      {
-        title: '维护状态',
-        value: waterChangedToday
-          ? '今日已记录换水'
-          : isChangeOverdue
-            ? `换水逾期 ${waterChangeOverdueDays} 天`
-            : daysUntilChange <= 1
-              ? '换水计划到期'
-              : `下次换水约 ${nextSuggestedWaterChangeDate}`,
-        tone: waterChangedToday || (!isChangeOverdue && daysUntilChange > 1) ? 'normal' : 'warning',
-        note: latestWaterChangeDate ? `上次记录：${latestWaterChangeDate}` : '暂无上次换水记录',
-      },
-      {
-        title: '已知异常',
-        value: conflicts.length > 0 ? `已记录 ${conflicts.length} 条混养提醒` : '暂无已记录的紧急异常',
-        tone: conflicts.length > 0 ? 'danger' : 'normal',
-        note: conflicts.length > 0 ? '来自混养规则结果' : '不等于没有风险，仅表示没有异常记录',
-      },
-      {
-        title: '数据状态',
-        value: dailyAdviceMissingData.length > 0 ? `缺少${dailyAdviceMissingData.join('、')}` : '关键数据已记录',
-        tone: dailyAdviceMissingData.length > 0 ? 'warning' : 'normal',
-        note: dailyAdviceMissingData.length > 0 ? '暂无近期数据时不判断水质正常' : '可继续按记录维护',
-      },
-    ],
+    task: dailyActionTask,
     reasoning: [
-      dailyAdviceTask
-        ? dailyAdviceTask.evidence
-        : '今天没有来自养护记录的必须处理任务。',
-      conflicts.length > 0
-        ? `当前已有 ${conflicts.length} 条混养提醒，需单独查看混养依据。`
-        : '暂无已记录的紧急异常；系统不会把未记录当作“无风险”。',
-      dailyAdviceMissingData.length > 0
-        ? `仍缺少：${dailyAdviceMissingData.join('、')}。`
-        : '关键维护数据已有记录。',
+      dailyActionTask.evidence,
+      conflicts.length > 0 ? `当前记录了 ${conflicts.length} 条混养提醒。` : '当前没有阻断级混养记录。',
+      dailyAdviceMissingData.length > 0 ? `尚缺：${dailyAdviceMissingData.join('、')}。` : '关键维护信息已有记录。',
     ],
   };
   const localTemperatureHint = weatherStatus === 'ready' && localWeather?.temperatureC !== undefined
@@ -3592,7 +3620,6 @@ export default function AquariumManager() {
     : todayTaskCount > 0
       ? `今天有 ${todayTaskCount} 项建议处理。`
       : '今天暂无紧急任务，可以正常观察。';
-  const todayDailyCheckRecord = findDailyPatrolRecord(diagnosisRecords, activeAquarium.id);
   const dailyCheckStatus = !todayDailyCheckRecord
     ? '今日未检查'
     : todayDailyCheckRecord.riskCode === 'high' || todayDailyCheckRecord.riskCode === 'medium' || todayDailyCheckRecord.riskCode === 'unknown'
@@ -3793,7 +3820,7 @@ export default function AquariumManager() {
           </div>
           <button
             type="button"
-            onClick={() => navigateToRoute('/collection?tab=wishlist')}
+            onClick={() => navigateToRoute('/collection/wishlist')}
             className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-rose-500 transition-colors hover:bg-white"
           >
             <span className="flex items-center justify-between gap-2">
@@ -3969,7 +3996,7 @@ export default function AquariumManager() {
           <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() => navigateToRoute('/collection?tab=wishlist')}
+              onClick={() => navigateToRoute('/collection/wishlist')}
               className="flex h-8 items-center gap-1 rounded-full border border-rose-100 bg-white px-2.5 text-[11px] font-black text-rose-500 shadow-sm"
               title="查看水族册种草"
             >
@@ -3994,14 +4021,20 @@ export default function AquariumManager() {
 
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
-          advice={dailyAdviceViewModel}
-          showDetails={isDailyAdviceDetailsOpen}
+          action={dailyActionViewModel}
+          showWhy={isDailyActionWhyOpen}
           aiAnswer={dailyAdviceAiAnswer}
           aiError={dailyAdviceAiError}
           aiSource={dailyAdviceAiSource}
           isAiLoading={isDailyAdviceAiLoading}
           onAskAI={handleAskDailyAdviceAI}
-          onAction={handleDailyAdviceAction}
+          onPrimaryAction={handleDailyActionPrimary}
+          onToggleWhy={() => {
+            setIsDailyActionWhyOpen(open => !open);
+            setDailyAdviceAiAnswer('');
+            setDailyAdviceAiError('');
+            setDailyAdviceAiSource(null);
+          }}
         />
       </div>
 
@@ -4428,50 +4461,6 @@ export default function AquariumManager() {
           </>
         )}
       </section>
-
-      {deceasedArchiveItems.length > 0 && (
-        <section className="order-[8] overflow-hidden rounded-[18px] border border-white/80 bg-white/70 p-3 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setIsDeceasedArchiveExpanded(prev => !prev)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-          >
-            <div>
-              <div className="flex items-center gap-2 text-[14px] font-black text-ink">
-                <Skull className="h-4 w-4 text-ink/45" />
-                死亡图鉴
-              </div>
-              <div className="mt-0.5 text-[10px] font-bold text-ink/45">已记录 {deceasedArchiveItems.length} 次死亡，用于回看和复盘。</div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">{deceasedArchiveItems.length}</span>
-              <ChevronRight className={`h-4 w-4 text-ink/45 transition-transform ${isDeceasedArchiveExpanded ? 'rotate-90' : ''}`} />
-            </div>
-          </button>
-          {isDeceasedArchiveExpanded && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {deceasedArchiveItems.slice(0, 12).map(({ record, fish }) => (
-                <div key={record.id} className="min-w-0 rounded-[16px] bg-bg p-2">
-                  <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-[14px] opacity-70 grayscale ${getSpeciesImageSurfaceClass(fish)}`}>
-                    <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
-                    <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/75 px-1.5 py-0.5 text-[9px] font-black text-white">死亡</span>
-                  </div>
-                  <div className="mt-2 truncate text-[12px] font-black text-ink">{fish.name}</div>
-                  <div className="mt-0.5 truncate text-[9px] font-bold text-ink/42">{fish.category}</div>
-                  <div className="mt-1 text-[9px] font-bold text-ink/38">{format(new Date(record.date), 'yyyy/MM/dd')}</div>
-                  <button
-                    type="button"
-                    onClick={() => handleReAddDeceasedFish(fish)}
-                    className="mt-2 h-7 w-full rounded-full bg-white text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition-colors hover:bg-emerald-50 md:w-auto md:max-w-[200px]"
-                  >
-                    再次加入
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       <Dialog open={Boolean(pendingReminderReschedule)} onOpenChange={(open) => !open && setPendingReminderReschedule(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-border bg-white p-5">

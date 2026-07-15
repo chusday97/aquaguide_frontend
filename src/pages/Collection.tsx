@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   BookHeart,
   BookOpenCheck,
@@ -24,7 +24,7 @@ import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigation
 import { careTopicsData, type CareTopic } from '../data/careTopicsData';
 import { fishData } from '../data/fishData';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
-import type { AchievementId, CollectionTab, MemorialItem } from '../modules/collection/collection.types';
+import type { AchievementId, CollectionModule, MemorialItem } from '../modules/collection/collection.types';
 import { getCollectionSnapshot, subscribeToCollection } from '../services/collection/collection.service';
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { getCareFavorites, getSpeciesFavoriteIds, setSpeciesFavoriteIds, toggleCareFavorite } from '../services/favorites/favorites.service';
@@ -36,7 +36,7 @@ import { CareArticleDetail } from './CareEncyclopedia';
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const PAGE_SIZE = 20;
 
-const tabConfig: Array<{ id: CollectionTab; label: string; shortLabel: string; icon: typeof Heart }> = [
+const tabConfig: Array<{ id: CollectionModule; label: string; shortLabel: string; icon: typeof Heart }> = [
   { id: 'wishlist', label: '种草图鉴', shortLabel: '种草', icon: Heart },
   { id: 'care', label: '养护收藏', shortLabel: '养护', icon: BookOpenCheck },
   { id: 'memorial', label: '生命纪念', shortLabel: '纪念', icon: Skull },
@@ -54,21 +54,16 @@ const achievementIcons: Record<AchievementId, typeof Medal> = {
   life_reflection: Medal,
 };
 
-const normalizeTab = (value: string | null): CollectionTab => (
-  tabConfig.some(item => item.id === value) ? value as CollectionTab : 'wishlist'
-);
-
 const formatMemorialDate = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('zh-CN');
 };
 
-export default function Collection() {
+export default function Collection({ module }: { module: CollectionModule }) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { captureContext, restoreContext } = useWorkspaceNavigation();
-  const activeTab = normalizeTab(searchParams.get('tab'));
+  const activeTab = module;
   const [snapshot, setSnapshot] = useState(() => getCollectionSnapshot());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
@@ -110,7 +105,6 @@ export default function Collection() {
   ), [snapshot.appState]);
   const ownedIds = useMemo(() => new Set(snapshot.appState.aquariums.flatMap(item => item.fishes.map(record => record.fishId))), [snapshot.appState.aquariums]);
 
-  const switchTab = (tab: CollectionTab) => setSearchParams({ tab });
   const openFromCard = (sourceId: string) => {
     returnContextRef.current = captureContext(sourceId);
     detailFinalFocusRef.current = document.getElementById(sourceId);
@@ -183,42 +177,17 @@ export default function Collection() {
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-black text-emerald-800 shadow-sm">
               <BookHeart className="h-3.5 w-3.5" /> 自然水族册
             </div>
-            <h1 className="text-[24px] font-black tracking-tight text-ink">我的水族册</h1>
-            <p className="mt-1 text-[12px] font-bold text-ink/45">种草 · 养护 · 纪念 · 勋章</p>
-            <p className="mt-1 text-[12px] font-bold text-ink/48">把想养的、学会的和认真守护过的，都放在这里。</p>
+            <h1 className="text-[24px] font-black tracking-tight text-ink">{tabConfig.find(item => item.id === activeTab)?.label}</h1>
+            <button type="button" onClick={() => navigate('/collection')} className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 hover:underline">
+              返回水族册首页
+            </button>
           </div>
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-emerald-800 text-white shadow-[0_14px_30px_rgba(6,78,59,0.2)]">
             <BookHeart className="h-6 w-6" />
           </div>
         </div>
-        <div className="collection-summary-grid mt-5 grid gap-2" aria-label="水族册数量摘要">
-          {tabConfig.map(item => (
-            <div key={item.id} className="rounded-[16px] bg-white/75 px-2 py-2.5 text-center shadow-sm">
-              <div className="text-[16px] font-black text-ink">{snapshot.counts[item.id]}</div>
-              <div className="mt-0.5 truncate text-[9px] font-black text-ink/38">{item.label}</div>
-            </div>
-          ))}
-        </div>
+        <div className="mt-5 inline-flex rounded-full bg-white/75 px-3 py-1.5 text-[11px] font-black text-ink/55 shadow-sm">共 {snapshot.counts[activeTab]} 项</div>
       </header>
-
-      <nav className="collection-tab-grid sticky top-0 z-20 grid gap-1 rounded-[18px] border border-white/80 bg-white/92 p-1.5 shadow-sm backdrop-blur" aria-label="水族册分类">
-        {tabConfig.map(item => {
-          const Icon = item.icon;
-          const active = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={active ? 'page' : undefined}
-              onClick={() => switchTab(item.id)}
-              className={`flex min-w-0 items-center justify-center gap-1 rounded-[13px] px-1 py-2.5 text-[10px] font-black transition-colors duration-200 ${active ? 'bg-emerald-700 text-white shadow-sm' : 'text-ink/48 hover:bg-emerald-50 hover:text-emerald-800'}`}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{item.shortLabel}</span>
-            </button>
-          );
-        })}
-      </nav>
 
       {activeTab === 'wishlist' && (wishlistFishes.length ? (
         <section className="collection-wishlist-grid grid gap-3">
@@ -407,6 +376,15 @@ export default function Collection() {
                     <div className="text-[11px] font-black text-ink/40">复盘记录</div>
                     <p className="mt-2 text-[14px] font-bold leading-6 text-ink/68">{selectedMemorial.reason || '这条记录还没有填写原因。后续新增生命纪念时，可以补充观察到的情况，帮助回顾养护过程。'}</p>
                   </section>
+                  {fish && (
+                    <Button
+                      type="button"
+                      onClick={() => navigate(`/aquarium?action=add-species&species=${encodeURIComponent(fish.id)}`)}
+                      className="mt-4 h-11 w-full rounded-full bg-emerald-800 text-[12px] font-black text-white hover:bg-emerald-900"
+                    >
+                      再次加入
+                    </Button>
+                  )}
                 </div>
               </div>
             );

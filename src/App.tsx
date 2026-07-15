@@ -9,21 +9,25 @@ import { cn } from '@/lib/utils';
 import {
   Activity,
   BookHeart,
+  BookOpenCheck,
   BookOpen,
   ChevronLeft,
   Database,
   Droplets,
   Library,
+  Medal,
+  Heart,
+  Skull,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
-import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
 const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
 const Collection = lazy(() => import('./pages/Collection'));
+const CollectionHub = lazy(() => import('./pages/CollectionHub'));
 const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
 const Login = lazy(() => import('./pages/Login'));
 const ThreeDemo = lazy(() => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo })));
@@ -137,19 +141,30 @@ const navItems = [
   { path: '/aquarium', label: '我的鱼缸', description: '管理设备与缸内状态', icon: Droplets },
   { path: '/encyclopedia', label: '图鉴', description: '查找生物与混养计算', icon: BookOpen },
   { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
+  { path: '/collection', label: '我的水族册', description: '种草、养护、纪念与勋章', icon: BookHeart },
 ];
 
-const mobileNavItems = [
-  ...navItems,
-  { path: '/collection', label: '水族册', description: '收藏、纪念与勋章', icon: BookHeart },
-];
+const mobileNavItems = navItems.map(item => item.path === '/collection' ? { ...item, label: '水族册' } : item);
 
-const desktopSubMenus = {
+const desktopSubMenus: Record<string, Array<{
+  id: string;
+  label: string;
+  description: string;
+  icon: typeof BookOpen;
+  hash?: string;
+  path?: string;
+}>> = {
   '/encyclopedia': [
     { id: 'browse', label: '浏览图鉴', description: '查找生物和分类', icon: BookOpen, hash: '#browse' },
     { id: 'compatibility', label: '混养计算', description: '选择生物看风险', icon: Activity, hash: '#compatibility' },
   ],
-} as const;
+  '/collection': [
+    { id: 'wishlist', label: '种草图鉴', description: '想进一步了解的生物', icon: Heart, path: '/collection/wishlist' },
+    { id: 'care', label: '养护收藏', description: '收藏的处理步骤', icon: BookOpenCheck, path: '/collection/care' },
+    { id: 'memorial', label: '生命纪念', description: '离缸记录与复盘', icon: Skull, path: '/collection/memorial' },
+    { id: 'achievements', label: '成就勋章', description: '自动解锁与下一步', icon: Medal, path: '/collection/achievements' },
+  ],
+};
 
 function BottomNavigation() {
   const location = useLocation();
@@ -161,7 +176,9 @@ function BottomNavigation() {
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
         <div className="grid grid-cols-4 gap-1">
           {mobileNavItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = item.path === '/collection'
+              ? location.pathname.startsWith('/collection')
+              : location.pathname === item.path;
             const Icon = item.icon;
             return (
               <button
@@ -195,51 +212,18 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
     ? '/collection'
     : location.pathname === '/care-favorites'
       ? '/collection'
-      : location.pathname === '/collection'
+      : location.pathname.startsWith('/collection')
         ? '/collection'
       : navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
-  const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
-  const activeMenu = useMemo(() => {
-    if (activePath === '/encyclopedia') return [...desktopSubMenus['/encyclopedia']];
-    return [];
-  }, [activePath]);
-
-  const fixedUtilityItems = useMemo(() => [
-    {
-      id: 'collection',
-      label: '我的水族册',
-      description: favoriteCounts.species + favoriteCounts.care > 0
-        ? `种草 ${favoriteCounts.species} · 养护 ${favoriteCounts.care}`
-        : '收藏、纪念与勋章',
-      icon: BookHeart,
-      path: '/collection',
-      count: favoriteCounts.species + favoriteCounts.care,
-    },
-  ], [favoriteCounts]);
-
-  useEffect(() => {
-    const refreshCounts = () => {
-      setFavoriteCounts(getFavoriteCounts());
-    };
-    refreshCounts();
-    window.addEventListener('focus', refreshCounts);
-    const unsubscribe = subscribeToFavorites(refreshCounts);
-    return () => {
-      window.removeEventListener('focus', refreshCounts);
-      unsubscribe();
-    };
-  }, []);
+  const activeMenu = desktopSubMenus[activePath] || [];
 
   const handlePrimaryNav = (path: string) => {
     navigateToRoute(path);
   };
 
-  const handleSubNav = (hash: string) => {
-    navigateToView(activePath, hash);
-  };
-
-  const handleUtilityNav = (path: string) => {
-    navigateToRoute(path);
+  const handleSubNav = (item: (typeof activeMenu)[number]) => {
+    if (item.path) navigateToRoute(item.path);
+    else if (item.hash) navigateToView(activePath, item.hash);
   };
 
   return (
@@ -312,13 +296,13 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
             <div className="grid gap-1.5">
               {activeMenu.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.hash === item.hash;
+                const isActive = item.path ? location.pathname === item.path : location.hash === item.hash;
                 return (
                   <button
                     key={item.id}
                     type="button"
                     title={collapsed ? item.label : undefined}
-                    onClick={() => handleSubNav(item.hash)}
+                    onClick={() => handleSubNav(item)}
                     className={cn(
                       'flex min-h-[50px] items-center gap-3 rounded-[16px] px-3 text-left transition-colors',
                       collapsed && 'justify-center px-2',
@@ -344,63 +328,11 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
 
         {!collapsed && (
           <div className="shrink-0 border-t border-ink/6 px-5 py-4">
-            <div className="mb-3 grid gap-2">
-              {fixedUtilityItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleUtilityNav(item.path)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left shadow-sm transition-colors',
-                      isActive
-                        ? 'bg-white text-accent ring-1 ring-emerald-100'
-                        : 'bg-white/75 text-ink/55 hover:bg-white hover:text-accent'
-                    )}
-                  >
-                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px]', isActive ? 'bg-emerald-50 text-accent' : 'bg-white text-ink/48')}>
-                      <Icon className="h-4.5 w-4.5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
-                      <span className="mt-0.5 block truncate text-[10px] font-bold leading-tight text-ink/42">{item.description}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
             <div className="flex items-start gap-2 rounded-[18px] bg-white/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-ink/45 shadow-sm">
               <Database className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
               数据保存在当前浏览器，切换设备前请先同步或导出。
             </div>
             <div className="mt-3 text-[10px] font-black text-ink/28">AquaGuide v1.0</div>
-          </div>
-        )}
-        {collapsed && (
-          <div className="grid shrink-0 gap-2 border-t border-ink/6 px-3 py-4">
-            {fixedUtilityItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  title={item.label}
-                  onClick={() => handleUtilityNav(item.path)}
-                  className={cn(
-                    'relative flex h-11 w-full items-center justify-center rounded-[16px] shadow-sm transition-colors',
-                    isActive ? 'bg-white text-accent ring-1 ring-emerald-100' : 'bg-white/75 text-ink/50 hover:bg-white hover:text-accent'
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.count > 0 && (
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
-                  )}
-                </button>
-              );
-            })}
           </div>
         )}
       </div>
@@ -539,6 +471,19 @@ function AppShell() {
   );
 }
 
+function CollectionEntry() {
+  const location = useLocation();
+  const tab = new URLSearchParams(location.search).get('tab');
+  const routeByTab: Record<string, string> = {
+    wishlist: '/collection/wishlist',
+    care: '/collection/care',
+    memorial: '/collection/memorial',
+    achievements: '/collection/achievements',
+  };
+  if (tab && routeByTab[tab]) return <Navigate to={routeByTab[tab]} replace />;
+  return <CollectionHub />;
+}
+
 function WorkspaceRoutes() {
   return (
     <Suspense fallback={<PageLoading />}>
@@ -547,9 +492,13 @@ function WorkspaceRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
         <Route path="/care" element={<CareEncyclopedia />} />
-        <Route path="/collection" element={<Collection />} />
-        <Route path="/wishlist" element={<Navigate to="/collection?tab=wishlist" replace />} />
-        <Route path="/care-favorites" element={<Navigate to="/collection?tab=care" replace />} />
+        <Route path="/collection" element={<CollectionEntry />} />
+        <Route path="/collection/wishlist" element={<Collection module="wishlist" />} />
+        <Route path="/collection/care" element={<Collection module="care" />} />
+        <Route path="/collection/memorial" element={<Collection module="memorial" />} />
+        <Route path="/collection/achievements" element={<Collection module="achievements" />} />
+        <Route path="/wishlist" element={<Navigate to="/collection/wishlist" replace />} />
+        <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
         <Route path="/aquarium" element={<AquariumManager />} />
         <Route path="/3d-demo" element={<ThreeDemo />} />
       </Routes>
