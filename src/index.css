@@ -44,6 +44,16 @@ body,
   display: none;
 }
 
+@media (min-width: 768px) {
+  .wishlist-feedback-toast {
+    right: 12px !important;
+    left: auto !important;
+    width: min(calc(100vw - var(--desktop-sidebar-width, 280px) - 48px), 520px);
+    margin: 0 !important;
+    transform: none !important;
+  }
+}
+
 .aquaguide-app.desktop-shell-active {
   height: 100dvh;
   overflow: hidden;
@@ -497,12 +507,12 @@ body,
   .aquarium-desktop-layout {
     display: grid;
     grid-template-columns: minmax(300px, 0.95fr) minmax(380px, 1fr) minmax(300px, 0.95fr);
-    grid-template-rows: auto minmax(290px, auto) auto minmax(430px, auto);
+    grid-template-rows: auto minmax(290px, auto) minmax(430px, auto) auto;
     grid-template-areas:
       "header header header"
       "status actions discovery"
-      "careplan careplan careplan"
-      "tank tank tank";
+      "tank tank tank"
+      "archive archive archive";
     gap: 18px;
     align-items: stretch;
     justify-content: stretch;
@@ -523,10 +533,6 @@ body,
 
   .aquarium-desktop-header {
     grid-area: header;
-  }
-
-  .aquarium-care-plan {
-    grid-area: careplan;
   }
 
   .aquarium-tank {
@@ -555,7 +561,7 @@ body,
 
   .aquarium-archive {
     grid-area: archive;
-    display: none;
+    display: block;
   }
 
   .aquarium-status,
@@ -643,13 +649,13 @@ body,
   .aquarium-desktop-layout {
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto auto auto auto minmax(360px, auto);
+    grid-template-rows: auto auto auto minmax(360px, auto) auto;
     grid-template-areas:
       "header header"
       "status actions"
       "discovery discovery"
-      "careplan careplan"
-      "tank tank";
+      "tank tank"
+      "archive archive";
   }
 
   .aquarium-tank {
@@ -662,14 +668,14 @@ body,
 @media (min-width: 768px) and (max-width: 999px) {
   .aquarium-desktop-layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto minmax(320px, auto);
+    grid-template-rows: auto auto auto auto minmax(320px, auto) auto;
     grid-template-areas:
       "header"
       "status"
       "actions"
       "discovery"
-      "careplan"
-      "tank";
+      "tank"
+      "archive";
   }
 
   .aquarium-tank {

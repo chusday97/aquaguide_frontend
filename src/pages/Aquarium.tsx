@@ -12,12 +12,8 @@ import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, ea
 import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2, CheckCircle2 } from 'lucide-react';
 import { DeceasedRecord } from '../types';
 import {
-  askAquaGuideAI,
-  generateRiskExplanation,
   generateTankBuildCopilot,
   generateTankDailyCheckInterpretation,
-  type AiResponseSource,
-  type RiskExplanationData,
   type TankBuildCopilotData,
   type TankDailyCheckInterpretationData,
 } from '../lib/aiClient';
@@ -52,7 +48,13 @@ import {
   saveAppStateToStorage,
   type LocalEventRecord,
 } from '../services/storage/local-app-state';
-import { StatusSummaryCard, type AquariumStatusLevel, type DailyActionTask, type DailyActionViewModel } from '../components/product/StatusSummaryCard';
+import {
+  StatusSummaryCard,
+  type AquariumStatusLevel,
+  type CarePlanSummaryViewModel,
+  type DailyActionTask,
+  type DailyActionViewModel,
+} from '../components/product/StatusSummaryCard';
 import type { TodayTaskStatus } from '../components/product/TodayTaskCard';
 import { SectionHeader } from '../components/product/SectionHeader';
 import { TagPill } from '../components/product/TagPill';
@@ -685,6 +687,9 @@ export default function AquariumManager() {
   const [diagnosisIssueType, setDiagnosisIssueType] = useState('巡检');
   const [diagnosisMode, setDiagnosisMode] = useState<DiagnosisMode>('home');
   const [diagnosisQuestionIndex, setDiagnosisQuestionIndex] = useState(0);
+  const diagnosisAdvanceTimerRef = useRef<number | null>(null);
+  const diagnosisQuestionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const diagnosisSubmitRef = useRef<HTMLButtonElement | null>(null);
   const [diagnosisQuizAnswers, setDiagnosisQuizAnswers] = useState<Record<string, string>>({});
   const [diagnosisFollowUps, setDiagnosisFollowUps] = useState<Array<{ question: string; answer: string }>>([]);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
@@ -726,10 +731,6 @@ export default function AquariumManager() {
   const [selectedWaterChangeDate, setSelectedWaterChangeDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [waterChangeFeedback, setWaterChangeFeedback] = useState('');
 
-  const [isRecommending, setIsRecommending] = useState(false);
-  const [aiReasoning, setAiReasoning] = useState<string>('');
-  const [aiReasoningSource, setAiReasoningSource] = useState<AiResponseSource | null>(null);
-
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistFishIds());
   const [careReminders, setCareRemindersState] = useState<CareReminderRecord[]>(() => getCareReminders());
   const [pendingReminderDelete, setPendingReminderDelete] = useState<CareReminderRecord | null>(null);
@@ -766,10 +767,7 @@ export default function AquariumManager() {
   const [fedToday, setFedToday] = useState(false);
   const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, string>>({});
   const [isDailyActionWhyOpen, setIsDailyActionWhyOpen] = useState(false);
-  const [dailyAdviceAiAnswer, setDailyAdviceAiAnswer] = useState('');
-  const [dailyAdviceAiError, setDailyAdviceAiError] = useState('');
-  const [dailyAdviceAiSource, setDailyAdviceAiSource] = useState<AiResponseSource | null>(null);
-  const [isDailyAdviceAiLoading, setIsDailyAdviceAiLoading] = useState(false);
+  const [isCarePlanExpanded, setIsCarePlanExpanded] = useState(false);
   const [isRiskReminderOpen, setIsRiskReminderOpen] = useState(false);
   const [isObservationOpen, setIsObservationOpen] = useState(false);
   const [observationChecks, setObservationChecks] = useState<string[]>([]);
@@ -1382,7 +1380,7 @@ export default function AquariumManager() {
   const handleViewTankAfterAdd = () => {
     setIsAddFishOpen(false);
     setAddFishSuccess(null);
-    void navigateToSection('aquarium-records', { updateHash: false });
+    openTankArchive();
   };
 
   const handleContinueAddFish = () => {
@@ -1469,7 +1467,7 @@ export default function AquariumManager() {
     }
     if (task.actionType === 'care_plan') {
       const reminder = activeCareReminders.find(item => item.id === task.targetId);
-      if (reminder) handleCompleteReminder(reminder);
+      if (reminder) navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`);
       else showToast('这条养护计划已经更新，请查看最新任务。', 'error');
       return;
     }
@@ -1479,63 +1477,6 @@ export default function AquariumManager() {
     }
     if (task.actionType === 'daily_check') {
       handleOpenDailyCheck();
-    }
-  };
-
-  const handleAskDailyAdviceAI = async (question: string) => {
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) return;
-
-    const context = {
-      aquariumId: activeAquarium?.id || '',
-      aquarium: activeAquarium ? {
-        name: activeAquarium.name,
-        waterType: activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水',
-        volume: getTankVolumeLiters(activeAquarium),
-        temperature: activeAquarium.targetTemperature,
-        speciesCount: activeAquarium.fishes.reduce((sum, fish) => sum + Math.max(1, fish.quantity || 1), 0),
-      } : null,
-      currentTask: {
-        id: dailyActionViewModel.task.id,
-        type: dailyActionViewModel.task.actionType,
-        title: dailyActionViewModel.task.title,
-        priority: dailyActionViewModel.task.priority,
-        trigger: dailyActionViewModel.task.trigger,
-      },
-      status: dailyActionViewModel.status,
-      dataFreshness: {
-        latestWaterChangeDate,
-        missingData: dailyActionViewModel.status.missingData,
-      },
-    };
-
-    setDailyAdviceAiAnswer('');
-    setDailyAdviceAiError('');
-    setDailyAdviceAiSource(null);
-    setIsDailyAdviceAiLoading(true);
-
-    try {
-      const text = await askAquaGuideAI({
-        system: [
-          '你是 AquaGuide 今日行动解释助手。',
-          '只能解释输入中的事实、缺失信息、建议步骤和还需要补充的信息。',
-          '不能编造未记录的异常，不能把“暂无记录”说成“没有风险”。',
-          '回答要短，最多 4 句。',
-        ].join('\n'),
-        messages: [{
-          role: 'user',
-          content: JSON.stringify({ question: trimmedQuestion, context }, null, 2),
-        }],
-        maxTokens: 500,
-        temperature: 0.2,
-      });
-      setDailyAdviceAiSource('model');
-      setDailyAdviceAiAnswer(text);
-    } catch {
-      setDailyAdviceAiSource('fallback');
-      setDailyAdviceAiError('AI 暂不可用，系统规则仍可使用。');
-    } finally {
-      setIsDailyAdviceAiLoading(false);
     }
   };
 
@@ -1636,89 +1577,6 @@ export default function AquariumManager() {
     return tankRiskItems.filter(item => item.severity !== 'info').map(item => `${item.title}：${item.detail}`);
   };
 
-  const formatRiskExplanationText = (explanation: RiskExplanationData, localRiskItems: TankRiskItem[]) => {
-    const localFallbackText = 'AI 暂不可用，系统规则仍可使用。';
-
-    if (explanation.fallback) return localFallbackText;
-
-    const lines = [
-      explanation.summary,
-      ...explanation.reasons.map(reason => `${reason.title}：${reason.detail}${reason.source ? `（${reason.source}）` : ''}`),
-      ...explanation.suggestions.map(suggestion => `建议：${suggestion.title}，${suggestion.detail}`),
-      ...explanation.nextSteps.map((step, index) => `下一步 ${index + 1}：${step}`),
-      explanation.disclaimer,
-    ];
-
-    return lines.filter(Boolean).join('\n');
-  };
-
-  const handleAskAIAboutConflicts = async () => {
-    if (!activeAquarium) return;
-    setIsRecommending(true);
-    setAiReasoning('');
-    setAiReasoningSource(null);
-    try {
-      const livestock = activeAquarium.fishes.map(af => {
-        const fish = fishData.find(d => d.id === af.fishId);
-        return fish ? {
-          id: fish.id,
-          name: fish.name,
-          quantity: af.quantity,
-          category: fish.category,
-          phLevel: fish.phLevel,
-          waterTemperature: fish.waterTemperature,
-          size: fish.size,
-          temperament: fish.temperament,
-          tankSize: fish.tankSize,
-        } : null;
-      }).filter(Boolean);
-      const riskLevel = tankRiskItems.some(item => item.severity === 'danger')
-        ? 'high'
-        : tankRiskItems.some(item => item.severity === 'warning')
-          ? 'medium'
-          : 'info';
-      const riskResult = {
-        riskLevel,
-        riskItems: tankRiskItems,
-        conflicts,
-      };
-
-      const explanation = await generateRiskExplanation({
-        aquarium: {
-          id: activeAquarium.id,
-          name: activeAquarium.name,
-          waterType: activeAquarium.waterType,
-          targetTemperature: activeAquarium.targetTemperature,
-          dimensions: activeAquarium.dimensions,
-          equipment: activeAquarium.equipment,
-          volumeLiters: getTankVolumeLiters(activeAquarium),
-        },
-        selectedSpecies: livestock,
-        existingLivestock: livestock,
-        riskResult,
-        ruleFacts: {
-          source: 'AquaGuide local tank risk checker',
-          riskItems: tankRiskItems,
-          conflicts,
-        },
-      });
-
-      setAiReasoningSource(explanation.source === 'model' ? 'model' : 'fallback');
-      setAiReasoning(formatRiskExplanationText(explanation, tankRiskItems));
-    } catch(e) {
-      console.error(e);
-      setAiReasoningSource('fallback');
-      setAiReasoning(formatRiskExplanationText({
-        summary: 'AI 暂不可用，系统规则仍可使用。',
-        reasons: [],
-        suggestions: [],
-        nextSteps: [],
-        disclaimer: '最终判断以系统规则结果为准',
-        fallback: true,
-      }, tankRiskItems));
-    }
-    setIsRecommending(false);
-  };
   const openSmartRecommendation = (
     mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank',
     candidateIds: string[] | null = null,
@@ -2183,6 +2041,49 @@ export default function AquariumManager() {
     setDiagnosisSaveMessage('');
   };
 
+  const handleDiagnosisChoice = (questionId: string, answer: string) => {
+    handleDiagnosisAnswer(questionId, answer);
+    if (diagnosisAdvanceTimerRef.current !== null) window.clearTimeout(diagnosisAdvanceTimerRef.current);
+    diagnosisAdvanceTimerRef.current = window.setTimeout(() => {
+      diagnosisAdvanceTimerRef.current = null;
+      const problemType: DiagnosisProblemType = isDiagnosisProblemType(diagnosisIssueType) ? diagnosisIssueType : '巡检';
+      const nextAnswers = { ...diagnosisQuizAnswers, [questionId]: answer };
+      const questions = getDiagnosisQuestions(problemType, nextAnswers);
+
+      if (problemType === '巡检') {
+        const currentIndex = questions.findIndex(question => question.id === questionId);
+        const requiredQuestions = questions.filter(question => !question.optionalText);
+        const nextQuestion = questions
+          .slice(Math.max(0, currentIndex + 1))
+          .find(question => !question.optionalText && !nextAnswers[question.id])
+          || requiredQuestions.find(question => !nextAnswers[question.id]);
+        if (nextQuestion) {
+          const target = diagnosisQuestionRefs.current[nextQuestion.id];
+          const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          target?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+          target?.focus({ preventScroll: true });
+          return;
+        }
+        diagnosisSubmitRef.current?.focus();
+        return;
+      }
+
+      if (diagnosisQuestionIndex < questions.length - 1) {
+        const nextQuestion = questions[diagnosisQuestionIndex + 1];
+        setDiagnosisQuestionIndex(index => Math.min(index + 1, questions.length - 1));
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => diagnosisQuestionRefs.current[nextQuestion.id]?.focus());
+        });
+        return;
+      }
+      diagnosisSubmitRef.current?.focus();
+    }, 200);
+  };
+
+  useEffect(() => () => {
+    if (diagnosisAdvanceTimerRef.current !== null) window.clearTimeout(diagnosisAdvanceTimerRef.current);
+  }, []);
+
   const handleRunDiagnosis = async () => {
     const result = buildStructuredDiagnosis();
     setDiagnosisResult(result);
@@ -2524,6 +2425,21 @@ export default function AquariumManager() {
     .filter(reminder => !reminder.completedAt && (!reminder.aquariumId || reminder.aquariumId === activeAquarium.id))
     .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
   const dueCareReminders = activeCareReminders.filter(reminder => ['overdue', 'today'].includes(getCareReminderStatus(reminder)));
+  const carePlanSummary: CarePlanSummaryViewModel = {
+    activeCount: activeCareReminders.length,
+    dueCount: dueCareReminders.length,
+    overdueCount: activeCareReminders.filter(reminder => getCareReminderStatus(reminder) === 'overdue').length,
+    visibleItems: activeCareReminders.slice(0, 3).map(reminder => {
+      const status = getCareReminderStatus(reminder);
+      return {
+        id: reminder.id,
+        title: reminder.title,
+        dateLabel: format(new Date(reminder.scheduledFor), 'MM月dd日'),
+        detail: reminder.label || '复查养护状态',
+        status: status === 'completed' ? 'upcoming' : status,
+      };
+    }),
+  };
   const heaterStockedItems = activeAquarium.fishes
     .map(aqFish => ({ aqFish, fish: fishData.find(f => f.id === aqFish.fishId) }))
     .filter((item): item is { aqFish: AquariumFish; fish: Fish } => Boolean(item.fish) && needsHeaterForSpecies(item.fish));
@@ -3515,7 +3431,7 @@ export default function AquariumManager() {
       priority: 'high',
       reason: '这项养护计划已经逾期，今天先完成并记录结果。',
       evidence: `计划日期：${format(new Date(overdueCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
-      primaryLabel: '完成养护计划',
+      primaryLabel: '查看操作指引',
       targetId: overdueCareReminder.id,
       trigger: { type: 'maintenance_overdue', source: 'maintenance_schedule' },
     };
@@ -3538,7 +3454,7 @@ export default function AquariumManager() {
       priority: 'medium',
       reason: '这项养护计划今天到期。',
       evidence: `计划日期：${format(new Date(todayCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
-      primaryLabel: '完成养护计划',
+      primaryLabel: '查看操作指引',
       targetId: todayCareReminder.id,
       trigger: { type: 'maintenance_due', source: 'maintenance_schedule' },
     };
@@ -3705,14 +3621,6 @@ export default function AquariumManager() {
       },
       tone: !hasStockedAnimals ? 'muted' as const : fedToday ? 'normal' as const : 'info' as const,
       active: fedToday,
-    },
-    {
-      id: 'viewTankSpecies',
-      label: '缸内物种',
-      description: hasStockedAnimals ? `${stockedSpeciesCount} 种 · 共 ${totalStockedQuantity} 只/条` : '当前还没有生物',
-      icon: <BookOpen className="h-4 w-4" />,
-      onClick: openTankArchive,
-      tone: hasStockedAnimals ? 'info' as const : 'muted' as const,
     },
     {
       id: 'addSpecies',
@@ -3914,9 +3822,6 @@ export default function AquariumManager() {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" variant="outline" onClick={openTankArchive} className="h-10 rounded-full border-border bg-white px-4 text-[12px] font-black text-ink/68">
-            <BookOpen className="mr-1.5 h-4 w-4" />缸内物种 {stockedSpeciesCount}
-          </Button>
           <Button type="button" onClick={handleAddAquarium} className="h-10 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white hover:bg-emerald-800">
             <Plus className="mr-1.5 h-4 w-4" />新建鱼缸
           </Button>
@@ -4051,18 +3956,28 @@ export default function AquariumManager() {
         <StatusSummaryCard
           action={dailyActionViewModel}
           showWhy={isDailyActionWhyOpen}
-          aiAnswer={dailyAdviceAiAnswer}
-          aiError={dailyAdviceAiError}
-          aiSource={dailyAdviceAiSource}
-          isAiLoading={isDailyAdviceAiLoading}
-          onAskAI={handleAskDailyAdviceAI}
+          carePlan={carePlanSummary}
+          showCarePlan={isCarePlanExpanded}
           onPrimaryAction={handleDailyActionPrimary}
-          onToggleWhy={() => {
-            setIsDailyActionWhyOpen(open => !open);
-            setDailyAdviceAiAnswer('');
-            setDailyAdviceAiError('');
-            setDailyAdviceAiSource(null);
+          onToggleWhy={() => setIsDailyActionWhyOpen(open => !open)}
+          onToggleCarePlan={() => setIsCarePlanExpanded(open => !open)}
+          onOpenCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`);
           }}
+          onCompleteCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) handleCompleteReminder(reminder);
+          }}
+          onRescheduleCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) setPendingReminderReschedule(reminder);
+          }}
+          onDeleteCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) setPendingReminderDelete(reminder);
+          }}
+          onBrowseCare={() => navigateToRoute('/care')}
         />
       </div>
 
@@ -4170,44 +4085,6 @@ export default function AquariumManager() {
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
         </div>
-      </section>
-
-      <section id="care-plan" className="aquarium-care-plan order-[4] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
-        <SectionHeader
-          title="养护计划"
-          subtitle={dueCareReminders.length > 0 ? `${dueCareReminders.length} 项今天需要处理` : activeCareReminders.length > 0 ? '计划会按本地日期提醒你。' : '从养护指南设置观察或维护日期。'}
-        />
-        {activeCareReminders.length > 0 ? (
-          <div className="mt-3 grid gap-2">
-            {activeCareReminders.slice(0, 3).map(reminder => {
-              const status = getCareReminderStatus(reminder);
-              const statusLabel = status === 'overdue' ? '已逾期' : status === 'today' ? '今天' : '即将到期';
-              const statusClass = status === 'overdue' ? 'bg-red-50 text-red-700' : status === 'today' ? 'bg-amber-50 text-amber-800' : 'bg-sky-50 text-sky-700';
-              return (
-                <article key={reminder.id} className="rounded-[16px] border border-border/70 bg-white p-3 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-black text-ink">{reminder.title}</div>
-                      <div className="mt-1 text-[10px] font-bold text-ink/45">{format(new Date(reminder.scheduledFor), 'MM月dd日')} · {reminder.label || '复查养护状态'}</div>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${statusClass}`}>{statusLabel}</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Button type="button" onClick={() => navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`)} className="h-8 rounded-full bg-emerald-700 px-3 text-[10px] font-black text-white hover:bg-emerald-800">查看指引</Button>
-                    <Button type="button" variant="outline" onClick={() => handleCompleteReminder(reminder)} className="h-8 rounded-full border-emerald-100 px-3 text-[10px] font-black text-emerald-700">完成</Button>
-                    <button type="button" onClick={() => setPendingReminderReschedule(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-ink/48 hover:bg-bg">改期</button>
-                    <button type="button" onClick={() => setPendingReminderDelete(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-red-500 hover:bg-red-50">删除</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-[16px] border border-dashed border-border bg-white/70 px-3 py-3">
-            <div className="text-[11px] font-bold text-ink/48">还没有养护计划，可以从操作指南设置。</div>
-            <Button type="button" variant="outline" onClick={() => navigateToRoute('/care')} className="h-8 shrink-0 rounded-full px-3 text-[10px] font-black">浏览指南</Button>
-          </div>
-        )}
       </section>
 
       {recommendedActionCandidates.length > 0 && (
@@ -4345,16 +4222,18 @@ export default function AquariumManager() {
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
+          aria-expanded={isTankArchiveExpanded}
+          aria-controls="aquarium-records-content"
           className="flex w-full items-center justify-between gap-3 bg-[#E9E8E2] px-3 py-3 text-left transition-colors hover:bg-[#E4E2DB]"
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[14px] font-black text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-              缸内物种与配置
+              缸内物种
             </div>
             <div className="mt-0.5 text-[10px] font-bold text-ink/45">
               {hasStockedAnimals
-                ? `已养 ${totalStockedQuantity} 只 · 已配置 ${tankContentCount} 项`
+                ? `${stockedSpeciesCount} 种 · 共 ${totalStockedQuantity} 只/条`
                 : hasEnvironmentContent
                   ? '暂无鱼虾螺，已配置环境内容'
                   : '当前还没有配置鱼缸内容'}
@@ -4392,7 +4271,7 @@ export default function AquariumManager() {
             <div className="min-w-0 text-center">
               <div className="flex items-center justify-center gap-1.5 text-[20px] font-black leading-none text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-                缸内物种与配置
+                缸内物种
               </div>
               <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
             </div>
@@ -4406,7 +4285,7 @@ export default function AquariumManager() {
 
         </div>
 
-        <div className="relative bg-[#FBFAF6] px-2.5 pb-4 pt-3 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_10%,rgba(27,77,62,0.06),transparent_24%),linear-gradient(rgba(26,26,26,0.025)_1px,transparent_1px)] before:bg-[length:100%_100%,18px_18px]">
+        <div id="aquarium-records-content" className="relative bg-[#FBFAF6] px-2.5 pb-4 pt-3 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_10%,rgba(27,77,62,0.06),transparent_24%),linear-gradient(rgba(26,26,26,0.025)_1px,transparent_1px)] before:bg-[length:100%_100%,18px_18px]">
           {!hasAnyTankContent ? (
             <div className="relative rounded-[16px] bg-white/82 px-4 py-6 text-center shadow-sm">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-sky-600">
@@ -4863,7 +4742,12 @@ export default function AquariumManager() {
                     {activeDiagnosisQuestions.map((question, index) => {
                       const answer = diagnosisQuizAnswers[question.id] || '';
                       return (
-                        <div key={question.id} className="rounded-[16px] bg-bg p-3">
+                        <div
+                          key={question.id}
+                          ref={(node) => { diagnosisQuestionRefs.current[question.id] = node; }}
+                          tabIndex={-1}
+                          className="rounded-[16px] bg-bg p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                        >
                           <div className="flex items-start gap-2">
                             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-emerald-700">
                               {index + 1}
@@ -4885,7 +4769,7 @@ export default function AquariumManager() {
                                   <button
                                     key={option}
                                     type="button"
-                                    onClick={() => handleDiagnosisAnswer(question.id, option)}
+                                    onClick={() => handleDiagnosisChoice(question.id, option)}
                                     className={`rounded-full border px-3 py-2 text-[11px] font-black transition-colors ${
                                       selected
                                         ? 'border-emerald-700 bg-emerald-700 text-white'
@@ -4906,7 +4790,11 @@ export default function AquariumManager() {
               )}
 
               {diagnosisMode === 'quiz' && !isDailyCheckQuiz && activeDiagnosisQuestion && (
-                <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
+                <section
+                  ref={(node) => { diagnosisQuestionRefs.current[activeDiagnosisQuestion.id] = node; }}
+                  tabIndex={-1}
+                  className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                >
                   <div>
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-[13px] font-black text-ink">{diagnosisIssueType}</div>
@@ -4930,7 +4818,7 @@ export default function AquariumManager() {
                           <button
                             key={option}
                             type="button"
-                            onClick={() => handleDiagnosisAnswer(activeDiagnosisQuestion.id, option)}
+                            onClick={() => handleDiagnosisChoice(activeDiagnosisQuestion.id, option)}
                             className={`rounded-[14px] border px-3 py-3 text-left text-[13px] font-black transition-colors ${
                               selected ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-transparent bg-white text-ink/65 hover:border-emerald-100'
                             }`}
@@ -5156,6 +5044,7 @@ export default function AquariumManager() {
                   {isDailyCheckQuiz ? '返回' : '上一题'}
                 </Button>
                 <Button
+                  ref={diagnosisSubmitRef}
                   onClick={isDailyCheckQuiz ? () => void handleRunDiagnosis() : handleDiagnosisNext}
                   disabled={isDailyCheckQuiz ? !isDailyCheckReady : (!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText)}
                   className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
@@ -7347,36 +7236,6 @@ export default function AquariumManager() {
               </div>
             ))}
           </div>
-          <details className="mx-4 mb-4 mt-1 rounded-[14px] border border-yellow-100 bg-white/50 px-3 py-2 text-xs font-medium leading-relaxed text-ink/70">
-            <summary className="cursor-pointer font-bold text-yellow-700">
-              让 AI 帮我解读
-            </summary>
-            <div className="mt-2 rounded-[12px] bg-yellow-50/70 px-3 py-2 text-[11px] font-bold text-ink/55">
-              系统结论由规则生成，AI 仅负责解释，不会改变风险等级。
-            </div>
-            {aiReasoning ? (
-              <div className="mt-2 space-y-1">
-                <div className={`mb-2 w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${
-                  aiReasoningSource === 'model'
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-amber-50 text-amber-700'
-                }`}>
-                  {aiReasoningSource === 'model' ? '模型回复' : '本地模板'}
-                </div>
-                {aiReasoning.split('\n').map((line, idx) => <p key={idx}>{line}</p>)}
-              </div>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleAskAIAboutConflicts}
-                disabled={isRecommending}
-                variant="outline"
-                className="mt-3 h-9 rounded-full px-4 text-xs font-black"
-              >
-                {isRecommending ? '正在解读...' : <><Sparkles className="mr-2 h-3.5 w-3.5" />生成解释</>}
-              </Button>
-            )}
-          </details>
         </DialogContent>
       </Dialog>
 

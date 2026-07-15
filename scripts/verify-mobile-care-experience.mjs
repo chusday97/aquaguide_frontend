@@ -38,7 +38,7 @@ const seedStorage = async (context) => {
 
 try {
   for (const width of [320, 375, 390, 430]) {
-    const context = await browser.newContext({ viewport: { width, height: 844 }, userAgent: phoneUserAgent });
+    const context = await browser.newContext({ viewport: { width, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true });
     await seedStorage(context);
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
@@ -57,7 +57,7 @@ try {
     await context.close();
   }
 
-  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: phoneUserAgent });
+  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true });
   await seedStorage(phoneContext);
   const phonePage = await phoneContext.newPage();
   phonePage.setDefaultTimeout(20000);
@@ -75,9 +75,12 @@ try {
   await phonePage.getByRole('heading', { name: '养护收藏', exact: true }).waitFor();
 
   await phonePage.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
-  await phonePage.getByRole('button', { name: /缸内物种/ }).last().waitFor();
-  await phonePage.getByRole('button', { name: /缸内物种/ }).last().click();
-  await phonePage.getByRole('button', { name: /缸内物种与配置/ }).waitFor();
+  const phoneSpeciesEntry = phonePage.locator('button[aria-controls="aquarium-records-content"]');
+  await phoneSpeciesEntry.waitFor();
+  assert.equal(await phoneSpeciesEntry.count(), 1, 'phone keeps one tank species entry');
+  assert.match(await phoneSpeciesEntry.innerText(), /缸内物种/);
+  await phoneSpeciesEntry.click();
+  assert.equal(await phoneSpeciesEntry.getAttribute('aria-expanded'), 'true', 'phone species entry expands the inline content');
   await phonePage.getByRole('button', { name: '全屏预览' }).click();
   const tankPreview = phonePage.getByRole('dialog', { name: '鱼缸全屏预览' });
   await tankPreview.waitFor();
@@ -100,7 +103,12 @@ try {
 
   await desktopPage.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
   await desktopPage.getByRole('button', { name: /新建鱼缸/ }).waitFor();
-  await desktopPage.getByRole('button', { name: '缸内物种 1', exact: true }).waitFor();
+  const desktopSpeciesEntry = desktopPage.locator('button[aria-controls="aquarium-records-content"]');
+  await desktopSpeciesEntry.waitFor();
+  assert.equal(await desktopSpeciesEntry.count(), 1, 'desktop keeps one tank species entry');
+  assert.match(await desktopSpeciesEntry.innerText(), /缸内物种/);
+  await desktopSpeciesEntry.click();
+  assert.equal(await desktopSpeciesEntry.getAttribute('aria-expanded'), 'true', 'desktop species entry expands the inline content');
   await desktopPage.getByText('养护计划', { exact: true }).waitFor();
   await desktopPage.getByText('如何安全给新鱼过水？', { exact: true }).waitFor();
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, 'desktop aquarium has no horizontal overflow');

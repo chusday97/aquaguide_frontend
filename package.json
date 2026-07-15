@@ -32,6 +32,7 @@
     "test:three-step-ui": "node scripts/verify-three-step-experience.mjs",
     "test:core-ui": "node scripts/verify-core-experience.mjs",
     "test:mobile-care-ui": "node scripts/verify-mobile-care-experience.mjs",
+    "test:wishlist-shortcut-ui": "node scripts/verify-wishlist-shortcut.mjs",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
     "audit:species-knowledge": "python3 scripts/audit_species_knowledge.py",

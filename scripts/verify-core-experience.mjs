@@ -127,14 +127,24 @@ try {
   await assistantDialog.waitFor();
   assert.equal(await assistantDialog.getAttribute('data-surface'), 'task-flow');
   await assistantDialog.getByRole('button', { name: '关闭' }).click();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.getByRole('button', { name: /每日鱼缸检查/ }).click();
   const dialog = page.getByRole('dialog', { name: '每日鱼缸检查' });
   await dialog.waitFor();
   assert.equal(await dialog.getAttribute('data-surface'), 'task-flow');
-  for (const answer of ['正常', '清澈', '没有泡沫或油膜', '没有异味', '正常游动和进食', '没有特别操作']) {
+  const firstAnswer = dialog.getByRole('button', { name: '正常', exact: true });
+  const secondQuestion = dialog.getByRole('button', { name: '清澈', exact: true }).locator('..').locator('..');
+  await firstAnswer.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(260);
+  assert.equal(await secondQuestion.evaluate(element => element === document.activeElement), true, 'keyboard answer focuses the next question with reduced motion');
+  for (const answer of ['清澈', '没有泡沫或油膜', '没有异味', '正常游动和进食', '没有特别操作']) {
     await dialog.getByRole('button', { name: answer, exact: true }).click();
+    await page.waitForTimeout(260);
   }
-  await dialog.getByRole('button', { name: '生成检查结果', exact: true }).click();
+  const resultButton = dialog.getByRole('button', { name: '生成检查结果', exact: true });
+  assert.equal(await resultButton.evaluate(element => element === document.activeElement), true, 'last answer focuses result without auto submit');
+  await resultButton.click();
   await dialog.getByText('结构化诊断结果').waitFor();
   await dialog.getByRole('button', { name: '保存今天记录' }).click();
   await dialog.getByText(/已保存今天的检查记录/).waitFor();

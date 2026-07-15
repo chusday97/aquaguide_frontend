@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, CheckCircle2, ChevronDown } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TagPill, type TagPillTone } from './TagPill';
 
@@ -58,16 +58,34 @@ export type DailyActionViewModel = {
   reasoning: string[];
 };
 
+export type CarePlanSummaryItem = {
+  id: string;
+  title: string;
+  dateLabel: string;
+  detail: string;
+  status: 'overdue' | 'today' | 'upcoming';
+};
+
+export type CarePlanSummaryViewModel = {
+  activeCount: number;
+  dueCount: number;
+  overdueCount: number;
+  visibleItems: CarePlanSummaryItem[];
+};
+
 type StatusSummaryCardProps = {
   action: DailyActionViewModel;
   showWhy: boolean;
-  aiAnswer?: string;
-  aiError?: string;
-  aiSource?: 'model' | 'fallback' | null;
-  isAiLoading?: boolean;
-  onAskAI: (question: string) => void;
+  carePlan: CarePlanSummaryViewModel;
+  showCarePlan: boolean;
   onPrimaryAction: () => void;
   onToggleWhy: () => void;
+  onToggleCarePlan: () => void;
+  onOpenCarePlan: (id: string) => void;
+  onCompleteCarePlan: (id: string) => void;
+  onRescheduleCarePlan: (id: string) => void;
+  onDeleteCarePlan: (id: string) => void;
+  onBrowseCare: () => void;
 };
 
 const levelTone: Record<AquariumStatusLevel, TagPillTone> = {
@@ -87,17 +105,37 @@ const levelStyles: Record<AquariumStatusLevel, string> = {
 export function StatusSummaryCard({
   action,
   showWhy,
-  aiAnswer,
-  aiError,
-  aiSource = null,
-  isAiLoading = false,
-  onAskAI,
+  carePlan,
+  showCarePlan,
   onPrimaryAction,
   onToggleWhy,
+  onToggleCarePlan,
+  onOpenCarePlan,
+  onCompleteCarePlan,
+  onRescheduleCarePlan,
+  onDeleteCarePlan,
+  onBrowseCare,
 }: StatusSummaryCardProps) {
   const Icon = action.level === 'normal' ? CheckCircle2 : AlertTriangle;
-  const canExplainWithAi = ['urgent_recovery', 'compatibility_review'].includes(action.task.actionType);
   const hasPrimaryAction = Boolean(action.task.primaryLabel);
+  const careItems = showCarePlan ? carePlan.visibleItems : carePlan.visibleItems.slice(0, 1);
+  const careSummary = carePlan.overdueCount > 0
+    ? `${carePlan.overdueCount} 项逾期`
+    : carePlan.dueCount > 0
+      ? `${carePlan.dueCount} 项今天处理`
+      : carePlan.activeCount > 0
+        ? `${carePlan.activeCount} 项计划中`
+        : '还没有养护计划';
+  const careStatusStyle = {
+    overdue: 'bg-red-50 text-red-700',
+    today: 'bg-amber-50 text-amber-800',
+    upcoming: 'bg-sky-50 text-sky-700',
+  } as const;
+  const careStatusLabel = {
+    overdue: '已逾期',
+    today: '今天',
+    upcoming: '即将到期',
+  } as const;
 
   return (
     <section className={`flex min-h-[220px] flex-col rounded-[20px] border p-4 shadow-sm ${levelStyles[action.level]}`} data-daily-action={action.task.actionType}>
@@ -138,24 +176,6 @@ export function StatusSummaryCard({
                 </li>
               ))}
             </ul>
-            {canExplainWithAi && !aiAnswer && !aiError && (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isAiLoading}
-                onClick={() => onAskAI('请用三句话解释为什么这件事现在优先，以及我下一步要注意什么。')}
-                className="mt-3 h-9 rounded-full border-emerald-100 bg-white px-3 text-[11px] font-black text-emerald-800"
-              >
-                <Bot className="mr-1.5 h-3.5 w-3.5" />
-                {isAiLoading ? '正在解释…' : '让 AI 简短解释'}
-              </Button>
-            )}
-            {(aiAnswer || aiError) && (
-              <div className={`mt-3 rounded-[12px] px-3 py-2 text-[11px] font-bold leading-5 ${aiError ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-900'}`}>
-                <div className="mb-1 text-[9px] font-black opacity-55">{aiSource === 'model' ? '模型解释' : '本地提示'}</div>
-                {aiAnswer || aiError}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -169,6 +189,70 @@ export function StatusSummaryCard({
           {action.task.primaryLabel}
         </Button>
       )}
+
+      <section id="care-plan" className="mt-3 rounded-[17px] border border-white/80 bg-white/72 p-3 text-ink shadow-sm">
+        <button
+          type="button"
+          onClick={onToggleCarePlan}
+          aria-expanded={showCarePlan}
+          className="flex min-h-10 w-full items-center justify-between gap-3 rounded-[12px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+        >
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              <CalendarDays className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-black text-ink">养护计划</span>
+              <span className="block truncate text-[10px] font-bold text-ink/45">{careSummary}</span>
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-black text-ink/42">
+            {carePlan.activeCount > 1 && `${showCarePlan ? '收起' : `还有 ${carePlan.activeCount - 1} 项`}`}
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showCarePlan ? 'rotate-180' : ''}`} />
+          </span>
+        </button>
+
+        {carePlan.activeCount === 0 ? (
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-[13px] bg-bg/75 px-3 py-2.5">
+            <span className="text-[10px] font-bold leading-5 text-ink/48">可以从操作指南设置观察或维护日期。</span>
+            <button type="button" onClick={onBrowseCare} className="h-8 shrink-0 rounded-full bg-white px-3 text-[10px] font-black text-emerald-700 shadow-sm">
+              去养护百科
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2 grid gap-2">
+            {careItems.map(item => (
+              <article key={item.id} className="rounded-[13px] border border-border/65 bg-white/90 p-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-[11px] font-black text-ink">{item.title}</div>
+                    <div className="mt-0.5 text-[9px] font-bold text-ink/42">{item.dateLabel} · {item.detail}</div>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${careStatusStyle[item.status]}`}>
+                    {careStatusLabel[item.status]}
+                  </span>
+                </div>
+                {showCarePlan && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <button type="button" onClick={() => onOpenCarePlan(item.id)} className="h-8 rounded-full bg-emerald-700 px-3 text-[10px] font-black text-white">
+                      查看指引
+                    </button>
+                    <button type="button" onClick={() => onCompleteCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full bg-emerald-50 px-2.5 text-[10px] font-black text-emerald-700">
+                      <Check className="h-3 w-3" />完成
+                    </button>
+                    <button type="button" onClick={() => onRescheduleCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-[10px] font-black text-ink/48 hover:bg-bg">
+                      <Clock3 className="h-3 w-3" />改期
+                    </button>
+                    <button type="button" onClick={() => onDeleteCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-[10px] font-black text-red-500 hover:bg-red-50">
+                      <Trash2 className="h-3 w-3" />删除
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

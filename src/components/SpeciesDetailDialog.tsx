@@ -6,7 +6,6 @@ import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
-import { generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
 import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
 import { evaluateCompatibilityDecision } from '../modules/knowledge/compatibilityKnowledge';
@@ -380,21 +379,6 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
   };
 };
 
-const buildRiskAuditContext = (ruleAssessment: SpeciesFitAssessment) => {
-  const compatibility = ruleAssessment.compatibilityResult;
-  return {
-    finalStatus: compatibility.status,
-    title: ruleAssessment.title,
-    conclusion: compatibility.summary,
-    ruleResult: compatibility,
-    passedRules: compatibility.passedRules,
-    warningRules: [...compatibility.warningRules, ...compatibility.blockingRules],
-    missingData: compatibility.missingData,
-    knownRules: ['水体类型', '温度区间', 'pH 区间', '缸体水量', '捕食/攻击风险', '生物负荷', '群游数量'],
-    instruction: '仅解释这些系统规则结果，不重新判断风险等级，不新增输入中不存在的信息。statusRestatement 必须保持与 finalStatus 一致。',
-  };
-};
-
 export function SpeciesDetailDialog({
   fish,
   open,
@@ -417,8 +401,6 @@ export function SpeciesDetailDialog({
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [aiExplanation, setAiExplanation] = useState<RiskExplanationData | null>(null);
-  const [aiExplanationLoading, setAiExplanationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'environment' | 'compatibility' | 'care'>('environment');
   const [activeMetric, setActiveMetric] = useState<FitDimension | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState('');
@@ -432,12 +414,6 @@ export function SpeciesDetailDialog({
   const displayFit = selectedFit;
   const selectedTaxonomy = fish ? getCareTaxonomyPath(fish) : null;
   const resolvedImageSrc = fish ? (imageSrc || getSpeciesDisplayImage(fish)) : '';
-
-  useEffect(() => {
-    if (!open) return;
-    setAiExplanation(null);
-    setAiExplanationLoading(false);
-  }, [open, fish?.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -455,17 +431,6 @@ export function SpeciesDetailDialog({
     if (!isDeathFormOpen) return;
     window.requestAnimationFrame(() => deathReasonRef.current?.focus());
   }, [isDeathFormOpen]);
-
-  const handleAiExplain = async () => {
-    if (!fish || !selectedFit || aiExplanationLoading) return;
-    setAiExplanationLoading(true);
-    try {
-      const result = await generateRiskExplanation(buildRiskAuditContext(selectedFit));
-      setAiExplanation(result);
-    } finally {
-      setAiExplanationLoading(false);
-    }
-  };
 
   const openPreview = () => {
     if (!fish) return;
@@ -771,51 +736,6 @@ export function SpeciesDetailDialog({
                         <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/55">{metricSummary.pending > 0 ? '信息尚未完整，补充后可进行完整评估。' : displayFit.conclusion}</p>
                       </section>}
 
-                      <details className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
-                        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                          规则解释（AI 可选）
-                          <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
-                        </summary>
-                        {aiExplanationLoading ? (
-                          <p className="mt-3 text-[12px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
-                        ) : aiExplanation?.fallback ? (
-                          <div className="mt-3 rounded-[12px] bg-bg p-3">
-                            <div className="mb-2 w-fit rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700">
-                              本地模板
-                            </div>
-                            <p className="text-[12px] font-bold leading-relaxed text-ink/60">
-                              AI 暂不可用，系统规则仍可使用。
-                            </p>
-                          </div>
-                        ) : aiExplanation ? (
-                          <div className="mt-3 grid gap-2">
-                            <div className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
-                              模型回复 · 不改变系统结论
-                            </div>
-                            <p className="rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/65">{aiExplanation.summary}</p>
-                            {aiExplanation.reasons.slice(0, 3).map(item => (
-                              <div key={`${item.title}-${item.detail}`} className="rounded-[12px] border border-sky-100 bg-sky-50/70 p-3">
-                                <div className="text-[12px] font-black text-ink">{item.title}</div>
-                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{item.detail}</p>
-                                <p className="mt-1 text-[10px] font-black text-ink/35">{item.source}</p>
-                              </div>
-                            ))}
-                            {aiExplanation.suggestions.length > 0 && (
-                              <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/70 p-3">
-                                <div className="text-[12px] font-black text-ink">可以怎么做</div>
-                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{aiExplanation.suggestions[0].detail}</p>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-3 grid gap-2">
-                            <p className="text-[12px] font-bold leading-relaxed text-ink/55">结果由物种资料与混养规则计算，AI 仅负责把规则解释得更好懂。</p>
-                            <Button type="button" variant="outline" className="h-10 rounded-full text-[12px] font-black" onClick={handleAiExplain}>
-                              让 AI 帮我解读
-                            </Button>
-                          </div>
-                        )}
-                      </details>
                     </div>
                   )}
 
@@ -1140,53 +1060,6 @@ export function SpeciesDetailDialog({
                         </div>
                       )}
                     </div>
-                  </details>
-
-                  <details className="rounded-[16px] border border-border bg-white/70 p-3 shadow-sm">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
-                      <h3 className="text-[13px] font-black text-ink">规则解释（AI 可选）</h3>
-                      <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
-                    </summary>
-                    {aiExplanationLoading ? (
-                      <p className="mt-2 text-[11px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
-                    ) : aiExplanation?.fallback ? (
-                      <div className="mt-2 rounded-[12px] bg-bg p-2">
-                        <div className="mb-1.5 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
-                          本地模板
-                        </div>
-                        <p className="text-[11px] font-bold leading-relaxed text-ink/60">
-                          AI 暂不可用，系统规则仍可使用。
-                        </p>
-                      </div>
-                    ) : aiExplanation ? (
-                      <div className="mt-2 grid gap-2">
-                        <div className="w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                          模型回复 · 不改变系统结论
-                        </div>
-                        <p className="rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/65">
-                          {aiExplanation.summary}
-                        </p>
-                        {aiExplanation.reasons.slice(0, 3).map(item => (
-                          <div key={`${item.title}-${item.detail}`} className="rounded-[12px] border border-sky-100 bg-sky-50/70 p-2">
-                            <div className="text-[11px] font-black text-ink">{item.title}</div>
-                            <p className="mt-0.5 text-[10px] font-medium leading-relaxed text-ink/60">{item.detail}</p>
-                          </div>
-                        ))}
-                        {aiExplanation.suggestions.length > 0 && (
-                          <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/70 p-2">
-                            <div className="text-[11px] font-black text-ink">可以怎么做</div>
-                            <p className="mt-0.5 text-[10px] font-medium leading-relaxed text-ink/60">{aiExplanation.suggestions[0].detail}</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-2 grid gap-2">
-                        <p className="text-[11px] font-bold leading-relaxed text-ink/55">结果由物种资料与混养规则计算，AI 仅负责解释。</p>
-                        <Button type="button" variant="outline" className="h-9 rounded-full text-[11px] font-black" onClick={handleAiExplain}>
-                          让 AI 帮我解读
-                        </Button>
-                      </div>
-                    )}
                   </details>
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">

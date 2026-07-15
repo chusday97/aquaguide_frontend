@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, Heart, HeartOff, Skull, Thermometer, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
+import { Search, X, Heart, HeartOff, Skull, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
 import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalculator';
 import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage/local-app-state';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
@@ -496,6 +496,12 @@ export default function Encyclopedia() {
   } | null>(null);
   const [detailFeedback, setDetailFeedback] = useState('');
   const [lastAddedToTankMessage, setLastAddedToTankMessage] = useState('');
+  const [wishlistFeedback, setWishlistFeedback] = useState<{
+    message: string;
+    added: boolean;
+    error?: boolean;
+  } | null>(null);
+  const focusGroupWishlistOnOpenRef = useRef(false);
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -547,6 +553,32 @@ export default function Encyclopedia() {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     syncWishlistFishIds(next);
+  };
+
+  const handleWishlistToggle = (fish: Fish) => {
+    const wasFavorite = wishlistFishIds.has(fish.id);
+    const next = new Set(wishlistFishIds);
+    if (wasFavorite) next.delete(fish.id);
+    else next.add(fish.id);
+
+    try {
+      setSpeciesFavoriteIds(next);
+      const savedIds = new Set(getSpeciesFavoriteIds());
+      const savedAsExpected = savedIds.has(fish.id) === !wasFavorite;
+      if (!savedAsExpected) throw new Error('收藏状态未能保存');
+      setWishlistFishIds(savedIds);
+      setWishlistFeedback({
+        message: wasFavorite ? `已从水族册移除 ${fish.name}` : `已收录到水族册：${fish.name}`,
+        added: !wasFavorite,
+      });
+    } catch {
+      setWishlistFishIds(loadWishlistIds());
+      setWishlistFeedback({
+        message: '收藏没有保存成功，请稍后重试。',
+        added: false,
+        error: true,
+      });
+    }
   };
 
   const encyclopediaCatalog = useMemo(
@@ -1174,6 +1206,23 @@ export default function Encyclopedia() {
     setSelectedGroup(group);
   };
 
+  useEffect(() => {
+    if (!selectedGroup || !selectedGroupVariant || !focusGroupWishlistOnOpenRef.current) return;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const target = document.getElementById(`group-variant-wishlist-${selectedGroupVariant.id}`);
+        if (!target) return;
+        focusGroupWishlistOnOpenRef.current = false;
+        target.focus();
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [selectedGroup, selectedGroupVariant]);
+
   const handleSearchTermChange = (value: string) => {
     setSearchTerm(value);
     setResultPage(0);
@@ -1252,6 +1301,38 @@ export default function Encyclopedia() {
           <button type="button" onClick={() => setLastAddedToTankMessage('')} className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[10px] font-black text-emerald-700">
             知道了
           </button>
+        </div>
+      )}
+      {wishlistFeedback && (
+        <div
+          className={`wishlist-feedback-toast fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 z-[90] flex w-[min(calc(100vw-24px),520px)] -translate-x-1/2 items-center justify-between gap-3 rounded-[16px] border px-3 py-2 text-[12px] font-bold shadow-[0_18px_48px_rgba(15,23,42,0.18)] md:bottom-6 ${
+            wishlistFeedback.error
+              ? 'border-red-100 bg-red-50 text-red-700'
+              : 'border-rose-100 bg-rose-50 text-rose-700'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>{wishlistFeedback.message}</span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {wishlistFeedback.added && (
+              <button
+                type="button"
+                onClick={() => navigateToRoute('/collection/wishlist')}
+                className="h-8 rounded-full bg-white px-3 text-[10px] font-black text-rose-600 shadow-sm"
+              >
+                查看水族册
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setWishlistFeedback(null)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75"
+              aria-label="关闭收藏提示"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1451,7 +1532,7 @@ export default function Encyclopedia() {
                 <div
                   key={group.groupId}
                   data-species-group-card
-                  className={`flex min-h-[356px] flex-col gap-2 rounded-[16px] border bg-white p-2.5 shadow-sm transition-colors md:min-h-[430px] md:w-full ${
+                  className={`relative flex min-h-[356px] flex-col gap-2 rounded-[16px] border bg-white p-2.5 shadow-sm transition-colors md:min-h-[430px] md:w-full ${
                     isInCalculator
                       ? 'border-emerald-500 ring-2 ring-emerald-100'
                       : isMarine
@@ -1461,6 +1542,22 @@ export default function Encyclopedia() {
                           : 'border-border/70 hover:border-accent/30'
                   }`}
                 >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      focusGroupWishlistOnOpenRef.current = true;
+                      openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`);
+                    }}
+                    className={`absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border bg-white/94 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
+                      group.variants.some(variant => wishlistFishIds.has(variant.id))
+                        ? 'border-rose-200 text-rose-500'
+                        : 'border-white text-ink/45 hover:border-rose-100 hover:text-rose-500'
+                    }`}
+                    aria-label={`选择${group.groupName}的具体变种收藏`}
+                    title="选择具体变种收藏"
+                  >
+                    <Heart className={`h-[18px] w-[18px] ${group.variants.some(variant => wishlistFishIds.has(variant.id)) ? 'fill-current' : ''}`} />
+                  </button>
                   <button
                     id={`atlas-group-${group.groupId}`}
                     type="button"
@@ -1478,11 +1575,6 @@ export default function Encyclopedia() {
                     <span className="absolute right-1.5 top-1.5 z-10 rounded-full border border-emerald-100 bg-white/94 px-1.5 py-0.5 text-[9px] font-black text-emerald-700 shadow-sm">
                       {group.variantCount} 个变种
                     </span>
-                    {theme.needsHeater && (
-                      <span className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-amber-100 bg-white/92 text-amber-600 shadow-sm" title="建议稳定加热">
-                        <Thermometer className="h-3.5 w-3.5" />
-                      </span>
-                    )}
                     <ResilientImage
                       src={getSpeciesVisualSources(fish).thumbnail}
                       srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`}
@@ -1503,7 +1595,7 @@ export default function Encyclopedia() {
                         </h2>
                       </button>
                       <p className="mt-0.5 line-clamp-2 text-[12px] font-bold leading-snug text-ink/54">
-                        品类集合 / {group.variantCount} 个规格可选
+                        品类集合 / {group.variantCount} 个规格可选{theme.needsHeater ? ' · 建议稳定加热' : ''}
                       </p>
                     </div>
                     <div className="grid min-h-[66px] grid-cols-5 items-start gap-1 overflow-hidden">
@@ -1580,7 +1672,7 @@ export default function Encyclopedia() {
               <div 
                 key={fish.id} 
                 data-species-card
-                className={`flex min-h-[356px] flex-col gap-2 rounded-[16px] border bg-white p-2.5 shadow-sm transition-colors md:min-h-[430px] md:w-full ${
+                className={`relative flex min-h-[356px] flex-col gap-2 rounded-[16px] border bg-white p-2.5 shadow-sm transition-colors md:min-h-[430px] md:w-full ${
                   isInCalculator
                     ? 'border-emerald-500 ring-2 ring-emerald-100'
                     : isMarine
@@ -1590,6 +1682,20 @@ export default function Encyclopedia() {
                         : 'border-border/70 hover:border-accent/30'
                 }`}
               >
+                <button
+                  type="button"
+                  onClick={() => handleWishlistToggle(fish)}
+                  aria-pressed={wishlistFishIds.has(fish.id)}
+                  aria-label={wishlistFishIds.has(fish.id) ? `取消收藏${fish.name}` : `收藏${fish.name}`}
+                  title={wishlistFishIds.has(fish.id) ? '取消收藏' : '收藏到水族册'}
+                  className={`absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border bg-white/94 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
+                    wishlistFishIds.has(fish.id)
+                      ? 'border-rose-200 text-rose-500'
+                      : 'border-white text-ink/45 hover:border-rose-100 hover:text-rose-500'
+                  }`}
+                >
+                  <Heart className={`h-[18px] w-[18px] ${wishlistFishIds.has(fish.id) ? 'fill-current' : ''}`} />
+                </button>
                 <div
                   data-species-card-image-area
                   className={`w-full aspect-square min-h-[150px] flex items-center justify-center overflow-visible relative rounded-[16px] border md:min-h-[170px] ${
@@ -1608,11 +1714,6 @@ export default function Encyclopedia() {
                   {isMarine && !isInCalculator && (
                     <span className="absolute right-1.5 top-1.5 z-10 rounded-full border border-sky-100 bg-white/92 px-1.5 py-0.5 text-[9px] font-black text-sky-700 shadow-sm">
                       海缸
-                    </span>
-                  )}
-                  {theme.needsHeater && (
-                    <span className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-amber-100 bg-white/92 text-amber-600 shadow-sm" title="建议稳定加热">
-                      <Thermometer className="h-3.5 w-3.5" />
                     </span>
                   )}
                   <ResilientImage
@@ -1635,7 +1736,7 @@ export default function Encyclopedia() {
                   <p className="mt-0.5 line-clamp-1 text-[12px] font-bold leading-snug text-ink/54">{getSpeciesRole(fish)}</p>
                 </div>
                 <div className="flex min-h-[48px] max-h-[48px] flex-wrap content-start gap-1 overflow-hidden">
-                  {compactTags.slice(0, 3).map(tag => (
+                  {Array.from(new Set([...(theme.needsHeater ? ['需稳定加热'] : []), ...compactTags])).slice(0, 3).map(tag => (
                     <span key={tag} className={`px-1.5 py-0.5 text-[10px] font-bold border rounded-full ${
                       tag === '建议单养'
                         ? 'bg-red-50 text-red-600 border-red-100'
@@ -1914,31 +2015,46 @@ export default function Encyclopedia() {
                       <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                         {selectedGroup.variants.map(variant => {
                           const active = variant.id === selectedGroupVariant.id;
+                          const isFavorite = wishlistFishIds.has(variant.id);
                           return (
-                            <button
-                              key={variant.id}
-                              type="button"
-                              onClick={() => setSelectedVariantId(variant.id)}
-                              className={`flex min-w-0 flex-col items-center gap-1.5 rounded-[16px] border px-1.5 py-2 text-center transition-colors ${
-                                active
-                                  ? 'border-emerald-700 bg-emerald-50 text-emerald-800 shadow-sm ring-2 ring-emerald-100'
-                                  : 'border-border bg-white text-ink/60 hover:border-emerald-200 hover:text-emerald-700'
-                              }`}
-                            >
-                              <span className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-bg ${active ? 'border-emerald-200' : 'border-border/70'} ${getSpeciesImageSurfaceClass(variant)}`}>
-                                <ResilientImage
-                                  src={getSpeciesVisualSources(variant).thumbnail}
-                                  alt=""
-                                  loading="lazy"
-                                  decoding="async"
-                                  className={`h-full w-full object-contain p-[8%] ${getSpeciesImageClass(variant)}`}
-                                  referrerPolicy="no-referrer"
-                                />
-                              </span>
-                              <span className="block max-w-full truncate text-[10px] font-black leading-tight">
-                                {getVariantLabel(variant, selectedGroup)}
-                              </span>
-                            </button>
+                            <div key={variant.id} className="relative min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedVariantId(variant.id)}
+                                className={`flex w-full min-w-0 flex-col items-center gap-1.5 rounded-[16px] border px-1.5 py-2 text-center transition-colors ${
+                                  active
+                                    ? 'border-emerald-700 bg-emerald-50 text-emerald-800 shadow-sm ring-2 ring-emerald-100'
+                                    : 'border-border bg-white text-ink/60 hover:border-emerald-200 hover:text-emerald-700'
+                                }`}
+                              >
+                                <span className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-bg ${active ? 'border-emerald-200' : 'border-border/70'} ${getSpeciesImageSurfaceClass(variant)}`}>
+                                  <ResilientImage
+                                    src={getSpeciesVisualSources(variant).thumbnail}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className={`h-full w-full object-contain p-[8%] ${getSpeciesImageClass(variant)}`}
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </span>
+                                <span className="block max-w-full truncate text-[10px] font-black leading-tight">
+                                  {getVariantLabel(variant, selectedGroup)}
+                                </span>
+                              </button>
+                              <button
+                                id={`group-variant-wishlist-${variant.id}`}
+                                type="button"
+                                onClick={() => handleWishlistToggle(variant)}
+                                aria-pressed={isFavorite}
+                                aria-label={isFavorite ? `取消收藏${variant.name}` : `收藏${variant.name}`}
+                                title={isFavorite ? '取消收藏' : '收藏到水族册'}
+                                className={`absolute right-1 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border bg-white/95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
+                                  isFavorite ? 'border-rose-200 text-rose-500' : 'border-white text-ink/42 hover:text-rose-500'
+                                }`}
+                              >
+                                <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                              </button>
+                            </div>
                           );
                         })}
                       </div>
