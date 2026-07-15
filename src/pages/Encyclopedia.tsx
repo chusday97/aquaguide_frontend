@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent } from 'react';
+import posthog from 'posthog-js';
 import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
 import { fishData } from '../data/fishData';
@@ -543,9 +544,11 @@ export default function Encyclopedia() {
 
   const toggleWishlist = (id: string) => {
     const next = new Set(wishlistFishIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    const isAdding = !next.has(id);
+    if (isAdding) next.add(id);
+    else next.delete(id);
     syncWishlistFishIds(next);
+    if (isAdding) posthog.capture('species_favorited', { species_id: id });
   };
 
   const encyclopediaCatalog = useMemo(
@@ -577,6 +580,10 @@ export default function Encyclopedia() {
       action: 'generate',
       status: miniCompatibilityResult.status,
       entry: 'encyclopedia',
+    });
+    posthog.capture('compatibility_check_run', {
+      species_count: calculatorSpeciesIds.length,
+      result_status: miniCompatibilityResult.status,
     });
   }, [calculatorSpeciesIds, miniCompatibilityResult]);
   const discoveryPool = useMemo(

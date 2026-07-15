@@ -4,6 +4,7 @@
  */
 
 import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import posthog from 'posthog-js';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -101,6 +102,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('AquaGuide render error', error, info);
+    posthog.captureException(error, { extra: { componentStack: info.componentStack } });
   }
 
   render() {

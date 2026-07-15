@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
+import posthog from 'posthog-js';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import { Button } from '@/components/ui/button';
@@ -1230,6 +1231,10 @@ export default function AquariumManager() {
     if (!execution.added) return false;
 
     saveAquariums(execution.aquariums);
+    posthog.capture('species_added_to_aquarium', {
+      species_count: normalizedItems.length,
+      compatibility_status: execution.review?.status ?? 'compatible',
+    });
     setAddFishCompatibilityReview(null);
     setAddFishSuccess({
       aquariumName: activeAquarium.name,
@@ -1341,10 +1346,11 @@ export default function AquariumManager() {
 
   const handleRemoveFish = (fishIdToRemove: string) => {
     if (!activeAquarium) return;
-    const updated = aquariums.map(a => 
+    const updated = aquariums.map(a =>
       a.id === activeId ? { ...a, fishes: a.fishes.filter(f => f.id !== fishIdToRemove) } : a
     );
     saveAquariums(updated);
+    posthog.capture('species_removed_from_aquarium');
   };
 
   const handleUpdateEntryDate = (fishId: string, newDate: string) => {
@@ -2300,6 +2306,7 @@ export default function AquariumManager() {
       : '已保存本次诊断');
     if (problemType === '巡检') {
       trackSessionEvent('daily_check_completed', { action: existingDailyRecord ? 'update' : 'complete', status: result.riskLevel, entry: 'aquarium' });
+      posthog.capture('daily_check_completed', { risk_level: result.riskLevel, is_update: Boolean(existingDailyRecord) });
     }
   };
 
@@ -7028,6 +7035,7 @@ export default function AquariumManager() {
           if (!selectedAqFish) return;
           const { records } = recordSpeciesMemorial({ fishId: fish.id, ...input });
           setDeceasedRecords(records);
+          posthog.capture('memorial_recorded');
           if ((selectedAqFish.aqFish.quantity || 1) > 1) {
             handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
           } else {
