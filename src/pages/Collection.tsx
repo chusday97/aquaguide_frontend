@@ -17,13 +17,15 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AdaptiveDetailContent } from '../components/common/AdaptiveDetailContent';
+import { ResilientImage } from '../components/common/ResilientImage';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import { careTopicsData, type CareTopic } from '../data/careTopicsData';
 import { fishData } from '../data/fishData';
-import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass, getSpeciesVisualSources } from '../lib/speciesVisual';
+import { getCareVisualSources } from '../lib/careVisual';
 import type { AchievementId, CollectionModule, MemorialItem } from '../modules/collection/collection.types';
 import { getCollectionSnapshot, subscribeToCollection } from '../services/collection/collection.service';
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
@@ -195,7 +197,7 @@ export default function Collection({ module }: { module: CollectionModule }) {
             <article key={fish.id} id={`collection-wishlist-${fish.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-wishlist-${fish.id}`); setSelectedFish(fish); }} className="group text-left">
                 <span className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-[16px] bg-bg ${getSpeciesImageSurfaceClass(fish)}`}>
-                  <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain transition-transform duration-200 group-hover:scale-[1.03] ${getSpeciesImageClass(fish)}`} loading="lazy" decoding="async" />
+                  <ResilientImage src={getSpeciesVisualSources(fish).thumbnail} srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`} sizes="(max-width: 430px) 46vw, 220px" alt={fish.name} className={`h-full w-full object-contain p-[7%] transition-transform duration-200 group-hover:scale-[1.03] ${getSpeciesImageClass(fish)}`} loading="lazy" decoding="async" />
                 </span>
                 <span className="mt-3 flex items-start justify-between gap-2">
                   <span className="min-w-0">
@@ -218,7 +220,7 @@ export default function Collection({ module }: { module: CollectionModule }) {
           {careTopics.slice(0, visibleCount).map(topic => (
             <article key={topic.id} id={`collection-care-${topic.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-care-${topic.id}`); setSelectedTopic(topic); }} className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 text-left">
-                <img src={topic.imageUrl} alt="" className="h-[86px] w-[86px] rounded-[15px] bg-bg object-cover" loading="lazy" decoding="async" />
+                <div className="h-[86px] w-[86px] overflow-hidden rounded-[15px] bg-bg"><ResilientImage src={getCareVisualSources(topic.imageUrl).thumbnail} srcSet={`${getCareVisualSources(topic.imageUrl).thumbnail} 480w, ${getCareVisualSources(topic.imageUrl).detail} 960w`} sizes="86px" alt={topic.title} className="h-full w-full object-cover" loading="lazy" decoding="async" /></div>
                 <span className="min-w-0">
                   <span className="flex items-start justify-between gap-2">
                     <span className="line-clamp-2 text-[14px] font-black leading-tight text-ink">{topic.title}</span>
@@ -248,7 +250,7 @@ export default function Collection({ module }: { module: CollectionModule }) {
                 className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] border border-white/80 bg-white p-3 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-100 grayscale">
-                  {fish ? <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[84%] w-[84%] object-contain opacity-75 ${getSpeciesImageClass(fish)}`} loading="lazy" /> : <Skull className="h-5 w-5 text-ink/30" />}
+                  {fish ? <ResilientImage src={getSpeciesVisualSources(fish).thumbnail} alt={fish.name} className={`h-full w-full object-contain p-[8%] opacity-75 ${getSpeciesImageClass(fish)}`} loading="lazy" /> : <Skull className="h-5 w-5 text-ink/30" />}
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] font-black text-ink">{fish?.name || '未匹配生物'}</span>
@@ -366,7 +368,7 @@ export default function Collection({ module }: { module: CollectionModule }) {
               <div className="app-scrollbar-hidden flex-1 overflow-y-auto p-5 pt-16 md:p-8 md:pt-16">
                 <div className="mx-auto max-w-[520px]">
                   <div className="flex h-36 items-center justify-center rounded-[24px] bg-slate-100 grayscale">
-                    {fish ? <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[80%] w-[80%] object-contain opacity-75 ${getSpeciesImageClass(fish)}`} /> : <Skull className="h-10 w-10 text-ink/25" />}
+                    {fish ? <ResilientImage src={getSpeciesVisualSources(fish).detail} alt={fish.name} className={`h-full w-full object-contain p-[10%] opacity-75 ${getSpeciesImageClass(fish)}`} /> : <Skull className="h-10 w-10 text-ink/25" />}
                   </div>
                   <DialogHeader className="mt-5 text-left">
                     <DialogTitle className="text-[22px] font-black">{fish?.name || '生命纪念'}</DialogTitle>

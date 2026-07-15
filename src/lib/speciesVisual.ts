@@ -487,6 +487,23 @@ export const getSpeciesDisplayImage = (fish: Pick<Fish, 'id' | 'image'>) => (
   || (visibilityOverrideIds.has(fish.id) ? `/species-image-overrides/${fish.id}.png?v=visibility_20260630_v2` : fish.image)
 );
 
+export interface SpeciesVisualSources {
+  thumbnail: string;
+  detail: string;
+  texture: string;
+  fallback: string;
+}
+
+export const getSpeciesVisualSources = (fish: Pick<Fish, 'id' | 'image'>): SpeciesVisualSources => {
+  const display = getSpeciesDisplayImage(fish);
+  return {
+    thumbnail: `/responsive/species/${fish.id}-256.webp`,
+    detail: `/responsive/species/${fish.id}-768.webp`,
+    texture: display,
+    fallback: display,
+  };
+};
+
 export const hasLowContrastSpeciesImage = (fish: Pick<Fish, 'name' | 'scientificName' | 'image'>) => (
   paleBodyPattern.test(`${fish.name} ${fish.scientificName} ${fish.image}`)
 );
@@ -502,4 +519,3 @@ export const getSpeciesImageClass = (fish: Pick<Fish, 'name' | 'scientificName' 
     ? 'drop-shadow-[0_12px_18px_rgba(37,79,92,0.30)] contrast-[1.12] saturate-[1.08]'
     : 'drop-shadow-[0_8px_12px_rgba(27,77,62,0.12)]'
 );
-

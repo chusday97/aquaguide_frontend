@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="图片暂时无法显示">
+  <rect width="320" height="240" rx="28" fill="#eef4f1"/>
+  <path d="M92 144c24-44 58-66 103-66 19 0 36 4 51 12-19 4-34 15-45 32 15 4 29 13 40 28-15 8-33 12-54 12-40 0-72-6-95-18Z" fill="#b8d3c7"/>
+  <circle cx="196" cy="109" r="5" fill="#1b4d3e"/>
+  <path d="M91 144 57 119v50l34-25Z" fill="#78aa95"/>
+  <text x="160" y="204" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#557267">图片稍后再试</text>
+</svg>

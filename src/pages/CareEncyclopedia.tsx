@@ -13,6 +13,8 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 import { getLifeType } from '../modules/species/species.service';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import { ResilientImage } from '../components/common/ResilientImage';
+import { getCareVisualSources } from '../lib/careVisual';
 import { AdaptiveDetailContent } from '../components/common/AdaptiveDetailContent';
 import {
   getCareFavorites,
@@ -1800,11 +1802,12 @@ export default function CareEncyclopedia() {
 function CareImage({ topic, className, showPreviewHint = false }: { topic: CareTopic; className: string; showPreviewHint?: boolean }) {
   const Icon = categoryIconMap[topic.category] || HelpCircle;
   const image = getCareImage(topic);
+  const visualSources = image ? getCareVisualSources(image) : null;
   return (
     <div className={`relative flex items-center justify-center overflow-hidden bg-[#F7F4EC] ${className}`}>
       {image ? (
         <>
-          <img src={image} alt={topic.title} className="h-full w-full object-contain p-1.5" loading="lazy" />
+          <ResilientImage src={visualSources?.thumbnail} srcSet={`${visualSources?.thumbnail} 480w, ${visualSources?.detail} 960w`} sizes="(max-width: 430px) 100vw, 520px" alt={topic.title} className="h-full w-full object-contain p-1.5" loading="lazy" decoding="async" />
           {showPreviewHint && (
             <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-black text-white backdrop-blur-sm">
               <Maximize2 className="h-3 w-3" />

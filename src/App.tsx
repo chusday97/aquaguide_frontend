@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -22,15 +22,41 @@ import {
 import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
+import { DataRecoveryNotice, RouteErrorBoundary } from './components/common/RouteErrorBoundary';
+import { lazyWithRecovery } from './lib/lazyWithRecovery';
 
-const AquariumManager = lazy(() => import('./pages/Aquarium'));
-const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
-const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
-const Collection = lazy(() => import('./pages/Collection'));
-const CollectionHub = lazy(() => import('./pages/CollectionHub'));
-const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
-const Login = lazy(() => import('./pages/Login'));
-const ThreeDemo = lazy(() => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo })));
+const loadAquarium = () => import('./pages/Aquarium');
+const loadEncyclopedia = () => import('./pages/Encyclopedia');
+const loadCare = () => import('./pages/CareEncyclopedia');
+const loadCollection = () => import('./pages/Collection');
+const loadCollectionHub = () => import('./pages/CollectionHub');
+const loadProjectStructure = () => import('./pages/ProjectStructurePreview');
+const loadLogin = () => import('./pages/Login');
+const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
+
+const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
+const Encyclopedia = lazyWithRecovery(loadEncyclopedia, 'encyclopedia');
+const CareEncyclopedia = lazyWithRecovery(loadCare, 'care');
+const Collection = lazyWithRecovery(loadCollection, 'collection-module');
+const CollectionHub = lazyWithRecovery(loadCollectionHub, 'collection-hub');
+const ProjectStructurePreview = lazyWithRecovery(loadProjectStructure, 'project-structure');
+const Login = lazyWithRecovery(loadLogin, 'login');
+const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
+
+const preloadRoute = (path: string) => {
+  const loader = path === '/aquarium'
+    ? loadAquarium
+    : path === '/encyclopedia'
+      ? loadEncyclopedia
+      : path === '/care'
+        ? loadCare
+        : path === '/collection'
+          ? loadCollectionHub
+          : path.startsWith('/collection/')
+            ? loadCollection
+          : null;
+  if (loader) void loader().catch(() => undefined);
+};
 
 
 const createWatermarkedImageSrc = (image: HTMLImageElement) => {
@@ -117,20 +143,11 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
             页面加载异常
           </div>
           <h1 className="text-xl font-black">AquaGuide 暂时没有渲染出来</h1>
-          <p className="mt-2 text-sm leading-6 text-ink/60">
-            这通常是旧数据或某个组件运行时报错导致的。下面是浏览器捕获到的错误，发给我我就能继续精确修。
-          </p>
-          <pre className="mt-4 max-h-56 overflow-auto rounded-2xl bg-slate-950 p-3 text-[11px] leading-5 text-white">
-            {this.state.error.message}
-            {this.state.error.stack ? `\n\n${this.state.error.stack}` : ''}
-          </pre>
-          <button
-            type="button"
-            className="mt-4 h-11 w-full rounded-2xl bg-emerald-600 text-sm font-black text-white"
-            onClick={() => window.location.reload()}
-          >
-            重新加载
-          </button>
+          <p className="mt-2 text-sm leading-6 text-ink/60">页面遇到暂时性问题。可以重试一次，或先返回我的鱼缸继续使用其他功能。</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" className="h-11 rounded-2xl bg-emerald-700 text-sm font-black text-white" onClick={() => this.setState({ error: null })}>重新尝试</button>
+            <button type="button" className="h-11 rounded-2xl border border-emerald-100 bg-white text-sm font-black text-emerald-800" onClick={() => window.location.assign('/aquarium')}>返回我的鱼缸</button>
+          </div>
         </div>
       </div>
     );
@@ -185,7 +202,9 @@ function BottomNavigation() {
                 key={item.path}
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
-                onClick={() => navigate(item.path)}
+                  onClick={() => navigate(item.path)}
+                  onMouseEnter={() => preloadRoute(item.path)}
+                  onFocus={() => preloadRoute(item.path)}
                 className={cn(
                   "relative flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-bold transition-all",
                   isActive
@@ -266,6 +285,8 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   key={item.path}
                   type="button"
                   onClick={() => handlePrimaryNav(item.path)}
+                  onMouseEnter={() => preloadRoute(item.path)}
+                  onFocus={() => preloadRoute(item.path)}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     'flex min-h-[58px] w-full items-center gap-3 rounded-[20px] px-3 text-left transition-colors',
@@ -485,24 +506,28 @@ function CollectionEntry() {
 }
 
 function WorkspaceRoutes() {
+  const page = (content: ReactNode, name: string) => <RouteErrorBoundary page={name}>{content}</RouteErrorBoundary>;
   return (
-    <Suspense fallback={<PageLoading />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/aquarium" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/encyclopedia" element={<Encyclopedia />} />
-        <Route path="/care" element={<CareEncyclopedia />} />
-        <Route path="/collection" element={<CollectionEntry />} />
-        <Route path="/collection/wishlist" element={<Collection module="wishlist" />} />
-        <Route path="/collection/care" element={<Collection module="care" />} />
-        <Route path="/collection/memorial" element={<Collection module="memorial" />} />
-        <Route path="/collection/achievements" element={<Collection module="achievements" />} />
-        <Route path="/wishlist" element={<Navigate to="/collection/wishlist" replace />} />
-        <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
-        <Route path="/aquarium" element={<AquariumManager />} />
-        <Route path="/3d-demo" element={<ThreeDemo />} />
-      </Routes>
-    </Suspense>
+    <>
+      <DataRecoveryNotice />
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/aquarium" replace />} />
+          <Route path="/login" element={page(<Login />, 'login')} />
+          <Route path="/encyclopedia" element={page(<Encyclopedia />, 'encyclopedia')} />
+          <Route path="/care" element={page(<CareEncyclopedia />, 'care')} />
+          <Route path="/collection" element={page(<CollectionEntry />, 'collection')} />
+          <Route path="/collection/wishlist" element={page(<Collection module="wishlist" />, 'collection-wishlist')} />
+          <Route path="/collection/care" element={page(<Collection module="care" />, 'collection-care')} />
+          <Route path="/collection/memorial" element={page(<Collection module="memorial" />, 'collection-memorial')} />
+          <Route path="/collection/achievements" element={page(<Collection module="achievements" />, 'collection-achievements')} />
+          <Route path="/wishlist" element={<Navigate to="/collection/wishlist" replace />} />
+          <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
+          <Route path="/aquarium" element={page(<AquariumManager />, 'aquarium')} />
+          <Route path="/3d-demo" element={page(<ThreeDemo />, '3d-demo')} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }
 

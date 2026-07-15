@@ -22,7 +22,7 @@ import {
   type TankDailyCheckInterpretationData,
 } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
-import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass, getSpeciesVisualSources } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions, isSpeciesCompatibleWithWaterType } from '../modules/species/species.service';
 import type { DiscoveryDeckState, RecommendationCandidate, RecommendationMode, SimulationResult, SmartRecommendationOutput } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
@@ -63,6 +63,7 @@ import { TemplatePlanCard } from '../components/product/TemplatePlanCard';
 import { ActionCenterCard, type ActionCenterStatus } from '../components/product/ActionCenterCard';
 import { QuickActionGrid } from '../components/product/QuickActionGrid';
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
+import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import {
@@ -674,6 +675,8 @@ export default function AquariumManager() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isBuildPlanOpen, setIsBuildPlanOpen] = useState(false);
   const [isTankPreviewOpen, setIsTankPreviewOpen] = useState(false);
+  const [shouldLoadThreeAquarium, setShouldLoadThreeAquarium] = useState(false);
+  const [requiresManualThreeLoad, setRequiresManualThreeLoad] = useState(false);
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [diagnosisText, setDiagnosisText] = useState('');
   const [diagnosisFullText, setDiagnosisFullText] = useState('');
@@ -777,6 +780,26 @@ export default function AquariumManager() {
   const [localDataMessage, setLocalDataMessage] = useState('');
   const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const slowConnection = Boolean(connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType || ''));
+    if (slowConnection) {
+      setRequiresManualThreeLoad(true);
+      return;
+    }
+    let idleId: number | undefined;
+    const fallbackTimer = typeof window.requestIdleCallback === 'function'
+      ? undefined
+      : window.setTimeout(() => setShouldLoadThreeAquarium(true), 900);
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(() => setShouldLoadThreeAquarium(true), { timeout: 1400 });
+    }
+    return () => {
+      if (idleId !== undefined && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
+      if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+    };
+  }, []);
+
   useEffect(() => {
     const appState = loadAppStateFromStorage();
     setWishlistFishIds(loadWishlistFishIds());
@@ -2384,7 +2407,7 @@ export default function AquariumManager() {
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
-  const discoveryImageSrc = discoveryFish ? getSpeciesDisplayImage(discoveryFish) : '';
+  const discoveryImageSrc = discoveryFish ? getSpeciesVisualSources(discoveryFish).thumbnail : '';
   const nextDiscoveryImageSrc = nextDiscoveryFish ? getSpeciesDisplayImage(nextDiscoveryFish) : '';
   const discoveryUsedToday = discoveryState.consumedIds.length;
   const discoveryRemainingToday = Math.max(0, DISCOVERY_DAILY_LIMIT - discoveryUsedToday);
@@ -2407,7 +2430,7 @@ export default function AquariumManager() {
       if (!fish) return;
       const preload = new Image();
       preload.decoding = 'async';
-      preload.src = getSpeciesDisplayImage(fish);
+      preload.src = getSpeciesVisualSources(fish).thumbnail;
     });
   }, [discoveryImageSrc, discoveryPool, discoveryState.queueIds]);
 
@@ -4062,10 +4085,12 @@ export default function AquariumManager() {
             className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99] md:desktop-split-card md:items-start md:gap-4"
           >
             <div className={`flex h-full min-h-[116px] items-center justify-center rounded-[14px] p-2 ${getSpeciesImageSurfaceClass(discoveryFish)}`}>
-              <img
-                src={discoveryImageSrc}
+              <ResilientImage
+                src={getSpeciesVisualSources(discoveryFish).thumbnail}
+                srcSet={`${getSpeciesVisualSources(discoveryFish).thumbnail} 256w, ${getSpeciesVisualSources(discoveryFish).detail} 768w`}
+                sizes="(max-width: 430px) 38vw, 260px"
                 alt={discoveryFish.name}
-                className={`max-h-[104px] w-full object-contain ${getSpeciesImageClass(discoveryFish)}`}
+                className={`h-full w-full object-contain p-2 ${getSpeciesImageClass(discoveryFish)}`}
                 referrerPolicy="no-referrer"
                 loading="eager"
                 decoding="async"
@@ -4205,19 +4230,32 @@ export default function AquariumManager() {
 
       {/* Visual Tank Placeholder */}
       <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[6] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
-        <Suspense
-          fallback={
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
-              正在加载鱼缸画面...
-            </div>
-          }
-        >
-          <ThreeAquarium
-            aquarium={activeAquarium}
-            activeSpecies={active3DSpecies}
-            onSpeciesSelect={handleAquariumSpeciesSelect}
-          />
-        </Suspense>
+        {shouldLoadThreeAquarium ? (
+          <Suspense
+            fallback={
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
+                正在加载鱼缸画面...
+              </div>
+            }
+          >
+            <ThreeAquarium
+              aquarium={activeAquarium}
+              activeSpecies={active3DSpecies}
+              onSpeciesSelect={handleAquariumSpeciesSelect}
+            />
+          </Suspense>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,#dff4f6,#a9d7cf)]">
+            {currentFishesDetails[0] ? (
+              <div className="h-40 w-56 opacity-85"><ResilientImage src={getSpeciesVisualSources(currentFishesDetails[0]).thumbnail} alt={currentFishesDetails[0].name} className="h-full w-full object-contain" /></div>
+            ) : <span className="text-xs font-black text-emerald-900/55">鱼缸画面将在空闲时加载</span>}
+            {requiresManualThreeLoad && (
+              <Button type="button" onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); }} className="absolute bottom-3 left-1/2 h-9 -translate-x-1/2 rounded-full bg-white px-4 text-[11px] font-black text-emerald-800 shadow-sm hover:bg-white">
+                加载 3D 鱼缸
+              </Button>
+            )}
+          </div>
+        )}
         
         {/* Environment Info Overlay */}
         <div className="absolute left-2 top-2 z-10 flex max-w-[calc(100%-112px)] flex-wrap gap-1.5 pointer-events-none">
@@ -4267,7 +4305,7 @@ export default function AquariumManager() {
           <Button
             aria-label="全屏预览"
             title="全屏预览"
-            onClick={() => setIsTankPreviewOpen(true)}
+            onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); setIsTankPreviewOpen(true); }}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
           >
             <Maximize2 className="h-4 w-4" />

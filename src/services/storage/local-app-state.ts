@@ -1,5 +1,6 @@
 import type { Aquarium } from '../../types';
 import type { DiscoveryDeckState } from '../../modules/recommendation/recommendation.schema';
+import { notifyDataRecovery } from '../diagnostics/ui-failure.service';
 
 export const AQUARIUM_APP_STATE_KEY = 'aquarium_app_state_v1';
 export const AQUARIUM_APP_STATE_VERSION = 1;
@@ -29,18 +30,18 @@ export type LocalAppState = {
   updatedAt: string;
 };
 
-const safeParse = <T,>(value: string | null, fallback: T): T => {
+const safeParse = <T,>(value: string | null, fallback: T, resource = 'local-storage'): T => {
   if (!value) return fallback;
   try {
     return JSON.parse(value) as T;
   } catch (error) {
-    console.warn('AquaGuide local app state parse failed', error);
+    notifyDataRecovery(resource, error);
     return fallback;
   }
 };
 
 const readLegacyArray = <T,>(key: string): T[] => {
-  const parsed = safeParse<unknown>(localStorage.getItem(key), []);
+  const parsed = safeParse<unknown>(localStorage.getItem(key), [], key);
   return Array.isArray(parsed) ? parsed as T[] : [];
 };
 
@@ -87,7 +88,7 @@ const emitAppStateChanged = () => {
 };
 
 export const loadAppStateFromStorage = (): LocalAppState => {
-  const stored = safeParse<Partial<LocalAppState> | null>(localStorage.getItem(AQUARIUM_APP_STATE_KEY), null);
+  const stored = safeParse<Partial<LocalAppState> | null>(localStorage.getItem(AQUARIUM_APP_STATE_KEY), null, AQUARIUM_APP_STATE_KEY);
   if (stored) return normalizeState(stored);
 
   return normalizeState({
@@ -96,7 +97,7 @@ export const loadAppStateFromStorage = (): LocalAppState => {
     wishlist: readLegacyArray<string>('wishlistFishIds'),
     diagnosisRecords: readLegacyArray<unknown>('aquarium_diagnosis_records'),
     deceasedRecords: readLegacyArray<unknown>('deceasedRecords'),
-    discoveryState: safeParse<DiscoveryDeckState | undefined>(localStorage.getItem('aquapediaDiscoveryDeck'), undefined),
+    discoveryState: safeParse<DiscoveryDeckState | undefined>(localStorage.getItem('aquapediaDiscoveryDeck'), undefined, 'aquapediaDiscoveryDeck'),
   });
 };
 
@@ -184,7 +185,7 @@ export const clearLocalAppState = () => {
 export const exportLocalAppState = () => JSON.stringify(loadAppStateFromStorage(), null, 2);
 
 export const importLocalAppState = (json: string) => {
-  const parsed = safeParse<Partial<LocalAppState> | null>(json, null);
+  const parsed = safeParse<Partial<LocalAppState> | null>(json, null, 'local-data-import');
   if (!parsed) throw new Error('导入失败：不是有效的 AquaGuide 本地数据。');
   return saveAppStateToStorage(normalizeState(parsed));
 };

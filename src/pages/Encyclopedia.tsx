@@ -32,7 +32,8 @@ import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalc
 import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage/local-app-state';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
-import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { ResilientImage } from '../components/common/ResilientImage';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass, getSpeciesVisualSources } from '../lib/speciesVisual';
 import {
   evaluateSpeciesForAquarium,
   getCurrentLivestockForAquarium,
@@ -605,8 +606,8 @@ export default function Encyclopedia() {
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
-  const discoveryImageSrc = discoveryFish ? getEncyclopediaImage(discoveryFish) : '';
-  const nextDiscoveryImageSrc = nextDiscoveryFish ? getEncyclopediaImage(nextDiscoveryFish) : '';
+  const discoveryImageSrc = discoveryFish ? getSpeciesVisualSources(discoveryFish).thumbnail : '';
+  const nextDiscoveryImageSrc = nextDiscoveryFish ? getSpeciesVisualSources(nextDiscoveryFish).thumbnail : '';
   const discoveryUsedToday = discoveryState.consumedIds.length;
   const discoveryRemainingToday = Math.max(0, DISCOVERY_DAILY_LIMIT - discoveryUsedToday);
   const isDiscoveryDailyLimitReached = discoveryRemainingToday === 0;
@@ -628,7 +629,7 @@ export default function Encyclopedia() {
       if (!fish) return;
       const preload = new Image();
       preload.decoding = 'async';
-      preload.src = getEncyclopediaImage(fish);
+      preload.src = getSpeciesVisualSources(fish).thumbnail;
     });
   }, [discoveryImageSrc, discoveryPool, discoveryState.queueIds]);
 
@@ -1482,13 +1483,15 @@ export default function Encyclopedia() {
                         <Thermometer className="h-3.5 w-3.5" />
                       </span>
                     )}
-                    <img
-                      src={getEncyclopediaImage(fish)}
+                    <ResilientImage
+                      src={getSpeciesVisualSources(fish).thumbnail}
+                      srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`}
+                      sizes="(max-width: 430px) 46vw, 220px"
                       alt={group.groupName}
                       data-species-image
                       loading="lazy"
                       decoding="async"
-                      className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${getSpeciesImageClass(fish)}`}
+                      className={`h-full w-full object-contain p-[6%] transition-opacity duration-300 ${getSpeciesImageClass(fish)}`}
                       referrerPolicy="no-referrer"
                     />
                   </button>
@@ -1513,12 +1516,12 @@ export default function Encyclopedia() {
                           aria-label={`查看${variant.name}`}
                         >
                           <span className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-bg shadow-sm transition-colors group-hover:border-emerald-300 ${getSpeciesImageSurfaceClass(variant)}`}>
-                            <img
-                              src={getEncyclopediaImage(variant)}
+                            <ResilientImage
+                              src={getSpeciesVisualSources(variant).thumbnail}
                               alt=""
                               loading="lazy"
                               decoding="async"
-                              className={`max-h-[84%] max-w-[84%] object-contain ${getSpeciesImageClass(variant)}`}
+                              className={`h-full w-full object-contain p-[8%] ${getSpeciesImageClass(variant)}`}
                               referrerPolicy="no-referrer"
                             />
                           </span>
@@ -1612,13 +1615,15 @@ export default function Encyclopedia() {
                       <Thermometer className="h-3.5 w-3.5" />
                     </span>
                   )}
-                  <img 
-                    src={getEncyclopediaImage(fish)} 
+                  <ResilientImage
+                    src={getSpeciesVisualSources(fish).thumbnail}
+                    srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`}
+                    sizes="(max-width: 430px) 46vw, 220px"
                     alt={fish.name} 
                     data-species-image
                     loading="lazy"
                     decoding="async"
-                    className={`max-h-[88%] max-w-[88%] object-contain transition-opacity duration-300 ${imageClass} ${getSpeciesImageClass(fish)}`}
+                    className={`h-full w-full object-contain p-[6%] transition-opacity duration-300 ${imageClass} ${getSpeciesImageClass(fish)}`}
                     referrerPolicy="no-referrer"
                   />
                 </div>
@@ -1875,12 +1880,12 @@ export default function Encyclopedia() {
                     className={`flex min-h-[240px] items-center justify-center rounded-[22px] bg-bg p-5 ${getSpeciesImageSurfaceClass(selectedGroupVariant)}`}
                     aria-label={`放大查看${selectedGroupVariant.name}`}
                   >
-                    <img
-                      src={getEncyclopediaImage(selectedGroupVariant)}
+                    <ResilientImage
+                      src={getSpeciesVisualSources(selectedGroupVariant).detail}
                       alt={selectedGroupVariant.name}
                       loading="lazy"
                       decoding="async"
-                      className={`max-h-[260px] max-w-full object-contain ${getSpeciesImageClass(selectedGroupVariant)}`}
+                      className={`h-full w-full object-contain p-4 ${getSpeciesImageClass(selectedGroupVariant)}`}
                       referrerPolicy="no-referrer"
                     />
                   </button>
@@ -1921,12 +1926,12 @@ export default function Encyclopedia() {
                               }`}
                             >
                               <span className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-bg ${active ? 'border-emerald-200' : 'border-border/70'} ${getSpeciesImageSurfaceClass(variant)}`}>
-                                <img
-                                  src={getEncyclopediaImage(variant)}
+                                <ResilientImage
+                                  src={getSpeciesVisualSources(variant).thumbnail}
                                   alt=""
                                   loading="lazy"
                                   decoding="async"
-                                  className={`max-h-[84%] max-w-[84%] object-contain ${getSpeciesImageClass(variant)}`}
+                                  className={`h-full w-full object-contain p-[8%] ${getSpeciesImageClass(variant)}`}
                                   referrerPolicy="no-referrer"
                                 />
                               </span>
