@@ -12,7 +12,10 @@ flowchart TD
   A --> E["我的水族册 /collection"]
   E --> E1["种草 tab=wishlist"]
   E --> E2["养护收藏 tab=care"]
-  E --> E3["生命纪念 tab=memorial"]
+  E --> E1["种草图鉴 /collection/wishlist"]
+  E --> E2["养护收藏 /collection/care"]
+  E --> E3["生命纪念 /collection/memorial"]
+  E --> E4["成就勋章 /collection/achievements"]
   E --> E4["成就勋章 tab=achievements"]
   A -. 内部实验 .-> X["3D Demo /3d-demo"]
 ```
@@ -35,14 +38,15 @@ flowchart TD
 | `/aquarium` | 鱼缸概览、维护记录、每日检查、添加生物 | 鱼缸、缸内生物、巡检记录 | 正式 |
 | `/encyclopedia` | 查物种、种草、Mini 混养 | 物种库、收藏、混养规则 | 正式 |
 | `/care` | 搜索养护知识、问题补救与收藏 | 养护文章、当前鱼缸 | 正式 |
-| `/collection?tab=wishlist` | 种草图鉴 | 现有种草收藏 | 正式 |
-| `/collection?tab=care` | 养护收藏 | 现有养护收藏 | 正式 |
-| `/collection?tab=memorial` | 生命纪念 | 死亡记录 | 正式 |
-| `/collection?tab=achievements` | 成就进度 | 现有数据的派生结果 | 正式 |
+| `/collection` | 水族册模块首页 | 四类数量与用途 | 正式 |
+| `/collection/wishlist` | 种草图鉴 | 现有种草收藏 | 正式 |
+| `/collection/care` | 养护收藏 | 现有养护收藏 | 正式 |
+| `/collection/memorial` | 生命纪念 | 死亡记录 | 正式 |
+| `/collection/achievements` | 成就进度 | 现有数据的派生结果 | 正式 |
 | `/login` | 可选登录入口 | Supabase Auth | 辅助 |
 | `/3d-demo` | 3D 独立验证页 | 3D 场景与物种素材 | 内部实验，不进入正式导航与核心验收 |
 
-兼容路由：`/wishlist` 跳转到 `/collection?tab=wishlist`，`/care-favorites` 跳转到 `/collection?tab=care`。兼容路由不应再作为新入口使用。
+兼容路由：旧 `/collection?tab=...`、`/wishlist` 与 `/care-favorites` 重定向到对应独立地址。兼容路由不应再作为新入口使用。
 
 ## 4. 页面内层级
 
@@ -75,5 +79,6 @@ flowchart TD
 - 路由与布局壳：`src/App.tsx`
 - 页面：`src/pages/`
 - 导航：`src/components/DesktopSidebar.tsx`、`src/components/MobileBottomNav.tsx`
-- 水族册页签：`src/pages/Collection.tsx`
+- 水族册模块首页：`src/pages/CollectionHub.tsx`
+- 水族册具体模块：`src/pages/Collection.tsx`
 - 代码契约：[CONTRACT.md](../../CONTRACT.md)

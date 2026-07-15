@@ -7,7 +7,8 @@
 - `src/pages/Aquarium.tsx`：我的鱼缸。
 - `src/pages/Encyclopedia.tsx`：图鉴与完整混养计算。
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
-- `src/pages/Collection.tsx`：我的水族册，统一承载种草、养护收藏、生命纪念与成就勋章。
+- `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
+- `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
 
 ## 共享业务
 
@@ -15,7 +16,7 @@
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
 - `src/services/collection/`：水族册聚合读取与 8 枚派生成就计算。
 - `src/services/collection/memorial.service.ts`：生命纪念校验、兼容存储写入与统一变更通知。
-- `src/modules/collection/`：水族册页签、纪念条目与成就进度类型。
+- `src/modules/collection/`：水族册模块、纪念条目与成就进度类型。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/aquarium/aquarium-state.service.ts`：鱼缸集合兼容存储、当前鱼缸校验与统一变更通知。
 - `src/services/care/care-activity.service.ts`：应用内养护计划、完成操作与护理清单的旧键兼容写入。
