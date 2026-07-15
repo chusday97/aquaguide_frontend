@@ -8,7 +8,7 @@
     {"id":"EVD-20260715-003","type":"commit","locator":"b38508c","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"加载恢复、响应式图片和慢网 3D"},
     {"id":"EVD-20260715-004","type":"test","locator":"scripts/test_responsive_images.py and production fault injection records in HANDOFF.md","date":"2026-07-15","version":"b38508c","accessible":true,"sensitive":false,"notes":"资源数量、传输量与故障恢复证据"},
     {"id":"EVD-20260715-005","type":"commit","locator":"a52181e; 194cbcb","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"两屏任务和正式路径登记"},
-    {"id":"EVD-20260715-006","type":"test","locator":"scripts/test-three-step-paths.ts; scripts/verify-three-step-experience.mjs; scripts/verify-core-experience.mjs; scripts/verify-mobile-care-experience.mjs","date":"2026-07-15","version":"194cbcb+working test fix","accessible":true,"sensitive":false,"notes":"12 条路径与桌面/手机浏览器回归"}
+    {"id":"EVD-20260715-006","type":"test","locator":"scripts/test-three-step-paths.ts; scripts/verify-three-step-experience.mjs; scripts/verify-core-experience.mjs; scripts/verify-mobile-care-experience.mjs","date":"2026-07-15","version":"f4e880e","accessible":true,"sensitive":false,"notes":"12 条路径与桌面/手机浏览器回归"}
   ],
   "claims": [
     {"id":"CLM-20260715-001","text":"今日行动只展示一个确定性优先任务，水族册四模块可通过独立地址直达。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-001","EVD-20260715-002"],"contradicting_evidence_ids":[],"scope":"本地分支当前版本","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},

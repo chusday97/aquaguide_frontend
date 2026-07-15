@@ -32,7 +32,7 @@ deployment:
   url: null
   evidence_ids:
     - EVD-20260715-006
-current_version: codex/aquaguide-ux-refactor@194cbcb
+current_version: codex/aquaguide-ux-refactor@f4e880e
 source_availability:
   readme: available
   repository_structure: available
