@@ -48,6 +48,7 @@
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。
+- `scripts/verify-wishlist-shortcut.mjs`：普通物种与具体变种快捷收藏、触控尺寸、跨页同步和水族册直达验收。
 - `scripts/test-three-step-paths.ts` / `scripts/verify-three-step-experience.mjs`：正式路径上限与每日检查、养护自查、添加生物两屏流程验收。
 - `scripts/test-collection-achievements.ts`：水族册聚合与 8 枚勋章追溯断言。
 - `scripts/test-memorial-service.ts`：日期/原因校验、旧键兼容和跨页面变更事件断言。
@@ -58,6 +59,8 @@
 - `docs/02-design/UX_REFACTOR_CONCEPTS.md`：三套设计方向与默认自然水族册方案。
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。
 - `docs/03-development/UX_REFACTOR_TECH.md`：实现架构与数据流。
+- `docs/04-planning/EXTERNAL_VALIDATION_PROTOCOL.md`：真人新手任务、混养跨入口人工验收和低端真机 3D 证据表。
+- `output/image_quality/manual_rework_review_2026-07-15.md`：18 张中优先级素材的逐项人工复核与两张重做门槛。
 - `PROGRESS.md`：项目内进度、决策与阻塞记录。
 
 ## 内部实验

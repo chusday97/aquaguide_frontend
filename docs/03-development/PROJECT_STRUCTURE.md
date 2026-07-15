@@ -32,7 +32,11 @@ aquaguide_frontend/
 | 我的鱼缸 | `/aquarium` | 鱼缸、维护、巡检与缸内生物 |
 | 图鉴 | `/encyclopedia` | 物种发现、种草与 Mini 混养 |
 | 养护百科 | `/care` | 问题搜索、建议和文章 |
-| 我的水族册 | `/collection` | 种草、收藏、纪念与成就 |
+| 我的水族册首页 | `/collection` | 四个模块入口与数量摘要 |
+| 种草图鉴 | `/collection/wishlist` | 收藏物种列表与详情 |
+| 养护收藏 | `/collection/care` | 收藏文章列表与详情 |
+| 生命纪念 | `/collection/memorial` | 离缸记录与复盘 |
+| 成就勋章 | `/collection/achievements` | 自动追溯进度与下一步 |
 | 3D 实验 | `/3d-demo` | 内部 3D 验证，不进入正式导航 |
 
 ## 2. 领域模块
@@ -58,4 +62,3 @@ aquaguide_frontend/
 - 数据类型与 AI 契约变化时，先更新 `CONTRACT.md` 与类型定义，再更新设计文档。
 - 产品状态变化时更新 `docs/01-definition/CURRENT_PRODUCT_STATUS.md` 和 `PROGRESS.md`。
 - 功能完成后在 `40-DOCS/CHANGELOG.md` 的 `[Unreleased]` 下登记。
-

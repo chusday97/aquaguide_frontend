@@ -1,6 +1,6 @@
 # AquaGuide 产品文档索引
 
-> 最后核对：2026-07-14。当前代码、真实浏览器行为和自动测试优先于旧报告或历史对话。
+> 最后核对：2026-07-15。当前代码、真实浏览器行为和自动测试优先于旧报告或历史对话。
 
 ## 产品定位
 
@@ -14,7 +14,7 @@ AquaGuide 以“先用确定性规则给出安全边界，再由 AI 解释”为
 | --- | --- |
 | 产品与设计 | [PRD](./01-definition/PRD.md) → [当前状态](./01-definition/CURRENT_PRODUCT_STATUS.md) → [信息架构](./02-design/INFORMATION_ARCHITECTURE.md) → [交互规范](./02-design/INTERACTION_SPEC.md) → [路线图](./04-planning/PRODUCT_GAPS_AND_ROADMAP.md) |
 | 开发 | [技术架构](./03-development/TECH_ARCHITECTURE.md) → [项目结构](./03-development/PROJECT_STRUCTURE.md) → [数据模型](./02-design/DATA_MODEL.md) → [AI 与 API](./02-design/AI_AND_API_SPEC.md) |
-| 测试与验收 | [用户故事](./01-definition/USER_STORIES.md) → [QA 验收](./03-development/QA_ACCEPTANCE.md) → [交付检查](./delivery-checklist.md) |
+| 测试与验收 | [用户故事](./01-definition/USER_STORIES.md) → [QA 验收](./03-development/QA_ACCEPTANCE.md) → [外部验收协议](./04-planning/EXTERNAL_VALIDATION_PROTOCOL.md) → [交付检查](./delivery-checklist.md) |
 | 新成员 | [项目 README](../README.md) → 本页 → [本地配置](./03-development/SETUP.md) |
 
 ## 文档地图
@@ -48,6 +48,7 @@ AquaGuide 以“先用确定性规则给出安全边界，再由 AI 解释”为
 
 - [产品卡点与路线图](./04-planning/PRODUCT_GAPS_AND_ROADMAP.md)
 - [3D、物种数据与图片性能基线](./04-planning/THREE_AND_ASSET_PERFORMANCE_BASELINE.md)
+- [外部验收协议](./04-planning/EXTERNAL_VALIDATION_PROTOCOL.md)（真人新手、真实鱼缸跨入口与低端真机）
 - [云同步方案评估](./04-planning/CLOUD_SYNC_EVALUATION.md)（只评估，不实施）
 
 ## 单一事实来源
