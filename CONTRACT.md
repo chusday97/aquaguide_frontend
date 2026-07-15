@@ -36,7 +36,8 @@ interface CareReminderRecord {
 - 成就勋章：根据鱼缸、巡检、换水、收藏和生命纪念记录即时派生
 
 ```ts
-type CollectionTab = "wishlist" | "care" | "memorial" | "achievements";
+type CollectionModule = "wishlist" | "care" | "memorial" | "achievements";
+type CollectionTab = CollectionModule;
 
 type AchievementId =
   | "first_aquarium"
@@ -65,6 +66,35 @@ interface AchievementProgress {
 - “和谐共生”必须由统一混养引擎得到 `compatible`；`caution / not_recommended / insufficient_data` 均不解锁。
 - “认真复盘”只认可填写了原因的生命纪念记录，不按死亡数量奖励。
 - 应用状态保存后派发 `aquaguide:app-state-changed`，供水族册实时刷新；事件不持久化用户内容。
+
+正式路由：
+
+- `/collection` 只展示四个模块入口，不展示模块内部条目。
+- `/collection/wishlist`、`/collection/care`、`/collection/memorial`、`/collection/achievements` 分别承载独立模块。
+- 旧 `/collection?tab=...`、`/wishlist` 与 `/care-favorites` 只做兼容重定向，不成为新的状态源。
+
+## 今日行动与界面故障
+
+以下类型都是根据现有业务数据派生的界面契约，不新增存储字段：
+
+```ts
+type DailyActionType =
+  | "urgent_recovery"
+  | "compatibility_review"
+  | "care_plan"
+  | "water_change"
+  | "daily_check"
+  | "routine";
+
+type UiFailureKind = "chunk" | "render" | "image" | "data";
+```
+
+约束：
+
+- 今日行动的类型、状态、原因和唯一主操作必须由同一个选择结果生成；AI 只能按需解释本地结果。
+- 页面故障诊断只保留当前浏览器会话，内容只包含页面、构建版本、失败类型、资源地址和时间。
+- 故障诊断不得包含鱼缸内容、用户自由描述或技术堆栈；动态模块自动恢复和整页自动刷新各最多一次。
+- 单张图片失败在图片组件内重试一次，再使用本地占位图，不能升级为页面级失败。
 
 ## 每日鱼缸检查
 
