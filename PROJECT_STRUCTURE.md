@@ -7,10 +7,14 @@
 - `apps/web/`：Web workspace 边界；现有 React 源码在云端 Repository 接入完成前继续保留根目录。
 - `packages/contracts/`：API 请求、响应、分页、错误码和公开内容 DTO。
 - `packages/contracts/src/content-admin.ts`：内容编辑、状态切换和素材上传的服务端校验契约。
+- `packages/contracts/src/localization.ts`：中英文语言、偏好、回退元数据、审核与覆盖率契约。
 - `packages/domain-rules/`：跨前后端共享的确定性规则类型与安全不变量。
 - `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
+- `supabase/migrations/202607160002_localization.sql`：四张翻译表、审核字段、索引与公开/管理员 RLS。
 
 - `src/App.tsx`：设备级应用壳、导航与路由。
+- `src/i18n/`：i18next 初始化、浏览器语言检测和本地偏好保存。
+- `src/components/settings/`：共享设置状态与桌面/手机语言选择面板。
 - `src/components/layout/LayoutModeProvider.tsx`：真实设备布局判定。
 - `src/pages/Aquarium.tsx`：我的鱼缸。
 - `src/pages/Encyclopedia.tsx`：图鉴与完整混养计算。
@@ -72,6 +76,7 @@
 - `scripts/test-three-tier-contract.ts` / `scripts/test-api-boundary.ts`：三层契约与本地 API 边界回归。
 - `scripts/test-business-api-contract.ts` / `scripts/test-repository-boundary.ts`：业务路由、校验、稳定 ID、安全规则与本地/云端访问边界回归。
 - `scripts/verify-admin-content.mjs`：内容后台列表、编辑、保存反馈、权限错误与 390/1280px 布局验收。
+- `scripts/verify-localization-ui.mjs`：浏览器首选、桌面/手机设置、即时切换、持久化、触控尺寸与横向溢出验收。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。
 - `docs/02-design/UX_REFACTOR_CONCEPTS.md`：三套设计方向与默认自然水族册方案。
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。
