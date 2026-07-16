@@ -114,11 +114,13 @@
 
 - 已落地 2.0.0 数据契约、20 张表的首个 Supabase migration、逐表 RLS、Storage 策略、自动用户档案/角色触发器、幂等记录和 camelCase 数据库共享类型。（commit: `3e644a3`）
 - `npm run lint` 与 `test-three-tier-contract` 通过；当前环境缺少 PostgreSQL/Supabase CLI，迁移尚未在真实 Supabase 项目执行。
+- 已建立 `apps/api`、`apps/web`、`packages/contracts`、`packages/domain-rules` workspace 边界；Express TypeScript 入口复用现有 AI 路由并提供版本化健康、物种和养护只读接口、统一请求 ID 与错误响应。（commit: `82e5653`）
+- `npm run check:api`、`test:api-boundary` 和 Web 生产构建通过；数据库未配置时内容 API 明确返回结构化 503，现有页面不受影响。
 
 ## 待办
 - 为 `sp_0357` 莫斯墙和 `sp_0452` 公子小丑生成候选透明源图；人工确认后才替换版本化素材并重跑图片、响应式和 2D/3D 一致性测试。
 - 按 `docs/04-planning/EXTERNAL_VALIDATION_PROTOCOL.md` 执行真实水族新手任务、真实鱼缸跨入口人工验收和低端真机 3D 五分钟采集。
-- 完成 Express 业务 API、前端 Repository、游客迁移和简易内容后台；在测试 Supabase 项目执行并验证已提交 migration。
+- 完成鱼缸、收藏、巡检、纪念和养护写 API，接入前端 Repository、游客迁移和简易内容后台；在测试 Supabase 项目执行并验证已提交 migration。
 
 ## 本轮已完成
 
