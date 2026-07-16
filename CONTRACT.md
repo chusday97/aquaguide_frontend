@@ -1,150 +1,319 @@
-# AquaGuide Data Contract
+# AquaGuide 三层数据契约
 
-## 应用内养护计划
+> 版本：2.0.0
+> 状态：已确认，实施中
+> 生效日期：2026-07-16
+> SQL 来源：`supabase/migrations/202607160001_core_schema.sql`
+> TypeScript 来源：`src/types/database.ts`
 
-本轮继续使用现有 `aqua_care_reminders` 存储键，不新增数据库、Supabase 表或 localStorage 集合。提醒只在应用内展示，不申请浏览器系统通知权限。
+## 1. 产品与架构边界
+
+AquaGuide 面向水族新手，提供鱼缸管理、物种选择、混养判断、巡检、养护补救和个人水族册。
+
+正式架构：
+
+```mermaid
+flowchart LR
+  Web[React Web] --> Auth[Supabase Auth]
+  Web --> API[Express API]
+  API --> DB[Supabase PostgreSQL]
+  API --> Storage[Supabase Storage]
+  Admin[内容后台] --> API
+```
+
+- 前端仅使用 Supabase Auth 获取会话，不直接读写业务表。
+- 登录用户的业务数据以 PostgreSQL 为唯一事实来源。
+- 游客继续使用本地 Repository；登录后先预览并确认迁移。
+- 混养、巡检、今日行动和成就由确定性规则派生，AI 不能覆盖规则结论。
+- AI 原始回复和巡检自由描述默认不持久化。
+- 数据库使用 `snake_case`；API、共享类型和前端统一使用 `camelCase`，转换只发生在 API 层。
+
+## 2. 通用约束
+
+所有业务实体使用 UUID 主键。内容同时保留唯一 `catalog_key`，兼容现有字符串物种和文章 ID。
+
+所有可变表包含：
 
 ```ts
-interface CareReminderRecord {
-  id: string;
-  sourceTopicId: string;
-  title: string;
-  type: string;
+interface SyncFields {
   createdAt: string;
-  scheduledFor: string;
-  aquariumId?: string;
-  label?: string;
-  completedAt?: string;
+  updatedAt: string;
+  deletedAt?: string;
+  version: number;
 }
 ```
 
-约束：
+- `createdAt / updatedAt / deletedAt` 为 ISO 8601 时间字符串。
+- `version` 从 1 开始，每次更新由数据库触发器递增。
+- 更新请求必须提交当前版本；不一致返回 `409 VERSION_CONFLICT`。
+- 写接口必须提交 `Idempotency-Key`；同一键重复提交不得产生重复数据。
+- 删除默认使用 `deletedAt`；账号删除、鱼缸删除等明确生命周期操作按外键策略级联。
 
-- 同一 `sourceTopicId + aquariumId` 只保留一条未完成计划；再次设置时更新日期。
-- `scheduledFor` 使用 ISO 时间字符串，界面按用户本地自然日派生“今日 / 即将到期 / 已逾期”。
-- 旧记录根据 `label` 中的小时或天数推算日期；无法识别时使用 `createdAt` 次日。
-- 完成、改期和删除均由养护活动服务写入，删除前必须二次确认。
-- 不实现系统推送、后台执行、重复周期或独立提醒中心。
+## 3. 内容实体
 
-## 我的水族册与派生成就
+### 3.1 SpeciesRecord
 
-本轮不新增数据库、Supabase 表、API 或 localStorage 集合。水族册继续读取现有数据源：
+物种包含 UUID、`catalogKey`、中英文名、分类、难度、温度/pH 文本与可计算范围、换水周期、描述、食性、缸体要求、性情、体型、混养说明、检索词和发布状态。
 
-- 种草图鉴：`wishlistFishIds` / `LocalAppState.wishlist`
-- 养护收藏：`aqua_care_favorites`
-- 生命纪念：`deceasedRecords` / `LocalAppState.deceasedRecords`
-- 成就勋章：根据鱼缸、巡检、换水、收藏和生命纪念记录即时派生
+发布状态：
 
 ```ts
-type CollectionModule = "wishlist" | "care" | "memorial" | "achievements";
-type CollectionTab = CollectionModule;
+type ContentStatus = 'draft' | 'published' | 'archived';
+```
 
-type AchievementId =
-  | "first_aquarium"
-  | "first_daily_check"
-  | "seven_day_guardian"
-  | "water_change_routine"
-  | "wishlist_collector"
-  | "care_learner"
-  | "compatible_community"
-  | "life_reflection";
+只有 `published` 且未删除内容可被普通用户读取。
 
-interface AchievementProgress {
-  id: AchievementId;
-  title: string;
-  description: string;
-  current: number;
-  target: number;
-  unlocked: boolean;
-  nextAction?: { label: string; route: string };
+### 3.2 SpeciesFeedingProfileRecord
+
+每个物种最多一条喂食画像，包含食性、食物、频率、分量规则、活动水层、禁忌、资料来源、可信度和待复核状态。
+
+### 3.3 SpeciesAssetRecord
+
+```ts
+type AssetVariant =
+  | 'original'
+  | 'thumbnail'
+  | 'detail'
+  | 'texture'
+  | 'article_main'
+  | 'article_step';
+```
+
+物种素材保存 Storage 桶、路径、格式、尺寸、字节数、SHA-256、资源版本和当前版本状态。同一物种、同一用途只能有一个当前资源。
+
+### 3.4 CareArticleRecord
+
+养护文章包含 UUID、`catalogKey`、标题、分类、紧急度、摘要、症状、禁止动作、观察项、诊断时机、下一步、关键词与发布状态。
+
+### 3.5 CareArticleStepRecord / CareArticleAssetRecord
+
+- 操作步骤按文章内 `position` 唯一排序。
+- 步骤可包含时间说明。
+- 文章素材支持主图和步骤图，同一文章或步骤的同一用途只能有一个当前资源。
+
+## 4. 用户业务实体
+
+### 4.1 Profile / UserRoleRecord
+
+- `profiles` 保存昵称和非敏感偏好，不复制认证凭据。
+- `user_roles` 保存 `user | admin`，普通用户不能修改自己的角色。
+
+### 4.2 AquariumWithRelations
+
+鱼缸拆分为：
+
+- `aquariums`：用户、名称、水体、长宽高、目标温度、最近换水与困水时间。
+- `aquarium_species`：物种、兼容 `speciesCatalogKey`、数量、入缸日期。
+- `aquarium_equipment`：过滤、加热、增氧、灯光；每缸最多一条。
+- `aquarium_components`：底砂、水草和硬景。
+
+同一鱼缸内同一 `speciesCatalogKey` 只能保留一条有效记录，追加数量通过更新完成。
+
+### 4.3 DiagnosisRecordRow
+
+保存结构化答案、本地规则结论、风险、行动、禁止动作、观察项、缺失信息与复查时间。约束：
+
+- 同一用户的 `diagnosisKey` 唯一。
+- 同一鱼缸、同一自然日最多一条 `problemType = "巡检"` 的有效记录。
+- AI 原始回复和自由描述原文不得写入本表。
+
+### 4.4 收藏、纪念和养护
+
+- `species_favorites`：用户与物种唯一。
+- `care_favorites`：用户与文章唯一。
+- `memorial_records`：用户、可选鱼缸、可选物种 UUID、兼容物种键、日期和复盘原因。
+- `care_reminders`：用户、可选鱼缸、来源文章、计划日期和完成时间。
+- `care_events`：换水、喂食、观察和清单完成事件。
+- 同一文章、同一鱼缸只能有一条未完成养护计划。
+
+### 4.5 MigrationBatchRecord
+
+迁移批次包含用户、幂等键、本地版本、状态、预览摘要、结果摘要、错误摘要和提交时间。
+
+状态：
+
+```ts
+type MigrationStatus = 'previewed' | 'committing' | 'completed' | 'failed';
+```
+
+### 4.6 IdempotencyRecord
+
+后端为写请求保存用户、幂等键、请求方法、路径、请求哈希、资源引用、响应状态和过期时间。同一用户的幂等键唯一；相同键但请求哈希不同必须返回 `409 DUPLICATE_RESOURCE`，不能复用旧结果。
+
+## 5. RLS 与 Storage
+
+### 5.1 数据库策略
+
+| 资源 | Select | Insert / Update / Delete |
+|---|---|---|
+| 已发布物种、文章及其公开素材记录 | 所有人 | 管理员 |
+| 草稿与下线内容 | 管理员 | 管理员 |
+| `profiles` | 本人 | 本人 |
+| `user_roles` | 本人或管理员 | 管理员 |
+| 鱼缸和所有鱼缸子数据 | 所有者 | 所有者 |
+| 巡检、收藏、纪念、养护与迁移 | 所有者 | 所有者 |
+
+所有鱼缸子表都通过鱼缸外键再次验证 `aquariums.owner_id = auth.uid()`，不能只相信请求中的用户 ID。
+
+### 5.2 Storage
+
+- `catalog-originals`：私有原图，只有管理员可读写。
+- `catalog-public`：公开衍生图，所有人可读、只有管理员可写。
+- 单文件原图上限 20MB，公开衍生图上限 10MB。
+- 允许 PNG、JPEG 和 WebP。
+- 正式路径包含内容键、资源版本与用途，禁止覆盖同一路径伪装成新版本。
+
+## 6. API 通用协议
+
+基础路径：`/api/v1`。
+
+```ts
+interface ApiSuccess<T> {
+  data: T;
+  requestId: string;
+}
+
+interface ApiFailure {
+  error: {
+    code: ApiErrorCode;
+    message: string;
+    details?: unknown;
+  };
+  requestId: string;
+}
+
+type ApiErrorCode =
+  | 'VALIDATION_ERROR'
+  | 'AUTH_REQUIRED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'VERSION_CONFLICT'
+  | 'DUPLICATE_RESOURCE'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'MIGRATION_REJECTED'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR'
+  | 'DEPENDENCY_UNAVAILABLE';
+```
+
+分页使用 `cursor` 和 `limit`，响应返回 `items` 与可选 `nextCursor`。默认 24，最大 100。
+
+## 7. API 列表
+
+### 7.1 内容
+
+| Method | Path | Request | Response | 主要错误 |
+|---|---|---|---|---|
+| GET | `/species` | `cursor? limit? category? query?` | `Page<SpeciesSummary>` | 400/503 |
+| GET | `/species/:catalogKey` | 路径参数 | `SpeciesWithRelations` | 404/503 |
+| GET | `/care-articles` | `cursor? limit? category? urgency? query?` | `Page<CareArticleSummary>` | 400/503 |
+| GET | `/care-articles/:catalogKey` | 路径参数 | `CareArticleWithRelations` | 404/503 |
+
+普通内容接口只返回已发布内容。管理员内容列表通过 `/admin` 接口读取草稿和下线内容。
+
+### 7.2 鱼缸
+
+| Method | Path | Request | Response | 主要错误 |
+|---|---|---|---|---|
+| GET | `/aquariums` | 无 | `AquariumWithRelations[]` | 401/503 |
+| POST | `/aquariums` | 鱼缸字段，Header 幂等键 | `AquariumWithRelations` | 400/401/409 |
+| GET | `/aquariums/:id` | 路径参数 | `AquariumWithRelations` | 401/403/404 |
+| PATCH | `/aquariums/:id` | 可变字段、`version` | `AquariumWithRelations` | 400/401/404/409 |
+| DELETE | `/aquariums/:id` | `version` | `{ deleted: true }` | 401/404/409 |
+| POST | `/aquariums/:id/species` | 物种键、数量、日期、幂等键 | `AquariumSpeciesRecord` | 400/401/404/409 |
+| PATCH | `/aquariums/:id/species/:recordId` | 数量、日期、`version` | `AquariumSpeciesRecord` | 400/401/404/409 |
+| DELETE | `/aquariums/:id/species/:recordId` | `version` | `{ deleted: true }` | 401/404/409 |
+| PUT | `/aquariums/:id/equipment` | 设备字段、可选 `version` | `AquariumEquipmentRecord` | 400/401/404/409 |
+| POST | `/aquariums/:id/components` | 类型、名称、数量、幂等键 | `AquariumComponentRecord` | 400/401/404/409 |
+| PATCH | `/aquariums/:id/components/:componentId` | 可变字段、`version` | `AquariumComponentRecord` | 400/401/404/409 |
+| DELETE | `/aquariums/:id/components/:componentId` | `version` | `{ deleted: true }` | 401/404/409 |
+
+鱼缸直接添加生物仍需先通过共享确定性混养规则；后端必须复核最终写入请求，不能只相信前端结论。
+
+### 7.3 巡检、收藏、纪念和养护
+
+| Method | Path | Request | Response | 主要错误 |
+|---|---|---|---|---|
+| GET | `/aquariums/:id/daily-checks/:localDate` | 日期 | `DiagnosisRecordRow | null` | 400/401/404 |
+| PUT | `/aquariums/:id/daily-checks/:localDate` | 结构化规则结果、幂等键、可选版本 | `DiagnosisRecordRow` | 400/401/409 |
+| GET | `/favorites/species` | 无 | `SpeciesFavoriteRecord[]` | 401 |
+| PUT | `/favorites/species/:speciesId` | Header 幂等键 | `SpeciesFavoriteRecord` | 401/404/409 |
+| DELETE | `/favorites/species/:speciesId` | 可选版本 | `{ deleted: true }` | 401/404/409 |
+| GET | `/favorites/care` | 无 | `CareFavoriteRecord[]` | 401 |
+| PUT | `/favorites/care/:articleId` | Header 幂等键 | `CareFavoriteRecord` | 401/404/409 |
+| DELETE | `/favorites/care/:articleId` | 可选版本 | `{ deleted: true }` | 401/404/409 |
+| GET | `/memorial-records` | `cursor? limit?` | `Page<MemorialRecordRow>` | 401 |
+| POST | `/memorial-records` | 物种、日期、原因、幂等键 | `MemorialRecordRow` | 400/401/409 |
+| PATCH | `/memorial-records/:id` | 日期、原因、`version` | `MemorialRecordRow` | 400/401/404/409 |
+| DELETE | `/memorial-records/:id` | `version` | `{ deleted: true }` | 401/404/409 |
+| GET | `/care-reminders` | `status? aquariumId?` | `CareReminderRecordRow[]` | 401 |
+| POST | `/care-reminders` | 来源、时间、幂等键 | `CareReminderRecordRow` | 400/401/409 |
+| PATCH | `/care-reminders/:id` | 时间、完成状态、`version` | `CareReminderRecordRow` | 400/401/404/409 |
+| DELETE | `/care-reminders/:id` | `version` | `{ deleted: true }` | 401/404/409 |
+| GET | `/care-events` | `aquariumId? type? cursor? limit?` | `Page<CareEventRecord>` | 401 |
+| POST | `/care-events` | 类型、时间、内容、幂等键 | `CareEventRecord` | 400/401/409 |
+
+### 7.4 启动、迁移与管理
+
+| Method | Path | Request | Response | 主要错误 |
+|---|---|---|---|---|
+| GET | `/bootstrap` | 无 | 用户、角色、鱼缸摘要、收藏和同步状态 | 401/503 |
+| POST | `/migrations/preview` | 本地导出数据与版本 | `MigrationBatchRecord` | 400/401/413/422 |
+| POST | `/migrations/commit` | 批次 ID、确认项、幂等键 | `MigrationBatchRecord` | 400/401/409/422 |
+| GET | `/migrations/:id` | 路径参数 | `MigrationBatchRecord` | 401/404 |
+| GET/POST/PATCH | `/admin/species` | 管理员内容字段 | 内容记录 | 400/401/403/409 |
+| GET/POST/PATCH | `/admin/care-articles` | 管理员内容字段 | 内容记录 | 400/401/403/409 |
+| POST | `/admin/assets` | 图片、用途、内容 ID | `SpeciesAssetRecord | CareArticleAssetRecord` | 400/401/403/413 |
+| POST | `/admin/content/:type/:id/publish` | `version` | 更新后的内容 | 401/403/404/409 |
+| POST | `/admin/content/:type/:id/archive` | `version` | 更新后的内容 | 401/403/404/409 |
+
+现有 `/api/health` 和 `/api/ai/chat` 保留兼容；新增 `/api/v1/health` 与 `/api/v1/ai/chat` 别名。
+
+## 8. Repository 契约
+
+前端页面只能通过 Repository 操作业务数据：
+
+```ts
+interface AquaGuideRepository {
+  getAquariums(): Promise<AquariumWithRelations[]>;
+  saveAquarium(input: AquariumSaveInput): Promise<AquariumWithRelations>;
+  updateFavorite(input: FavoriteMutation): Promise<void>;
+  saveDiagnosis(input: DiagnosisSaveInput): Promise<DiagnosisRecordRow>;
+  saveMemorial(input: MemorialSaveInput): Promise<MemorialRecordRow>;
+  updateCareReminder(input: CareReminderMutation): Promise<CareReminderRecordRow>;
 }
 ```
 
-约束：
+- `LocalAquaGuideRepository` 兼容现有游客存储键。
+- `ApiAquaGuideRepository` 只调用 Express API。
+- 登录状态选择 Repository，页面不判断具体数据来源。
+- 云端模式断网时读本地缓存，写操作进入 IndexedDB outbox；恢复后按幂等键重放。
 
-- 旧用户按现有数据自动追溯，不保存第二份解锁状态。
-- “和谐共生”必须由统一混养引擎得到 `compatible`；`caution / not_recommended / insufficient_data` 均不解锁。
-- “认真复盘”只认可填写了原因的生命纪念记录，不按死亡数量奖励。
-- 应用状态保存后派发 `aquaguide:app-state-changed`，供水族册实时刷新；事件不持久化用户内容。
+## 9. 本地迁移规则
 
-正式路由：
+1. 登录后读取并校验当前主状态与兼容键。
+2. 先生成只读预览：实体数量、重复项、损坏项和未知内容键。
+3. 用户确认后提交唯一迁移批次。
+4. 后端按唯一键和幂等键写入并回读核对。
+5. 成功后切换云端 Repository；原数据至少保留 30 天。
+6. 迁移失败不得修改或删除原本地数据。
 
-- `/collection` 只展示四个模块入口，不展示模块内部条目。
-- `/collection/wishlist`、`/collection/care`、`/collection/memorial`、`/collection/achievements` 分别承载独立模块。
-- 旧 `/collection?tab=...`、`/wishlist` 与 `/care-favorites` 只做兼容重定向，不成为新的状态源。
+冲突处理：
 
-## 今日行动与界面故障
+- 收藏合并集合；取消收藏使用 `deletedAt` 防止旧设备复活。
+- 鱼缸字段冲突返回本机/云端摘要，由用户选择。
+- 生物数量按记录 ID 合并，禁止直接相加。
+- 同日巡检保留更新时间较新的结构化记录。
+- 生命纪念按记录 ID 合并。
 
-以下类型都是根据现有业务数据派生的界面契约，不新增存储字段：
+## 10. 兼容与排除范围
 
-```ts
-type DailyActionType =
-  | "urgent_recovery"
-  | "compatibility_review"
-  | "care_plan"
-  | "water_change"
-  | "daily_check"
-  | "routine";
+- 原 `Fish.id`、`CareTopic.id` 迁移为 `catalogKey`。
+- 原收藏、纪念、巡检和养护计划存储键继续供游客与迁移读取。
+- 原始 PNG 在迁移验证前不删除；Storage 衍生图使用版本化路径。
+- 简易后台不包含多人审核、版本历史或复杂 CMS。
+- 本期不新增开放式 AI 问答、系统通知、积分、排行或社交能力。
 
-type UiFailureKind = "chunk" | "render" | "image" | "data";
-```
+## 11. 历史契约状态
 
-约束：
-
-- 今日行动的类型、状态、原因和唯一主操作必须由同一个选择结果生成；AI 只能按需解释本地结果。
-- 页面故障诊断只保留当前浏览器会话，内容只包含页面、构建版本、失败类型、资源地址和时间。
-- 故障诊断不得包含鱼缸内容、用户自由描述或技术堆栈；动态模块自动恢复和整页自动刷新各最多一次。
-- 单张图片失败在图片组件内重试一次，再使用本地占位图，不能升级为页面级失败。
-
-## 每日鱼缸检查
-
-本功能不新增数据库、Supabase 表或 localStorage 集合。检查结果继续写入现有 `diagnosisRecords`，并使用：
-
-- `problemType: "巡检"`
-- `answers / structuredAnswers`：结构化问答
-- `resultSummary / conclusion / suggestedActions / avoidActions / observeItems`：经过本地规则约束的结果
-- 同一 `aquariumId` 在同一自然日只保留一条巡检记录；再次保存时更新原记录
-- 不保存 AI 原始回复和用户自由描述原文
-
-## AI Task
-
-```ts
-type AiTaskName =
-  | "risk_explanation"
-  | "risk_audit"
-  | "recommendation_assist"
-  | "build_tank_copilot"
-  | "tank_daily_check_interpretation";
-```
-
-请求：
-
-```ts
-interface TankDailyCheckContext {
-  aquariumSnapshot: AquariumDiagnosisSnapshot;
-  answers: DiagnosisAnswerMap;
-  userDescription?: string;
-  deterministicResult: DiagnosisOutput;
-  candidateArticles: Array<{ id: string; title: string; summary: string }>;
-}
-```
-
-返回：
-
-```ts
-interface TankDailyCheckInterpretation {
-  summary: string;
-  priority: "routine" | "watch" | "urgent";
-  reasoning: string[];
-  recommendedArticleIds: string[];
-  clarifyingQuestions: string[];
-  disclaimer: string;
-}
-```
-
-所有前端 AI 结果统一附加 `source / failureReason / task / generatedAt`。前端必须再次执行以下约束：
-
-- AI `priority` 不得低于本地规则映射的风险等级。
-- `recommendedArticleIds` 只保留本地 `candidateArticles` 中存在的 ID。
-- AI 失败、超时、非法 JSON 或任务不匹配时使用本地规则结果。
-- AI 不能新增用药建议，不能覆盖本地立即动作和禁止动作。
+本文件 2.0.0 替代此前“本轮不迁移 Supabase、不新增业务表”的阶段性约束。旧约束只适用于 2026-07-16 前的本地核心体验收口，不再作为云端架构实施依据。
