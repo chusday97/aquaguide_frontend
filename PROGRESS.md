@@ -118,12 +118,13 @@
 - `npm run check:api`、`test:api-boundary` 和 Web 生产构建通过；数据库未配置时内容 API 明确返回结构化 503，现有页面不受影响。
 - 已实现鱼缸、鱼缸生物/设备/配置、每日巡检、收藏、生命纪念、养护计划和养护事件 API，并建立游客本地/登录云端 Repository 边界。（commit: `e7ee912`）
 - 已实现管理员物种与养护文章 CRUD、发布/下线、版本化图片上传和 WebP 衍生处理；私有原图不会经公开内容接口返回，替换失败会恢复旧素材版本。（commit: `fb2a6fd`）
+- 已实现本地内容批量迁移工具：预检 486 个物种、41 篇养护文章与 2,026 项素材，按哈希跳过未变化版本，并报告 93 组跨内容重复素材供迁移前复核；默认 dry-run，只有显式 `--commit` 才写云端。（commit: `834db83`）
 - `test:business-api-contract`、`test:repository-boundary`、`test:admin-content-contract`、`test:api-boundary`、API/Web 类型检查与生产构建通过。
 
 ## 待办
 - 为 `sp_0357` 莫斯墙和 `sp_0452` 公子小丑生成候选透明源图；人工确认后才替换版本化素材并重跑图片、响应式和 2D/3D 一致性测试。
 - 按 `docs/04-planning/EXTERNAL_VALIDATION_PROTOCOL.md` 执行真实水族新手任务、真实鱼缸跨入口人工验收和低端真机 3D 五分钟采集。
-- 完成内容批量导入、游客迁移/离线队列和简易内容后台页面；再逐页把现有前端接入 Repository，并在测试 Supabase 项目执行 migration 与 RLS 验证。
+- 复核 93 组跨内容重复素材；完成游客迁移/离线队列和简易内容后台页面，再逐页把现有前端接入 Repository，并在测试 Supabase 项目执行 migration 与 RLS 验证。
 
 ## 本轮已完成
 
