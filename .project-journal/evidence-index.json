@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project_id": "PRJ-aquaguide",
-  "updated_at": "2026-07-16T18:30:00+08:00",
+  "updated_at": "2026-07-16T22:10:00+08:00",
   "evidence_items": [
     {"id":"EVD-20260715-001","type":"commit","locator":"917b80a","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"今日行动、水族册独立地址与生命纪念回流"},
     {"id":"EVD-20260715-002","type":"test","locator":"npm run lint; npm run build; 1280/390 browser regression","date":"2026-07-15","version":"917b80a","accessible":true,"sensitive":false,"notes":"类型、构建和直达行为验证"},
@@ -12,13 +12,16 @@
     {"id":"EVD-20260715-007","type":"commit","locator":"5f84ff1","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"快捷收藏、今日行动内嵌计划、唯一缸内物种、自动聚焦和 AI 入口收敛"},
     {"id":"EVD-20260715-008","type":"test","locator":"npm run lint; npm run build; test:wishlist-shortcut-ui; test:mobile-care-ui; test:core-ui; test:ai-entry-policy","date":"2026-07-15","version":"5f84ff1","accessible":true,"sensitive":false,"notes":"桌面、真实手机、键盘、减少动态效果与 AI 白名单回归"},
     {"id":"EVD-20260716-009","type":"commit","locator":"d542fd0","date":"2026-07-16","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"中英文设置、翻译表/RLS、API 回退、语言偏好接口与手机养护轮播宽度修复"},
-    {"id":"EVD-20260716-010","type":"test","locator":"npm run lint; npm run check:api; npm run build; npm run test:three-tier-contract; npm run test:api-boundary; npm run test:mobile-care-ui; npm run test:localization-ui","date":"2026-07-16","version":"3619e05","accessible":true,"sensitive":false,"notes":"24 表契约、用户/偏好/管理员 API 边界、构建及桌面/真实手机语言与布局回归"}
+    {"id":"EVD-20260716-010","type":"test","locator":"npm run lint; npm run check:api; npm run build; npm run test:three-tier-contract; npm run test:api-boundary; npm run test:mobile-care-ui; npm run test:localization-ui","date":"2026-07-16","version":"3619e05","accessible":true,"sensitive":false,"notes":"24 表契约、用户/偏好/管理员 API 边界、构建及桌面/真实手机语言与布局回归"},
+    {"id":"EVD-20260716-011","type":"commit","locator":"ec36e6b","date":"2026-07-16","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"统一视觉结果模型、适配器和五类结果页接入"},
+    {"id":"EVD-20260716-012","type":"test","locator":"npm run lint; npm run build; npm run test:visual-results; npm run test:compatibility; npm run test:mini-compatibility; npm run test:daily-check; npm run test:core-ui; npm run test:three-step-ui","date":"2026-07-16","version":"ec36e6b","accessible":true,"sensitive":false,"notes":"规则只读、关注对象、折叠依据、手机/桌面交互与无溢出回归"}
   ],
   "claims": [
     {"id":"CLM-20260715-001","text":"今日行动只展示一个确定性优先任务，水族册四模块可通过独立地址直达。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-001","EVD-20260715-002"],"contradicting_evidence_ids":[],"scope":"本地分支当前版本","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},
     {"id":"CLM-20260715-002","text":"核心路由、图片和本地数据具备局部恢复，响应式图片与慢网 3D 策略通过故障注入和本地生产预览验证。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-003","EVD-20260715-004"],"contradicting_evidence_ids":[],"scope":"本地生产预览，不代表线上网络","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},
     {"id":"CLM-20260715-003","text":"登记的 12 条正式路径均不超过三次导航点击和三个任务屏，巡检、自查和添加生物通过浏览器验收。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-005","EVD-20260715-006"],"contradicting_evidence_ids":[],"scope":"登记的正式入口","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},
     {"id":"CLM-20260715-004","text":"图鉴快捷收藏、今日行动内嵌计划、唯一缸内物种入口与巡检自动聚焦已通过桌面、真实手机、键盘和减少动态效果回归；公开 AI 入口限制为建缸助手与异常巡检。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-007","EVD-20260715-008"],"contradicting_evidence_ids":[],"scope":"本地分支当前版本","career_material_allowed":true,"reviewed_at":"2026-07-15T16:10:00+08:00"},
-    {"id":"CLM-20260716-005","text":"AquaGuide 已建立中英文语言设置、内容翻译与审核数据边界、中文安全回退和桌面/真实手机回归；英文业务内容仍需审核后才能正式发布。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260716-009","EVD-20260716-010"],"contradicting_evidence_ids":[],"scope":"国际化基础设施与应用壳，不代表英文内容已全部发布","career_material_allowed":true,"reviewed_at":"2026-07-16T18:30:00+08:00"}
+    {"id":"CLM-20260716-005","text":"AquaGuide 已建立中英文语言设置、内容翻译与审核数据边界、中文安全回退和桌面/真实手机回归；英文业务内容仍需审核后才能正式发布。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260716-009","EVD-20260716-010"],"contradicting_evidence_ids":[],"scope":"国际化基础设施与应用壳，不代表英文内容已全部发布","career_material_allowed":true,"reviewed_at":"2026-07-16T18:30:00+08:00"},
+    {"id":"CLM-20260716-006","text":"混养、Mini、物种适配、每日巡检和养护自查已共用只读视觉解释层，优先展示对象关系和唯一下一步，完整规则默认折叠。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260716-011","EVD-20260716-012"],"contradicting_evidence_ids":[],"scope":"本地分支的确定性结果页，不代表真实用户理解度数据","career_material_allowed":true,"reviewed_at":"2026-07-16T22:10:00+08:00"}
   ]
 }
