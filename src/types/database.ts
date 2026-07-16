@@ -3,6 +3,7 @@ export type IsoDate = string;
 export type IsoDateTime = string;
 
 export type ContentStatus = 'draft' | 'published' | 'archived';
+export type SupportedLocale = 'zh-CN' | 'en';
 export type UserRole = 'user' | 'admin';
 export type AssetVariant = 'original' | 'thumbnail' | 'detail' | 'texture' | 'article_main' | 'article_step';
 export type WaterType = 'Freshwater' | 'Saltwater';
@@ -92,6 +93,42 @@ export interface SpeciesAssetRecord extends SyncFields {
   isCurrent: boolean;
 }
 
+export interface SpeciesTranslationRecord extends SyncFields {
+  id: Uuid;
+  speciesId: Uuid;
+  locale: SupportedLocale;
+  status: ContentStatus;
+  name: string;
+  category: string;
+  waterTemperatureText: string;
+  phLevelText: string;
+  description: string;
+  diet: string;
+  tankSizeText: string;
+  housingMode?: string;
+  housingReason?: string;
+  searchTerms: string[];
+  reviewedAt?: IsoDateTime;
+  reviewedBy?: Uuid;
+}
+
+export interface SpeciesFeedingProfileTranslationRecord extends SyncFields {
+  id: Uuid;
+  feedingProfileId: Uuid;
+  locale: SupportedLocale;
+  status: ContentStatus;
+  dietType?: string;
+  feedingType: string;
+  recommendedFoods: string;
+  feedingFrequency: string;
+  portionRule: string;
+  feedingLayer?: string;
+  avoidFoods: string;
+  specialNotes?: string;
+  reviewedAt?: IsoDateTime;
+  reviewedBy?: Uuid;
+}
+
 export interface CareArticleRecord extends SyncFields {
   id: Uuid;
   catalogKey: string;
@@ -131,6 +168,36 @@ export interface CareArticleAssetRecord extends SyncFields {
   checksumSha256?: string;
   assetVersion: number;
   isCurrent: boolean;
+}
+
+export interface CareArticleTranslationRecord extends SyncFields {
+  id: Uuid;
+  articleId: Uuid;
+  locale: SupportedLocale;
+  status: ContentStatus;
+  title: string;
+  category: string;
+  urgency: string;
+  summary: string;
+  symptoms: string[];
+  avoidActions: string[];
+  observeItems: string[];
+  diagnoseWhen: string[];
+  nextStep: string;
+  keywords: string[];
+  reviewedAt?: IsoDateTime;
+  reviewedBy?: Uuid;
+}
+
+export interface CareArticleStepTranslationRecord extends SyncFields {
+  id: Uuid;
+  stepId: Uuid;
+  locale: SupportedLocale;
+  status: ContentStatus;
+  instruction: string;
+  durationLabel?: string;
+  reviewedAt?: IsoDateTime;
+  reviewedBy?: Uuid;
 }
 
 export interface AquariumRecord extends SyncFields {
@@ -291,11 +358,13 @@ export interface AquariumWithRelations extends AquariumRecord {
 export interface SpeciesWithRelations extends SpeciesRecord {
   feedingProfile?: SpeciesFeedingProfileRecord;
   assets: SpeciesAssetRecord[];
+  translations?: SpeciesTranslationRecord[];
 }
 
 export interface CareArticleWithRelations extends CareArticleRecord {
   steps: CareArticleStepRecord[];
   assets: CareArticleAssetRecord[];
+  translations?: CareArticleTranslationRecord[];
 }
 
 type TableDefinition<Row extends { id: Uuid }> = {
@@ -312,9 +381,13 @@ export interface Database {
       species: TableDefinition<SpeciesRecord>;
       speciesFeedingProfiles: TableDefinition<SpeciesFeedingProfileRecord>;
       speciesAssets: TableDefinition<SpeciesAssetRecord>;
+      speciesTranslations: TableDefinition<SpeciesTranslationRecord>;
+      speciesFeedingProfileTranslations: TableDefinition<SpeciesFeedingProfileTranslationRecord>;
       careArticles: TableDefinition<CareArticleRecord>;
       careArticleSteps: TableDefinition<CareArticleStepRecord>;
       careArticleAssets: TableDefinition<CareArticleAssetRecord>;
+      careArticleTranslations: TableDefinition<CareArticleTranslationRecord>;
+      careArticleStepTranslations: TableDefinition<CareArticleStepTranslationRecord>;
       aquariums: TableDefinition<AquariumRecord>;
       aquariumSpecies: TableDefinition<AquariumSpeciesRecord>;
       aquariumEquipment: TableDefinition<AquariumEquipmentRecord>;

@@ -1,9 +1,9 @@
 # AquaGuide 三层数据契约
 
-> 版本：2.0.0
+> 版本：2.1.0
 > 状态：已确认，实施中
 > 生效日期：2026-07-16
-> SQL 来源：`supabase/migrations/202607160001_core_schema.sql`
+> SQL 来源：`supabase/migrations/202607160001_core_schema.sql`、`supabase/migrations/202607160002_localization.sql`
 > TypeScript 来源：`src/types/database.ts`
 
 ## 1. 产品与架构边界
@@ -27,6 +27,24 @@ flowchart LR
 - 混养、巡检、今日行动和成就由确定性规则派生，AI 不能覆盖规则结论。
 - AI 原始回复和巡检自由描述默认不持久化。
 - 数据库使用 `snake_case`；API、共享类型和前端统一使用 `camelCase`，转换只发生在 API 层。
+- 中文主数据继续作为确定性规则的稳定输入；本地化只改变展示文本，不改变规则结论。
+
+### 2.1 语言与回退
+
+```ts
+type SupportedLocale = 'zh-CN' | 'en';
+
+interface LocalizedContentMeta {
+  requestedLocale: SupportedLocale;
+  resolvedLocale: SupportedLocale;
+  usedFallback: boolean;
+}
+```
+
+- 首次访问按浏览器语言选择，用户主动选择后保存为 `LocalePreference`。
+- 内容接口必须显式接收 `locale`，并在响应中返回 `LocalizedContentMeta`。
+- 英文翻译不存在或未发布时安全回退中文，并将 `usedFallback` 设为 `true`。
+- 英文入口正式开放前，物种、喂养资料、养护文章和步骤的已发布覆盖率必须为 100%。
 
 ## 2. 通用约束
 
@@ -91,6 +109,17 @@ type AssetVariant =
 - 步骤可包含时间说明。
 - 文章素材支持主图和步骤图，同一文章或步骤的同一用途只能有一个当前资源。
 
+### 3.6 翻译实体
+
+新增四张翻译表，不复制中文主数据：
+
+- `species_translations`
+- `species_feeding_profile_translations`
+- `care_article_translations`
+- `care_article_step_translations`
+
+每条翻译包含父实体、`locale`、发布状态、审核人、审核时间和通用同步字段。父实体与语言唯一。普通用户只有在父内容与翻译均为 `published` 时才能读取；草稿、审核和发布仅管理员可操作。
+
 ## 4. 用户业务实体
 
 ### 4.1 Profile / UserRoleRecord
@@ -152,6 +181,7 @@ type MigrationStatus = 'previewed' | 'committing' | 'completed' | 'failed';
 | `user_roles` | 本人或管理员 | 管理员 |
 | 鱼缸和所有鱼缸子数据 | 所有者 | 所有者 |
 | 巡检、收藏、纪念、养护与迁移 | 所有者 | 所有者 |
+| 已发布翻译且父内容已发布 | 所有人 | 管理员 |
 
 所有鱼缸子表都通过鱼缸外键再次验证 `aquariums.owner_id = auth.uid()`，不能只相信请求中的用户 ID。
 
@@ -204,10 +234,10 @@ type ApiErrorCode =
 
 | Method | Path | Request | Response | 主要错误 |
 |---|---|---|---|---|
-| GET | `/species` | `cursor? limit? category? query?` | `Page<SpeciesSummary>` | 400/503 |
-| GET | `/species/:catalogKey` | 路径参数 | `SpeciesWithRelations` | 404/503 |
-| GET | `/care-articles` | `cursor? limit? category? urgency? query?` | `Page<CareArticleSummary>` | 400/503 |
-| GET | `/care-articles/:catalogKey` | 路径参数 | `CareArticleWithRelations` | 404/503 |
+| GET | `/species` | `locale cursor? limit? category? query?` | `Page<SpeciesSummary>` | 400/503 |
+| GET | `/species/:catalogKey` | `locale` | `SpeciesWithRelations` | 404/503 |
+| GET | `/care-articles` | `locale cursor? limit? category? urgency? query?` | `Page<CareArticleSummary>` | 400/503 |
+| GET | `/care-articles/:catalogKey` | `locale` | `CareArticleWithRelations` | 404/503 |
 
 普通内容接口只返回已发布内容。管理员内容列表通过 `/admin` 接口读取草稿和下线内容。
 
@@ -255,9 +285,13 @@ type ApiErrorCode =
 
 ### 7.4 启动、迁移与管理
 
+本节路径均位于 `/api/v1`；用户资料的完整地址为 `/api/v1/profile`。
+
 | Method | Path | Request | Response | 主要错误 |
 |---|---|---|---|---|
 | GET | `/bootstrap` | 无 | 用户、角色、鱼缸摘要、收藏和同步状态 | 401/503 |
+| GET | `/profile` | 无 | 当前用户资料与语言偏好 | 401/404 |
+| PATCH | `/profile` | `locale version` | 更新后的用户资料 | 400/401/409 |
 | POST | `/migrations/preview` | 本地导出数据与版本 | `MigrationBatchRecord` | 400/401/413/422 |
 | POST | `/migrations/commit` | 批次 ID、确认项、幂等键 | `MigrationBatchRecord` | 400/401/409/422 |
 | GET | `/migrations/:id` | 路径参数 | `MigrationBatchRecord` | 401/404 |
@@ -266,8 +300,12 @@ type ApiErrorCode =
 | POST | `/admin/assets` | 图片、用途、内容 ID | `SpeciesAssetRecord | CareArticleAssetRecord` | 400/401/403/413 |
 | POST | `/admin/content/:type/:id/publish` | `version` | 更新后的内容 | 401/403/404/409 |
 | POST | `/admin/content/:type/:id/archive` | `version` | 更新后的内容 | 401/403/404/409 |
+| GET | `/admin/translations/coverage` | `locale` | `TranslationCoverageDto` | 400/401/403 |
+| GET/PATCH | `/admin/translations/:contentType/:contentId` | `locale`、翻译字段与版本 | 翻译草稿 | 400/401/403/404/409 |
+| POST | `/admin/translations/:translationId/publish` | `version` | 已审核翻译 | 401/403/404/409 |
 
 现有 `/api/health` 和 `/api/ai/chat` 保留兼容；新增 `/api/v1/health` 与 `/api/v1/ai/chat` 别名。
+AI 请求增加 `locale`，只控制输出语言；混养、巡检、今日行动和成就结论仍由共享规则决定。
 
 ## 8. Repository 契约
 
@@ -316,4 +354,4 @@ interface AquaGuideRepository {
 
 ## 11. 历史契约状态
 
-本文件 2.0.0 替代此前“本轮不迁移 Supabase、不新增业务表”的阶段性约束。旧约束只适用于 2026-07-16 前的本地核心体验收口，不再作为云端架构实施依据。
+本文件 2.1.0 替代此前“本轮不迁移 Supabase、不新增业务表”的阶段性约束。旧约束只适用于 2026-07-16 前的本地核心体验收口，不再作为云端架构实施依据。

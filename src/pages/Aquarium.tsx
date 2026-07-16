@@ -81,6 +81,7 @@ import {
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds, subscribeToFavorites } from '../services/favorites/favorites.service';
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import { useSettings } from '../components/settings/SettingsProvider';
 import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
@@ -650,6 +651,7 @@ export default function AquariumManager() {
   const routeLocation = useLocation();
   const routeNavigate = useNavigate();
   const { showToast } = useToast();
+  const { openSettings: openAppSettings } = useSettings();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [pendingDeleteAquariumId, setPendingDeleteAquariumId] = useState<string | null>(null);
@@ -3946,6 +3948,15 @@ export default function AquariumManager() {
               title="数据保存提醒"
             >
               <Info className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={openAppSettings}
+              aria-label="语言设置"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/50 shadow-sm transition-colors hover:text-emerald-700"
+              title="语言设置"
+            >
+              <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>

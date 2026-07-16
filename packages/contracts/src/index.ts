@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 export * from './business';
 export * from './content-admin';
+export * from './localization';
+
+import type { LocalizedContentMeta } from './localization';
+import { supportedLocaleSchema } from './localization';
 
 export const apiErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
@@ -44,11 +48,13 @@ export const pageQuerySchema = z.object({
 });
 
 export const speciesListQuerySchema = pageQuerySchema.extend({
+  locale: supportedLocaleSchema.default('zh-CN'),
   category: z.string().trim().min(1).max(80).optional(),
   query: z.string().trim().min(1).max(100).optional(),
 });
 
 export const careArticleListQuerySchema = pageQuerySchema.extend({
+  locale: supportedLocaleSchema.default('zh-CN'),
   category: z.string().trim().min(1).max(80).optional(),
   urgency: z.enum(['日常', '尽快处理', '高优先级']).optional(),
   query: z.string().trim().min(1).max(100).optional(),
@@ -81,6 +87,7 @@ export interface SpeciesSummaryDto {
   sizeClass: 'Small' | 'Medium' | 'Large';
   thumbnail?: PublicAssetDto;
   updatedAt: string;
+  localization: LocalizedContentMeta;
 }
 
 export interface SpeciesDetailDto extends SpeciesSummaryDto {
@@ -109,6 +116,7 @@ export interface CareArticleSummaryDto {
   keywords: string[];
   image?: PublicAssetDto;
   updatedAt: string;
+  localization: LocalizedContentMeta;
 }
 
 export interface CareArticleDetailDto extends CareArticleSummaryDto {

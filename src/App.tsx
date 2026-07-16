@@ -5,6 +5,7 @@
 
 import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import {
   Activity,
@@ -18,12 +19,16 @@ import {
   Medal,
   Heart,
   Skull,
+  Settings,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
 import { DataRecoveryNotice, RouteErrorBoundary } from './components/common/RouteErrorBoundary';
 import { lazyWithRecovery } from './lib/lazyWithRecovery';
+import i18n from './i18n';
+import { LanguageSettingsPanel } from './components/settings/LanguageSettingsPanel';
+import { SettingsProvider, useSettings } from './components/settings/SettingsProvider';
 
 const loadAquarium = () => import('./pages/Aquarium');
 const loadEncyclopedia = () => import('./pages/Encyclopedia');
@@ -142,13 +147,13 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
       <div className="mx-auto flex min-h-[100dvh] max-w-[430px] items-center justify-center bg-[#eef4f1] p-5 text-ink md:max-w-none">
         <div className="w-full max-w-[430px] rounded-3xl bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)] md:max-w-[560px]">
           <div className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
-            页面加载异常
+            {i18n.t('common.pageError')}
           </div>
-          <h1 className="text-xl font-black">AquaGuide 暂时没有渲染出来</h1>
-          <p className="mt-2 text-sm leading-6 text-ink/60">页面遇到暂时性问题。可以重试一次，或先返回我的鱼缸继续使用其他功能。</p>
+          <h1 className="text-xl font-black">{i18n.t('common.renderError')}</h1>
+          <p className="mt-2 text-sm leading-6 text-ink/60">{i18n.t('common.renderErrorHint')}</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <button type="button" className="h-11 rounded-2xl bg-emerald-700 text-sm font-black text-white" onClick={() => this.setState({ error: null })}>重新尝试</button>
-            <button type="button" className="h-11 rounded-2xl border border-emerald-100 bg-white text-sm font-black text-emerald-800" onClick={() => window.location.assign('/aquarium')}>返回我的鱼缸</button>
+            <button type="button" className="h-11 rounded-2xl bg-emerald-700 text-sm font-black text-white" onClick={() => this.setState({ error: null })}>{i18n.t('common.retry')}</button>
+            <button type="button" className="h-11 rounded-2xl border border-emerald-100 bg-white text-sm font-black text-emerald-800" onClick={() => window.location.assign('/aquarium')}>{i18n.t('common.backToAquarium')}</button>
           </div>
         </div>
       </div>
@@ -157,37 +162,38 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 }
 
 const navItems = [
-  { path: '/aquarium', label: '我的鱼缸', description: '管理设备与缸内状态', icon: Droplets },
-  { path: '/encyclopedia', label: '图鉴', description: '查找生物与混养计算', icon: BookOpen },
-  { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
-  { path: '/collection', label: '我的水族册', description: '种草、养护、纪念与勋章', icon: BookHeart },
+  { path: '/aquarium', labelKey: 'nav.aquarium', descriptionKey: 'nav.aquariumDescription', icon: Droplets },
+  { path: '/encyclopedia', labelKey: 'nav.encyclopedia', descriptionKey: 'nav.encyclopediaDescription', icon: BookOpen },
+  { path: '/care', labelKey: 'nav.care', descriptionKey: 'nav.careDescription', icon: Library },
+  { path: '/collection', labelKey: 'nav.collection', descriptionKey: 'nav.collectionDescription', icon: BookHeart },
 ];
 
-const mobileNavItems = navItems.map(item => item.path === '/collection' ? { ...item, label: '水族册' } : item);
+const mobileNavItems = navItems.map(item => item.path === '/collection' ? { ...item, labelKey: 'nav.collectionMobile' } : item);
 
 const desktopSubMenus: Record<string, Array<{
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: typeof BookOpen;
   hash?: string;
   path?: string;
 }>> = {
   '/encyclopedia': [
-    { id: 'browse', label: '浏览图鉴', description: '查找生物和分类', icon: BookOpen, hash: '#browse' },
-    { id: 'compatibility', label: '混养计算', description: '选择生物看风险', icon: Activity, hash: '#compatibility' },
+    { id: 'browse', labelKey: 'nav.browse', descriptionKey: 'nav.browseDescription', icon: BookOpen, hash: '#browse' },
+    { id: 'compatibility', labelKey: 'nav.compatibility', descriptionKey: 'nav.compatibilityDescription', icon: Activity, hash: '#compatibility' },
   ],
   '/collection': [
-    { id: 'wishlist', label: '种草图鉴', description: '想进一步了解的生物', icon: Heart, path: '/collection/wishlist' },
-    { id: 'care', label: '养护收藏', description: '收藏的处理步骤', icon: BookOpenCheck, path: '/collection/care' },
-    { id: 'memorial', label: '生命纪念', description: '离缸记录与复盘', icon: Skull, path: '/collection/memorial' },
-    { id: 'achievements', label: '成就勋章', description: '自动解锁与下一步', icon: Medal, path: '/collection/achievements' },
+    { id: 'wishlist', labelKey: 'nav.wishlist', descriptionKey: 'nav.wishlistDescription', icon: Heart, path: '/collection/wishlist' },
+    { id: 'care', labelKey: 'nav.careFavorites', descriptionKey: 'nav.careFavoritesDescription', icon: BookOpenCheck, path: '/collection/care' },
+    { id: 'memorial', labelKey: 'nav.memorial', descriptionKey: 'nav.memorialDescription', icon: Skull, path: '/collection/memorial' },
+    { id: 'achievements', labelKey: 'nav.achievements', descriptionKey: 'nav.achievementsDescription', icon: Medal, path: '/collection/achievements' },
   ],
 };
 
 function BottomNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -215,7 +221,7 @@ function BottomNavigation() {
                 )}
               >
                 <Icon className={cn("mb-1 h-5 w-5", isActive ? "stroke-white" : "")} />
-                {item.label}
+                {t(item.labelKey)}
               </button>
             );
           })}
@@ -229,6 +235,8 @@ function BottomNavigation() {
 function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const location = useLocation();
   const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
+  const { t } = useTranslation();
+  const { openSettings } = useSettings();
   const activePath = location.pathname === '/wishlist'
     ? '/collection'
     : location.pathname === '/care-favorites'
@@ -263,7 +271,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           {!collapsed && (
             <div className="min-w-0">
               <div className="text-[19px] font-black leading-tight text-ink">AquaGuide</div>
-              <div className="mt-0.5 text-[12px] font-bold text-ink/42">水族养护助手</div>
+              <div className="mt-0.5 text-[12px] font-bold text-ink/42">{t('nav.assistant')}</div>
             </div>
           )}
         </div>
@@ -272,7 +280,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           type="button"
           onClick={onToggleCollapsed}
           className="absolute -right-4 top-7 flex h-9 w-9 items-center justify-center rounded-full border border-white bg-white text-ink/50 shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-colors hover:text-accent"
-          aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
         >
           <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
         </button>
@@ -289,7 +297,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   onClick={() => handlePrimaryNav(item.path)}
                   onMouseEnter={() => preloadRoute(item.path)}
                   onFocus={() => preloadRoute(item.path)}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed ? t(item.labelKey) : undefined}
                   className={cn(
                     'flex min-h-[58px] w-full items-center gap-3 rounded-[20px] px-3 text-left transition-colors',
                     collapsed && 'justify-center px-2',
@@ -303,9 +311,9 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   </span>
                   {!collapsed && (
                     <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-black leading-tight">{item.label}</span>
+                      <span className="block truncate text-[15px] font-black leading-tight">{t(item.labelKey)}</span>
                       <span className={cn('mt-1 block truncate text-[10px] font-bold leading-tight', isActive ? 'text-white/65' : 'text-ink/36')}>
-                        {item.description}
+                        {t(item.descriptionKey)}
                       </span>
                     </span>
                   )}
@@ -324,7 +332,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   <button
                     key={item.id}
                     type="button"
-                    title={collapsed ? item.label : undefined}
+                      title={collapsed ? t(item.labelKey) : undefined}
                     onClick={() => handleSubNav(item)}
                     className={cn(
                       'flex min-h-[50px] items-center gap-3 rounded-[16px] px-3 text-left transition-colors',
@@ -337,8 +345,8 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                     <Icon className="h-[18px] w-[18px] shrink-0" />
                     {!collapsed && (
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
-                        <span className="mt-0.5 block truncate text-[9px] font-bold leading-tight text-ink/34">{item.description}</span>
+                        <span className="block truncate text-[13px] font-black leading-tight">{t(item.labelKey)}</span>
+                        <span className="mt-0.5 block truncate text-[9px] font-bold leading-tight text-ink/34">{t(item.descriptionKey)}</span>
                       </span>
                     )}
                   </button>
@@ -349,27 +357,39 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           )}
         </nav>
 
-        {!collapsed && (
-          <div className="shrink-0 border-t border-ink/6 px-5 py-4">
+        <div className={cn('shrink-0 border-t border-ink/6 py-4', collapsed ? 'px-3' : 'px-5')}>
+          <button
+            type="button"
+            onClick={openSettings}
+            title={collapsed ? t('common.settings') : undefined}
+            className={cn('flex min-h-11 w-full items-center gap-3 rounded-[16px] bg-white px-3 text-left text-ink/58 shadow-sm transition-colors hover:text-emerald-700', collapsed && 'justify-center px-0')}
+          >
+            <Settings className="h-5 w-5 shrink-0" />
+            {!collapsed && <span className="text-[13px] font-black">{t('common.settings')}</span>}
+          </button>
+          {!collapsed && (
+            <>
             <div className="flex items-start gap-2 rounded-[18px] bg-white/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-ink/45 shadow-sm">
               <Database className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-              数据保存在当前浏览器，切换设备前请先同步或导出。
+              {t('common.localDataHint')}
             </div>
             <div className="mt-3 text-[10px] font-black text-ink/28">AquaGuide v1.0</div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
 function PageLoading() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[60dvh] items-center justify-center rounded-sm border border-border bg-white p-6 text-center">
       <div>
         <div className="mx-auto mb-3 h-10 w-10 animate-pulse rounded-full bg-accent-light" />
-        <p className="text-sm font-bold text-ink/70">正在加载 AquaGuide...</p>
-        <p className="mt-1 text-[11px] font-medium text-ink/45">国内网络首次打开可能需要几秒</p>
+        <p className="text-sm font-bold text-ink/70">{t('common.loading')}</p>
+        <p className="mt-1 text-[11px] font-medium text-ink/45">{t('common.loadingHint')}</p>
       </div>
     </div>
   );
@@ -381,9 +401,11 @@ export default function App() {
       <Router>
         <ToastProvider>
           <LayoutModeProvider>
-            <WorkspaceNavigationProvider>
-              <AppShell />
-            </WorkspaceNavigationProvider>
+            <SettingsProvider>
+              <WorkspaceNavigationProvider>
+                <AppShell />
+              </WorkspaceNavigationProvider>
+            </SettingsProvider>
           </LayoutModeProvider>
         </ToastProvider>
       </Router>
@@ -495,14 +517,19 @@ function AppShell() {
     );
   }
 
-  if (isPhoneLayout) return <MobileAppShell />;
+  const settingsPanel = <LanguageSettingsPanel />;
+
+  if (isPhoneLayout) return <><MobileAppShell />{settingsPanel}</>;
 
   return (
-    <DesktopAppShell
-      collapsed={isDesktopSidebarCollapsed}
-      onToggleCollapsed={toggleDesktopSidebar}
-      style={desktopShellStyle}
-    />
+    <>
+      <DesktopAppShell
+        collapsed={isDesktopSidebarCollapsed}
+        onToggleCollapsed={toggleDesktopSidebar}
+        style={desktopShellStyle}
+      />
+      {settingsPanel}
+    </>
   );
 }
 

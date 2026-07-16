@@ -5,6 +5,7 @@ import { contentRouter } from './content';
 import { aquariumsRouter } from './aquariums';
 import { userRecordsRouter } from './user-records';
 import { adminRouter } from './admin';
+import { profileRouter } from './profile';
 
 export const v1Router = Router();
 
@@ -15,6 +16,7 @@ v1Router.get('/business-health', (request, response) => sendData(request, respon
 }));
 
 v1Router.use(contentRouter);
+v1Router.use(profileRouter);
 v1Router.use(aquariumsRouter);
 v1Router.use(userRecordsRouter);
 v1Router.use('/admin', adminRouter);

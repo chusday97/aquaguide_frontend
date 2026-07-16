@@ -1459,7 +1459,7 @@ export default function CareEncyclopedia() {
         </div>
       </section>
 
-      <section id="care-recommendations" className={`care-left-panel scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm ${(!searchTerm.trim() && careWorkspacePage === 'home') ? '' : 'hidden md:block'}`}>
+      <section id="care-recommendations" className={`care-left-panel w-full min-w-0 max-w-full scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white p-3 shadow-sm ${(!searchTerm.trim() && careWorkspacePage === 'home') ? '' : 'hidden md:block'}`}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-ink">为当前鱼缸推荐</div>
@@ -1469,7 +1469,7 @@ export default function CareEncyclopedia() {
             </div>
             <div
               ref={recommendationCarouselRef}
-              className="app-scrollbar-hidden flex overflow-hidden"
+              className="app-scrollbar-hidden flex w-full min-w-0 max-w-full overflow-hidden"
             >
               {careRecommendations.map(({ topic, reason }, index) => (
                 <button
@@ -1478,7 +1478,7 @@ export default function CareEncyclopedia() {
                   type="button"
                   data-care-recommend-card
                   onClick={() => openCareDetail(topic.id, `care-recommendation-${topic.id}`)}
-                  className="grid min-w-full grid-cols-[104px_minmax(0,1fr)] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:grid-cols-[42%_1fr] md:gap-3"
+                  className="grid w-full min-w-0 max-w-full shrink-0 basis-full grid-cols-[104px_minmax(0,1fr)] gap-3 rounded-[18px] bg-emerald-50/45 p-2.5 md:grid-cols-[42%_1fr] md:gap-3"
                 >
                   <span className="relative flex h-[112px] items-center justify-center overflow-hidden rounded-[16px] bg-white/70 md:h-[148px]">
                     <CareImage topic={topic} className="h-full w-full" />
