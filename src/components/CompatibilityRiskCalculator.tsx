@@ -10,6 +10,8 @@ import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/
 import { evaluateTankCompatibility, getTankCompatibilityAddPolicy, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
 import { evaluateCompatibilityDecision, type CompatibilityItem } from '../modules/knowledge/compatibilityKnowledge';
 import type { CompatibilityDecision } from '../modules/knowledge/knowledge.types';
+import { VisualResultCard } from './visual-results/VisualResultCard';
+import { buildCompatibilityVisualResult } from './visual-results/visual-result.adapters';
 
 const getDisplayImage = getSpeciesDisplayImage;
 
@@ -518,7 +520,6 @@ export function CompatibilityRiskCalculator({
   const [resultFeedback, setResultFeedback] = useState('');
   const [activeModal, setActiveModal] = useState<ResultModal>(null);
   const [selectedAquariumId, setSelectedAquariumId] = useState(activeAquariumId || aquariums[0]?.id || '');
-  const [showRuleDetails, setShowRuleDetails] = useState(false);
   const activeSpeciesIds = speciesIds ?? internalSpeciesIds;
   const [selectedQuantitiesById, setSelectedQuantitiesById] = useState<Record<string, number>>({});
   const [selectedAddableSpeciesIds, setSelectedAddableSpeciesIds] = useState<string[]>([]);
@@ -564,6 +565,17 @@ export function CompatibilityRiskCalculator({
   const conflictTags = getConflictTags(selectedSpecies, result.reasons);
   const mainConflicts = useMemo(() => getMainConflicts(result, selectedSpecies), [result, selectedSpecies]);
   const actionHints = useMemo(() => getActionHints(result, selectedSpecies), [result, selectedSpecies]);
+  const visualResultModel = useMemo(() => {
+    if (!result.decision) return null;
+    return {
+      ...buildCompatibilityVisualResult({
+        decision: result.decision,
+        species: selectedSpecies,
+        primaryActionLabel: getPrimaryResultButtonLabel(result.level),
+      }),
+      currentAction: getResultNextAction(result.level),
+    };
+  }, [result.decision, result.level, selectedSpecies]);
   const speciesActionGroups = useMemo(
     () => getSpeciesActionGroups(result, selectedSpecies, currentQuantityBySpeciesId),
     [currentQuantityBySpeciesId, result, selectedSpecies]
@@ -591,20 +603,6 @@ export function CompatibilityRiskCalculator({
   useEffect(() => {
     setAddedSpeciesIds(prev => prev.filter(id => activeSpeciesIds.includes(id)));
   }, [activeSpeciesIds]);
-  const ruleEvidence = useMemo(() => {
-    const ruleResult = result.ruleResult;
-    if (!ruleResult) return null;
-    return {
-      passed: ruleResult.passedRules.slice(0, 3),
-      risks: [...ruleResult.blockingRules, ...ruleResult.warningRules].slice(0, 3),
-      missing: ruleResult.missingData.slice(0, 3),
-    };
-  }, [result.ruleResult]);
-  const ruleEvidenceSummary = ruleEvidence ? [
-    ruleEvidence.risks.length > 0 ? `${ruleEvidence.risks.length} 项风险` : '',
-    ruleEvidence.missing.length > 0 ? `${ruleEvidence.missing.length} 项缺失` : '',
-    ruleEvidence.passed.length > 0 ? `${ruleEvidence.passed.length} 项通过` : '',
-  ].filter(Boolean).join(' · ') : '';
   const commonPreviewSpecies = useMemo(() => {
     if (selectedAquarium) {
       const ownedIds = new Set(currentLivestock.map(item => item.species?.id).filter(Boolean));
@@ -750,10 +748,6 @@ export function CompatibilityRiskCalculator({
     }
     if (resultAddPolicy === 'allow') void performAddToAquarium();
   };
-  const handleSecondaryResultAction = () => {
-    if (result.level !== 'caution') return;
-    setActiveModal('conflictDetail');
-  };
   const clearSelectedSpecies = () => {
     updateSpeciesIds([]);
     setSelectedQuantitiesById({});
@@ -781,12 +775,6 @@ export function CompatibilityRiskCalculator({
           {statusLabel}
         </span>
         </div>
-        {selectedCount >= 2 && (
-          <div className="mt-3 rounded-[14px] bg-white/75 px-3 py-2">
-            <div className="text-[10px] font-black opacity-60">结论 · 当前已选 {selectedCount} 种</div>
-            <p className="mt-1 text-[14px] font-black leading-snug text-ink">{riskConclusion}</p>
-          </div>
-        )}
       </div>
 
       <div className="grid gap-3 p-3 pb-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)] lg:items-start">
@@ -992,19 +980,14 @@ export function CompatibilityRiskCalculator({
             <div className="text-[11px] font-bold text-ink/45">添加 2 种以上生物后显示风险结果。</div>
           ) : (
             <>
-              <div className="mb-3 rounded-[14px] bg-white/82 px-3 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-black opacity-60">系统结论</div>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-black ${meta.tone}`}>
-                    {meta.label}
-                  </span>
-                </div>
-                <p className="mt-2 text-[15px] font-black leading-snug text-ink">{riskConclusion}</p>
-                <div className="mt-3 rounded-[12px] bg-bg/80 px-3 py-2">
-                  <div className="text-[10px] font-black text-ink/45">下一步</div>
-                  <p className="mt-0.5 text-[12px] font-black leading-relaxed text-ink/72">{getResultNextAction(result.level)}</p>
-                </div>
-              </div>
+              {visualResultModel && (
+                <VisualResultCard
+                  model={visualResultModel}
+                  onPrimaryAction={handlePrimaryResultAction}
+                  actionPending={isAddingToAquarium}
+                  className="mb-3"
+                />
+              )}
 
               {resultFeedback && (
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
@@ -1149,89 +1132,6 @@ export function CompatibilityRiskCalculator({
                 )}
               </div>
 
-              {ruleEvidence && (
-                <div className="mb-3 overflow-hidden rounded-[14px] border border-white/70 bg-white/45 backdrop-blur">
-                  <button
-                    type="button"
-                    onClick={() => setShowRuleDetails(prev => !prev)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
-                  >
-                    <span>
-                      <span className="block text-[11px] font-black text-ink/55">具体判定依据</span>
-                      <span className="block text-[9px] font-bold text-ink/35">{ruleEvidenceSummary || '半透明折叠显示，AI 仅负责解释'}</span>
-                    </span>
-                    <ChevronDown className={`h-4 w-4 text-ink/35 transition-transform ${showRuleDetails ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {showRuleDetails && (
-                    <div className="grid gap-2 border-t border-white/70 px-3 pb-3 pt-2">
-                      {ruleEvidence.risks.length > 0 && (
-                        <div className="rounded-[12px] border border-amber-100 bg-amber-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-amber-700">风险 / 阻断规则</div>
-                          <div className="mt-1 space-y-1">
-                            {ruleEvidence.risks.map(rule => (
-                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {ruleEvidence.missing.length > 0 && (
-                        <div className="rounded-[12px] border border-sky-100 bg-sky-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-sky-700">缺失信息</div>
-                          <div className="mt-1 space-y-1">
-                            {ruleEvidence.missing.map(rule => (
-                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {ruleEvidence.passed.length > 0 && (
-                        <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-emerald-700">已通过规则</div>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {ruleEvidence.passed.map(rule => (
-                              <span key={`${rule.code}-${rule.title}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{rule.title}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {(mainConflicts.length > 0 ? mainConflicts : []).map(conflict => (
-                        <div key={conflict.key} className="rounded-[12px] border border-border/70 bg-white/75 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-ink">{conflict.pair}</div>
-                          <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{conflict.reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-3 grid gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrimaryResultAction}
-                  disabled={isAddingToAquarium}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
-                    result.level === 'not_recommended'
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : result.level === 'caution' || result.level === 'insufficient_data'
-                        ? 'bg-amber-600 text-white hover:bg-amber-700'
-                        : 'bg-emerald-700 text-white hover:bg-emerald-800'
-                  } disabled:bg-ink/20 disabled:text-ink/40`}
-                >
-                  {isAddingToAquarium && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
-                  {getPrimaryResultButtonLabel(result.level)}
-                </button>
-                {result.level === 'caution' && (
-                  <button
-                    type="button"
-                    onClick={handleSecondaryResultAction}
-                    className="justify-self-center rounded-full bg-white/45 px-3 py-1.5 text-center text-[10px] font-black text-ink/45 transition-colors hover:bg-white hover:text-ink/70"
-                  >
-                    查看完整混养提醒
-                  </button>
-                )}
-              </div>
             </>
           )}
         </section>

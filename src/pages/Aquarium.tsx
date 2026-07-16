@@ -68,6 +68,8 @@ import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
+import { VisualResultCard } from '../components/visual-results/VisualResultCard';
+import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
 import {
   getTankCompatibilityAddPolicy,
   getTankCompatibilityStatusLabel,
@@ -3693,6 +3695,51 @@ export default function AquariumManager() {
     }] : []),
   ];
   const structuredDiagnosis = diagnosisResult;
+  const diagnosisVisualModel = structuredDiagnosis ? (() => {
+    const deterministicResult: DiagnosisOutput = {
+      riskLevel: structuredDiagnosis.riskLevel,
+      riskLabel: structuredDiagnosis.risk,
+      summary: structuredDiagnosis.verdict,
+      currentAction: structuredDiagnosis.currentAction,
+      actions: structuredDiagnosis.actions,
+      avoidActions: structuredDiagnosis.avoid,
+      possibleCauses: structuredDiagnosis.reasons,
+      observeItems: structuredDiagnosis.observe,
+      missingInfo: structuredDiagnosis.missing,
+      evidence: structuredDiagnosis.evidence,
+      keyMetrics: structuredDiagnosis.keyMetrics,
+      matchedRules: [],
+      matchedArticles: [],
+      nextCheckAt: structuredDiagnosis.nextCheckAt,
+    };
+    const model = buildDiagnosisVisualResult({
+      result: deterministicResult,
+      answers: diagnosisQuizAnswers,
+      aquariumName: diagnosisAquarium?.name || '当前鱼缸',
+      livestock: getDiagnosisLivestock(diagnosisAquarium).map(item => item.fish),
+      primaryActionLabel: diagnosisIssueType === '巡检' && dailyCheckArticles[0]
+        ? '查看补救步骤'
+        : diagnosisIssueType === '巡检'
+          ? todayDailyCheckRecord ? '更新今天记录' : '保存今天记录'
+          : '保存本次诊断',
+      primaryActionType: diagnosisIssueType === '巡检' && dailyCheckArticles[0] ? 'dialog' : 'mutation',
+    });
+    if (dailyCheckInterpretation) {
+      model.detailSections.push({
+        id: 'interpretation',
+        title: dailyCheckInterpretation.source === 'model' ? 'AI 补充解读' : '本地补充解读',
+        items: [dailyCheckInterpretation.summary, ...dailyCheckInterpretation.reasoning, dailyCheckInterpretation.disclaimer].filter(Boolean),
+      });
+    }
+    return model;
+  })() : null;
+  const handleVisualDiagnosisPrimary = () => {
+    handleSaveDiagnosisRecord();
+    if (diagnosisIssueType === '巡检' && dailyCheckArticles[0] && structuredDiagnosis) {
+      setSelectedDailyCheckArticle(dailyCheckArticles[0]);
+      trackSessionEvent('remedy_article_opened', { action: 'open', status: structuredDiagnosis.riskLevel, entry: 'daily-check-result' });
+    }
+  };
   const scrollToDesktopDiscovery = () => {
     void navigateToSection('aquarium-discovery', { updateHash: false });
   };
@@ -4860,73 +4907,12 @@ export default function AquariumManager() {
 
               {diagnosisMode === 'result' && structuredDiagnosis && (
               <>
-              <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[13px] font-black text-ink">结构化诊断结果</div>
-                    <p className="mt-0.5 text-[11px] font-medium text-ink/50">
-                      {`基于「${diagnosisIssueType}」测试回答生成。`}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${
-                    structuredDiagnosis.riskLevel === 'high' ? 'bg-red-50 text-red-700' :
-                    structuredDiagnosis.riskLevel === 'medium' ? 'bg-amber-50 text-amber-700' :
-                    structuredDiagnosis.riskLevel === 'unknown' ? 'bg-blue-50 text-blue-700' :
-                    'bg-emerald-50 text-emerald-700'
-                  }`}>
-                    {structuredDiagnosis.risk}
-                  </span>
-                </div>
-
-                <div className={`rounded-[16px] px-3 py-3 ${
-                  structuredDiagnosis.riskLevel === 'high' ? 'bg-red-50' :
-                  structuredDiagnosis.riskLevel === 'medium' ? 'bg-amber-50' :
-                  structuredDiagnosis.riskLevel === 'unknown' ? 'bg-blue-50' :
-                  'bg-emerald-50'
-                }`}>
-                  <div className="text-[10px] font-black text-ink/42">诊断结论</div>
-                  <div className="mt-1 text-[14px] font-black leading-relaxed text-ink">{structuredDiagnosis.verdict}</div>
-                  <div className="mt-2 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-black text-ink/70">
-                    当前建议：{structuredDiagnosis.currentAction}
-                  </div>
-                </div>
-
-                {structuredDiagnosis.keyMetrics.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {structuredDiagnosis.keyMetrics.map(metric => (
-                      <div key={`${metric.label}-${metric.value}`} className="rounded-[14px] bg-bg px-3 py-2">
-                        <div className="text-[10px] font-black text-ink/38">{metric.label}</div>
-                        <div className="mt-1 text-[13px] font-black leading-tight text-ink">{metric.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {[
-                  { title: '依据', items: structuredDiagnosis.evidence },
-                  { title: '立即处理', items: structuredDiagnosis.actions },
-                  { title: '暂时避免', items: structuredDiagnosis.avoid },
-                  { title: '可能原因', items: structuredDiagnosis.reasons },
-                  { title: '继续观察', items: structuredDiagnosis.observe },
-                ].map(section => (
-                  <div key={section.title} className="grid gap-1.5">
-                    <div className="text-[12px] font-black text-ink">{section.title}</div>
-                    <div className="grid gap-1">
-                      {section.items.slice(0, 3).map(item => (
-                        <div key={item} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium leading-relaxed text-ink/70">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {structuredDiagnosis.missing.length > 0 && (
-                  <div className="rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2">
-                    <div className="text-[12px] font-black text-blue-800">可选补充</div>
-                    <div className="mt-1 text-[11px] font-medium leading-relaxed text-blue-900/75">
-                      如果情况没有改善，可以补充：{structuredDiagnosis.missing.join('、')}。
-                    </div>
-                  </div>
+              <section className="grid gap-3">
+                {diagnosisVisualModel && (
+                  <VisualResultCard
+                    model={diagnosisVisualModel}
+                    onPrimaryAction={handleVisualDiagnosisPrimary}
+                  />
                 )}
                 {diagnosisSaveMessage && (
                   <div className="rounded-[12px] bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
@@ -4938,53 +4924,13 @@ export default function AquariumManager() {
                     AI 正在整理你的补充描述；本地风险和处理步骤已先生成。
                   </div>
                 )}
-                {diagnosisIssueType === '巡检' && dailyCheckInterpretation && (
-                  <div className="rounded-[16px] border border-violet-100 bg-violet-50/70 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[12px] font-black text-violet-800">补充解读</div>
-                      <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-violet-700">
-                        {dailyCheckInterpretation.source === 'model' ? 'AI 模型回复' : '本地安全兜底'}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/70">{dailyCheckInterpretation.summary}</p>
-                    {dailyCheckInterpretation.reasoning.length > 0 && (
-                      <div className="mt-2 grid gap-1">
-                        {dailyCheckInterpretation.reasoning.slice(0, 3).map(item => (
-                          <div key={item} className="rounded-[11px] bg-white/80 px-2.5 py-2 text-[10px] font-medium leading-relaxed text-ink/62">{item}</div>
-                        ))}
-                      </div>
-                    )}
-                    {dailyCheckInterpretation.clarifyingQuestions.length > 0 && (
-                      <p className="mt-2 text-[10px] font-bold leading-relaxed text-violet-900/65">可继续补充：{dailyCheckInterpretation.clarifyingQuestions.join('；')}</p>
-                    )}
-                    <p className="mt-2 text-[9px] font-bold text-ink/38">{dailyCheckInterpretation.disclaimer}</p>
-                  </div>
-                )}
-                {diagnosisIssueType === '巡检' && dailyCheckArticles[0] && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDailyCheckArticle(dailyCheckArticles[0]);
-                      trackSessionEvent('remedy_article_opened', { action: 'open', status: structuredDiagnosis.riskLevel, entry: 'daily-check-result' });
-                    }}
-                    className="flex w-full items-center justify-between gap-3 rounded-[16px] bg-emerald-700 px-4 py-3 text-left text-white shadow-sm"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[10px] font-black text-white/65">按百科步骤补救</span>
-                      <span className="mt-0.5 block truncate text-[13px] font-black">{dailyCheckArticles[0].title}</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 shrink-0" />
-                  </button>
-                )}
               </section>
 
-              <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
-                <div>
-                  <div className="text-[13px] font-black text-ink">继续补充信息</div>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">追问会沿着当前问题继续判断，不重新复述鱼缸基础信息。</p>
-                </div>
+              <details className="rounded-[18px] bg-white p-3 shadow-sm">
+                <summary className="min-h-11 cursor-pointer list-none text-[13px] font-black text-ink">继续补充信息</summary>
+                <p className="text-[11px] font-medium text-ink/50">补充症状、水质数据或近期操作，不会改变已有本地风险等级。</p>
                 {diagnosisFollowUps.length > 0 && (
-                  <div className="grid gap-2">
+                  <div className="mt-2 grid gap-2">
                     {diagnosisFollowUps.map((item, index) => (
                       <div key={`${item.question}-${index}`} className="rounded-[14px] bg-bg p-3">
                         <div className="text-[11px] font-black text-ink">问：{item.question}</div>
@@ -5007,7 +4953,7 @@ export default function AquariumManager() {
                     追问
                   </Button>
                 </div>
-              </section>
+              </details>
               </>
               )}
 
@@ -5067,12 +5013,7 @@ export default function AquariumManager() {
               </>
             )}
             {diagnosisMode === 'result' && (
-              <>
-                <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">重新诊断</Button>
-                <Button onClick={handleSaveDiagnosisRecord} disabled={!structuredDiagnosis} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
-                  {diagnosisIssueType === '巡检' ? (todayDailyCheckRecord ? '更新今天记录' : '保存今天记录') : '保存本次诊断'}
-                </Button>
-              </>
+              <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 w-full rounded-full text-sm font-bold">重新诊断</Button>
             )}
             {diagnosisMode === 'history' && (
               <>

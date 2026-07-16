@@ -11,6 +11,7 @@ const openPage = async (path) => {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => localStorage.setItem('aquaguide_locale', 'zh-CN'));
   await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
   return { page, errors };
 };
@@ -26,7 +27,9 @@ try {
     const generate = page.getByRole('button', { name: '生成检查结果', exact: true });
     assert(await generate.isEnabled(), '每日检查填写完整后仍不能生成结果');
     await generate.click();
-    await page.getByText('结构化诊断结果', { exact: true }).waitFor();
+    const visualResult = page.locator('[data-visual-result-status]');
+    await visualResult.waitFor();
+    assert(await visualResult.getByText(/展开具体判断依据/).count() === 1, '每日检查依据没有默认折叠');
     assert(errors.length === 0, `每日检查发生页面错误：${errors.join('；')}`);
     await page.close();
   }
@@ -45,7 +48,9 @@ try {
     const showResult = panel.getByRole('button', { name: '查看自查结果', exact: true });
     assert(await showResult.isEnabled(), '养护自查填写完整后仍不能生成结果');
     await showResult.click();
-    await panel.getByText('自查结论', { exact: true }).waitFor();
+    const visualResult = panel.locator('[data-visual-result-status]');
+    await visualResult.waitFor();
+    assert(await visualResult.getByText(/展开具体判断依据/).count() === 1, '养护自查依据没有默认折叠');
     assert(errors.length === 0, `养护自查发生页面错误：${errors.join('；')}`);
     await page.close();
   }

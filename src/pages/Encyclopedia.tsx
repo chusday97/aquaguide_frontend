@@ -29,6 +29,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, X, Heart, HeartOff, Skull, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
 import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalculator';
+import { VisualResultMini } from '../components/visual-results/VisualResultCard';
+import type { VisualResultSubject } from '../components/visual-results/visual-result.types';
 import { loadAppStateFromStorage, patchLocalAppState } from '../services/storage/local-app-state';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
@@ -600,6 +602,14 @@ export default function Encyclopedia() {
   const miniCompatibilityResult = useMemo(() => (
     calculatorSpecies.length >= 2 ? evaluateSpeciesCombination(calculatorSpecies) : null
   ), [calculatorSpecies]);
+  const miniVisualSubjects = useMemo<VisualResultSubject[]>(() => calculatorSpecies.map((fish, index) => ({
+    id: fish.id,
+    name: fish.name,
+    image: getEncyclopediaImage(fish),
+    role: index === calculatorSpecies.length - 1 ? 'focus' : 'related',
+    status: miniCompatibilityResult?.status || 'insufficient_data',
+    shortReason: miniCompatibilityResult?.summary || '继续选择生物后生成判断。',
+  })), [calculatorSpecies, miniCompatibilityResult]);
   const lastMiniEventRef = useRef('');
   useEffect(() => {
     if (!miniCompatibilityResult) return;
@@ -1866,60 +1876,27 @@ export default function Encyclopedia() {
               : 'border-emerald-100 bg-white/95'
           }`}
         >
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-[12px] font-black text-ink">
-                <span>Mini 混养判断</span>
-                <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] transition-all ${calculatorPulse ? 'scale-125 bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'}`}>{calculatorSpeciesIds.length}</span>
-                {miniCompatibilityResult && (
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ${
-                    miniCompatibilityResult.status === 'compatible'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : miniCompatibilityResult.status === 'caution'
-                        ? 'bg-amber-100 text-amber-700'
-                        : miniCompatibilityResult.status === 'not_recommended'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {miniCompatibilityResult.status === 'compatible'
-                      ? '可以混养'
-                      : miniCompatibilityResult.status === 'caution'
-                        ? '需要谨慎'
-                        : miniCompatibilityResult.status === 'not_recommended'
-                          ? '不建议混养'
-                          : '资料不足'}
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 flex min-w-0 items-center gap-1.5 overflow-hidden">
-                {calculatorSpecies.slice(0, 4).map(fish => (
-                  <span key={fish.id} className="inline-flex min-w-0 items-center gap-1 rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/60">
-                    <img src={getEncyclopediaImage(fish)} alt="" className="h-5 w-5 shrink-0 object-contain" />
-                    <span className="max-w-[92px] truncate">{fish.name}</span>
-                  </span>
-                ))}
-                {calculatorSpecies.length > 4 && <span className="text-[10px] font-black text-ink/40">+{calculatorSpecies.length - 4}</span>}
-              </div>
-              <p className="mt-2 line-clamp-2 text-[11px] font-medium leading-relaxed text-ink/50">
-                {miniCompatibilityResult?.summary || calculatorFeedback || '再选择至少 1 种生物，系统会立即判断所选组合。'}
-              </p>
-            </div>
-            {miniCompatibilityResult ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCompatibilitySelection(calculatorSpeciesIds);
-                  trackSessionEvent('mini_open_full', { action: 'open', status: miniCompatibilityResult.status, entry: 'encyclopedia' });
-                  setViewMode('compatibility');
-                }}
-                className="h-10 shrink-0 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white"
-              >
-                查看详细判断
-              </button>
-            ) : (
-              <span className="shrink-0 text-[11px] font-black text-emerald-700">请继续选择</span>
-            )}
+          <div className="mb-2 flex items-center gap-2 text-[12px] font-black text-ink">
+            <span>Mini 混养判断</span>
+            <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] transition-all ${calculatorPulse ? 'scale-125 bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'}`}>{calculatorSpeciesIds.length}</span>
           </div>
+          {miniCompatibilityResult ? (
+            <VisualResultMini
+              status={miniCompatibilityResult.status}
+              subjects={miniVisualSubjects}
+              summary={miniCompatibilityResult.summary}
+              onOpen={() => {
+                setCompatibilitySelection(calculatorSpeciesIds);
+                trackSessionEvent('mini_open_full', { action: 'open', status: miniCompatibilityResult.status, entry: 'encyclopedia' });
+                setViewMode('compatibility');
+              }}
+            />
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-medium leading-relaxed text-ink/50">{calculatorFeedback || '再选择至少 1 种生物，系统会立即判断所选组合。'}</p>
+              <span className="shrink-0 text-[11px] font-black text-emerald-700">请继续选择</span>
+            </div>
+          )}
         </div>
       )}
       {flyingThumbnail && (

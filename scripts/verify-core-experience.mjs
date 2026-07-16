@@ -30,6 +30,7 @@ const seededState = {
 const seedStorage = async (context) => {
   await context.addInitScript((state) => {
     localStorage.setItem('aquarium_app_state_v1', JSON.stringify(state));
+    localStorage.setItem('aquaguide_locale', 'zh-CN');
     localStorage.setItem('aquariums', JSON.stringify(state.aquariums));
     localStorage.setItem('wishlistFishIds', JSON.stringify(['sp_0001']));
     localStorage.setItem('aqua_care_favorites', JSON.stringify({
@@ -120,6 +121,7 @@ try {
   await page.getByText('Mini 混养判断', { exact: true }).waitFor();
   await page.getByRole('button', { name: '查看详细判断' }).click();
   await page.getByText(/已选生物 2 种/).waitFor();
+  await page.locator('[data-visual-result-status]').waitFor();
 
   await page.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.getByRole('button', { name: /AI 建缸助手/ }).click();
@@ -145,9 +147,10 @@ try {
   const resultButton = dialog.getByRole('button', { name: '生成检查结果', exact: true });
   assert.equal(await resultButton.evaluate(element => element === document.activeElement), true, 'last answer focuses result without auto submit');
   await resultButton.click();
-  await dialog.getByText('结构化诊断结果').waitFor();
-  await dialog.getByRole('button', { name: '保存今天记录' }).click();
-  await dialog.getByText(/已保存今天的检查记录/).waitFor();
+  const visualPatrolResult = dialog.locator('[data-visual-result-status]');
+  await visualPatrolResult.waitFor();
+  assert.equal(await visualPatrolResult.getByText(/展开具体判断依据/).count(), 1, '巡检依据应默认折叠');
+  await visualPatrolResult.locator('button[data-action-type]').click();
   await page.waitForTimeout(900);
   const patrolCount = await page.evaluate(() => {
     const state = JSON.parse(localStorage.getItem('aquarium_app_state_v1') || '{}');

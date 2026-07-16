@@ -13,6 +13,9 @@ import { buildSpeciesCarePresentation } from '../modules/knowledge/speciesCarePr
 import type { PairCompatibilityResult } from '../modules/knowledge/knowledge.types';
 import type { PreviewImage } from './common/ImagePreviewModal';
 import { AdaptiveDetailContent } from './common/AdaptiveDetailContent';
+import { VisualResultCard } from './visual-results/VisualResultCard';
+import { getVisualEmphasis, mapFitStatus } from './visual-results/visual-result.adapters';
+import type { VisualResultViewModel } from './visual-results/visual-result.types';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const Interactive3DFishWrapper = lazy(() => import('./Interactive3DFishWrapper'));
@@ -130,13 +133,6 @@ const getFitStatusClass = (status: FitStatus) => {
   if (status === 'warning') return 'border-amber-100 bg-amber-50 text-amber-700';
   if (status === 'danger') return 'border-red-100 bg-red-50 text-red-600';
   return 'border-sky-100 bg-sky-50 text-sky-700';
-};
-
-const getPairStatusPresentation = (status: PairCompatibilityResult['status']) => {
-  if (status === 'compatible') return { label: '适合', className: 'border-emerald-100 bg-emerald-50 text-emerald-700' };
-  if (status === 'caution') return { label: '谨慎', className: 'border-amber-100 bg-amber-50 text-amber-700' };
-  if (status === 'not_recommended') return { label: '不建议', className: 'border-red-100 bg-red-50 text-red-600' };
-  return { label: '信息不足', className: 'border-sky-100 bg-sky-50 text-sky-700' };
 };
 
 const getCareSourceClass = (status: ReturnType<typeof buildSpeciesCarePresentation>['sourceStatus']) => {
@@ -458,12 +454,6 @@ export function SpeciesDetailDialog({
     ].filter(Boolean) as Array<FitDimension & { icon: typeof Waves }>;
   }, [displayFit]);
 
-  const metricSummary = useMemo(() => {
-    const matched = metricCards.filter(item => item.status === 'ok').length;
-    const pending = metricCards.filter(item => item.status === 'info').length;
-    const adjust = metricCards.filter(item => item.status === 'warning' || item.status === 'danger').length;
-    return { matched, pending, adjust, total: metricCards.length || 1 };
-  }, [metricCards]);
   const sexIdentificationGuide = useMemo(() => fish ? getSexIdentificationGuide(fish) : null, [fish]);
   const carePresentation = useMemo(() => fish ? buildSpeciesCarePresentation(fish) : null, [fish]);
   const compatibilityPairs = useMemo(() => {
@@ -488,6 +478,97 @@ export function SpeciesDetailDialog({
     if (displayFit.status === 'unsuitable' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return '查看混养风险';
     return '完善鱼缸设置';
   }, [aquariumContext, displayFit, owned]);
+  const fitVisualModel = useMemo<VisualResultViewModel | null>(() => {
+    if (!fish || !displayFit) return null;
+    const status = mapFitStatus(displayFit.status);
+    const conclusion = aquariumContext ? displayFit.conclusion : '尚未选择鱼缸，选择或创建鱼缸后再判断环境适配。';
+    return {
+      status,
+      title: aquariumContext ? '物种适配' : '尚未选择鱼缸',
+      conclusion,
+      emphasis: getVisualEmphasis(conclusion),
+      subjects: [
+        {
+          id: fish.id,
+          name: fish.name,
+          image: getSpeciesDisplayImage(fish),
+          role: 'focus',
+          status,
+          shortReason: conclusion,
+          badgeLabel: aquariumContext ? '准备评估' : '当前物种',
+          emphasis: getVisualEmphasis(conclusion),
+        },
+        ...(aquariumContext ? metricCards.map(metric => ({
+          id: `fit-${metric.type}`,
+          name: metric.label,
+          role: 'affected' as const,
+          status: mapFitStatus(metric.status),
+          shortReason: metric.advice || `${metric.label}：${metric.current || '未设置'}`,
+          badgeLabel: metric.status === 'ok' ? '匹配' : metric.status === 'info' ? '待补充' : '待调整',
+          emphasis: getVisualEmphasis(metric.advice),
+        })) : []),
+      ],
+      currentAction: aquariumContext
+        ? displayFit.risks[0]?.advice || displayFit.confirmations[0]?.advice || '当前条件基本匹配，加入后继续观察。'
+        : '先选择或创建鱼缸，再结合环境和缸内生物判断。',
+      primaryAction: {
+        label: mainActionLabel,
+        actionType: displayFit.status === 'suitable' && !owned ? 'mutation' : 'section',
+      },
+      detailSections: [
+        { id: 'risks', title: '需要处理', items: displayFit.risks.map(item => item.advice) },
+        { id: 'confirmations', title: '需要确认', items: displayFit.confirmations.map(item => item.advice) },
+        { id: 'matched', title: '已经匹配', items: metricCards.filter(item => item.status === 'ok').map(item => `${item.label}：${item.current}`) },
+      ].filter(section => section.items.length > 0),
+    };
+  }, [aquariumContext, displayFit, fish, mainActionLabel, metricCards, owned]);
+  const compatibilityVisualModel = useMemo<VisualResultViewModel | null>(() => {
+    if (!fish) return null;
+    const statusRank = { compatible: 0, caution: 1, insufficient_data: 2, not_recommended: 3 } as const;
+    const status = compatibilityPairs.reduce<PairCompatibilityResult['status']>((current, pair) => (
+      statusRank[pair.status] > statusRank[current] ? pair.status : current
+    ), 'compatible');
+    const primaryPair = [...compatibilityPairs].sort((a, b) => statusRank[b.status] - statusRank[a.status])[0];
+    const conclusion = primaryPair?.primaryReason?.evidence || primaryPair?.rawResult.summary || '当前鱼缸没有可与该物种逐对比较的其他活体。';
+    return {
+      status,
+      title: '混养关系',
+      conclusion,
+      emphasis: getVisualEmphasis(conclusion),
+      subjects: [{
+        id: fish.id,
+        name: fish.name,
+        image: getSpeciesDisplayImage(fish),
+        role: 'focus',
+        status,
+        shortReason: conclusion,
+        badgeLabel: '当前物种',
+      }, ...compatibilityPairs.map(pair => {
+        const other = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
+        const reason = pair.primaryReason?.evidence || pair.rawResult.summary;
+        return {
+          id: other.id,
+          name: other.name,
+          image: getSpeciesDisplayImage(other),
+          role: 'related' as const,
+          status: pair.status,
+          shortReason: reason,
+          badgeLabel: pair.primaryReason?.title || (pair.status === 'compatible' ? '暂未发现冲突' : pair.status === 'caution' ? '需要观察' : pair.status === 'not_recommended' ? '存在风险' : '资料不足'),
+          emphasis: getVisualEmphasis(reason),
+        };
+      })],
+      currentAction: primaryPair?.actions[0] || '进入完整混养计算，调整组合或补充鱼缸信息。',
+      primaryAction: { label: '调整混养组合', actionType: 'route' },
+      detailSections: compatibilityPairs.map(pair => {
+        const other = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
+        return {
+          id: pair.pairId,
+          title: `与 ${other.name}`,
+          items: [pair.primaryReason?.evidence, ...pair.secondaryReasons.map(item => item.evidence)].filter((item): item is string => Boolean(item)),
+        };
+      }).filter(section => section.items.length > 0),
+    };
+  }, [compatibilityPairs, fish]);
 
   const getMetricSettingsPanel = (metric: FitDimension) => {
     if (metric.type === 'space') return 'size' as const;
@@ -664,119 +745,22 @@ export function SpeciesDetailDialog({
 
                   {activeTab === 'environment' && (
                     <div className="mt-4 grid gap-4">
-                      {(() => {
-                        const tone = getAssessmentTone(displayFit.status);
-                        const keyIssues = aquariumContext ? [...displayFit.confirmations.map(item => item.advice), ...displayFit.risks.map(item => item.advice)].slice(0, 3) : ['选择或创建鱼缸后，系统会结合水体、温度、空间和设备给出判断。'];
-                        const fallbackIssues = displayFit.status === 'suitable' || displayFit.status === 'alreadyInTank'
-                          ? ['当前温度、空间和水体条件基本匹配', '继续观察鱼只状态', '后续添加生物前再做混养评估']
-                          : ['当前鱼缸缺少完整环境信息', '部分水质或设备条件需要确认', '补充后可重新评估适配结果'];
-                        return (
-                          <section className={`rounded-[18px] border p-4 ${tone === 'suitable' ? 'border-emerald-100 bg-emerald-50/80' : tone === 'risk' ? 'border-red-100 bg-red-50/80' : 'border-amber-100 bg-amber-50/80'}`}>
-                            <div className="grid gap-3 min-[560px]:grid-cols-[1fr_170px]">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  {tone === 'suitable' ? <CheckCircle2 className="h-7 w-7 text-emerald-600" /> : <AlertTriangle className={`h-7 w-7 ${tone === 'risk' ? 'text-red-600' : 'text-amber-600'}`} />}
-                                  <h3 className="text-[19px] font-black leading-tight text-ink">{aquariumContext ? displayFit.title : '尚未选择鱼缸'}</h3>
-                                </div>
-                                <div className="mt-3 grid gap-2">
-                                  {(keyIssues.length > 0 ? keyIssues : fallbackIssues).slice(0, 3).map(item => (
-                                    <div key={item} className="flex items-start gap-2 text-[12px] font-bold leading-relaxed text-ink/68">
-                                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                                      <span>{item}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="rounded-[16px] border border-white/70 bg-white/65 p-3">
-                                <div className="text-[11px] font-black text-ink/42">参考鱼缸</div>
-                                <div className="mt-2 text-[13px] font-black text-ink">{aquariumContext?.name || '我的鱼缸'}</div>
-                                <div className="mt-1 text-[12px] font-bold leading-relaxed text-ink/55">{aquariumContext ? `${aquariumContext.waterType === 'Saltwater' ? '海水' : '淡水'} · ${aquariumContext.targetTemperature || '温度未设置'}℃` : '暂无鱼缸数据'}</div>
-                              </div>
-                            </div>
-                          </section>
-                        );
-                      })()}
-
-                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[15px] font-black text-ink">环境关键指标</h3>
-                            <Info className="h-4 w-4 text-ink/38" />
-                          </div>
-                          <span className="text-[12px] font-black text-ink/45">{metricCards.length} 项指标 <ChevronRight className="inline h-4 w-4" /></span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {metricCards.map(item => {
-                            const Icon = item.icon;
-                            return (
-                              <button key={item.label} type="button" onClick={() => setActiveMetric(item)} className="min-h-[86px] rounded-[16px] border border-border bg-white p-3 text-left shadow-sm transition-colors hover:border-accent/35">
-                                <div className="flex items-start justify-between gap-2">
-                                  <Icon className={`h-7 w-7 shrink-0 ${item.status === 'ok' ? 'text-emerald-600' : item.status === 'danger' ? 'text-red-500' : 'text-amber-500'}`} />
-                                  <span className={`rounded-full border px-2 py-1 text-[10px] font-black ${getFitStatusClass(item.status)}`}>{item.status === 'ok' ? '匹配' : item.status === 'info' ? '待补充' : '待调整'}</span>
-                                </div>
-                                <div className="mt-3 text-[13px] font-black text-ink">{item.label}</div>
-                                <div className="mt-1 line-clamp-1 text-[12px] font-bold text-ink/55">{item.status === 'ok' ? item.current : item.current || '未设置'}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </section>}
-
-                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[15px] font-black text-ink">系统适配结果</h3>
-                            <Info className="h-4 w-4 text-ink/35" />
-                          </div>
-                          <div className="shrink-0 text-[13px] font-black text-ink">{metricSummary.matched} 匹配 <span className="mx-1 text-ink/25">/</span> {metricSummary.pending + metricSummary.adjust} 待处理</div>
-                        </div>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg">
-                          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round((metricSummary.matched / metricSummary.total) * 100)}%` }} />
-                        </div>
-                        <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/55">{metricSummary.pending > 0 ? '信息尚未完整，补充后可进行完整评估。' : displayFit.conclusion}</p>
-                      </section>}
-
+                      {fitVisualModel && (
+                        <VisualResultCard
+                          model={fitVisualModel}
+                          onPrimaryAction={handleMainAction}
+                          onSubjectSelect={subject => {
+                            const metric = metricCards.find(item => `fit-${item.type}` === subject.id);
+                            if (metric) setActiveMetric(metric);
+                          }}
+                        />
+                      )}
                     </div>
                   )}
 
                   {activeTab === 'compatibility' && (
                     <div className="mt-4 grid gap-3">
-                      <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
-                        <h3 className="text-[16px] font-black text-ink">当前鱼缸混养关系</h3>
-                        {compatibilityPairs.length === 0 ? (
-                          <div className="mt-3 rounded-[14px] bg-bg p-3">
-                            <div className="text-[13px] font-black text-ink">尚未进行混养评估</div>
-                            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">当前鱼缸没有可与该物种逐对比较的其他活体。添加鱼类、虾类或螺类后，系统会重新计算。</p>
-                          </div>
-                        ) : (
-                          <div className="mt-3 grid gap-2">
-                            {compatibilityPairs.map(pair => {
-                              const otherSpecies = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
-                              const status = getPairStatusPresentation(pair.status);
-                              const evidence = pair.primaryReason?.evidence || pair.rawResult.summary;
-                              const action = pair.actions[0];
-                              return (
-                                <article key={pair.pairId} className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border ${getSpeciesImageSurfaceClass(otherSpecies)} p-1.5`}>
-                                      <img src={getSpeciesDisplayImage(otherSpecies)} alt={otherSpecies.name} loading="lazy" decoding="async" className={`h-full w-full object-contain ${getSpeciesImageClass(otherSpecies)}`} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="truncate text-[13px] font-black text-ink">与 {otherSpecies.name}</div>
-                                        <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${status.className}`}>{status.label}</span>
-                                      </div>
-                                      <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{evidence}</p>
-                                      {action && <p className="mt-1 text-[11px] font-bold leading-relaxed text-accent">建议：{action}</p>}
-                                    </div>
-                                  </div>
-                                </article>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <Button variant="outline" className="mt-3 h-10 rounded-full px-5 text-[12px] font-black" onClick={handleOpenCalculator}><Calculator className="mr-2 h-4 w-4" />调整混养组合</Button>
-                      </section>
+                      {compatibilityVisualModel && <VisualResultCard model={compatibilityVisualModel} onPrimaryAction={handleOpenCalculator} />}
                       {(fish.housingMode || fish.housingReason) && (
                         <details className="rounded-[16px] border border-border bg-white/70 p-3">
                           <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-black text-ink">通用饲养倾向 · 类别参考<ChevronRight className="h-4 w-4 text-ink/40" /></summary>

@@ -26,6 +26,7 @@
     "test:3d-assets": "tsx scripts/assert_3d_species_assets.ts",
     "test:layout-mode": "tsx scripts/assert_layout_mode_policy.ts",
     "test:mini-compatibility": "tsx scripts/test-mini-compatibility.ts",
+    "test:visual-results": "tsx scripts/test-visual-results.ts",
     "test:daily-check": "tsx scripts/test-daily-check-contract.ts",
     "test:session-events": "tsx scripts/test-session-events.ts",
     "test:collection": "tsx scripts/test-collection-achievements.ts",

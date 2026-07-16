@@ -30,6 +30,9 @@ import {
   upsertCareReminder,
 } from '../services/care/care-activity.service';
 import { useToast } from '../components/common/ToastProvider';
+import { VisualResultCard } from '../components/visual-results/VisualResultCard';
+import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
+import type { DiagnosisOutput } from '../modules/diagnosis/diagnosis.types';
 
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
@@ -1973,7 +1976,7 @@ function CareArticleCard({
   );
 }
 
-function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
+function StepDiagnosisPanel({ topic, onReturnToGuide }: { topic: CareTopic; onReturnToGuide: () => void }) {
   const appState = useMemo(() => loadAppStateFromStorage(), []);
   const aquariums = appState.aquariums;
   const defaultAquariumId = appState.currentAquariumId || aquariums[0]?.id || '';
@@ -1999,12 +2002,38 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
 
   const targetAquarium = aquariums.find(item => item.id === diagnosisState.targetAquariumId) || aquariums[0] || null;
   const currentLivestock = useMemo(() => getCurrentLivestock(targetAquarium), [targetAquarium]);
-  const volumeLiters = getTankVolumeLiters(targetAquarium);
   const diagnosisQuestions = useMemo(() => getStepDiagnosisQuestions(diagnosisState.issueType), [diagnosisState.issueType]);
   const answeredCount = diagnosisQuestions.filter(question => diagnosisState.answers[question.id]).length;
   const isResultStep = diagnosisState.currentStep === 2 && Boolean(diagnosisState.result);
   const isReady = diagnosisQuestions.length > 0 && answeredCount === diagnosisQuestions.length;
   const issueMeta = stepDiagnosisIssues.find(item => item.id === diagnosisState.issueType) || stepDiagnosisIssues[0];
+  const visualResultModel = useMemo(() => {
+    if (!diagnosisState.result) return null;
+    const result = diagnosisState.result;
+    const output: DiagnosisOutput = {
+      riskLevel: result.riskLevel,
+      riskLabel: result.riskLabel,
+      summary: result.conclusion,
+      currentAction: result.todayActions[0] || '保持环境稳定并继续观察。',
+      actions: result.todayActions,
+      avoidActions: result.avoidActions,
+      possibleCauses: result.causes,
+      observeItems: result.observeItems,
+      missingInfo: [],
+      evidence: result.evidence,
+      keyMetrics: [],
+      matchedRules: [],
+      matchedArticles: [],
+    };
+    return buildDiagnosisVisualResult({
+      result: output,
+      answers: Object.fromEntries(Object.entries(diagnosisState.answers).map(([key, value]) => [key, value ? answerLabelMap[value] : ''])),
+      aquariumName: targetAquarium?.name || '当前鱼缸',
+      livestock: currentLivestock.map(item => item.fish),
+      primaryActionLabel: '返回操作指引',
+      primaryActionType: 'section',
+    });
+  }, [currentLivestock, diagnosisState.answers, diagnosisState.result, targetAquarium?.name]);
 
   const updateAnswer = (key: keyof StepDiagnosisAnswers, value: StepDiagnosisAnswerValue) => {
     setDiagnosisState(prev => ({
@@ -2145,47 +2174,7 @@ function StepDiagnosisPanel({ topic }: { topic: CareTopic }) {
 
       {isResultStep && diagnosisState.result && (
         <div className="mt-3 grid gap-3">
-          <div className="rounded-[18px] bg-white p-3 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-[12px] font-black text-ink">本次参考</div>
-              <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/55">{issueMeta.label}</span>
-            </div>
-            <div className="mt-2 text-[11px] font-bold leading-relaxed text-ink/58">
-              {targetAquarium ? `${targetAquarium.name} · ${volumeLiters || '未设置'}L · ${currentLivestock.length} 种活体` : '未选择鱼缸，结果仅根据观察回答生成'}
-            </div>
-          </div>
-          <div className={`rounded-[18px] px-3 py-3 ${
-            diagnosisState.result.riskLevel === 'high' ? 'bg-red-50' :
-            diagnosisState.result.riskLevel === 'medium' ? 'bg-amber-50' :
-            diagnosisState.result.riskLevel === 'unknown' ? 'bg-blue-50' :
-            'bg-emerald-50'
-          }`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[12px] font-black text-ink/45">自查结论</div>
-              <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-ink/60">{diagnosisState.result.riskLabel}</span>
-            </div>
-            <div className="mt-1 text-[14px] font-black leading-relaxed text-ink">{diagnosisState.result.conclusion}</div>
-          </div>
-          {[
-            { title: '现在先做', items: diagnosisState.result.todayActions },
-            { title: '暂时避免', items: diagnosisState.result.avoidActions },
-            { title: '判断依据', items: diagnosisState.result.evidence },
-            { title: '继续观察', items: diagnosisState.result.observeItems },
-          ].map(section => (
-            <div key={section.title} className="rounded-[18px] bg-white p-3 shadow-sm">
-              <div className="text-[13px] font-black text-ink">{section.title}</div>
-              <div className="mt-2 grid gap-1.5">
-                {section.items.map(item => (
-                  <div key={item} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium leading-relaxed text-ink/68">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          <Button type="button" onClick={resetDiagnosis} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800">
-            重新自查
-          </Button>
+          {visualResultModel && <VisualResultCard model={visualResultModel} onPrimaryAction={onReturnToGuide} />}
         </div>
       )}
     </section>
@@ -2489,7 +2478,10 @@ export function CareArticleDetail({
 
           {meta.guideType === 'diagnosis' ? (
             isDiagnosisStarted ? (
-              <StepDiagnosisPanel topic={topic} />
+              <StepDiagnosisPanel
+                topic={topic}
+                onReturnToGuide={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}
+              />
             ) : (
               <section className="mt-4 rounded-[20px] border border-emerald-100 bg-[#F8FCF8] p-4">
                 <div className="text-[15px] font-black text-ink">准备开始问题自查</div>
