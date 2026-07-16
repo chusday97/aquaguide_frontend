@@ -17,6 +17,7 @@
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
 - `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
+- `src/pages/AdminContent.tsx`：受管理员权限保护的独立内容后台页面，不进入普通用户导航。
 - `src/components/common/RouteErrorBoundary.tsx`：核心路由隔离、友好重试、会话诊断复制与坏数据恢复提示。
 - `src/components/common/ResilientImage.tsx`：图片骨架、单次重试与本地占位兜底。
 - `src/services/diagnostics/`：`chunk / render / image / data` 会话级失败分类与脱敏诊断。
@@ -26,6 +27,7 @@
 
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/api/`：携带 Supabase JWT、幂等键和结构化错误的版本化 API 客户端。
+- `src/services/admin/content-admin.service.ts`：内容后台唯一 API 访问层，封装 CRUD、发布状态与原始图片上传。
 - `src/services/repository/`：游客本地与登录云端两种 Repository 实现；页面后续只依赖统一接口。
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
 - `src/services/collection/`：水族册聚合读取与 8 枚派生成就计算。
@@ -69,6 +71,7 @@
 - `src/types/database.ts`：camelCase 数据库与关联实体共享类型。
 - `scripts/test-three-tier-contract.ts` / `scripts/test-api-boundary.ts`：三层契约与本地 API 边界回归。
 - `scripts/test-business-api-contract.ts` / `scripts/test-repository-boundary.ts`：业务路由、校验、稳定 ID、安全规则与本地/云端访问边界回归。
+- `scripts/verify-admin-content.mjs`：内容后台列表、编辑、保存反馈、权限错误与 390/1280px 布局验收。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。
 - `docs/02-design/UX_REFACTOR_CONCEPTS.md`：三套设计方向与默认自然水族册方案。
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。

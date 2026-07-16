@@ -44,6 +44,7 @@
     "test:repository-boundary": "node --import tsx scripts/test-repository-boundary.ts",
     "test:admin-content-contract": "node --import tsx scripts/test-admin-content-contract.ts",
     "content:import": "node --import tsx scripts/content-import/import-catalog.ts",
+    "test:admin-content-ui": "node scripts/verify-admin-content.mjs",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
     "audit:species-knowledge": "python3 scripts/audit_species_knowledge.py",

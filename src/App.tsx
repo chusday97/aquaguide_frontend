@@ -32,6 +32,7 @@ const loadCollection = () => import('./pages/Collection');
 const loadCollectionHub = () => import('./pages/CollectionHub');
 const loadProjectStructure = () => import('./pages/ProjectStructurePreview');
 const loadLogin = () => import('./pages/Login');
+const loadAdminContent = () => import('./pages/AdminContent');
 const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
 
 const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
@@ -41,6 +42,7 @@ const Collection = lazyWithRecovery(loadCollection, 'collection-module');
 const CollectionHub = lazyWithRecovery(loadCollectionHub, 'collection-hub');
 const ProjectStructurePreview = lazyWithRecovery(loadProjectStructure, 'project-structure');
 const Login = lazyWithRecovery(loadLogin, 'login');
+const AdminContent = lazyWithRecovery(loadAdminContent, 'admin-content');
 const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
 
 const preloadRoute = (path: string) => {
@@ -394,6 +396,7 @@ function AppShell() {
   const { isPhoneLayout } = useLayoutMode();
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
+  const isAdminContent = location.pathname === '/admin/content';
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('aquaguide_desktop_sidebar_collapsed') === 'true';
@@ -481,6 +484,17 @@ function AppShell() {
     );
   }
 
+  if (isAdminContent) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/admin/content" element={<RouteErrorBoundary page="admin-content"><AdminContent /></RouteErrorBoundary>} />
+          <Route path="*" element={<Navigate to="/admin/content" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   if (isPhoneLayout) return <MobileAppShell />;
 
   return (
@@ -525,6 +539,7 @@ function WorkspaceRoutes() {
           <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
           <Route path="/aquarium" element={page(<AquariumManager />, 'aquarium')} />
           <Route path="/3d-demo" element={page(<ThreeDemo />, '3d-demo')} />
+          <Route path="/admin/content" element={page(<AdminContent />, 'admin-content')} />
         </Routes>
       </Suspense>
     </>

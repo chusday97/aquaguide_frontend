@@ -31,7 +31,7 @@ type ApiFailureEnvelope = {
   requestId?: string;
 };
 
-const getAccessToken = async () => {
+export const getApiAccessToken = async () => {
   if (!supabase) throw new AquaGuideApiError(503, 'DEPENDENCY_UNAVAILABLE', '登录服务尚未配置。');
   const { data, error } = await supabase.auth.getSession();
   if (error) throw new AquaGuideApiError(503, 'DEPENDENCY_UNAVAILABLE', '暂时无法读取登录状态。');
@@ -50,7 +50,7 @@ export const apiRequest = async <T>(path: string, options: ApiRequestOptions = {
   headers.set('Accept', 'application/json');
   if (options.body !== undefined) headers.set('Content-Type', 'application/json');
   if (options.idempotencyKey) headers.set('Idempotency-Key', options.idempotencyKey);
-  if (options.authenticated !== false) headers.set('Authorization', `Bearer ${await getAccessToken()}`);
+  if (options.authenticated !== false) headers.set('Authorization', `Bearer ${await getApiAccessToken()}`);
 
   let response: Response;
   try {
