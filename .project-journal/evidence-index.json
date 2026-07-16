@@ -12,7 +12,7 @@
     {"id":"EVD-20260715-007","type":"commit","locator":"5f84ff1","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"快捷收藏、今日行动内嵌计划、唯一缸内物种、自动聚焦和 AI 入口收敛"},
     {"id":"EVD-20260715-008","type":"test","locator":"npm run lint; npm run build; test:wishlist-shortcut-ui; test:mobile-care-ui; test:core-ui; test:ai-entry-policy","date":"2026-07-15","version":"5f84ff1","accessible":true,"sensitive":false,"notes":"桌面、真实手机、键盘、减少动态效果与 AI 白名单回归"},
     {"id":"EVD-20260716-009","type":"commit","locator":"d542fd0","date":"2026-07-16","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"中英文设置、翻译表/RLS、API 回退、语言偏好接口与手机养护轮播宽度修复"},
-    {"id":"EVD-20260716-010","type":"test","locator":"npm run lint; npm run check:api; npm run build; npm run test:three-tier-contract; npm run test:api-boundary; npm run test:mobile-care-ui; npm run test:localization-ui","date":"2026-07-16","version":"d542fd0","accessible":true,"sensitive":false,"notes":"24 表契约、API 边界、构建及桌面/真实手机语言与布局回归"}
+    {"id":"EVD-20260716-010","type":"test","locator":"npm run lint; npm run check:api; npm run build; npm run test:three-tier-contract; npm run test:api-boundary; npm run test:mobile-care-ui; npm run test:localization-ui","date":"2026-07-16","version":"3619e05","accessible":true,"sensitive":false,"notes":"24 表契约、用户/偏好/管理员 API 边界、构建及桌面/真实手机语言与布局回归"}
   ],
   "claims": [
     {"id":"CLM-20260715-001","text":"今日行动只展示一个确定性优先任务，水族册四模块可通过独立地址直达。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-001","EVD-20260715-002"],"contradicting_evidence_ids":[],"scope":"本地分支当前版本","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},
