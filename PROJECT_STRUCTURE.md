@@ -37,6 +37,7 @@
 - `docs/02-design/demos/`：养护详情 A/B/C 三套桌面与手机高保真方案及可复现原型。
 - `docs/03-development/`：技术架构、模块结构、本地运行、QA 与日志入口。
 - `docs/04-planning/PRODUCT_GAPS_AND_ROADMAP.md`：证据化卡点、优先级与迭代顺序。
+- `docs/04-planning/POSTHOG_LOADING_SPEC.md`：Issue #2 的分析 SDK 按需加载方案、计划、验收与回滚规格。
 - `docs/LAYOUT_FEATURE_PARITY.md`：手机/桌面功能对照。
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
@@ -51,6 +52,7 @@
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。
 - `docs/03-development/UX_REFACTOR_TECH.md`：实现架构与数据流。
 - `PROGRESS.md`：项目内进度、决策与阻塞记录。
+- `HANDOFF.md`：当前 Issue / Spec PR / Implementation PR 进度和零上下文接手说明。
 
 ## 内部实验
 
