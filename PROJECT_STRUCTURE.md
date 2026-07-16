@@ -2,6 +2,12 @@
 
 ## 核心入口
 
+- `apps/api/`：Express TypeScript 业务 API 入口、统一错误、Supabase 客户端、鉴权和版本化路由。
+- `apps/web/`：Web workspace 边界；现有 React 源码在云端 Repository 接入完成前继续保留根目录。
+- `packages/contracts/`：API 请求、响应、分页、错误码和公开内容 DTO。
+- `packages/domain-rules/`：跨前后端共享的确定性规则类型与安全不变量。
+- `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
+
 - `src/App.tsx`：设备级应用壳、导航与路由。
 - `src/components/layout/LayoutModeProvider.tsx`：真实设备布局判定。
 - `src/pages/Aquarium.tsx`：我的鱼缸。
@@ -54,7 +60,9 @@
 - `scripts/test-memorial-service.ts`：日期/原因校验、旧键兼容和跨页面变更事件断言。
 - `scripts/test-business-state-services.ts`：鱼缸、巡检与养护业务写入服务断言。
 - `scripts/audit-product-actions.ts`：路由页面空操作、日志操作、原生 alert 与重复伪 CTA 审计。
-- `CONTRACT.md`：每日检查与受控 AI 接口契约。
+- `CONTRACT.md`：三层架构、数据库、RLS、API、Repository、迁移与 AI 边界的权威契约。
+- `src/types/database.ts`：camelCase 数据库与关联实体共享类型。
+- `scripts/test-three-tier-contract.ts` / `scripts/test-api-boundary.ts`：三层契约与本地 API 边界回归。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。
 - `docs/02-design/UX_REFACTOR_CONCEPTS.md`：三套设计方向与默认自然水族册方案。
 - `docs/02-design/UX_REFACTOR_INTERACTION.md`：分层表面与 CTA 契约。

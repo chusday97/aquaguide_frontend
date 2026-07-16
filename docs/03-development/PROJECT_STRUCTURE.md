@@ -4,12 +4,20 @@
 
 ```text
 aquaguide_frontend/
+├── apps/
+│   ├── api/              Express TypeScript 业务 API
+│   └── web/              Web workspace 入口；源码暂保留根目录
+├── packages/
+│   ├── contracts/        API DTO、错误和校验契约
+│   └── domain-rules/     跨端确定性规则边界
+├── supabase/
+│   └── migrations/       表、索引、RLS、触发器与 Storage
 ├── docs/
 │   ├── 01-definition/     产品定位、用户故事、竞品与现状
 │   ├── 02-design/         信息架构、交互、设计、数据与 AI
 │   ├── 03-development/    架构、结构、运行、QA 与日志入口
 │   └── 04-planning/       产品卡点和路线图
-├── server/                Express AI BFF
+├── server/                可复用的旧 AI 路由与静态预览宿主
 ├── scripts/               契约、规则、审计与核心路径脚本
 ├── src/
 │   ├── components/        导航、详情表面、任务流程与 3D
@@ -49,12 +57,13 @@ aquaguide_frontend/
 | 诊断 | 每日巡检、本地定级与记录 | diagnosis 服务与类型 |
 | 收藏 | 种草和养护收藏 | favorites 服务与兼容键 |
 | 水族册 | 聚合收藏、纪念与成就 | collection / achievement 服务 |
-| AI | 任务契约、客户端与 BFF | `src/lib`、`server/`、`CONTRACT.md` |
+| API | 业务路由、鉴权、错误与 Supabase 访问 | `apps/api`、`packages/contracts` |
+| AI | 任务契约、客户端与兼容 BFF | `src/lib`、`server/`、`CONTRACT.md` |
 | 3D | 场景、交互与纹理 | `ThreeAquarium` 及素材解析服务 |
 
 ## 3. 依赖方向
 
-推荐方向为：页面/组件 → 共享业务动作 → 服务层 → 存储或规则引擎。组件不应直接新增 localStorage 写入。AI 输出必须回到契约过滤层，不能绕过本地规则直接写入业务结论。
+目标方向为：页面/组件 → Repository → Express API → Supabase。游客 Repository 继续兼容本地存储；登录用户 Repository 不得直接调用业务表。AI 输出必须回到契约过滤层，不能绕过确定性规则写入结论。
 
 ## 4. 文档维护
 

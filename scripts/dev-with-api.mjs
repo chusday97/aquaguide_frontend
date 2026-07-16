@@ -6,9 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const rootDir = path.resolve(path.dirname(__filename), '..');
 const binDir = path.join(rootDir, 'node_modules', '.bin');
 const viteBin = path.join(binDir, process.platform === 'win32' ? 'vite.cmd' : 'vite');
+const tsxBin = path.join(binDir, process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
 
 const children = [
-  spawn(process.execPath, ['server/index.mjs'], {
+  spawn(tsxBin, ['apps/api/src/index.ts'], {
     cwd: rootDir,
     stdio: 'inherit',
     env: { ...process.env, API_PORT: process.env.API_PORT || '8787' },

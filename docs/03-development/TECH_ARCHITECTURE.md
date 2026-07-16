@@ -7,9 +7,9 @@
 | Web | React 19、TypeScript、React Router | 页面、交互与客户端路由 |
 | 构建 | Vite 6、Tailwind CSS 4 | 开发服务器、构建与样式 |
 | 3D | Three.js、React Three Fiber、Drei | 鱼缸场景与生物贴图 |
-| API | Express | AI BFF、健康检查、限流与超时 |
+| API | Express、TypeScript | 业务鉴权、校验、Supabase 数据访问、AI BFF |
 | AI | DeepSeek 兼容接口 | 解释、整理与辅助推荐 |
-| 身份 | Supabase Auth（可选） | 登录能力；业务数据仍主要在本地 |
+| 身份与数据 | Supabase Auth、PostgreSQL、Storage | 登录、登录用户业务数据、内容与版本化图片 |
 | 验证 | TypeScript、tsx 脚本、Playwright | 类型、规则契约与核心路径 |
 
 ## 2. 系统结构
@@ -21,14 +21,15 @@ flowchart TB
     Pages["四个核心页面"]
     Shared["共享组件与业务动作"]
     Rules["混养与诊断规则"]
-    Storage["LocalAppState 与兼容键"]
+    Storage["游客 Local Repository"]
     Three["ThreeAquarium"]
     Shell --> Pages --> Shared
     Shared --> Rules
     Shared --> Storage
     Pages --> Three
   end
-  Shared -->|"/api/ai/chat"| API["Express AI BFF"]
+  Shared -->|"/api/v1"| API["Express Business API"]
+  API --> Database["Supabase PostgreSQL / Storage"]
   API --> Model["模型服务"]
   Auth["Supabase Auth"] --> Shell
 ```
@@ -62,16 +63,16 @@ flowchart TB
 
 普通卡片与 3D 贴图应共同通过物种展示图解析函数获取 URL。贴图 URL 变化时必须释放旧纹理并重新加载；组件卸载时清理资源。`/3d-demo` 仅用于实验验证。
 
-## 5. AI BFF
+## 5. API 与 AI BFF
 
-浏览器通过 `/api/ai/chat` 调用 Express。密钥只存在服务端环境；服务端负责任务白名单、每客户端每分钟 10 次限流、默认 20 秒超时、结构解析和统一错误。详细规则见 [AI_AND_API_SPEC.md](../02-design/AI_AND_API_SPEC.md)。
+浏览器业务请求通过 `/api/v1` 调用 Express，使用 Supabase JWT 鉴权并由 RLS 再次隔离数据。现有 `/api/ai/chat` 保留兼容，版本化别名为 `/api/v1/ai/chat`。模型密钥和 `service_role` 只存在服务端。详细规则见 [AI_AND_API_SPEC.md](../02-design/AI_AND_API_SPEC.md)。
 
 ## 6. 当前技术风险
 
 - `species.service` 与 `ThreeAquarium` 体积较大，影响维护和潜在拆包收益。
 - 本地数据存在页面直写与服务写入并存，容易造成即时刷新不一致。
 - 3D 首次加载、低端设备帧率、纹理缓存与资源释放需要专项验证。
-- 业务数据缺少跨设备同步和恢复机制。
+- 业务 API、云端 Repository、游客迁移与内容后台仍在分阶段接入；当前只读内容 API 边界已经建立。
 - 实验组件和已禁用旧组件需要与正式路径持续隔离。
 
 以上风险按[产品卡点与路线图](../04-planning/PRODUCT_GAPS_AND_ROADMAP.md)治理。核心交互稳定前，不同时进行大型 3D 或物种数据重构。
@@ -79,7 +80,6 @@ flowchart TB
 ## 7. 部署边界
 
 - Web 静态资源由 Vite 构建。
-- Express AI 服务需要独立运行或与部署平台的服务能力结合。
+- Express 业务 API 作为常驻服务独立部署；前端静态站点只持有 Supabase URL 与 anon key。
 - 生产环境必须配置模型密钥，并限制允许的前端来源。
-- 未确认数据库方案前，不把浏览器主状态迁移到 Supabase。
-
+- 测试与生产使用独立 Supabase 项目；迁移必须先预览、幂等提交并保留本地备份。

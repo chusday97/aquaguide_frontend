@@ -5,7 +5,7 @@
 - Node.js 18 或更高版本。
 - npm。
 - 仅在验证 AI 功能时需要模型服务密钥。
-- 仅在验证登录时需要 Supabase 环境变量。
+- 验证三层业务 API 时需要 Supabase 测试项目环境变量。
 
 ## 2. 安装与启动
 
@@ -39,6 +39,9 @@ npm run dev:api
 | `API_PORT` | Express 端口 | 可选 |
 | `VITE_SUPABASE_URL` | Supabase 项目地址 | 仅登录能力需要 |
 | `VITE_SUPABASE_ANON_KEY` | Supabase 匿名公钥 | 仅登录能力需要 |
+| `SUPABASE_URL` | 服务端 Supabase 项目地址 | 业务 API 必需，可与 Vite URL 相同 |
+| `SUPABASE_ANON_KEY` | 服务端用户级 RLS 客户端公钥 | 业务 API 必需 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 内容导入与管理员操作 | 仅服务端管理能力需要，禁止 `VITE_` 前缀 |
 
 模型密钥不得以 `VITE_` 前缀暴露给浏览器，也不得提交到仓库。
 
@@ -46,6 +49,9 @@ npm run dev:api
 
 ```bash
 npm run lint
+npm run check:api
+npm run test:three-tier-contract
+npm run test:api-boundary
 npm run build
 npm run preview
 ```
@@ -77,4 +83,3 @@ npm run test:core-ui
 - 端口占用：停止旧开发进程后重新启动，不同时运行多套相同端口服务。
 - 本地数据异常：先导出或保留浏览器数据；不要把清空 localStorage 当作默认修复方式。
 - 3D 素材未更新：核对普通卡片与 3D 解析后的 URL 及版本参数，并检查纹理是否在 URL 变化后重建。
-
