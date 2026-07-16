@@ -7,6 +7,8 @@
 - AquaGuide 2.0.0 三层数据契约、20 张 Supabase 表、逐表 RLS、Storage 桶策略、自动用户档案/角色、幂等写入记录与 camelCase 共享类型。
 - `apps/api`、`apps/web`、`packages/contracts` 与 `packages/domain-rules` workspace 边界；首批版本化健康、物种和养护只读 API 支持结构化错误与依赖未配置兜底。
 - 三层契约静态断言与本地 API 边界回归，覆盖旧健康接口兼容、请求 ID、404 和数据库未配置 503。
+- 受 JWT/RLS 保护的鱼缸、生物、设备、环境、每日巡检、收藏、生命纪念、养护计划和养护事件 API；写请求校验幂等键并使用版本冲突保护。
+- 游客 `LocalAquaGuideRepository`、登录 `ApiAquaGuideRepository`、统一 API 客户端及 Repository 边界回归。
 
 - 图鉴普通物种卡与具体变种的独立快捷收藏按钮、失败回滚、水族册直达反馈及桌面/手机浏览器回归。
 - 真人水族新手、真实鱼缸跨入口与低端真机 3D 的外部证据采集协议。

@@ -40,6 +40,8 @@
     "test:wishlist-shortcut-ui": "node scripts/verify-wishlist-shortcut.mjs",
     "test:three-tier-contract": "node --import tsx scripts/test-three-tier-contract.ts",
     "test:api-boundary": "node --import tsx scripts/test-api-boundary.ts",
+    "test:business-api-contract": "node --import tsx scripts/test-business-api-contract.ts",
+    "test:repository-boundary": "node --import tsx scripts/test-repository-boundary.ts",
     "audit:images": "python3 scripts/audit_species_images.py",
     "audit:taxonomy": "tsx scripts/generate_taxonomy_review.ts",
     "audit:species-knowledge": "python3 scripts/audit_species_knowledge.py",

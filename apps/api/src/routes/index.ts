@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { isBusinessDatabaseConfigured } from '../config';
 import { sendData } from '../http';
 import { contentRouter } from './content';
+import { aquariumsRouter } from './aquariums';
+import { userRecordsRouter } from './user-records';
 
 export const v1Router = Router();
 
@@ -12,3 +14,5 @@ v1Router.get('/business-health', (request, response) => sendData(request, respon
 }));
 
 v1Router.use(contentRouter);
+v1Router.use(aquariumsRouter);
+v1Router.use(userRecordsRouter);

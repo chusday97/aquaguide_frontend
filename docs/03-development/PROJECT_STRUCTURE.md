@@ -52,6 +52,7 @@ aquaguide_frontend/
 | 领域 | 主要职责 | 事实来源 |
 |---|---|---|
 | 鱼缸状态 | 当前鱼缸、参数、生物与记录 | `appStateService` 与相关类型 |
+| Repository | 游客本地兼容与登录云端 API 访问 | `src/services/repository` |
 | 物种 | 检索、展示图、饲养资料 | `species.service` 与静态数据 |
 | 混养 | 物种组合与鱼缸环境判断 | 统一混养规则引擎 |
 | 诊断 | 每日巡检、本地定级与记录 | diagnosis 服务与类型 |
@@ -63,7 +64,7 @@ aquaguide_frontend/
 
 ## 3. 依赖方向
 
-目标方向为：页面/组件 → Repository → Express API → Supabase。游客 Repository 继续兼容本地存储；登录用户 Repository 不得直接调用业务表。AI 输出必须回到契约过滤层，不能绕过确定性规则写入结论。
+目标方向为：页面/组件 → Repository → Express API → Supabase。`LocalAquaGuideRepository` 继续兼容现有存储键，`ApiAquaGuideRepository` 只能调用 `/api/v1`；业务 API 已覆盖鱼缸、缸内生物、设备、环境配置、巡检、收藏、纪念与养护记录。AI 输出必须回到契约过滤层，不能绕过确定性规则写入结论。
 
 ## 4. 文档维护
 
