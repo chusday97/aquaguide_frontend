@@ -26,7 +26,7 @@ const mapAsset = (row: DbRow): PublicAssetDto => ({
 });
 
 const currentAssets = (rows: DbRow[] | null | undefined) => (
-  (rows || []).filter(row => row.is_current && !row.deleted_at).map(mapAsset)
+  (rows || []).filter(row => row.storage_bucket === 'catalog-public' && row.is_current && !row.deleted_at).map(mapAsset)
 );
 
 export const mapSpeciesSummary = (row: DbRow): SpeciesSummaryDto => {

@@ -37,10 +37,15 @@ try {
   assert.equal(protectedResponse.status, 401);
   assert.equal(protectedPayload.error.code, 'AUTH_REQUIRED');
 
+  const adminResponse = await fetch(`${baseUrl}/api/v1/admin/species`);
+  const adminPayload = await adminResponse.json();
+  assert.equal(adminResponse.status, 401);
+  assert.equal(adminPayload.error.code, 'AUTH_REQUIRED');
+
   const legacyHealthResponse = await fetch(`${baseUrl}/api/health`);
   assert.equal(legacyHealthResponse.status, 200);
 
-  console.log('API boundary verified: versioned health, auth guard, structured errors, content dependency fallback and legacy health');
+  console.log('API boundary verified: versioned health, user/admin auth guards, structured errors, content dependency fallback and legacy health');
 } finally {
   if (server.listening) {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

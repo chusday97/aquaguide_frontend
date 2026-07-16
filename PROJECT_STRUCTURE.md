@@ -3,8 +3,10 @@
 ## 核心入口
 
 - `apps/api/`：Express TypeScript 业务 API 入口、统一错误、Supabase 客户端、鉴权和版本化路由。
+- `apps/api/src/routes/admin.ts`：受管理员权限保护的物种、养护文章、发布状态与版本化图片处理接口。
 - `apps/web/`：Web workspace 边界；现有 React 源码在云端 Repository 接入完成前继续保留根目录。
 - `packages/contracts/`：API 请求、响应、分页、错误码和公开内容 DTO。
+- `packages/contracts/src/content-admin.ts`：内容编辑、状态切换和素材上传的服务端校验契约。
 - `packages/domain-rules/`：跨前后端共享的确定性规则类型与安全不变量。
 - `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
 

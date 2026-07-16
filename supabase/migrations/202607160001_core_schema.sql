@@ -484,7 +484,7 @@ create policy feeding_admin_update on public.species_feeding_profiles for update
 create policy feeding_admin_delete on public.species_feeding_profiles for delete using (public.is_admin());
 
 create policy species_assets_public_select on public.species_assets for select using (
-  (deleted_at is null and exists (select 1 from public.species s where s.id = species_id and s.status = 'published' and s.deleted_at is null))
+  (storage_bucket = 'catalog-public' and deleted_at is null and exists (select 1 from public.species s where s.id = species_id and s.status = 'published' and s.deleted_at is null))
   or public.is_admin()
 );
 create policy species_assets_admin_insert on public.species_assets for insert with check (public.is_admin());
@@ -505,7 +505,7 @@ create policy care_steps_admin_update on public.care_article_steps for update us
 create policy care_steps_admin_delete on public.care_article_steps for delete using (public.is_admin());
 
 create policy care_assets_public_select on public.care_article_assets for select using (
-  (deleted_at is null and exists (select 1 from public.care_articles a where a.id = article_id and a.status = 'published' and a.deleted_at is null))
+  (storage_bucket = 'catalog-public' and deleted_at is null and exists (select 1 from public.care_articles a where a.id = article_id and a.status = 'published' and a.deleted_at is null))
   or public.is_admin()
 );
 create policy care_assets_admin_insert on public.care_article_assets for insert with check (public.is_admin());

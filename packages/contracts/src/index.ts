@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export * from './business';
+export * from './content-admin';
 
 export const apiErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
