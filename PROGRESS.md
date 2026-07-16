@@ -105,9 +105,20 @@
 - 已将水草和硬景从混养推荐、搜索和鱼缸导入候选中排除，实际页面验证后候选不再出现凤尾藓、莫斯墙、牛毛毡等非混养对象。（commit: `33fac2e`）
 - 已抽取统一混养添加策略 `getTankCompatibilityAddPolicy`，鱼缸直接添加与混养结果页现在共同执行：兼容直接加入、谨慎二次确认、信息不足先补资料、不建议则阻断；专项测试覆盖状态映射及核心规则共 7 项并全部通过。（commit: `b18cf2d`）
 
+## 当前目标
+
+- 将现有本地优先应用拆分为 React 前端、Express 业务 API 与 Supabase PostgreSQL/Storage 标准三层；游客继续本地使用，登录后经预览确认迁移。
+- 当前阶段先落地字段级契约、SQL、RLS、Storage 策略和共享类型，随后按内容只读、用户写入、游客迁移、管理后台顺序接入。
+
+## 三层架构已完成
+
+- 已落地 2.0.0 数据契约、20 张表的首个 Supabase migration、逐表 RLS、Storage 策略、自动用户档案/角色触发器、幂等记录和 camelCase 数据库共享类型。（commit: `3e644a3`）
+- `npm run lint` 与 `test-three-tier-contract` 通过；当前环境缺少 PostgreSQL/Supabase CLI，迁移尚未在真实 Supabase 项目执行。
+
 ## 待办
 - 为 `sp_0357` 莫斯墙和 `sp_0452` 公子小丑生成候选透明源图；人工确认后才替换版本化素材并重跑图片、响应式和 2D/3D 一致性测试。
 - 按 `docs/04-planning/EXTERNAL_VALIDATION_PROTOCOL.md` 执行真实水族新手任务、真实鱼缸跨入口人工验收和低端真机 3D 五分钟采集。
+- 完成 Express 业务 API、前端 Repository、游客迁移和简易内容后台；在测试 Supabase 项目执行并验证已提交 migration。
 
 ## 本轮已完成
 
@@ -133,7 +144,7 @@
 
 ## 关键决策记录
 - 不修改原始物种数据结构。
-- 不迁移 Supabase，不改 localStorage 数据结构。
+- 2026-07-16 起迁移策略更新为：游客继续兼容现有 localStorage；登录用户业务数据与内容库进入 Supabase，前端只通过 Express API 访问业务表。
 - AI 只能解释规则结果，不能决定 `canAdd`、风险等级或推荐候选池。
 - 混养判断统一为四种状态：`compatible / caution / not_recommended / insufficient_data`。
 - 手机端按真实手机设备判定，不再按 `<768px` 判定；桌面缩窄仍保持桌面工作台，平板默认使用桌面布局。
