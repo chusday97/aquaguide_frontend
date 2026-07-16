@@ -10,7 +10,7 @@
 
 - Issue #2 已记录 PostHog 同步集成造成的首屏体积回归。
 - Spec PR #3 已打开；当前分支 `codex/issue-2-posthog-implementation` 从规格分支派生。
-- 实现采用内部异步 analytics boundary，代码与专项验证已完成，尚未提交/推送 Implementation PR。
+- 实现采用内部异步 analytics boundary，代码与专项验证已完成并提交为 `0fdda87`，尚未推送 Implementation PR。
 
 ## 已完成与证据
 
@@ -23,7 +23,7 @@
 
 ## 当前卡点
 
-- Implementation 改动尚未提交和推送。
+- Implementation commit `0fdda87` 尚未推送。
 - 依赖审计安装阶段报告 15 项告警；在线明细尚未成功获取，不能据此宣称具体风险。
 
 ## 下一步
