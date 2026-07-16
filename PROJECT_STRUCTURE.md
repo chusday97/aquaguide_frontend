@@ -13,6 +13,7 @@
 
 - `src/services/favorites/`：物种与养护收藏的唯一读写入口。
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
+- `src/services/analytics/product-analytics.service.ts`：PostHog 唯一依赖边界，负责按需加载、有界队列、用户识别与失败降级。
 - `src/services/collection/`：水族册聚合读取与 8 枚派生成就计算。
 - `src/services/collection/memorial.service.ts`：生命纪念校验、兼容存储写入与统一变更通知。
 - `src/modules/collection/`：水族册页签、纪念条目与成就进度类型。
@@ -45,6 +46,9 @@
 - `scripts/test-collection-achievements.ts`：水族册聚合与 8 枚勋章追溯断言。
 - `scripts/test-memorial-service.ts`：日期/原因校验、旧键兼容和跨页面变更事件断言。
 - `scripts/test-business-state-services.ts`：鱼缸、巡检与养护业务写入服务断言。
+- `scripts/test-product-analytics.ts`：分析 SDK 配置、顺序、加载失败与调用失败场景。
+- `scripts/audit-product-analytics-boundary.ts`：禁止页面直引 PostHog，并锁定既有事件名。
+- `scripts/audit-analytics-bundle.mjs`：验证首屏 raw/gzip 预算和独立 PostHog lazy chunk。
 - `scripts/audit-product-actions.ts`：路由页面空操作、日志操作、原生 alert 与重复伪 CTA 审计。
 - `CONTRACT.md`：每日检查与受控 AI 接口契约。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。

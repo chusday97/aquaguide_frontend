@@ -4,7 +4,6 @@
  */
 
 import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
-import posthog from 'posthog-js';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -20,6 +19,7 @@ import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
 import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
+import { captureProductException } from './services/analytics/product-analytics.service';
 
 const AquariumManager = lazy(() => import('./pages/Aquarium'));
 const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
@@ -102,7 +102,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('AquaGuide render error', error, info);
-    posthog.captureException(error, { extra: { componentStack: info.componentStack } });
+    captureProductException(error, { extra: { componentStack: info.componentStack } });
   }
 
   render() {

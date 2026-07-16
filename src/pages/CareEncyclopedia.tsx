@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
-import posthog from 'posthog-js';
 import { useLocation } from 'react-router-dom';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { captureProductEvent } from '@/src/services/analytics/product-analytics.service';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { careTopicsData, type CareTopic } from '../data/careTopicsData';
@@ -1267,7 +1267,7 @@ export default function CareEncyclopedia() {
       favoritedAt: new Date().toISOString(),
     });
     setFavorites(next);
-    if (isAdding) posthog.capture('care_article_favorited', { topic_id: topic.id });
+    if (isAdding) captureProductEvent('care_article_favorited', { topic_id: topic.id });
     showToast(isAdding ? '已收录到水族册' : '已从水族册移除');
   };
 

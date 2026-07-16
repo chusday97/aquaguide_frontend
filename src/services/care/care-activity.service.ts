@@ -1,4 +1,4 @@
-import posthog from 'posthog-js';
+import { captureProductEvent } from '../analytics/product-analytics.service';
 
 export const CARE_REMINDERS_STORAGE_KEY = 'aqua_care_reminders';
 export const CARE_COMPLETED_OPERATIONS_STORAGE_KEY = 'aqua_care_completed_operations';
@@ -101,7 +101,7 @@ export const completeCareReminder = (id: string, completedAt = new Date().toISOS
   if (!target) throw new Error('没有找到这条养护计划。');
   const next = current.map(item => item.id === id ? { ...item, completedAt } : item);
   setCareReminders(next);
-  posthog.capture('care_reminder_completed', { reminder_type: target.type });
+  captureProductEvent('care_reminder_completed', { reminder_type: target.type });
   return next.find(item => item.id === id)!;
 };
 

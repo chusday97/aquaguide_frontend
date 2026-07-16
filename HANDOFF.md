@@ -9,26 +9,29 @@
 ## 正在做什么
 
 - Issue #2 已记录 PostHog 同步集成造成的首屏体积回归。
-- 当前分支 `codex/issue-2-posthog-spec` 只编写规格，不包含实现代码。
-- 规格采用内部异步 analytics boundary；Implementation PR 必须从该规格派生并独立验证。
+- Spec PR #3 已打开；当前分支 `codex/issue-2-posthog-implementation` 从规格分支派生。
+- 实现采用内部异步 analytics boundary，代码与专项验证已完成并提交为 `0fdda87`；Implementation PR #4 已打开。
 
 ## 已完成与证据
 
 - `origin/main@86ffe24`：lint 与 build 通过。
 - 同环境构建对比：`7d952a8` 入口 293.35/93.64 kB（raw/gzip），当前 main 为 733.63/223.21 kB。
 - GitHub Issue：`https://github.com/chusday97/aquaguide_frontend/issues/2`。
+- Spec PR：`https://github.com/chusday97/aquaguide_frontend/pull/3`。
+- Implementation PR：`https://github.com/chusday97/aquaguide_frontend/pull/4`。
+- 实现验证：lint；analytics 5 场景；12 事件边界；6 组相邻业务回归；配置/无配置 build 与 bundle audit。
+- 配置构建入口 294.87/94.44 kB（raw/gzip），PostHog 独立 lazy chunk 230.52 kB；无配置构建不产生 PostHog chunk。
 
 ## 当前卡点
 
-- Spec commit `e38f662` 已完成，PR 尚未推送和打开。
+- Spec PR #3 与 Implementation PR #4 均可合并；两者 Cloudflare、Vercel 和 Vercel Preview Comments 均通过，等待评审/合并。
 - 依赖审计安装阶段报告 15 项告警；在线明细尚未成功获取，不能据此宣称具体风险。
 
 ## 下一步
 
-1. 提交并打开 Spec PR。
-2. 从规格分支建立 implementation 分支，实现 analytics boundary。
-3. 验证事件契约、失败降级和入口 bundle budget，再打开 Implementation PR。
-4. 继续从 `origin/main` 审计下一项可证实优化。
+1. 评审并合并 Spec PR #3。
+2. 将 Implementation PR #4 retarget 到 `main`，复核差异后合并并关闭 Issue #2。
+3. 从合并后的最新 `origin/main` 审计下一项可证实优化。
 
 ## 关键决策与禁忌
 
@@ -41,4 +44,4 @@
 
 - 隔离工作树：`/Users/chuchu/Documents/New project/aquaguide-main-audit`
 - 规格基线：`origin/main@86ffe24`
-- 当前未提交内容应仅为规格和交接文档更新。
+- 当前未提交内容应仅为 Issue #2 的实现、专项测试及对应文档更新。
