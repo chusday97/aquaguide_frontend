@@ -17,7 +17,7 @@
 
 ## 正在做什么
 
-- 当前步骤：字段契约与 SQL 已由 `3e644a3` 落地，workspace、TypeScript API、统一错误和首批内容只读接口已由 `82e5653` 完成；下一步接入用户业务路由和前端 Repository。
+- 当前步骤：字段契约、API workspace、用户业务 API、前端 Repository 边界与受保护内容管理 API 已完成；下一步实现批量内容导入、游客迁移和后台页面，再按只读到写入顺序接入现有页面。
 - 已开始但未完成的工作：三层拆分尚未接入现有页面；两张源图、真人新手、真实鱼缸与低端真机证据仍是独立外部事项。
 - 涉及文件/模块：`CONTRACT.md`、`supabase/`、`apps/api/`、`packages/contracts/`、前端数据服务与项目文档。
 - 工作区未提交状态及归属：开始本轮前分支 `codex/aquaguide-ux-refactor` 与远端同步且工作区干净；三层拆分必须按契约、工程、接入、迁移分别提交。
@@ -35,6 +35,8 @@
 | 2026-07-15 | 18 张素材人工复核与外部证据采集协议 | commit `cf5bea2`；`manual_rework_review_2026-07-15.md`；`EXTERNAL_VALIDATION_PROTOCOL.md` |
 | 2026-07-16 | 三层数据契约、20 张表、RLS、Storage、幂等记录与共享类型 | commit `3e644a3`；`npm run lint`；`test-three-tier-contract` |
 | 2026-07-16 | API workspace、共享 contracts/domain-rules、版本化健康与内容只读接口 | commit `82e5653`；API check/boundary；Web build |
+| 2026-07-16 | 用户业务 API 与游客/登录 Repository 边界 | commit `e7ee912`；业务 API、Repository、lint/build 回归 |
+| 2026-07-16 | 管理内容 CRUD、发布下线、图片衍生上传和私有原图隔离 | commit `fb2a6fd`；管理员契约/API 边界；API/Web 类型检查与 build |
 
 ## 当前卡点
 
@@ -48,10 +50,10 @@
 
 ## 下一步计划
 
-1. 建立 `apps/api`、`packages/contracts` 与 `packages/domain-rules`，让现有网页在拆分期间保持可运行。
-2. 实现认证中间件、统一错误响应、内容只读 API 和 Supabase 数据访问层。
-3. 再逐步接入用户业务 API、前端 Repository、游客迁移与简易内容后台。
-4. 独立继续两张素材、真实鱼缸、新手测试与低端真机外部验收。
+1. 实现本地物种、养护文章和图片的可预检批量导入工具。
+2. 实现游客数据迁移预览/确认与离线待同步队列，完成冲突和幂等策略。
+3. 建立简易内容后台页面，再按内容只读、收藏、鱼缸和记录顺序接入现有页面。
+4. 在测试 Supabase 项目执行 migration、RLS 双用户隔离和恢复演练；独立继续外部证据事项。
 
 ## 关键决策与理由
 
