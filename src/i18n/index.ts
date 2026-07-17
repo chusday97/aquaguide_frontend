@@ -14,7 +14,7 @@ const detectInitialLocale = (): SupportedLocale => {
   } catch {
     // Browser storage can be unavailable in private contexts.
   }
-  return typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('en') ? 'en' : 'zh-CN';
+  return typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
 };
 
 const resources = {
@@ -159,7 +159,7 @@ const initialLocale = detectInitialLocale();
 void i18n.use(initReactI18next).init({
   resources,
   lng: initialLocale,
-  fallbackLng: 'zh-CN',
+  fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });
 
@@ -177,6 +177,6 @@ export const setLocale = async (locale: SupportedLocale) => {
   }
 };
 
-document.documentElement.lang = i18n.language === 'en' ? 'en' : 'zh-CN';
+document.documentElement.lang = i18n.language === 'zh-CN' ? 'zh-CN' : 'en';
 
 export default i18n;

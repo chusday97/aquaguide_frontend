@@ -15,7 +15,7 @@ export function LanguageSettingsPanel() {
   const { isOpen, closeSettings } = useSettings();
   if (!isOpen) return null;
 
-  const currentLocale: SupportedLocale = i18n.language === 'en' ? 'en' : 'zh-CN';
+  const currentLocale: SupportedLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en';
 
   return (
     <div className="fixed inset-0 z-[120] bg-ink/25 backdrop-blur-[2px]" onMouseDown={closeSettings}>
