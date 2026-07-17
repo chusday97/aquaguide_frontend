@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import posthog from 'posthog-js';
 import { useNavigate } from 'react-router-dom';
 import { Droplets, Loader2, Lock, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,12 +49,20 @@ export default function Login() {
     setIsSubmitting(false);
 
     if (result.ok) {
+      try {
+        posthog.identify(result.userId || 'unknown');
+        posthog.capture('user_signed_in', { method: 'email' });
+      } catch (e) {}
       showToast('登录成功', 'success');
       navigate('/aquarium', { replace: true });
       return;
     }
 
     if (!('reason' in result)) return;
+
+    try {
+      posthog.capture('sign_in_failed', { reason: result.reason });
+    } catch (e) {}
 
     if (result.reason === 'invalid_credentials') {
       setPassword('');

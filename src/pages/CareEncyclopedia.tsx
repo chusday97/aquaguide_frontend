@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import posthog from 'posthog-js';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
@@ -1272,6 +1273,11 @@ export default function CareEncyclopedia() {
     });
     setFavorites(next);
     showToast(isAdding ? '已收录到水族册' : '已从水族册移除');
+    if (isAdding) {
+      try {
+        posthog.capture('care_article_favorited', { topic_id: topic.id });
+      } catch (e) {}
+    }
   };
 
   const filteredTopics = useMemo(() => {

@@ -1,3 +1,5 @@
+import posthog from 'posthog-js';
+
 export type AquaGuideEventName =
   | 'favorite_page_view'
   | 'mini_result_generated'
@@ -28,6 +30,17 @@ export const trackSessionEvent = (
     occurredAt: new Date().toISOString(),
   };
   sessionEvents.push(event);
+
+  try {
+    posthog.capture(name, {
+      action: event.action,
+      status: event.status,
+      entry: event.entry,
+    });
+  } catch (err) {
+    // Ignore posthog tracking failures in case it's not initialized
+  }
+
   return event;
 };
 

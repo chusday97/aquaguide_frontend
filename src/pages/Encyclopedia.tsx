@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import posthog from 'posthog-js';
 import type { PointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Fish, Aquarium } from '../types';
@@ -573,6 +574,11 @@ export default function Encyclopedia() {
         message: wasFavorite ? `已从水族册移除 ${fish.name}` : `已收录到水族册：${fish.name}`,
         added: !wasFavorite,
       });
+      if (!wasFavorite) {
+        try {
+          posthog.capture('species_favorited', { species_id: fish.id });
+        } catch (e) {}
+      }
     } catch {
       setWishlistFishIds(loadWishlistIds());
       setWishlistFeedback({
@@ -621,6 +627,12 @@ export default function Encyclopedia() {
       status: miniCompatibilityResult.status,
       entry: 'encyclopedia',
     });
+    try {
+      posthog.capture('compatibility_check_run', {
+        species_count: calculatorSpeciesIds.length,
+        result_status: miniCompatibilityResult.status,
+      });
+    } catch (e) {}
   }, [calculatorSpeciesIds, miniCompatibilityResult]);
   const discoveryPool = useMemo(
     () => allFishes,

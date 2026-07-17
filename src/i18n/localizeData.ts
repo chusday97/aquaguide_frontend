@@ -1,4 +1,5 @@
 import { fishData } from '../data/fishData';
+import { autoTranslations } from './localizeDataAuto';
 
 export const categoryTranslations: Record<string, string> = {
   "两栖/爬宠": "Amphibians/Reptiles",
@@ -247,7 +248,7 @@ export const applyLocalization = (lng: string) => {
 
     if (isEn) {
       // Apply English Translation
-      const translation = englishTranslations[fish.id];
+      const translation = englishTranslations[fish.id] || autoTranslations[fish.id];
       
       // Name Fallback: translation name -> scientificName -> originalName
       fish.name = translation?.name || fish.scientificName || (fish as any)._originalName;
