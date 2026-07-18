@@ -75,6 +75,8 @@ export default function Identify() {
   const diagnosisControllerRef = useRef<AbortController | null>(null);
   const diagnosisRequestIdRef = useRef(0);
   const diagnosisLockedRef = useRef(false);
+  const diagnosisDelayRef = useRef<number | null>(null);
+  const historyGuardInsertedRef = useRef(false);
   const [stage, setStage] = useState<Stage>('upload');
   const [previewUrl, setPreviewUrl] = useState('');
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -94,6 +96,7 @@ export default function Identify() {
   const [errorMessage, setErrorMessage] = useState('');
   const [pendingNavigationPath, setPendingNavigationPath] = useState('');
   const [showEmergencyGuide, setShowEmergencyGuide] = useState(false);
+  const [pendingAnswer, setPendingAnswer] = useState<{ questionId: string; value: string } | null>(null);
   const hasUnsavedDiagnosis = Boolean(description.trim()) && stage !== 'result' && stage !== 'upload';
 
   const appState = useMemo(() => loadAppStateFromStorage(), []);
@@ -107,6 +110,7 @@ export default function Identify() {
   useEffect(() => () => {
     requestControllerRef.current?.abort();
     diagnosisControllerRef.current?.abort();
+    if (diagnosisDelayRef.current !== null) window.clearTimeout(diagnosisDelayRef.current);
   }, []);
 
   useEffect(() => () => {
@@ -136,16 +140,45 @@ export default function Identify() {
     : null), [hasUnsavedDiagnosis, registerNavigationGuard]);
 
   useEffect(() => {
+    if (!hasUnsavedDiagnosis) {
+      historyGuardInsertedRef.current = false;
+      return;
+    }
+    if (historyGuardInsertedRef.current) return;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.history.pushState({ ...window.history.state, aquaguideIdentifyGuard: true }, '', currentUrl);
+    historyGuardInsertedRef.current = true;
+    const handlePopState = () => {
+      if (!historyGuardInsertedRef.current) return;
+      setPendingNavigationPath('__history_back__');
+      window.history.pushState({ ...window.history.state, aquaguideIdentifyGuard: true }, '', currentUrl);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [hasUnsavedDiagnosis]);
+
+  useEffect(() => {
     window.requestAnimationFrame(() => pageRef.current?.scrollIntoView({
       block: 'start',
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
     }));
   }, [stage]);
 
+  const cancelDiagnosisSession = () => {
+    diagnosisControllerRef.current?.abort();
+    diagnosisRequestIdRef.current += 1;
+    if (diagnosisDelayRef.current !== null) {
+      window.clearTimeout(diagnosisDelayRef.current);
+      diagnosisDelayRef.current = null;
+    }
+    diagnosisLockedRef.current = false;
+    setIsDiagnosing(false);
+    setPendingAnswer(null);
+  };
+
   const reset = () => {
     requestControllerRef.current?.abort();
-    diagnosisControllerRef.current?.abort();
-    diagnosisLockedRef.current = false;
+    cancelDiagnosisSession();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
     setRecognition(null);
@@ -164,6 +197,14 @@ export default function Identify() {
     setShowEmergencyGuide(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setStage('upload');
+  };
+
+  const requestReset = () => {
+    if (hasUnsavedDiagnosis) {
+      setPendingNavigationPath('__reset__');
+      return;
+    }
+    reset();
   };
 
   const logMiss = async (result: SpeciesRecognitionResult & { modelName?: string }, mapped: MappedRecognitionCandidate[]) => {
@@ -260,6 +301,7 @@ export default function Identify() {
       const output = await getSpeciesDiagnosisStep(input, controller.signal);
       if (requestId !== diagnosisRequestIdRef.current) return;
       setDiagnosis(output);
+      setPendingAnswer(null);
       if (output.nextQuestion) {
         setQuestionHistory(current => current.some(item => item.id === output.nextQuestion?.id)
           ? current
@@ -276,6 +318,7 @@ export default function Identify() {
       if (requestId === diagnosisRequestIdRef.current) {
         diagnosisLockedRef.current = false;
         setIsDiagnosing(false);
+        setPendingAnswer(null);
       }
     }
   };
@@ -284,15 +327,20 @@ export default function Identify() {
     if (diagnosisLockedRef.current) return;
     diagnosisLockedRef.current = true;
     setIsDiagnosing(true);
+    setPendingAnswer({ questionId, value });
     const nextAnswers = { ...answers, [questionId]: value };
     const nextAsked = Array.from(new Set([...askedQuestionIds, questionId])).slice(0, 3);
     setAnswers(nextAnswers);
     setAskedQuestionIds(nextAsked);
-    window.setTimeout(() => void requestDiagnosis(nextAnswers, nextAsked, true), 180);
+    if (diagnosisDelayRef.current !== null) window.clearTimeout(diagnosisDelayRef.current);
+    diagnosisDelayRef.current = window.setTimeout(() => {
+      diagnosisDelayRef.current = null;
+      void requestDiagnosis(nextAnswers, nextAsked, true);
+    }, 180);
   };
 
   const revisitQuestion = (questionId: string) => {
-    if (!diagnosis) return;
+    if (!diagnosis || diagnosisLockedRef.current) return;
     const index = questionHistory.findIndex(item => item.id === questionId);
     const question = questionHistory[index];
     if (!question) return;
@@ -312,6 +360,25 @@ export default function Identify() {
       .map(item => fishData.find(fish => fish.id === item.fishId))
       .filter((fish): fish is Fish => Boolean(fish))
       .slice(0, 3);
+    const environmentLabels: Record<string, { zh: string; en: string; values: Record<string, { zh: string; en: string; status: VisualResultStatus }> }> = {
+      water_fit: { zh: '水体', en: 'Water type', values: { match: { zh: '匹配', en: 'Matched', status: 'compatible' }, mismatch: { zh: '不匹配', en: 'Mismatch', status: 'caution' }, unknown: { zh: '未填写', en: 'Unknown', status: 'insufficient_data' } } },
+      temperature_fit: { zh: '温度', en: 'Temperature', values: { within: { zh: '在范围内', en: 'In range', status: 'compatible' }, outside: { zh: '超出范围', en: 'Out of range', status: 'caution' }, unknown: { zh: '未填写', en: 'Unknown', status: 'insufficient_data' } } },
+      space_fit: { zh: '空间', en: 'Tank space', values: { sufficient: { zh: '空间足够', en: 'Sufficient', status: 'compatible' }, insufficient: { zh: '空间不足', en: 'Insufficient', status: 'caution' }, unknown: { zh: '未填写', en: 'Unknown', status: 'insufficient_data' } } },
+      filter_status: { zh: '过滤', en: 'Filter', values: { present: { zh: '已配置', en: 'Present', status: 'compatible' }, missing: { zh: '未配置', en: 'Missing', status: 'caution' }, unknown: { zh: '未填写', en: 'Unknown', status: 'insufficient_data' } } },
+      oxygen_status: { zh: '增氧', en: 'Aeration', values: { present: { zh: '已配置', en: 'Present', status: 'compatible' }, missing: { zh: '未配置', en: 'Missing', status: 'caution' }, unknown: { zh: '未填写', en: 'Unknown', status: 'insufficient_data' } } },
+    };
+    const environmentSubjects = diagnosis.observations
+      .filter(item => environmentLabels[item.code]?.values[item.value])
+      .sort((left, right) => {
+        const rank = (item: typeof left) => environmentLabels[item.code].values[item.value].status === 'caution' ? 0 : environmentLabels[item.code].values[item.value].status === 'insufficient_data' ? 1 : 2;
+        return rank(left) - rank(right);
+      })
+      .slice(0, 3)
+      .map(item => {
+        const label = environmentLabels[item.code];
+        const value = label.values[item.value];
+        return { id: `environment:${item.code}`, name: i18n.language === 'en' ? label.en : label.zh, role: 'affected' as const, status: value.status, shortReason: i18n.language === 'en' ? value.en : value.zh, badgeLabel: i18n.language === 'en' ? value.en : value.zh };
+      });
     const status = statusFromUrgency(diagnosis.urgency);
     return {
       status,
@@ -320,7 +387,8 @@ export default function Identify() {
       emphasis: top ? [top.label, t(`identify.likelihood.${top.likelihood}`)] : [],
       subjects: [
         { id: selectedFish.id, name: selectedFish.name, image: getSpeciesDisplayImage(selectedFish), role: 'focus', status, shortReason: top?.label || t('identify.moreInfoNeeded') },
-        ...related.map(fish => ({ id: fish.id, name: fish.name, image: getSpeciesDisplayImage(fish), role: 'related' as const, status, shortReason: t('identify.sameTankContext') })),
+        ...environmentSubjects,
+        ...related.slice(0, Math.max(0, 3 - environmentSubjects.length)).map(fish => ({ id: fish.id, name: fish.name, image: getSpeciesDisplayImage(fish), role: 'related' as const, status, shortReason: t('identify.sameTankContext') })),
       ],
       currentAction: diagnosis.emergencyActions[0] || top?.recommendedActions[0] || t('identify.keepObserving'),
       primaryAction: diagnosis.urgency === 'urgent'
@@ -386,7 +454,7 @@ export default function Identify() {
           <h1 className="text-[26px] font-black text-ink md:text-[32px]">{t('identify.title')}</h1>
           <p className="mt-1 max-w-[640px] text-sm font-medium leading-6 text-ink/55">{t('identify.subtitle')}</p>
         </div>
-        {stage !== 'upload' && <button type="button" onClick={reset} className="min-h-11 shrink-0 rounded-full border border-border bg-white px-4 text-xs font-black text-ink/60">{t('identify.startOver')}</button>}
+        {stage !== 'upload' && <button type="button" onClick={requestReset} className="min-h-11 shrink-0 rounded-full border border-border bg-white px-4 text-xs font-black text-ink/60">{t('identify.startOver')}</button>}
       </header>
 
       <div className="mx-auto grid w-full max-w-[980px] gap-4">
@@ -479,14 +547,14 @@ export default function Identify() {
               <div className="mt-3 flex flex-wrap gap-2" aria-label={t('identify.previousAnswers')}>
                 {questionHistory.filter(item => answers[item.id]).map(item => {
                   const selected = item.options.find(option => option.id === answers[item.id]);
-                  return <button key={item.id} type="button" onClick={() => revisitQuestion(item.id)} className="min-h-10 rounded-full border border-border bg-bg px-3 text-[10px] font-black text-ink/60">{selected?.label || answers[item.id]} · {t('identify.edit')}</button>;
+                  return <button key={item.id} type="button" disabled={isDiagnosing} onClick={() => revisitQuestion(item.id)} className="min-h-10 rounded-full border border-border bg-bg px-3 text-[10px] font-black text-ink/60 disabled:opacity-45">{selected?.label || answers[item.id]} · {t('identify.edit')}</button>;
                 })}
               </div>
             )}
             <h2 ref={questionHeadingRef} tabIndex={-1} className="mt-2 text-xl font-black outline-none">{diagnosis.nextQuestion.prompt}</h2>
             <p className="mt-2 text-xs leading-5 text-ink/50">{diagnosis.nextQuestion.reason}</p>
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">{diagnosis.nextQuestion.options.map(option => <button key={option.id} type="button" disabled={isDiagnosing} onClick={() => answerQuestion(diagnosis.nextQuestion!.id, option.id)} className="min-h-12 rounded-[16px] border border-border bg-bg px-4 text-left text-sm font-black transition hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-50">{isDiagnosing ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}{option.label}</button>)}</div>
-            <div className="mt-4 flex flex-wrap justify-between gap-2"><button type="button" onClick={() => setStage('describe')} className="min-h-11 rounded-full px-4 text-xs font-black text-ink/55"><ChevronLeft className="mr-1 inline h-4 w-4" />{t('identify.editDescription')}</button><button type="button" onClick={() => setStage('result')} className="min-h-11 rounded-full border border-emerald-200 bg-white px-4 text-xs font-black text-emerald-800">{t('identify.viewCurrentResult')}</button></div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">{diagnosis.nextQuestion.options.map(option => { const selectedPending = pendingAnswer?.questionId === diagnosis.nextQuestion?.id && pendingAnswer.value === option.id; return <button key={option.id} type="button" aria-pressed={selectedPending} disabled={isDiagnosing} onClick={() => answerQuestion(diagnosis.nextQuestion!.id, option.id)} className={`min-h-12 rounded-[16px] border px-4 text-left text-sm font-black transition disabled:opacity-65 ${selectedPending ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200' : 'border-border bg-bg hover:border-emerald-400 hover:bg-emerald-50'}`}>{selectedPending ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}{option.label}</button>; })}</div>
+            <div className="mt-4 flex flex-wrap justify-between gap-2"><button type="button" disabled={isDiagnosing} onClick={() => setStage('describe')} className="min-h-11 rounded-full px-4 text-xs font-black text-ink/55 disabled:opacity-45"><ChevronLeft className="mr-1 inline h-4 w-4" />{t('identify.editDescription')}</button><button type="button" disabled={isDiagnosing} onClick={() => setStage('result')} className="min-h-11 rounded-full border border-emerald-200 bg-white px-4 text-xs font-black text-emerald-800 disabled:opacity-45">{t('identify.viewCurrentResult')}</button></div>
           </section>
         )}
 
@@ -512,7 +580,7 @@ export default function Identify() {
           <section role="dialog" aria-modal="true" aria-labelledby="identify-leave-title" className="w-full max-w-[420px] rounded-[22px] bg-white p-5 shadow-2xl">
             <h2 id="identify-leave-title" className="text-lg font-black">{t('identify.leaveTitle')}</h2>
             <p className="mt-2 text-sm leading-6 text-ink/55">{t('identify.leaveHint')}</p>
-            <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setPendingNavigationPath('')} className="min-h-11 rounded-full border border-border bg-white text-xs font-black">{t('identify.stay')}</button><button type="button" onClick={() => { const path = pendingNavigationPath; setPendingNavigationPath(''); navigate(path); }} className="min-h-11 rounded-full bg-red-600 text-xs font-black text-white">{t('identify.leave')}</button></div>
+            <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setPendingNavigationPath('')} className="min-h-11 rounded-full border border-border bg-white text-xs font-black">{t('identify.stay')}</button><button type="button" onClick={() => { const path = pendingNavigationPath; setPendingNavigationPath(''); historyGuardInsertedRef.current = false; cancelDiagnosisSession(); if (path === '__reset__') reset(); else if (path === '__history_back__') window.history.go(-2); else navigate(path); }} className="min-h-11 rounded-full bg-red-600 text-xs font-black text-white">{t('identify.leave')}</button></div>
           </section>
         </div>
       )}
