@@ -17,8 +17,8 @@
 
 ## 正在做什么
 
-- 当前步骤：契约、API、确定性规则、`/identify` 前端、图鉴入口和主线程浏览器验收已完成，正在执行独立 Critic / Evaluator 交付门禁。
-- 已开始但未完成的工作：独立 Critic 复核、问题修复复验和 Evaluator 最终裁决尚未完成；真实视觉准确率仍需配置视觉模型与真实照片集后验证。
+- 当前步骤：契约、API、确定性规则、`/identify` 前端、图鉴入口、Critic 修复复验和 Evaluator 最终裁决已完成；当前达到可交付本地预览级别，不是生产就绪。
+- 已开始但未完成的工作：最新 BrowserRouter Back/Forward Playwright 因 Codex 审批额度耗尽尚无运行证据；真实视觉准确率仍需配置视觉模型与真实照片集后验证。
 - 涉及文件/模块：`CONTRACT.md`、`supabase/migrations/`、`packages/contracts/`、`apps/api/`、`src/modules/diagnosis/`、`src/pages/Identify.tsx`。
 - 工作区未提交状态及归属：用户原有未跟踪文件 `scripts/synthetic-tests/scenarios.ts` 不属于本轮，禁止修改或提交；本功能按契约、API/规则、前端、验证文档拆分提交。
 
@@ -42,9 +42,11 @@
 | 2026-07-16 | 中英文语言契约、设置入口、内容回退和手机养护轮播宽度修复 | commits `d542fd0`, `3619e05`；lint/API check/build；24 表契约；用户/偏好/管理员 API 边界；双语桌面/手机与养护浏览器回归 |
 | 2026-07-16 | 混养、物种适配、巡检与养护自查结果可视化 | commit `ec36e6b`；lint/build；可视化、混养、Mini、巡检专项；核心与三步浏览器回归；390/1200px 无溢出截图检查 |
 | 2026-07-17 | 部署标准 i18next 数据翻译层，精译 12 个核心物种并实现中英无缝秒切 | commit `7d952a8` 前后修改；`test:localization-ui` 通过；新增 `localizeData.ts` 翻译层，打通全量 450 物种 Fallback |
-| 2026-07-18 | 固定物种识别、动态追问和匿名未命中数据契约 | 本次提交；lint、API check、diff check |
-| 2026-07-18 | 实现视觉识别、匿名未命中与确定性动态追问 API/规则 | 本次提交；lint、API check；5 个规则专项场景 |
-| 2026-07-18 | 实现 `/identify`、图鉴入口、双语动态追问与可视化结果 | 待提交；lint/API check/build；10 个规则与映射场景；真实手机与 600–1440px 浏览器验收；400/413/降级/紧急 API 实测 |
+| 2026-07-18 | 固定物种识别、动态追问和匿名未命中数据契约 | commit `2ec147d`；lint、API check、diff check |
+| 2026-07-18 | 实现视觉识别、匿名未命中与确定性动态追问 API/规则 | commit `9da053a`；lint、API check；规则专项场景 |
+| 2026-07-18 | 实现 `/identify`、图鉴入口、双语动态追问与可视化结果 | commit `1e96d31`；lint/API check/build；真实手机与 600–1440px 浏览器主流程；400/413/降级/紧急 API 实测 |
+| 2026-07-18 | 完成独立 Critic 审查、三轮修复与同线程静态复验 | commits `802e655`, `cdeec7f`, `c9fa49a`；上下文、类别、死亡红旗、信息增益、并发、全局导航、环境节点和原因详情通过；最新 history 浏览器运行待补 |
+| 2026-07-18 | 清除旧鱼类关键词追问并完成 Evaluator 最终复验 | commit `f1c535e`；鱼类异常入口统一进入 `/identify`；lint/API check/build、diff check 与 14 场景通过；Evaluator 判定为可交付本地预览 |
 
 ## 当前卡点
 
@@ -59,10 +61,10 @@
 
 ## 下一步计划
 
-1. 独立 Critic 按需求完整性、逻辑、边界、代码质量、测试和真实运行六维审查当前 diff 与证据。
-2. Builder 修复阻塞项并交回同一 Critic 复验。
-3. 独立 Evaluator 对照“图片 → 确认 → 描述 → 动态追问 → 排序结果”用户路径最终裁决。
-4. 配置独立视觉模型和真实鱼缸照片集后，再评估真实识别准确率；当前预览明确使用手动确认兜底。
+1. 审批额度恢复后补跑最新 Back/Forward、重置与环境节点 Playwright，并把结果写入本交接文档。
+2. 配置独立视觉模型和真实鱼缸照片集后，再评估真实识别准确率；当前预览明确使用手动确认兜底。
+3. 在测试 Supabase 项目执行 migration、RLS 双账号隔离和匿名 miss 并发聚合验证。
+4. 使用真实水族新手验证候选置信度与原因可能性是否能被正确区分。
 
 ## 关键决策与理由
 
