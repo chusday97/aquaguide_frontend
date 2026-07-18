@@ -128,6 +128,17 @@ const hardscapeOptions = fishData
 
 type AquariumSettingsPanel = 'size' | 'parameters' | 'substrate' | 'plants' | 'lighting' | 'equipment';
 
+const speciesHealthDiagnosisTypes = new Set<DiagnosisProblemType>([
+  '鱼只异常',
+  '鱼浮头 / 呼吸急促',
+  '拒食',
+  '躲藏不动',
+  '追咬打架',
+  '新鱼入缸',
+  '死亡处理',
+  '死亡 / 异常死亡',
+]);
+
 const dimensionFields: Array<{ key: keyof NonNullable<Aquarium['dimensions']>; label: string }> = [
   { key: 'length', label: '长' },
   { key: 'width', label: '宽' },
@@ -701,7 +712,6 @@ export default function AquariumManager() {
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [diagnosisText, setDiagnosisText] = useState('');
   const [diagnosisFullText, setDiagnosisFullText] = useState('');
-  const [diagnosisQuestion, setDiagnosisQuestion] = useState('');
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [diagnosisIssueType, setDiagnosisIssueType] = useState('巡检');
   const [diagnosisMode, setDiagnosisMode] = useState<DiagnosisMode>('home');
@@ -710,7 +720,6 @@ export default function AquariumManager() {
   const diagnosisQuestionRefs = useRef<Record<string, HTMLElement | null>>({});
   const diagnosisSubmitRef = useRef<HTMLButtonElement | null>(null);
   const [diagnosisQuizAnswers, setDiagnosisQuizAnswers] = useState<Record<string, string>>({});
-  const [diagnosisFollowUps, setDiagnosisFollowUps] = useState<Array<{ question: string; answer: string }>>([]);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
   const [diagnosisAquariumId, setDiagnosisAquariumId] = useState('');
   const [diagnosisRecords, setDiagnosisRecords] = useState<DiagnosisRecord[]>([]);
@@ -1959,27 +1968,6 @@ export default function AquariumManager() {
     };
   };
 
-  const buildDiagnosisFollowUpAnswer = (question: string) => {
-    const lower = question.toLowerCase();
-    const base = diagnosisIssueType === '巡检' ? '当前是巡检模式，建议先选择一个具体问题类型，这样判断会更准确。' : `这个追问仍按「${diagnosisIssueType}」来判断。`;
-    if (/躲|藏|不出来|怕/.test(question)) {
-      return `${base} 更像应激或被追赶。先弱光、减少打扰，观察 24-48 小时；如果同时浮头、白点或拒食，需要升级为鱼只异常诊断。还需要补充：入缸多久、同缸鱼是否追它。`;
-    }
-    if (/浮头|呼吸|喘|缺氧/.test(question)) {
-      return `${base} 浮头/急促呼吸优先按缺氧或水质刺激处理：先增加打氧，检查过滤出水，今天停喂；若伴随异味或水浑，少量换水 20%。还需要补充：是否多条鱼同时浮头、水温和最近换水时间。`;
-    }
-    if (/白点|烂尾|红血丝|蹭/.test(question)) {
-      return `${base} 体表异常不要直接混药。先隔离观察、确认是否扩散到多条鱼，再决定治疗方向。需要补充：异常持续多久、是否有照片描述、同缸其他鱼是否正常。`;
-    }
-    if (/喂|饲料|吃|残饵/.test(question) || lower.includes('feed')) {
-      return `${base} 先把投喂降到 2-3 分钟内吃完，残饵及时清理；如果水已经变浑，停喂 1 天并检查过滤。需要补充：每天喂几次、缸底是否有残饵。`;
-    }
-    if (/死|死亡/.test(question)) {
-      return `${base} 死鱼先立即移除，再看是否连续死亡或其他鱼异常。不要马上全缸下药，先补充最近换水、加药、新鱼入缸和水质数据。`;
-    }
-    return `${base} 目前信息还不足，先补充：异常持续多久、是否多条鱼同时出现、最近是否换水/加药/新鱼入缸，以及 pH、氨氮、亚硝酸盐数据。`;
-  };
-
   const handleOpenDiagnosis = () => {
     if (!activeAquarium) return;
     setDiagnosisAquariumId(activeAquarium.id);
@@ -2004,9 +1992,7 @@ export default function AquariumManager() {
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2019,15 +2005,18 @@ export default function AquariumManager() {
   const handleOpenDiagnosisWithType = (typeId: string) => {
     if (!activeAquarium) return;
     const safeType: DiagnosisProblemType = isDiagnosisProblemType(typeId) ? typeId : '巡检';
+    if (speciesHealthDiagnosisTypes.has(safeType)) {
+      setIsDiagnosisOpen(false);
+      navigateToRoute('/identify');
+      return;
+    }
     setDiagnosisAquariumId(activeAquarium.id);
     setIsDiagnosisOpen(true);
     setDiagnosisIssueType(safeType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2040,13 +2029,16 @@ export default function AquariumManager() {
 
   const handleStartDiagnosisQuiz = (typeId: string) => {
     const safeType: DiagnosisProblemType = isDiagnosisProblemType(typeId) ? typeId : '巡检';
+    if (speciesHealthDiagnosisTypes.has(safeType)) {
+      setIsDiagnosisOpen(false);
+      navigateToRoute('/identify');
+      return;
+    }
     setDiagnosisIssueType(safeType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2248,10 +2240,7 @@ export default function AquariumManager() {
       missingInfo: result.missing,
       optionalMissingInfo: result.missing,
       nextCheckAt: result.nextCheckAt,
-      followUpNotes: [
-        ...(careDiagnosisContext ? [`来自百科：${careDiagnosisContext.title}`] : []),
-        ...diagnosisFollowUps.map(item => `问：${item.question}；答：${item.answer}`),
-      ],
+      followUpNotes: careDiagnosisContext ? [`来自百科：${careDiagnosisContext.title}`] : [],
     };
     const nextRecords = upsertDiagnosisRecord(diagnosisRecords, record);
     setDiagnosisRecords(persistDiagnosisRecords(nextRecords));
@@ -2264,13 +2253,6 @@ export default function AquariumManager() {
     if (problemType === '巡检') {
       trackSessionEvent('daily_check_completed', { action: existingDailyRecord ? 'update' : 'complete', status: result.riskLevel, entry: 'aquarium' });
     }
-  };
-
-  const handleDiagnosisFollowUp = () => {
-    const question = diagnosisQuestion.trim();
-    if (!question || isDiagnosing) return;
-    setDiagnosisQuestion('');
-    setDiagnosisFollowUps(prev => [...prev, { question, answer: buildDiagnosisFollowUpAnswer(question) }]);
   };
 
   useEffect(() => {
@@ -2295,9 +2277,7 @@ export default function AquariumManager() {
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setIsDiagnosisOpen(true);
@@ -4941,34 +4921,6 @@ export default function AquariumManager() {
                 )}
               </section>
 
-              <details className="rounded-[18px] bg-white p-3 shadow-sm">
-                <summary className="min-h-11 cursor-pointer list-none text-[13px] font-black text-ink">继续补充信息</summary>
-                <p className="text-[11px] font-medium text-ink/50">补充症状、水质数据或近期操作，不会改变已有本地风险等级。</p>
-                {diagnosisFollowUps.length > 0 && (
-                  <div className="mt-2 grid gap-2">
-                    {diagnosisFollowUps.map((item, index) => (
-                      <div key={`${item.question}-${index}`} className="rounded-[14px] bg-bg p-3">
-                        <div className="text-[11px] font-black text-ink">问：{item.question}</div>
-                        <div className="mt-1 text-[11px] font-medium leading-relaxed text-ink/70">{item.answer}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <Input
-                    value={diagnosisQuestion}
-                    onChange={(event) => setDiagnosisQuestion(event.target.value)}
-                    placeholder="补充症状、水质数据或最近操作"
-                    className="h-10 rounded-[12px] bg-bg text-sm"
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') handleDiagnosisFollowUp();
-                    }}
-                  />
-                  <Button onClick={handleDiagnosisFollowUp} disabled={isDiagnosing || !diagnosisQuestion.trim()} className="h-10 rounded-[12px] bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800">
-                    追问
-                  </Button>
-                </div>
-              </details>
               </>
               )}
 
