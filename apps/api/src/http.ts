@@ -43,9 +43,14 @@ export const apiErrorHandler = (
   response: Response,
   _next: NextFunction,
 ) => {
+  const bodyParserError = error && typeof error === 'object'
+    ? error as { type?: string; status?: number }
+    : undefined;
   const apiError = error instanceof ApiError
     ? error
-    : new ApiError(500, 'INTERNAL_ERROR', '服务暂时不可用，请稍后重试。');
+    : bodyParserError?.type === 'entity.too.large' || bodyParserError?.status === 413
+      ? new ApiError(413, 'PAYLOAD_TOO_LARGE', '图片不能超过 10MB。')
+      : new ApiError(500, 'INTERNAL_ERROR', '服务暂时不可用，请稍后重试。');
 
   const payload: ApiFailure = {
     error: {

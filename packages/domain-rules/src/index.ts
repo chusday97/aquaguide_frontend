@@ -34,3 +34,5 @@ export const highestRisk = (...risks: DiagnosisRiskCode[]): DiagnosisRiskCode =>
     riskRank[candidate] > riskRank[current] ? candidate : current
   ), 'unknown')
 );
+
+export * from './species-diagnosis';

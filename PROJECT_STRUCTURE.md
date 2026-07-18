@@ -4,12 +4,15 @@
 
 - `apps/api/`：Express TypeScript 业务 API 入口、统一错误、Supabase 客户端、鉴权和版本化路由。
 - `apps/api/src/routes/admin.ts`：受管理员权限保护的物种、养护文章、发布状态与版本化图片处理接口。
+- `apps/api/src/routes/species-ai.ts`：物种图片识别、匿名未命中和动态症状判断 API。
+- `apps/api/src/ai/provider.ts`：视觉与文本模型的独立 OpenAI 兼容调用、超时和单次重试。
 - `apps/web/`：Web workspace 边界；现有 React 源码在云端 Repository 接入完成前继续保留根目录。
 - `packages/contracts/`：API 请求、响应、分页、错误码和公开内容 DTO。
 - `packages/contracts/src/content-admin.ts`：内容编辑、状态切换和素材上传的服务端校验契约。
 - `packages/contracts/src/localization.ts`：中英文语言、偏好、回退元数据、审核与覆盖率契约。
 - `packages/contracts/src/species-diagnosis.ts`：视觉候选、匿名未命中、受控观察、动态追问与原因排序契约。
 - `packages/domain-rules/`：跨前后端共享的确定性规则类型与安全不变量。
+- `packages/domain-rules/src/species-diagnosis.ts`：受控观察、本地症状解析、红旗优先与信息增益追问策略。
 - `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
 - `supabase/migrations/202607160002_localization.sql`：四张翻译表、审核字段、索引与公开/管理员 RLS。
 - `supabase/migrations/202607180001_species_recognition.sql`：只允许后端聚合写入的匿名识别未命中表。
@@ -67,6 +70,7 @@
 - `scripts/`：规则、契约、素材与回归断言。
 - `scripts/content-import/import-catalog.ts`：本地目录内容与图片的预检、去重、版本化 Storage 上传和数据库导入工具。
 - `scripts/test-visual-results.ts`：视觉结果适配、关注对象、折叠依据和规则只读性的专项断言。
+- `scripts/test-species-diagnosis.ts`：单条新鱼、全缸急促呼吸、最多三问和中英文一致性规则断言。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。
 - `scripts/verify-wishlist-shortcut.mjs`：普通物种与具体变种快捷收藏、触控尺寸、跨页同步和水族册直达验收。

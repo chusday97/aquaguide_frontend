@@ -28,6 +28,7 @@
     "test:mini-compatibility": "tsx scripts/test-mini-compatibility.ts",
     "test:visual-results": "tsx scripts/test-visual-results.ts",
     "test:daily-check": "tsx scripts/test-daily-check-contract.ts",
+    "test:species-diagnosis": "tsx scripts/test-species-diagnosis.ts",
     "test:session-events": "tsx scripts/test-session-events.ts",
     "test:collection": "tsx scripts/test-collection-achievements.ts",
     "test:memorial": "tsx scripts/test-memorial-service.ts",

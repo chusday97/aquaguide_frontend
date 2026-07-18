@@ -17,8 +17,8 @@
 
 ## 正在做什么
 
-- 当前步骤：契约、数据库 migration 和 camelCase 类型已经实现并通过类型检查，下一步实现 API 与确定性规则。
-- 已开始但未完成的工作：视觉识别、匿名未命中 API、动态追问规则、`/identify` 前端、浏览器验收和独立 Critic/Evaluator 尚未完成。
+- 当前步骤：契约、视觉/文本 AI API 和确定性动态追问规则已完成并通过类型与规则专项测试，下一步实现 `/identify` 前端。
+- 已开始但未完成的工作：`/identify` 前端、图鉴入口、浏览器验收和独立 Critic/Evaluator 尚未完成；真实视觉准确率仍需配置视觉模型与真实照片集后验证。
 - 涉及文件/模块：`CONTRACT.md`、`supabase/migrations/`、`packages/contracts/`、`apps/api/`、`src/modules/diagnosis/`、`src/pages/Identify.tsx`。
 - 工作区未提交状态及归属：用户原有未跟踪文件 `scripts/synthetic-tests/scenarios.ts` 不属于本轮，禁止修改或提交；本功能按契约、API/规则、前端、验证文档拆分提交。
 
@@ -43,6 +43,7 @@
 | 2026-07-16 | 混养、物种适配、巡检与养护自查结果可视化 | commit `ec36e6b`；lint/build；可视化、混养、Mini、巡检专项；核心与三步浏览器回归；390/1200px 无溢出截图检查 |
 | 2026-07-17 | 部署标准 i18next 数据翻译层，精译 12 个核心物种并实现中英无缝秒切 | commit `7d952a8` 前后修改；`test:localization-ui` 通过；新增 `localizeData.ts` 翻译层，打通全量 450 物种 Fallback |
 | 2026-07-18 | 固定物种识别、动态追问和匿名未命中数据契约 | 本次提交；lint、API check、diff check |
+| 2026-07-18 | 实现视觉识别、匿名未命中与确定性动态追问 API/规则 | 本次提交；lint、API check；5 个规则专项场景 |
 
 ## 当前卡点
 
