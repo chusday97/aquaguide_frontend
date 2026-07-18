@@ -21,6 +21,7 @@ type WorkspaceNavigationValue = {
   registerSection: (sectionId: WorkspaceSectionId, element: HTMLElement | null) => () => void;
   captureContext: (sourceId?: string) => WorkspaceNavigationContext;
   restoreContext: (context: WorkspaceNavigationContext) => Promise<boolean>;
+  registerNavigationGuard: (guard: ((targetPath: string) => boolean) | null) => () => void;
 };
 
 const WorkspaceNavigationContextValue = createContext<WorkspaceNavigationValue | null>(null);
@@ -87,14 +88,27 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
   const navigate = useNavigate();
   const { showToast } = useToast();
   const sectionsRef = useRef(new Map<WorkspaceSectionId, HTMLElement>());
+  const navigationGuardRef = useRef<((targetPath: string) => boolean) | null>(null);
+
+  const registerNavigationGuard = useCallback((guard: ((targetPath: string) => boolean) | null) => {
+    navigationGuardRef.current = guard;
+    return () => {
+      if (navigationGuardRef.current === guard) navigationGuardRef.current = null;
+    };
+  }, []);
+
+  const canNavigate = useCallback((targetPath: string) => navigationGuardRef.current?.(targetPath) ?? true, []);
 
   const navigateToRoute = useCallback((path: string) => {
+    if (!canNavigate(path)) return;
     navigate(path);
-  }, [navigate]);
+  }, [canNavigate, navigate]);
 
   const navigateToView = useCallback((path: string, hash = '') => {
-    navigate(`${path}${hash}`);
-  }, [navigate]);
+    const targetPath = `${path}${hash}`;
+    if (!canNavigate(targetPath)) return;
+    navigate(targetPath);
+  }, [canNavigate, navigate]);
 
   const waitForSection = useCallback((sectionId: WorkspaceSectionId) => new Promise<HTMLElement>((resolve, reject) => {
     const findSection = () => sectionsRef.current.get(sectionId) ?? document.getElementById(sectionId);
@@ -128,6 +142,7 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
     const targetUrl = `${path}${updateHash ? `#${sectionId}` : ''}`;
 
     if (`${location.pathname}${location.hash}` !== targetUrl) {
+      if (!canNavigate(targetUrl)) return false;
       navigate(targetUrl);
     }
 
@@ -140,7 +155,7 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
       showToast('目标内容暂不可用，请稍后重试', 'error');
       return false;
     }
-  }, [location.hash, location.pathname, navigate, showToast, waitForSection]);
+  }, [canNavigate, location.hash, location.pathname, navigate, showToast, waitForSection]);
 
   const registerSection = useCallback((sectionId: WorkspaceSectionId, element: HTMLElement | null) => {
     if (element) sectionsRef.current.set(sectionId, element);
@@ -162,6 +177,7 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
   const restoreContext = useCallback(async (context: WorkspaceNavigationContext) => {
     const targetUrl = `${context.route}${context.query}${context.hash}`;
     if (`${location.pathname}${location.search}${location.hash}` !== targetUrl) {
+      if (!canNavigate(targetUrl)) return false;
       navigate(targetUrl);
     }
 
@@ -182,7 +198,7 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
       }
     }
     return true;
-  }, [location.hash, location.pathname, location.search, navigate]);
+  }, [canNavigate, location.hash, location.pathname, location.search, navigate]);
 
   const value = useMemo<WorkspaceNavigationValue>(() => ({
     navigateToRoute,
@@ -191,7 +207,8 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
     registerSection,
     captureContext,
     restoreContext,
-  }), [captureContext, navigateToRoute, navigateToSection, navigateToView, registerSection, restoreContext]);
+    registerNavigationGuard,
+  }), [captureContext, navigateToRoute, navigateToSection, navigateToView, registerNavigationGuard, registerSection, restoreContext]);
 
   return (
     <WorkspaceNavigationContextValue.Provider value={value}>

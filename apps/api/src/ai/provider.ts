@@ -48,7 +48,6 @@ const fetchJsonResponse = async (
         throw new ProviderError('invalid_response', 'Provider response was not valid JSON.');
       }
     } catch (error) {
-      if (error instanceof ProviderError && error.reason === 'invalid_response') throw error;
       if (error instanceof Error && error.name === 'AbortError') {
         lastError = new ProviderError('timeout', 'Provider request timed out.');
       } else if (error instanceof ProviderError) {

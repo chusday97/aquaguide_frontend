@@ -66,10 +66,11 @@ export const resolveRecognitionMiss = (missId: string, resolvedCatalogKey: strin
   )
 );
 
-export const getSpeciesDiagnosisStep = (input: SpeciesDiagnosisStepInput) => (
+export const getSpeciesDiagnosisStep = (input: SpeciesDiagnosisStepInput, signal?: AbortSignal) => (
   apiRequest<SpeciesDiagnosisStepOutput>('/ai/species-diagnosis/step', {
     method: 'POST',
     body: input,
     authenticated: false,
+    signal,
   })
 );

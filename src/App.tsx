@@ -196,7 +196,7 @@ const desktopSubMenus: Record<string, Array<{
 
 function BottomNavigation() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateToRoute } = useWorkspaceNavigation();
   const { t } = useTranslation();
 
   return (
@@ -214,7 +214,7 @@ function BottomNavigation() {
                 key={item.path}
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => navigateToRoute(item.path)}
                   onMouseEnter={() => preloadRoute(item.path)}
                   onFocus={() => preloadRoute(item.path)}
                 className={cn(

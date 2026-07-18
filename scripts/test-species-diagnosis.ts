@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildSpeciesDiagnosisStep, parseLocalSymptomObservations } from '../packages/domain-rules/src/index';
 import type { SpeciesDiagnosisStepInput } from '../packages/contracts/src/index';
 import { fishData } from '../src/data/fishData';
-import { mapVisionCandidateToCatalog } from '../src/lib/speciesRecognition';
+import { buildSpeciesDiagnosisContextAnswers, isSpeciesEligibleForHealthTriage, mapVisionCandidateToCatalog } from '../src/lib/speciesRecognition';
 
 const baseSnapshot = {
   aquariumId: 'tank-1',
@@ -79,4 +79,29 @@ assert.equal(byScientificName.matchType, 'exact');
 const unmatched = mapVisionCandidateToCatalog({ commonName: 'Not a catalog species', confidenceBand: 'low', visualEvidence: [] }, fishData);
 assert.equal(unmatched.matchType, 'none');
 
-console.log('species diagnosis and catalog mapping: 10 scenarios passed');
+const freshwaterTank = {
+  id: 'tank-context',
+  name: 'Context tank',
+  waterType: 'Freshwater' as const,
+  targetTemperature: '25',
+  dimensions: { length: '60', width: '30', height: '36' },
+  equipment: { filter: '瀑布过滤' as const, oxygen: true, heater: true, light: '普通灯' as const },
+  fishes: [],
+};
+const compatibleContext = buildSpeciesDiagnosisContextAnswers(guppy, freshwaterTank);
+const incompatibleContext = { ...compatibleContext, water_fit: 'mismatch', temperature_fit: 'outside', space_fit: 'insufficient' };
+const compatibleResult = buildSpeciesDiagnosisStep(input('单条鱼不动', { answers: compatibleContext }));
+const incompatibleResult = buildSpeciesDiagnosisStep(input('单条鱼不动', { answers: incompatibleContext }));
+assert.notEqual(compatibleResult.hypotheses[0]?.code, 'environment_mismatch');
+assert.equal(incompatibleResult.hypotheses[0]?.code, 'environment_mismatch');
+
+const repeatedDeaths = buildSpeciesDiagnosisStep(input('最近连续死亡，剩下的鱼也不动了'));
+assert.equal(repeatedDeaths.urgency, 'urgent');
+assert.ok(repeatedDeaths.emergencyActions.some(action => action.includes('水质')));
+
+const aquaticPlant = fishData.find(item => item.category === '水草');
+assert.ok(aquaticPlant);
+assert.equal(isSpeciesEligibleForHealthTriage(guppy), true);
+assert.equal(isSpeciesEligibleForHealthTriage(aquaticPlant), false);
+
+console.log('species diagnosis and catalog mapping: 14 scenarios passed');

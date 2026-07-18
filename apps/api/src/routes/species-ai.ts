@@ -19,8 +19,13 @@ const sessionMisses = new Map<string, number>();
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
 
 const checkRateLimit = (request: express.Request) => {
-  const key = String(request.headers['x-forwarded-for'] || request.ip || 'unknown').split(',')[0].trim();
+  const key = request.ip || 'unknown';
   const now = Date.now();
+  if (rateBuckets.size > 500) {
+    for (const [bucketKey, bucket] of rateBuckets) {
+      if (now - bucket.startedAt >= 60_000) rateBuckets.delete(bucketKey);
+    }
+  }
   const current = rateBuckets.get(key);
   if (!current || now - current.startedAt >= 60_000) {
     rateBuckets.set(key, { startedAt: now, count: 1 });
@@ -152,6 +157,7 @@ speciesAiRouter.post('/ai/species-diagnosis/step', asyncRoute(async (request, re
     const raw = await requestSymptomObservations({
       locale: parsed.data.locale,
       speciesCatalogKey: parsed.data.speciesCatalogKey,
+      aquariumSnapshot: parsed.data.aquariumSnapshot,
       userDescription: parsed.data.userDescription,
       answers: parsed.data.answers,
     }) as { observations?: unknown };

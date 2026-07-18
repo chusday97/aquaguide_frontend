@@ -103,6 +103,7 @@ const enText = {
 };
 
 const enHypothesisCopy: Record<string, { label: string; actions: string[]; avoid: string[] }> = {
+  environment_mismatch: { label: 'Tank conditions do not match this species requirements', actions: ['Check water type, temperature, and available space before changing the environment or isolating the animal'], avoid: ['Do not add more animals or medicate while the basic environment is clearly unsuitable'] },
   oxygen_shortage: { label: 'Low oxygen or insufficient surface gas exchange', actions: ['Increase surface agitation and aeration now', 'Confirm filter flow and keep watching breathing'], avoid: ['Do not medicate first', 'Do not replace all tank water at once'] },
   water_quality: { label: 'Acute water instability or filter disruption', actions: ['Increase aeration and confirm filter flow first', 'Prepare small staged water changes and watch other fish'], avoid: ['Do not combine a large water change, filter cleaning, and medication'] },
   acclimation_stress: { label: 'New-environment or short-term acclimation stress', actions: ['Keep the tank quiet and dim; avoid chasing the fish', 'Continue watching breathing, posture, and activity'], avoid: ['Do not repeatedly net the fish or mix medications immediately'] },
@@ -121,13 +122,24 @@ const evidenceLabel: Record<string, string> = {
 
 const hypotheses: HypothesisDefinition[] = [
   {
+    code: 'environment_mismatch',
+    label: '当前鱼缸环境与该物种需求不匹配',
+    urgency: 'watch',
+    recommendedActions: ['先核对水体类型、温度和可用空间，再决定是否调整环境或隔离观察'],
+    avoidActions: ['不要在环境条件明显不匹配时继续增加生物或直接下药'],
+    recommendedArticleIds: [],
+    supports: { water_fit: ['mismatch'], temperature_fit: ['outside'], space_fit: ['insufficient'] },
+    contradicts: { water_fit: ['match'], temperature_fit: ['within'], space_fit: ['sufficient'] },
+    needs: ['water_fit', 'temperature_fit'],
+  },
+  {
     code: 'oxygen_shortage',
     label: '缺氧或水面气体交换不足',
     urgency: 'urgent',
     recommendedActions: ['立即增强水面扰动并开启增氧', '确认过滤出水正常，持续观察呼吸'],
     avoidActions: ['不要先下药', '不要一次性全缸换水'],
     recommendedArticleIds: ['guide_water_deteriorate'],
-    supports: { scope: ['all', 'several'], breathing: ['surface_gasping', 'rapid'], posture: ['sideways'] },
+    supports: { scope: ['all', 'several'], breathing: ['surface_gasping', 'rapid'], posture: ['sideways'], filter_status: ['missing'], oxygen_status: ['missing'] },
     contradicts: { breathing: ['normal'], scope: ['single'] },
     needs: ['scope', 'breathing'],
   },
@@ -138,7 +150,7 @@ const hypotheses: HypothesisDefinition[] = [
     recommendedActions: ['先增氧并检查过滤是否正常出水', '准备分次少量换水并观察其他鱼'],
     avoidActions: ['不要同时大量换水、洗滤材和下药'],
     recommendedArticleIds: ['guide_water_deteriorate', 'guide_safe_water_change'],
-    supports: { scope: ['all', 'several'], recent_change: ['water_filter', 'medicine', 'overfeed'], breathing: ['rapid', 'surface_gasping'] },
+    supports: { scope: ['all', 'several'], recent_change: ['water_filter', 'medicine', 'overfeed'], breathing: ['rapid', 'surface_gasping'], filter_status: ['missing'], recent_water_change: ['recent'] },
     contradicts: { scope: ['single'], recent_change: ['none'] },
     needs: ['scope', 'recent_change'],
   },
@@ -149,7 +161,7 @@ const hypotheses: HypothesisDefinition[] = [
     recommendedActions: ['保持安静和弱光，减少追逐与反复打扰', '持续观察呼吸、姿态和是否恢复活动'],
     avoidActions: ['不要反复捞鱼或立即混合用药'],
     recommendedArticleIds: ['guide_new_fish_acclimation'],
-    supports: { scope: ['single'], recent_change: ['new_fish'], breathing: ['normal'], external_signs: ['none'] },
+    supports: { scope: ['single'], recent_change: ['new_fish'], breathing: ['normal'], external_signs: ['none'], recent_added: ['yes'] },
     contradicts: { scope: ['all'], breathing: ['surface_gasping'], posture: ['sideways'] },
     needs: ['recent_change', 'breathing'],
   },
@@ -216,6 +228,7 @@ export const parseLocalSymptomObservations = (description: string): SymptomObser
   else if (/(破损|烂尾|充血|夹尾|damage|redness|clamped)/i.test(text)) add('external_signs', 'damage', '用户描述体表或鳍条受损');
   if (/(躲|不动|趴缸|inactive|hiding|not moving)/i.test(text)) add('activity', 'inactive', '用户描述活动明显减少');
   if (/(拒食|不吃|not eating|refus)/i.test(text)) add('feeding', 'refusing', '用户描述拒食');
+  if (/(连续死亡|死了几条|多条死亡|接连死|multiple deaths|several died|dying one after another)/i.test(text)) add('mortality', 'multiple_recent', '用户描述近期连续或多条死亡');
   return found;
 };
 
@@ -246,6 +259,14 @@ const mergeObservations = (
     external_signs: new Set(['spots', 'damage', 'none', 'unknown']),
     activity: new Set(['inactive', 'normal', 'unknown']),
     feeding: new Set(['refusing', 'normal', 'unknown']),
+    mortality: new Set(['multiple_recent', 'single_recent', 'none', 'unknown']),
+    water_fit: new Set(['match', 'mismatch', 'unknown']),
+    temperature_fit: new Set(['within', 'outside', 'unknown']),
+    space_fit: new Set(['sufficient', 'insufficient', 'unknown']),
+    filter_status: new Set(['present', 'missing', 'unknown']),
+    oxygen_status: new Set(['present', 'missing', 'unknown']),
+    recent_added: new Set(['yes', 'no', 'unknown']),
+    recent_water_change: new Set(['recent', 'not_recent', 'unknown']),
   };
   const byCode = new Map<string, SymptomObservation>();
   for (const item of parseLocalSymptomObservations(input.userDescription)) byCode.set(item.code, item);
@@ -253,7 +274,13 @@ const mergeObservations = (
     if (allowedValues[item.code]?.has(item.value) && !byCode.has(item.code)) byCode.set(item.code, { ...item, source: 'user_text' });
   }
   for (const [code, value] of Object.entries(input.answers)) {
-    if (allowedValues[code]?.has(value)) byCode.set(code, observation(code, value, 'answer'));
+    if (!allowedValues[code]?.has(value)) continue;
+    const source: SymptomObservation['source'] = ['water_fit', 'temperature_fit', 'space_fit'].includes(code)
+      ? 'species'
+      : ['filter_status', 'oxygen_status', 'recent_added', 'recent_water_change'].includes(code)
+        ? 'tank'
+        : 'answer';
+    byCode.set(code, observation(code, value, source));
   }
   if (input.aquariumSnapshot.equipment) byCode.set('tank_equipment', observation('tank_equipment', input.aquariumSnapshot.equipment, 'tank'));
   return byCode;
@@ -297,9 +324,27 @@ const selectNextQuestion = (
   if (redFlag) return redFlag;
 
   const activeCodes = new Set(activeHypotheses.filter(item => item.score >= 0).map(item => item.code));
+  const activeDefinitions = hypotheses.filter(item => activeCodes.has(item.code));
+  const expectedInformationGain = (question: QuestionDefinition) => {
+    if (activeDefinitions.length <= 1) return 0;
+    const expectedRemaining = question.options.reduce((sum, option) => {
+      const partitions = new Map<number, number>();
+      for (const definition of activeDefinitions) {
+        const weight = definition.supports[question.id]?.includes(option.id)
+          ? 2
+          : definition.contradicts[question.id]?.includes(option.id)
+            ? -2
+            : 0;
+        partitions.set(weight, (partitions.get(weight) || 0) + 1);
+      }
+      const remaining = Array.from(partitions.values()).reduce((total, count) => total + (count * count) / activeDefinitions.length, 0);
+      return sum + remaining;
+    }, 0) / question.options.length;
+    return activeDefinitions.length - expectedRemaining;
+  };
   return [...available].sort((left, right) => {
-    const rightGain = right.distinguishes.filter(code => activeCodes.has(code)).length;
-    const leftGain = left.distinguishes.filter(code => activeCodes.has(code)).length;
+    const rightGain = expectedInformationGain(right);
+    const leftGain = expectedInformationGain(left);
     return rightGain - leftGain || zhQuestions.indexOf(left) - zhQuestions.indexOf(right);
   })[0];
 };
@@ -320,7 +365,8 @@ export const buildSpeciesDiagnosisStep = (
   const acute = observations.get('breathing')?.value === 'surface_gasping'
     || observations.get('breathing')?.value === 'rapid'
     || observations.get('posture')?.value === 'sideways'
-    || (observations.get('scope')?.value === 'all' && observations.get('activity')?.value === 'inactive');
+    || (observations.get('scope')?.value === 'all' && observations.get('activity')?.value === 'inactive')
+    || observations.get('mortality')?.value === 'multiple_recent';
   const urgency: DiagnosisUrgency = acute
     ? 'urgent'
     : visible.some(item => item.score >= 2 && item.definition.urgency === 'watch')
@@ -330,7 +376,7 @@ export const buildSpeciesDiagnosisStep = (
     ? undefined
     : selectNextQuestion(observations, input.askedQuestionIds, scored.map(item => ({ code: item.definition.code, score: item.score })));
   const emergencyActions = urgency === 'urgent'
-    ? ['立即增强水面扰动并开启增氧', '确认过滤正常出水，观察是否有更多鱼同时异常']
+    ? ['立即增强水面扰动并开启增氧', '确认过滤正常出水，观察是否有更多鱼同时异常', ...(observations.get('mortality')?.value === 'multiple_recent' ? ['暂停喂食和加药，保留水样并尽快检查水质'] : [])]
     : [];
 
   return {

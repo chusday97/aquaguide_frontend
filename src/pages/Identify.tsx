@@ -25,7 +25,8 @@ import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { useToast } from '../components/common/ToastProvider';
 import { getSpeciesFavoriteIds, setSpeciesFavoriteIds } from '../services/favorites/favorites.service';
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
-import { mapVisionCandidateToCatalog, normalizeSpeciesName, type MappedRecognitionCandidate } from '../lib/speciesRecognition';
+import { buildSpeciesDiagnosisContextAnswers, isSpeciesEligibleForHealthTriage, mapVisionCandidateToCatalog, normalizeSpeciesName, type MappedRecognitionCandidate } from '../lib/speciesRecognition';
+import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 
 type Stage = 'upload' | 'candidates' | 'describe' | 'question' | 'result';
 
@@ -60,14 +61,20 @@ const buildSnapshot = (aquarium?: Aquarium | null) => ({
 
 const statusFromUrgency = (urgency: SpeciesDiagnosisStepOutput['urgency']): VisualResultStatus => urgency;
 
+
 export default function Identify() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { navigateToRoute, registerNavigationGuard } = useWorkspaceNavigation();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pageRef = useRef<HTMLElement | null>(null);
   const questionHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const emergencyGuideRef = useRef<HTMLElement | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
+  const diagnosisControllerRef = useRef<AbortController | null>(null);
+  const diagnosisRequestIdRef = useRef(0);
+  const diagnosisLockedRef = useRef(false);
   const [stage, setStage] = useState<Stage>('upload');
   const [previewUrl, setPreviewUrl] = useState('');
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -86,6 +93,7 @@ export default function Identify() {
   const [cloudNotice, setCloudNotice] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [pendingNavigationPath, setPendingNavigationPath] = useState('');
+  const [showEmergencyGuide, setShowEmergencyGuide] = useState(false);
   const hasUnsavedDiagnosis = Boolean(description.trim()) && stage !== 'result' && stage !== 'upload';
 
   const appState = useMemo(() => loadAppStateFromStorage(), []);
@@ -96,7 +104,10 @@ export default function Identify() {
     return fishData.filter(fish => [fish.name, fish.scientificName, (fish as Fish & { _originalName?: string })._originalName || ''].some(value => normalizeSpeciesName(value).includes(query))).slice(0, 6);
   }, [manualQuery]);
 
-  useEffect(() => () => requestControllerRef.current?.abort(), []);
+  useEffect(() => () => {
+    requestControllerRef.current?.abort();
+    diagnosisControllerRef.current?.abort();
+  }, []);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -117,6 +128,13 @@ export default function Identify() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedDiagnosis]);
 
+  useEffect(() => registerNavigationGuard(hasUnsavedDiagnosis
+    ? (path) => {
+      setPendingNavigationPath(path);
+      return false;
+    }
+    : null), [hasUnsavedDiagnosis, registerNavigationGuard]);
+
   useEffect(() => {
     window.requestAnimationFrame(() => pageRef.current?.scrollIntoView({
       block: 'start',
@@ -126,6 +144,8 @@ export default function Identify() {
 
   const reset = () => {
     requestControllerRef.current?.abort();
+    diagnosisControllerRef.current?.abort();
+    diagnosisLockedRef.current = false;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
     setRecognition(null);
@@ -141,6 +161,8 @@ export default function Identify() {
     setMissId('');
     setCloudNotice('');
     setErrorMessage('');
+    setShowEmergencyGuide(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setStage('upload');
   };
 
@@ -184,7 +206,7 @@ export default function Identify() {
       setStage('candidates');
       const exactLibraryMatches = mapped.filter(item => item.fish && item.matchType !== 'fuzzy');
       if (exactLibraryMatches.length === 1 && result.status === 'matched') setDetailFish(exactLibraryMatches[0].fish || null);
-      if (mapped.every(item => !item.fish || item.matchType === 'fuzzy')) void logMiss(result, mapped);
+      if (result.source === 'model' && mapped.every(item => !item.fish || item.matchType === 'fuzzy')) void logMiss(result, mapped);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       const message = error instanceof Error ? error.message : t('identify.recognitionFailed');
@@ -193,10 +215,18 @@ export default function Identify() {
     } finally {
       setIsRecognizing(false);
       requestControllerRef.current = null;
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const confirmFish = async (fish: Fish) => {
+    if (!isSpeciesEligibleForHealthTriage(fish)) {
+      setDetailFish(fish);
+      showToast(i18n.language === 'en'
+        ? 'Health triage currently supports fish species only. You can still view this catalog entry.'
+        : '状态判断第一版仅支持鱼类；你仍可查看该物种资料。', 'error');
+      return;
+    }
     setSelectedFish(fish);
     if (missId) {
       try {
@@ -209,20 +239,26 @@ export default function Identify() {
     setStage('describe');
   };
 
-  const requestDiagnosis = async (nextAnswers = answers, nextAsked = askedQuestionIds) => {
-    if (!selectedFish || !description.trim()) return;
+  const requestDiagnosis = async (nextAnswers = answers, nextAsked = askedQuestionIds, lockAcquired = false) => {
+    if (!selectedFish || !description.trim() || (!lockAcquired && diagnosisLockedRef.current)) return;
+    diagnosisLockedRef.current = true;
     setIsDiagnosing(true);
     setErrorMessage('');
+    diagnosisControllerRef.current?.abort();
+    const controller = new AbortController();
+    diagnosisControllerRef.current = controller;
+    const requestId = ++diagnosisRequestIdRef.current;
     try {
       const input: SpeciesDiagnosisStepInput = {
         locale: i18n.language === 'en' ? 'en' : 'zh-CN',
         speciesCatalogKey: selectedFish.id,
         aquariumSnapshot: buildSnapshot(aquarium),
         userDescription: description.trim(),
-        answers: nextAnswers,
+        answers: { ...buildSpeciesDiagnosisContextAnswers(selectedFish, aquarium), ...nextAnswers },
         askedQuestionIds: nextAsked,
       };
-      const output = await getSpeciesDiagnosisStep(input);
+      const output = await getSpeciesDiagnosisStep(input, controller.signal);
+      if (requestId !== diagnosisRequestIdRef.current) return;
       setDiagnosis(output);
       if (output.nextQuestion) {
         setQuestionHistory(current => current.some(item => item.id === output.nextQuestion?.id)
@@ -231,21 +267,28 @@ export default function Identify() {
       }
       setStage(output.nextQuestion ? 'question' : 'result');
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (requestId !== diagnosisRequestIdRef.current) return;
       const message = error instanceof Error ? error.message : t('identify.diagnosisFailed');
       setErrorMessage(message);
       showToast(message, 'error');
     } finally {
-      setIsDiagnosing(false);
+      if (requestId === diagnosisRequestIdRef.current) {
+        diagnosisLockedRef.current = false;
+        setIsDiagnosing(false);
+      }
     }
   };
 
   const answerQuestion = (questionId: string, value: string) => {
-    if (isDiagnosing) return;
+    if (diagnosisLockedRef.current) return;
+    diagnosisLockedRef.current = true;
+    setIsDiagnosing(true);
     const nextAnswers = { ...answers, [questionId]: value };
     const nextAsked = Array.from(new Set([...askedQuestionIds, questionId])).slice(0, 3);
     setAnswers(nextAnswers);
     setAskedQuestionIds(nextAsked);
-    window.setTimeout(() => void requestDiagnosis(nextAnswers, nextAsked), 180);
+    window.setTimeout(() => void requestDiagnosis(nextAnswers, nextAsked, true), 180);
   };
 
   const revisitQuestion = (questionId: string) => {
@@ -280,7 +323,9 @@ export default function Identify() {
         ...related.map(fish => ({ id: fish.id, name: fish.name, image: getSpeciesDisplayImage(fish), role: 'related' as const, status, shortReason: t('identify.sameTankContext') })),
       ],
       currentAction: diagnosis.emergencyActions[0] || top?.recommendedActions[0] || t('identify.keepObserving'),
-      primaryAction: diagnosis.nextQuestion
+      primaryAction: diagnosis.urgency === 'urgent'
+        ? { label: i18n.language === 'en' ? 'Follow emergency steps' : '执行应急步骤', actionType: 'section' }
+        : diagnosis.nextQuestion
         ? { label: t('identify.continueQuestion'), actionType: 'section' }
         : top?.recommendedArticleIds[0]
           ? { label: t('identify.openCareGuide'), actionType: 'route' }
@@ -292,10 +337,18 @@ export default function Identify() {
         { id: 'avoid', title: t('identify.avoidActions'), items: top?.avoidActions || [] },
       ].filter(section => section.items.length > 0),
     };
-  }, [aquarium, diagnosis, selectedFish, t]);
+  }, [aquarium, diagnosis, i18n.language, selectedFish, t]);
 
   const handleResultAction = () => {
     if (!diagnosis) return;
+    if (diagnosis.urgency === 'urgent') {
+      setShowEmergencyGuide(true);
+      window.requestAnimationFrame(() => {
+        emergencyGuideRef.current?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        emergencyGuideRef.current?.focus({ preventScroll: true });
+      });
+      return;
+    }
     if (diagnosis.nextQuestion) {
       setStage('question');
       return;
@@ -313,7 +366,7 @@ export default function Identify() {
       setPendingNavigationPath(path);
       return;
     }
-    navigate(path);
+    navigateToRoute(path);
   };
 
   const toggleWishlist = (fishId: string) => {
@@ -354,7 +407,7 @@ export default function Identify() {
         {stage === 'upload' && (
           <section className="overflow-hidden rounded-[26px] border border-emerald-100 bg-white p-4 shadow-sm md:p-6">
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,.8fr)] md:items-center">
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-[320px] w-full flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-emerald-200 bg-emerald-50/55 p-6 text-center transition hover:bg-emerald-50">
+              <button type="button" disabled={isRecognizing} onClick={() => fileInputRef.current?.click()} className="flex min-h-[320px] w-full flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-emerald-200 bg-emerald-50/55 p-6 text-center transition hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-55">
                 <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm"><Camera className="h-7 w-7" /></span>
                 <span className="mt-4 text-lg font-black text-ink">{t('identify.choosePhoto')}</span>
                 <span className="mt-2 max-w-[360px] text-xs font-medium leading-5 text-ink/50">{t('identify.photoHint')}</span>
@@ -367,7 +420,7 @@ export default function Identify() {
                 <div className="mt-4 flex gap-2 rounded-[14px] border border-sky-100 bg-sky-50 p-3 text-[11px] font-bold leading-5 text-sky-800"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />{t('identify.privacy')}</div>
               </div>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onInput={event => void handleFile(event.currentTarget.files?.[0])} />
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={isRecognizing} className="sr-only" onInput={event => void handleFile(event.currentTarget.files?.[0])} />
           </section>
         )}
 
@@ -375,7 +428,7 @@ export default function Identify() {
           <section className="rounded-[24px] border border-emerald-100 bg-white p-4 shadow-sm" aria-live="polite">
             <div className="grid gap-4 md:grid-cols-[220px_1fr] md:items-center">
               <div className="h-[220px] overflow-hidden rounded-[20px] bg-bg">{previewUrl && <img src={previewUrl} alt={t('identify.uploadPreview')} className="h-full w-full object-contain" />}</div>
-              <div><div className="h-2 w-full animate-pulse rounded-full bg-emerald-100"><div className="h-full w-2/3 rounded-full bg-emerald-500" /></div><Loader2 className="mt-4 h-7 w-7 animate-spin text-emerald-700" /><h2 className="mt-3 text-lg font-black">{t('identify.recognizing')}</h2><p className="mt-1 text-sm text-ink/50">{t('identify.recognizingHint')}</p><button type="button" onClick={() => { requestControllerRef.current?.abort(); setIsRecognizing(false); }} className="mt-4 min-h-11 rounded-full border border-border px-4 text-xs font-black">{t('identify.cancel')}</button></div>
+              <div><div className="h-2 w-full animate-pulse rounded-full bg-emerald-100"><div className="h-full w-2/3 rounded-full bg-emerald-500" /></div><Loader2 className="mt-4 h-7 w-7 animate-spin text-emerald-700" /><h2 className="mt-3 text-lg font-black">{t('identify.recognizing')}</h2><p className="mt-1 text-sm text-ink/50">{t('identify.recognizingHint')}</p><button type="button" onClick={() => { requestControllerRef.current?.abort(); if (fileInputRef.current) fileInputRef.current.value = ''; setIsRecognizing(false); }} className="mt-4 min-h-11 rounded-full border border-border px-4 text-xs font-black">{t('identify.cancel')}</button></div>
             </div>
           </section>
         )}
@@ -440,7 +493,14 @@ export default function Identify() {
         {stage === 'result' && diagnosis && resultModel && selectedFish && (
           <section className="grid gap-4">
             <VisualResultCard model={resultModel} onPrimaryAction={handleResultAction} />
-            <div className="grid gap-3 md:grid-cols-3">{diagnosis.hypotheses.map(hypothesis => <article key={hypothesis.code} className="rounded-[18px] border border-border bg-white p-4"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black ${hypothesis.likelihood === 'more_likely' ? 'bg-red-50 text-red-700' : hypothesis.likelihood === 'possible' ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'}`}>{t(`identify.likelihood.${hypothesis.likelihood}`)}</span><h3 className="mt-2 text-sm font-black">{hypothesis.label}</h3><p className="mt-2 text-[11px] font-bold leading-5 text-ink/55">{hypothesis.supportingEvidence[0] || t('identify.needMoreEvidence')}</p></article>)}</div>
+            {showEmergencyGuide && diagnosis.emergencyActions.length > 0 && (
+              <section ref={emergencyGuideRef} tabIndex={-1} className="rounded-[20px] border border-red-200 bg-red-50 p-4 outline-none" aria-labelledby="identify-emergency-guide-title">
+                <h2 id="identify-emergency-guide-title" className="text-base font-black text-red-900">{t('identify.emergencyActions')}</h2>
+                <ol className="mt-3 grid gap-2">{diagnosis.emergencyActions.map((action, index) => <li key={action} className="rounded-[14px] bg-white px-3 py-2 text-xs font-bold leading-5 text-red-800">{index + 1}. {action}</li>)}</ol>
+                {diagnosis.nextQuestion && <button type="button" onClick={() => setStage('question')} className="mt-4 min-h-11 w-full rounded-full bg-red-700 px-4 text-xs font-black text-white">{t('identify.continueQuestion')}</button>}
+              </section>
+            )}
+            <div className="grid gap-3 md:grid-cols-3">{diagnosis.hypotheses.map(hypothesis => <article key={hypothesis.code} className="rounded-[18px] border border-border bg-white p-4"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black ${hypothesis.likelihood === 'more_likely' ? 'bg-red-50 text-red-700' : hypothesis.likelihood === 'possible' ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'}`}>{t(`identify.likelihood.${hypothesis.likelihood}`)}</span><h3 className="mt-2 text-sm font-black">{hypothesis.label}</h3><p className="mt-2 text-[11px] font-bold leading-5 text-ink/55">{hypothesis.supportingEvidence[0] || t('identify.needMoreEvidence')}</p><details className="mt-3 rounded-[12px] border border-border bg-bg p-3"><summary className="cursor-pointer text-[10px] font-black text-emerald-800">{i18n.language === 'en' ? 'View evidence and actions' : '展开证据与建议'}</summary><div className="mt-3 grid gap-3 text-[10px] leading-5 text-ink/60"><div><strong className="text-ink">{t('identify.supportingEvidence')}</strong>{hypothesis.supportingEvidence.map(item => <p key={item}>{item}</p>)}</div>{hypothesis.contradictingEvidence.length > 0 && <div><strong className="text-ink">{i18n.language === 'en' ? 'Contradicting evidence' : '不一致的事实'}</strong>{hypothesis.contradictingEvidence.map(item => <p key={item}>{item}</p>)}</div>}<div><strong className="text-ink">{t('identify.missingEvidence')}</strong>{hypothesis.missingEvidence.length > 0 ? hypothesis.missingEvidence.map(item => <p key={item}>{item}</p>) : <p>{i18n.language === 'en' ? 'No key evidence is currently missing.' : '当前没有缺失的关键项。'}</p>}</div><div><strong className="text-ink">{i18n.language === 'en' ? 'Recommended actions' : '建议动作'}</strong>{hypothesis.recommendedActions.map(item => <p key={item}>{item}</p>)}</div><div><strong className="text-ink">{t('identify.avoidActions')}</strong>{hypothesis.avoidActions.map(item => <p key={item}>{item}</p>)}</div></div></details></article>)}</div>
             <p className="text-center text-[11px] font-bold leading-5 text-ink/45">{diagnosis.disclaimer}</p>
           </section>
         )}

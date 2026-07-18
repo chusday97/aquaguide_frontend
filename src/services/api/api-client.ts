@@ -59,7 +59,8 @@ export const apiRequest = async <T>(path: string, options: ApiRequestOptions = {
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
     throw new AquaGuideApiError(0, 'DEPENDENCY_UNAVAILABLE', '网络连接失败，请检查网络后重试。');
   }
 
