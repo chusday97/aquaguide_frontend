@@ -79,6 +79,7 @@ speciesAiRouter.post(
 );
 
 speciesAiRouter.post('/ai/species-recognition/misses', asyncRoute(async (request, response) => {
+  checkRateLimit(request);
   const parsed = recognitionMissInputSchema.safeParse(request.body);
   if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '未命中记录无效。', parsed.error.flatten());
   const key = `${parsed.data.imageFingerprint}:${parsed.data.modelName}:${parsed.data.modelVersion || ''}`;
@@ -120,6 +121,7 @@ speciesAiRouter.post('/ai/species-recognition/misses', asyncRoute(async (request
 }));
 
 speciesAiRouter.patch('/ai/species-recognition/misses/:id/resolve', asyncRoute(async (request, response) => {
+  checkRateLimit(request);
   const parsed = recognitionMissResolveSchema.safeParse(request.body);
   if (!parsed.success || !/^[0-9a-f-]{36}$/i.test(request.params.id)) throw new ApiError(400, 'VALIDATION_ERROR', '确认结果无效。');
   try {

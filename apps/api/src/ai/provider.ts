@@ -56,7 +56,7 @@ const fetchJsonResponse = async (
       } else {
         lastError = new ProviderError('network', 'Provider request failed.');
       }
-      if (attempt === 1 || (lastError instanceof ProviderError && lastError.reason === 'timeout')) throw lastError;
+      if (attempt === 1) throw lastError;
     } finally {
       clearTimeout(timeout);
     }

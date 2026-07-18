@@ -38,6 +38,7 @@ const loadCollectionHub = () => import('./pages/CollectionHub');
 const loadProjectStructure = () => import('./pages/ProjectStructurePreview');
 const loadLogin = () => import('./pages/Login');
 const loadAdminContent = () => import('./pages/AdminContent');
+const loadIdentify = () => import('./pages/Identify');
 const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
 
 const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
@@ -48,6 +49,7 @@ const CollectionHub = lazyWithRecovery(loadCollectionHub, 'collection-hub');
 const ProjectStructurePreview = lazyWithRecovery(loadProjectStructure, 'project-structure');
 const Login = lazyWithRecovery(loadLogin, 'login');
 const AdminContent = lazyWithRecovery(loadAdminContent, 'admin-content');
+const Identify = lazyWithRecovery(loadIdentify, 'identify');
 const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
 
 const preloadRoute = (path: string) => {
@@ -55,6 +57,8 @@ const preloadRoute = (path: string) => {
     ? loadAquarium
     : path === '/encyclopedia'
       ? loadEncyclopedia
+      : path === '/identify'
+        ? loadIdentify
       : path === '/care'
         ? loadCare
         : path === '/collection'
@@ -556,6 +560,7 @@ function WorkspaceRoutes() {
           <Route path="/" element={<Navigate to="/aquarium" replace />} />
           <Route path="/login" element={page(<Login />, 'login')} />
           <Route path="/encyclopedia" element={page(<Encyclopedia />, 'encyclopedia')} />
+          <Route path="/identify" element={page(<Identify />, 'identify')} />
           <Route path="/care" element={page(<CareEncyclopedia />, 'care')} />
           <Route path="/collection" element={page(<CollectionEntry />, 'collection')} />
           <Route path="/collection/wishlist" element={page(<Collection module="wishlist" />, 'collection-wishlist')} />

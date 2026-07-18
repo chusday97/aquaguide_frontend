@@ -29,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, Heart, HeartOff, Skull, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal } from 'lucide-react';
+import { Search, X, Heart, HeartOff, Skull, CheckCircle2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, AlertTriangle, Info, MoreHorizontal, Camera } from 'lucide-react';
 import { CompatibilityRiskCalculator } from '../components/CompatibilityRiskCalculator';
 import { VisualResultMini } from '../components/visual-results/VisualResultCard';
 import type { VisualResultSubject } from '../components/visual-results/visual-result.types';
@@ -1328,7 +1328,7 @@ export default function Encyclopedia() {
     <div className="encyclopedia-workspace page-frame-wide flex min-w-0 flex-col gap-6 overflow-x-hidden pt-[58px] md:pt-0 md:overflow-visible">
       {!isOverlayOpen && (
       <div className="atlas-mobile-toolbar fixed inset-x-0 top-0 z-[60] mx-auto grid w-full max-w-[430px] grid-cols-2 gap-1 bg-bg/95 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] shadow-sm backdrop-blur-md md:sticky md:inset-auto md:top-3 md:max-w-[560px] md:rounded-[30px] md:p-2 md:hidden">
-        <div className="col-span-2 grid grid-cols-3 gap-1 rounded-full bg-white/90 p-1 ring-1 ring-border/70">
+        <div className="col-span-2 grid grid-cols-4 gap-1 rounded-full bg-white/90 p-1 ring-1 ring-border/70">
         {atlasModeItems.map(item => (
           <button
             key={item.id}
@@ -1359,6 +1359,13 @@ export default function Encyclopedia() {
             className="h-10 rounded-full text-[13px] font-black text-rose-500 transition-colors hover:bg-rose-50"
           >
             <Heart className="mr-1 inline h-3.5 w-3.5" />{t('encyclopedia.wishlistShort')} {wishlistFishIds.size}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateToRoute('/identify')}
+            className="h-10 rounded-full text-[13px] font-black text-emerald-700 transition-colors hover:bg-emerald-50"
+          >
+            <Camera className="mr-1 inline h-3.5 w-3.5" />{t('identify.shortEntry')}
           </button>
         </div>
       </div>
@@ -1446,6 +1453,13 @@ export default function Encyclopedia() {
       {viewMode === 'browse' ? (
       <div className="flex flex-col gap-5">
       <div id="atlas-toolbar" data-workspace-sticky="true" className="atlas-sticky-toolbar flex flex-wrap gap-4 md:items-center md:gap-3 md:rounded-[22px] md:border md:border-white/80 md:bg-white/82 md:p-3 md:shadow-sm">
+        <button
+          type="button"
+          onClick={() => navigateToRoute('/identify')}
+          className="hidden h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white shadow-sm transition hover:bg-emerald-800 md:inline-flex"
+        >
+          <Camera className="h-4 w-4" />{t('identify.entry')}
+        </button>
         <div style={{ flex: '1 1 420px' }} className="relative min-w-0 md:mx-auto md:max-w-[560px] min-[1200px]:mx-0 min-[1200px]:max-w-[420px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/42" />
           <Input

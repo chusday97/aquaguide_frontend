@@ -91,6 +91,8 @@ npm run test:collection
 npm run test:memorial
 npm run test:state-services
 npm run test:daily-check
+npm run test:species-diagnosis
+npm run test:species-identification-ui
 npm run test:copilot-contract
 npm run test:copilot-evaluation
 npm run test:3d-assets
@@ -104,7 +106,7 @@ npm run test:core-ui
 npm run test:mobile-care-ui
 ```
 
-自动脚本通过后仍需手动走查五条路径：添加生物、每日检查、Mini 混养、收藏查看、AI 建缸助手。
+自动脚本通过后仍需手动走查六条路径：添加生物、每日检查、Mini 混养、收藏查看、AI 建缸助手、拍照识别与状态判断。
 
 ## 6. 发布阻断条件
 

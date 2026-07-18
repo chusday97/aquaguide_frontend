@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 
 import { buildSpeciesDiagnosisStep, parseLocalSymptomObservations } from '../packages/domain-rules/src/index';
 import type { SpeciesDiagnosisStepInput } from '../packages/contracts/src/index';
+import { fishData } from '../src/data/fishData';
+import { mapVisionCandidateToCatalog } from '../src/lib/speciesRecognition';
 
 const baseSnapshot = {
   aquariumId: 'tank-1',
@@ -52,4 +54,29 @@ assert.equal(english.nextQuestion?.id, singleNewFish.nextQuestion?.id);
 assert.deepEqual(english.hypotheses.map(item => item.code), singleNewFish.hypotheses.map(item => item.code));
 assert.match(english.disclaimer, /risk triage/i);
 
-console.log('species diagnosis rules: 5 scenarios passed');
+const invalidAiObservation = buildSpeciesDiagnosisStep(input('鱼不动', {
+  answers: { scope: 'invented-value' },
+}), [{ code: 'breathing', value: 'invented-value', source: 'user_text' }]);
+assert.equal(invalidAiObservation.nextQuestion?.id, 'scope');
+
+const noRepeat = buildSpeciesDiagnosisStep(input('鱼不动', {
+  answers: { scope: 'single' },
+  askedQuestionIds: ['scope'],
+}));
+assert.notEqual(noRepeat.nextQuestion?.id, 'scope');
+
+const maxThree = buildSpeciesDiagnosisStep(input('鱼不动', {
+  askedQuestionIds: ['scope', 'breathing', 'posture'],
+}));
+assert.equal(maxThree.complete, true);
+assert.equal(maxThree.nextQuestion, undefined);
+
+const guppy = fishData.find(item => item.scientificName === 'Poecilia reticulata');
+assert.ok(guppy);
+const byScientificName = mapVisionCandidateToCatalog({ commonName: 'Unknown', scientificName: 'Poecilia reticulata', confidenceBand: 'high', visualEvidence: [] }, fishData);
+assert.equal(byScientificName.fish?.id, guppy.id);
+assert.equal(byScientificName.matchType, 'exact');
+const unmatched = mapVisionCandidateToCatalog({ commonName: 'Not a catalog species', confidenceBand: 'low', visualEvidence: [] }, fishData);
+assert.equal(unmatched.matchType, 'none');
+
+console.log('species diagnosis and catalog mapping: 10 scenarios passed');

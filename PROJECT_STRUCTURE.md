@@ -24,6 +24,7 @@
 - `src/components/layout/LayoutModeProvider.tsx`：真实设备布局判定。
 - `src/pages/Aquarium.tsx`：我的鱼缸。
 - `src/pages/Encyclopedia.tsx`：图鉴与完整混养计算。
+- `src/pages/Identify.tsx`：拍照识别候选、手动兜底、物种确认、动态追问与可视化风险结果。
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
 - `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
@@ -51,6 +52,8 @@
 - `src/modules/diagnosis/`：每日检查问题、确定性规则与数据类型。
 - `src/lib/tankCompatibilityEngine.ts`：统一混养规则引擎。
 - `src/lib/speciesVisual.ts`：二维与 3D 物种素材解析。
+- `src/lib/speciesRecognition.ts`：视觉候选与学名、名称、别名及模糊候选的本地物种库映射。
+- `src/services/ai/species-identification.service.ts`：物种识别、匿名未命中和动态症状 step API 的前端访问层。
 - `src/components/SpeciesDetailDialog.tsx`：共享物种详情。
 - `src/components/common/AdaptiveDetailContent.tsx`：桌面中央详情弹窗与手机底部详情面板。
 - `src/components/common/AdaptiveTaskContent.tsx`：桌面与手机的沉浸式任务流程表面。
@@ -71,6 +74,7 @@
 - `scripts/content-import/import-catalog.ts`：本地目录内容与图片的预检、去重、版本化 Storage 上传和数据库导入工具。
 - `scripts/test-visual-results.ts`：视觉结果适配、关注对象、折叠依据和规则只读性的专项断言。
 - `scripts/test-species-diagnosis.ts`：单条新鱼、全缸急促呼吸、最多三问和中英文一致性规则断言。
+- `scripts/verify-species-identification.mjs`：真实手机降级流程、紧急追问、英文桌面、600–1440px 溢出和图鉴入口验收。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。
 - `scripts/verify-wishlist-shortcut.mjs`：普通物种与具体变种快捷收藏、触控尺寸、跨页同步和水族册直达验收。

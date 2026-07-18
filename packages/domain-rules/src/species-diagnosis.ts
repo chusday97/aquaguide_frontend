@@ -102,6 +102,23 @@ const enText = {
   } as Record<string, [string, string, string[]]>,
 };
 
+const enHypothesisCopy: Record<string, { label: string; actions: string[]; avoid: string[] }> = {
+  oxygen_shortage: { label: 'Low oxygen or insufficient surface gas exchange', actions: ['Increase surface agitation and aeration now', 'Confirm filter flow and keep watching breathing'], avoid: ['Do not medicate first', 'Do not replace all tank water at once'] },
+  water_quality: { label: 'Acute water instability or filter disruption', actions: ['Increase aeration and confirm filter flow first', 'Prepare small staged water changes and watch other fish'], avoid: ['Do not combine a large water change, filter cleaning, and medication'] },
+  acclimation_stress: { label: 'New-environment or short-term acclimation stress', actions: ['Keep the tank quiet and dim; avoid chasing the fish', 'Continue watching breathing, posture, and activity'], avoid: ['Do not repeatedly net the fish or mix medications immediately'] },
+  aggression_injury: { label: 'Chasing, social pressure, or injury', actions: ['Watch for repeated chasing and prepare temporary separation', 'Check fins, body surface, and swimming posture'], avoid: ['Do not disturb every tank inhabitant before confirming aggression'] },
+  external_disease: { label: 'Visible body abnormality or infection sign', actions: ['Isolate for observation and record clear close-up photos', 'Check for spots, mucus, redness, or fin damage'], avoid: ['Do not combine medications based on a photo alone'] },
+  individual_injury: { label: 'Individual injury or weakness', actions: ['Reduce disturbance and watch posture, breathing, and body condition', 'If it remains sideways or cannot swim, prepare isolation and aeration'], avoid: ['Do not force-feed or repeatedly handle the fish'] },
+};
+
+const evidenceLabel: Record<string, string> = {
+  scope: 'number of affected fish',
+  breathing: 'breathing and surface position',
+  posture: 'ability to remain upright',
+  recent_change: 'changes in the last 48 hours',
+  external_signs: 'visible body changes',
+};
+
 const hypotheses: HypothesisDefinition[] = [
   {
     code: 'oxygen_shortage',
@@ -221,13 +238,23 @@ const mergeObservations = (
   input: SpeciesDiagnosisStepInput,
   aiObservations: SymptomObservation[] = [],
 ) => {
-  const allowedCodes = new Set(['scope', 'breathing', 'posture', 'recent_change', 'external_signs', 'activity', 'feeding']);
+  const allowedValues: Record<string, Set<string>> = {
+    scope: new Set(['single', 'several', 'all', 'unknown']),
+    breathing: new Set(['surface_gasping', 'rapid', 'normal', 'unknown']),
+    posture: new Set(['upright', 'bottom', 'sideways', 'unknown']),
+    recent_change: new Set(['new_fish', 'water_filter', 'medicine', 'overfeed', 'none']),
+    external_signs: new Set(['spots', 'damage', 'none', 'unknown']),
+    activity: new Set(['inactive', 'normal', 'unknown']),
+    feeding: new Set(['refusing', 'normal', 'unknown']),
+  };
   const byCode = new Map<string, SymptomObservation>();
   for (const item of parseLocalSymptomObservations(input.userDescription)) byCode.set(item.code, item);
   for (const item of aiObservations) {
-    if (allowedCodes.has(item.code) && !byCode.has(item.code)) byCode.set(item.code, { ...item, source: 'user_text' });
+    if (allowedValues[item.code]?.has(item.value) && !byCode.has(item.code)) byCode.set(item.code, { ...item, source: 'user_text' });
   }
-  for (const [code, value] of Object.entries(input.answers)) byCode.set(code, observation(code, value, 'answer'));
+  for (const [code, value] of Object.entries(input.answers)) {
+    if (allowedValues[code]?.has(value)) byCode.set(code, observation(code, value, 'answer'));
+  }
   if (input.aquariumSnapshot.equipment) byCode.set('tank_equipment', observation('tank_equipment', input.aquariumSnapshot.equipment, 'tank'));
   return byCode;
 };
@@ -309,18 +336,20 @@ export const buildSpeciesDiagnosisStep = (
   return {
     observations: Array.from(observations.values()),
     urgency,
-    emergencyActions,
+    emergencyActions: input.locale === 'en' && emergencyActions.length > 0
+      ? ['Increase surface agitation and aeration now', 'Confirm filter flow and check whether more fish are affected']
+      : emergencyActions,
     ...(next ? { nextQuestion: localizeQuestion(next, input.locale) } : {}),
     hypotheses: visible.map(({ definition, score, supportingEvidence, contradictingEvidence, missingEvidence }) => ({
       code: definition.code,
-      label: input.locale === 'en' ? definition.code.replaceAll('_', ' ') : definition.label,
+      label: input.locale === 'en' ? enHypothesisCopy[definition.code]?.label || definition.code.replaceAll('_', ' ') : definition.label,
       likelihood: score >= 3 ? 'more_likely' : score >= 1 ? 'possible' : 'cannot_rule_out',
       urgency: definition.urgency,
-      supportingEvidence,
-      contradictingEvidence,
-      missingEvidence,
-      recommendedActions: definition.recommendedActions,
-      avoidActions: definition.avoidActions,
+      supportingEvidence: input.locale === 'en' ? supportingEvidence.map(() => 'Matched information from the user description') : supportingEvidence,
+      contradictingEvidence: input.locale === 'en' ? contradictingEvidence.map(() => 'Some reported information does not match this cause') : contradictingEvidence,
+      missingEvidence: input.locale === 'en' ? missingEvidence.map(item => evidenceLabel[item] || item) : missingEvidence,
+      recommendedActions: input.locale === 'en' ? enHypothesisCopy[definition.code]?.actions || definition.recommendedActions : definition.recommendedActions,
+      avoidActions: input.locale === 'en' ? enHypothesisCopy[definition.code]?.avoid || definition.avoidActions : definition.avoidActions,
       recommendedArticleIds: definition.recommendedArticleIds,
     })),
     complete: !next,
