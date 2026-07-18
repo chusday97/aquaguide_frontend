@@ -13,7 +13,7 @@ interface AskAiOptions {
 
 import type { TankDailyCheckContext, TankDailyCheckInterpretation } from '../modules/diagnosis/diagnosis.types';
 
-export type AiTaskName = 'risk_explanation' | 'risk_audit' | 'recommendation_assist' | 'build_tank_copilot' | 'tank_daily_check_interpretation';
+export type AiTaskName = 'risk_explanation' | 'risk_audit' | 'recommendation_assist' | 'build_tank_copilot' | 'tank_daily_check_interpretation' | 'species_symptom_interpretation';
 export type AiResponseSource = 'model' | 'fallback';
 export type AiFailureReason = 'not_configured' | 'network' | 'timeout' | 'invalid_json' | 'status_mismatch' | 'unknown';
 

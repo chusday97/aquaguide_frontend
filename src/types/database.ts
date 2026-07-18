@@ -336,6 +336,20 @@ export interface IdempotencyRecord extends SyncFields {
   expiresAt: IsoDateTime;
 }
 
+export interface SpeciesRecognitionMissRecord {
+  id: Uuid;
+  imageSha256: string;
+  modelName: string;
+  modelVersion?: string;
+  candidateLabels: string[];
+  candidateCatalogKeys: string[];
+  resolvedCatalogKey?: string;
+  occurrenceCount: number;
+  firstSeenAt: IsoDateTime;
+  lastSeenAt: IsoDateTime;
+  resolvedAt?: IsoDateTime;
+}
+
 export interface MigrationPreviewSummary {
   aquariums: number;
   speciesFavorites: number;
@@ -373,6 +387,18 @@ type TableDefinition<Row extends { id: Uuid }> = {
   Update: Partial<Omit<Row, 'id' | 'createdAt'>> & { version: number };
 };
 
+type RecognitionMissTableDefinition = {
+  Row: SpeciesRecognitionMissRecord;
+  Insert: Omit<SpeciesRecognitionMissRecord, 'id' | 'occurrenceCount' | 'firstSeenAt' | 'lastSeenAt' | 'resolvedAt'> & {
+    id?: Uuid;
+    occurrenceCount?: number;
+    firstSeenAt?: IsoDateTime;
+    lastSeenAt?: IsoDateTime;
+    resolvedAt?: IsoDateTime;
+  };
+  Update: Partial<Omit<SpeciesRecognitionMissRecord, 'id' | 'imageSha256' | 'modelName'>>;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -400,6 +426,7 @@ export interface Database {
       careEvents: TableDefinition<CareEventRecord>;
       migrationBatches: TableDefinition<MigrationBatchRecord>;
       idempotencyRecords: TableDefinition<IdempotencyRecord>;
+      speciesRecognitionMisses: RecognitionMissTableDefinition;
     };
   };
 }

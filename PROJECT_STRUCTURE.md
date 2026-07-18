@@ -8,9 +8,11 @@
 - `packages/contracts/`：API 请求、响应、分页、错误码和公开内容 DTO。
 - `packages/contracts/src/content-admin.ts`：内容编辑、状态切换和素材上传的服务端校验契约。
 - `packages/contracts/src/localization.ts`：中英文语言、偏好、回退元数据、审核与覆盖率契约。
+- `packages/contracts/src/species-diagnosis.ts`：视觉候选、匿名未命中、受控观察、动态追问与原因排序契约。
 - `packages/domain-rules/`：跨前后端共享的确定性规则类型与安全不变量。
 - `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
 - `supabase/migrations/202607160002_localization.sql`：四张翻译表、审核字段、索引与公开/管理员 RLS。
+- `supabase/migrations/202607180001_species_recognition.sql`：只允许后端聚合写入的匿名识别未命中表。
 
 - `src/App.tsx`：设备级应用壳、导航与路由。
 - `src/i18n/`：i18next 初始化、浏览器语言检测和本地偏好保存。

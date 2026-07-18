@@ -169,6 +169,15 @@ type MigrationStatus = 'previewed' | 'committing' | 'completed' | 'failed';
 
 后端为写请求保存用户、幂等键、请求方法、路径、请求哈希、资源引用、响应状态和过期时间。同一用户的幂等键唯一；相同键但请求哈希不同必须返回 `409 DUPLICATE_RESOURCE`，不能复用旧结果。
 
+### 4.7 SpeciesRecognitionMissRecord
+
+拍照识别未命中只保存匿名聚合元数据：图片 SHA-256 指纹、视觉模型名称与版本、候选标签、候选内容键、出现次数和可选的最终确认内容键。
+
+- 不保存原图、EXIF、用户身份、鱼缸资料或症状原文。
+- 相同指纹、模型和模型版本只保留一条记录并累加次数。
+- 普通用户不能直接查询；仅后端 `service_role` 可聚合写入和补充最终确认结果。
+- Supabase 未配置时仅保留当前会话状态，界面必须明确显示“云端未记录”。
+
 ## 5. RLS 与 Storage
 
 ### 5.1 数据库策略
@@ -182,6 +191,7 @@ type MigrationStatus = 'previewed' | 'committing' | 'completed' | 'failed';
 | 鱼缸和所有鱼缸子数据 | 所有者 | 所有者 |
 | 巡检、收藏、纪念、养护与迁移 | 所有者 | 所有者 |
 | 已发布翻译且父内容已发布 | 所有人 | 管理员 |
+| `species_recognition_misses` | 无客户端权限 | 后端 `service_role` |
 
 所有鱼缸子表都通过鱼缸外键再次验证 `aquariums.owner_id = auth.uid()`，不能只相信请求中的用户 ID。
 
@@ -306,6 +316,25 @@ type ApiErrorCode =
 
 现有 `/api/health` 和 `/api/ai/chat` 保留兼容；新增 `/api/v1/health` 与 `/api/v1/ai/chat` 别名。
 AI 请求增加 `locale`，只控制输出语言；混养、巡检、今日行动和成就结论仍由共享规则决定。
+
+### 7.5 物种识别与状态判断
+
+| Method | Path | Request | Response | 主要错误 |
+|---|---|---|---|---|
+| POST | `/ai/species-recognition` | JPEG/PNG/WebP 原始图片，最大 10MB | `SpeciesRecognitionResult` | 400/413/429/503 |
+| POST | `/ai/species-recognition/misses` | 匿名指纹、模型与候选元数据 | `{ persisted, missId? }` | 400/503 |
+| PATCH | `/ai/species-recognition/misses/:id/resolve` | `resolvedCatalogKey` | `{ persisted, missId? }` | 400/404/503 |
+| POST | `/ai/species-diagnosis/step` | `SpeciesDiagnosisStepInput` | `SpeciesDiagnosisStepOutput` | 400/429/503 |
+
+视觉识别使用独立的 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL / VISION_TIMEOUT_MS`。图片只在内存中去除 EXIF 并缩放到最长边 1536px，推理后立即释放，不写入 Storage。物种详情可以先查看，但只有用户确认后才能进入状态判断。
+
+状态判断的职责边界：
+
+- AI 只把自然语言映射到受控观察代码；本地规则决定紧急等级、追问顺序、原因排序和安全动作。
+- 每次只显示一个确定性问题，最多追问三次；红旗问题优先，其余按剩余原因的信息增益选择。
+- 结果只显示“更可能 / 可能 / 暂不能排除”，不显示未校准百分比，不做疾病确诊或自动用药建议。
+- AI 不得降低本地紧急等级、增加规则外疾病或扩展养护文章白名单。
+- 症状自由文本和 AI 原始回复不持久化；用户明确保存时只保存结构化观察和受规则约束的结果。
 
 ## 8. Repository 契约
 

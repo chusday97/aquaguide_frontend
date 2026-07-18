@@ -3,6 +3,7 @@ import { z } from 'zod';
 export * from './business';
 export * from './content-admin';
 export * from './localization';
+export * from './species-diagnosis';
 
 import type { LocalizedContentMeta } from './localization';
 import { supportedLocaleSchema } from './localization';
