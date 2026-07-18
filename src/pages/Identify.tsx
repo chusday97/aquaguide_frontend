@@ -76,7 +76,9 @@ export default function Identify() {
   const diagnosisRequestIdRef = useRef(0);
   const diagnosisLockedRef = useRef(false);
   const diagnosisDelayRef = useRef<number | null>(null);
-  const historyGuardInsertedRef = useRef(false);
+  const pendingHistoryDeltaRef = useRef<number | null>(null);
+  const restoringHistoryRef = useRef(false);
+  const allowHistoryNavigationRef = useRef(false);
   const [stage, setStage] = useState<Stage>('upload');
   const [previewUrl, setPreviewUrl] = useState('');
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -140,18 +142,24 @@ export default function Identify() {
     : null), [hasUnsavedDiagnosis, registerNavigationGuard]);
 
   useEffect(() => {
-    if (!hasUnsavedDiagnosis) {
-      historyGuardInsertedRef.current = false;
-      return;
-    }
-    if (historyGuardInsertedRef.current) return;
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    window.history.pushState({ ...window.history.state, aquaguideIdentifyGuard: true }, '', currentUrl);
-    historyGuardInsertedRef.current = true;
-    const handlePopState = () => {
-      if (!historyGuardInsertedRef.current) return;
+    if (!hasUnsavedDiagnosis) return;
+    const originIndex = Number(window.history.state?.idx);
+    const handlePopState = (event: PopStateEvent) => {
+      if (allowHistoryNavigationRef.current) {
+        allowHistoryNavigationRef.current = false;
+        return;
+      }
+      if (restoringHistoryRef.current) {
+        restoringHistoryRef.current = false;
+        return;
+      }
+      const targetIndex = Number(event.state?.idx);
+      if (!Number.isFinite(originIndex) || !Number.isFinite(targetIndex) || originIndex === targetIndex) return;
+      const attemptedDelta = targetIndex - originIndex;
+      pendingHistoryDeltaRef.current = attemptedDelta;
       setPendingNavigationPath('__history_back__');
-      window.history.pushState({ ...window.history.state, aquaguideIdentifyGuard: true }, '', currentUrl);
+      restoringHistoryRef.current = true;
+      window.history.go(-attemptedDelta);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -580,7 +588,7 @@ export default function Identify() {
           <section role="dialog" aria-modal="true" aria-labelledby="identify-leave-title" className="w-full max-w-[420px] rounded-[22px] bg-white p-5 shadow-2xl">
             <h2 id="identify-leave-title" className="text-lg font-black">{t('identify.leaveTitle')}</h2>
             <p className="mt-2 text-sm leading-6 text-ink/55">{t('identify.leaveHint')}</p>
-            <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setPendingNavigationPath('')} className="min-h-11 rounded-full border border-border bg-white text-xs font-black">{t('identify.stay')}</button><button type="button" onClick={() => { const path = pendingNavigationPath; setPendingNavigationPath(''); historyGuardInsertedRef.current = false; cancelDiagnosisSession(); if (path === '__reset__') reset(); else if (path === '__history_back__') window.history.go(-2); else navigate(path); }} className="min-h-11 rounded-full bg-red-600 text-xs font-black text-white">{t('identify.leave')}</button></div>
+            <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => { pendingHistoryDeltaRef.current = null; setPendingNavigationPath(''); }} className="min-h-11 rounded-full border border-border bg-white text-xs font-black">{t('identify.stay')}</button><button type="button" onClick={() => { const path = pendingNavigationPath; const historyDelta = pendingHistoryDeltaRef.current; pendingHistoryDeltaRef.current = null; setPendingNavigationPath(''); cancelDiagnosisSession(); if (path === '__reset__') { reset(); return; } if (path === '__history_back__') { if (historyDelta !== null) { allowHistoryNavigationRef.current = true; window.history.go(historyDelta); } else navigate('/encyclopedia', { replace: true }); return; } navigate(path); }} className="min-h-11 rounded-full bg-red-600 text-xs font-black text-white">{t('identify.leave')}</button></div>
           </section>
         </div>
       )}
