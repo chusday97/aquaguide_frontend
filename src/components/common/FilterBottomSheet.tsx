@@ -4,16 +4,19 @@ import { Button } from '@/components/ui/button';
 
 export type FilterSheetOption = {
   label: string;
+  /** Internal filter value. If provided, used for selection matching and onSelect; otherwise label is used. */
+  value?: string;
   hint?: string;
   count?: number;
   disabled?: boolean;
+  noMatchLabel?: string;
 };
 
 export type FilterSheetGroup = {
   title: string;
   options: FilterSheetOption[];
   selected: string | null;
-  onSelect: (label: string) => void;
+  onSelect: (value: string) => void;
 };
 
 type FilterBottomSheetProps = {
@@ -24,6 +27,8 @@ type FilterBottomSheetProps = {
   onClose: () => void;
   onReset: () => void;
   onApply: () => void;
+  resetLabel?: string;
+  applyLabel?: string;
 };
 
 export function FilterBottomSheet({
@@ -34,6 +39,8 @@ export function FilterBottomSheet({
   onClose,
   onReset,
   onApply,
+  resetLabel = 'Reset',
+  applyLabel = 'Apply Filters',
 }: FilterBottomSheetProps) {
   const titleId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -57,7 +64,7 @@ export function FilterBottomSheet({
 
   return (
     <div className="fixed inset-0 z-[180] flex items-end justify-center bg-ink/28 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur-sm md:px-6 md:pb-[calc(24px+env(safe-area-inset-bottom))]">
-      <button type="button" aria-label="关闭筛选" className="absolute inset-0" onClick={onClose} />
+      <button type="button" aria-label="Close filters" className="absolute inset-0" onClick={onClose} />
       <section
         role="dialog"
         aria-modal="true"
@@ -74,7 +81,7 @@ export function FilterBottomSheet({
             type="button"
             onClick={onClose}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg text-ink/45"
-            aria-label="关闭"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
@@ -87,13 +94,15 @@ export function FilterBottomSheet({
                 <div className="text-[12px] font-black text-ink/70">{group.title}</div>
                 <div className="grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
                   {group.options.map(option => {
-                    const selected = group.selected === option.label || (!group.selected && option.label === '全部');
-                    const disabled = Boolean(option.disabled && !selected && option.label !== '全部');
+                    const optionValue = option.value ?? option.label;
+                    const isAllOption = option.value === '全部' || option.label === 'All' || option.value === null;
+                    const selected = group.selected === optionValue || (!group.selected && (optionValue === '全部' || isAllOption));
+                    const disabled = Boolean(option.disabled && !selected && !isAllOption);
                     return (
                       <button
-                        key={option.label}
+                        key={optionValue}
                         type="button"
-                        onClick={() => group.onSelect(option.label)}
+                        onClick={() => group.onSelect(optionValue)}
                         disabled={disabled}
                         className={`min-h-10 rounded-[14px] border px-2.5 py-2 text-left transition-colors ${
                           selected
@@ -113,7 +122,7 @@ export function FilterBottomSheet({
                         </div>
                         {(option.hint || disabled) && (
                           <div className={`mt-0.5 line-clamp-1 text-[9px] font-bold ${selected ? 'text-white/72' : disabled ? 'text-ink/24' : 'text-ink/38'}`}>
-                            {disabled ? '暂无匹配' : option.hint}
+                            {disabled ? (option.noMatchLabel ?? 'No match') : option.hint}
                           </div>
                         )}
                       </button>
@@ -127,10 +136,10 @@ export function FilterBottomSheet({
 
         <div className="modalFooter flex shrink-0 gap-2 border-t border-border/70 bg-white">
           <Button type="button" variant="outline" onClick={onReset} className="h-10 flex-1 rounded-full text-[13px] font-black">
-            重置
+            {resetLabel}
           </Button>
           <Button type="button" onClick={onApply} className="h-10 flex-[1.4] rounded-full bg-emerald-700 text-[13px] font-black text-white hover:bg-emerald-800">
-            应用筛选
+            {applyLabel}
           </Button>
         </div>
       </section>

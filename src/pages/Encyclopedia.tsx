@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import posthog from 'posthog-js';
 import type { PointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Fish, Aquarium } from '../types';
 import { fishData } from '../data/fishData';
 import { encyclopediaService } from '../modules/encyclopedia/encyclopedia.service';
@@ -442,6 +443,31 @@ function AnimatedFishBackground() {
 }
 
 export default function Encyclopedia() {
+  const { t, i18n } = useTranslation();
+  const filterLabelKeys: Record<string, string> = {
+    '全部': 'all',
+    '淡水': 'freshwater',
+    '海水': 'saltwater',
+    '草缸': 'plantedTank',
+    '小缸': 'nanoTank',
+    '需加热': 'needHeater',
+    '不需加热': 'noHeater',
+    '简单': 'easy',
+    '中等': 'medium',
+    '困难': 'hard',
+    '适合混养': 'compatible',
+    '谨慎混养': 'cautionMix',
+    '建议单养': 'singleSpecimen',
+    '新手好养': 'beginnerFriendly',
+    '清洁工具': 'cleaningCrew',
+    '适合当前鱼缸': 'suitableForCurrentTank',
+    '除藻': 'algaeEating',
+    '清残饵': 'leftoverEating',
+    '观赏鱼': 'ornamentalFish',
+    '工具生物': 'utilityCreature',
+    '适合草缸': 'suitableForPlanted',
+    '小缸适合': 'suitableForNano',
+  };
   const { captureContext, navigateToRoute, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<'browse' | 'compatibility'>('browse');
@@ -571,7 +597,7 @@ export default function Encyclopedia() {
       if (!savedAsExpected) throw new Error('收藏状态未能保存');
       setWishlistFishIds(savedIds);
       setWishlistFeedback({
-        message: wasFavorite ? `已从水族册移除 ${fish.name}` : `已收录到水族册：${fish.name}`,
+        message: wasFavorite ? t('encyclopedia.wishlistRemoved', { name: fish.name }) : t('encyclopedia.wishlistAdded', { name: fish.name }),
         added: !wasFavorite,
       });
       if (!wasFavorite) {
@@ -582,7 +608,7 @@ export default function Encyclopedia() {
     } catch {
       setWishlistFishIds(loadWishlistIds());
       setWishlistFeedback({
-        message: '收藏没有保存成功，请稍后重试。',
+        message: t('encyclopedia.wishlistSaveError'),
         added: false,
         error: true,
       });
@@ -827,11 +853,20 @@ export default function Encyclopedia() {
   );
   const makeFilterOption = (label: string, nextFilters: Partial<ActiveFilters>, hint?: string) => {
     const count = getDraftFilterCount(nextFilters);
+    const displayLabel = filterLabelKeys[label] ? t('encyclopedia.' + filterLabelKeys[label]) : label;
+    let displayHint = hint;
+    if (hint === '通常不加热') displayHint = t('encyclopedia.hintColdwater');
+    else if (hint === '适应范围宽') displayHint = t('encyclopedia.hintBroad');
+    else if (hint === '建议稳定加热') displayHint = t('encyclopedia.hintTropical');
+    else if (hint === '海水缸专用') displayHint = t('encyclopedia.hintMarine');
+
     return {
-      label,
-      hint,
+      label: displayLabel,
+      value: label,
+      hint: displayHint,
       count,
       disabled: label !== '全部' && count === 0,
+      noMatchLabel: t('encyclopedia.filterSheetNoMatch'),
     };
   };
   const allSpeciesGroups = useMemo(() => deriveSpeciesGroups(allFishes), [allFishes]);
@@ -855,11 +890,21 @@ export default function Encyclopedia() {
     () => buildAtlasDisplayItems(filteredFishes),
     [filteredFishes]
   );
+  const formatFilterLabel = (label: string) => {
+    if (label.startsWith('搜索：“')) {
+      const kw = label.slice(4, -2);
+      return t('encyclopedia.searchResultPrefix', { keyword: kw });
+    }
+    return filterLabelKeys[label] ? t('encyclopedia.' + filterLabelKeys[label]) : label;
+  };
+
   const resultTitle = isSuitableCurrentTankFilter
-    ? `适合当前鱼缸 · ${filteredFishes.length} 种`
+    ? `${t('encyclopedia.suitableForCurrentTank')} · ${filteredFishes.length} ${t('encyclopedia.speciesUnit')}`
     : showWishlistOnly
-      ? `种草图鉴 · ${filteredFishes.length} 种`
-      : resultFilterLabels.length > 0 ? resultFilterLabels.join(' · ') : '全部结果';
+      ? `${t('encyclopedia.wishlistTitle')} · ${filteredFishes.length} ${t('encyclopedia.speciesUnit')}`
+      : resultFilterLabels.length > 0
+        ? resultFilterLabels.map(formatFilterLabel).join(' · ')
+        : t('encyclopedia.allResults');
   const resultPageSize = 20;
   const resultItemCount = atlasDisplayItems.length;
   const resultPageCount = Math.max(1, Math.ceil(resultItemCount / resultPageSize));
@@ -883,9 +928,9 @@ export default function Encyclopedia() {
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return '极易';
-      case 'Medium': return '中等';
-      case 'Hard': return '困难';
+      case 'Easy': return t('encyclopedia.difficultyEasyShort');
+      case 'Medium': return t('encyclopedia.difficultyMediumShort');
+      case 'Hard': return t('encyclopedia.difficultyHardShort');
       default: return difficulty;
     }
   };
@@ -991,7 +1036,7 @@ export default function Encyclopedia() {
       ? appState.aquariums
       : JSON.parse(localStorage.getItem('aquariums') || '[]') as Aquarium[];
     if (!Array.isArray(aquariums) || aquariums.length === 0) {
-      setLastAddedToTankMessage('请先在“我的鱼缸”页面创建一个鱼缸。');
+      setLastAddedToTankMessage(t('encyclopedia.noTankError'));
       return;
     }
     const aquarium = aquariums.find(item => item.id === aquariumId) || aquariums[0];
@@ -1006,16 +1051,16 @@ export default function Encyclopedia() {
       if (execution.reason === 'confirmation_required') {
         setPendingTankAddConfirmed(true);
       } else if (execution.reason === 'missing_information') {
-        setLastAddedToTankMessage('鱼缸信息不足，请先补充尺寸、水温或设备信息。');
+        setLastAddedToTankMessage(t('encyclopedia.tankInfoError'));
       } else if (execution.reason === 'blocked') {
-        setLastAddedToTankMessage('当前条件下不建议加入该生物，请先调整鱼缸或更换物种。');
+        setLastAddedToTankMessage(t('encyclopedia.addBlockedError'));
       }
       return;
     }
 
     persistAquariums(execution.aquariums, aquarium.id);
     setOwnedFishIds(prev => new Set(prev).add(fish.id));
-    setLastAddedToTankMessage(`已将 ${fish.name} 添加到 ${aquarium.name}。建议接下来观察 3-7 天。`);
+    setLastAddedToTankMessage(t('encyclopedia.addedToTankMsg', { name: fish.name, tankName: aquarium.name }));
     closeAtlasDetail();
     setPendingTankFish(null);
     setTargetAquariumId('');
@@ -1028,7 +1073,7 @@ export default function Encyclopedia() {
       ? appState.aquariums
       : JSON.parse(localStorage.getItem('aquariums') || '[]');
     if (!Array.isArray(aquariums) || aquariums.length === 0) {
-      throw new Error('请先在“我的鱼缸”页面创建一个鱼缸。');
+      throw new Error(t('encyclopedia.noTankError'));
     }
 
     const activeId = currentAquarium?.id || targetAquariumId || appState.currentAquariumId || aquariums[0].id;
@@ -1041,7 +1086,7 @@ export default function Encyclopedia() {
       }));
 
     if (normalizedItems.length === 0) {
-      throw new Error('没有可加入当前鱼缸的新增生物。');
+      throw new Error(t('encyclopedia.noAddableSpecies'));
     }
 
     const execution = executeSpeciesAddition({
@@ -1053,8 +1098,8 @@ export default function Encyclopedia() {
     });
     if (!execution.added) {
       throw new Error(execution.reason === 'missing_information'
-        ? '请先补充鱼缸信息后再添加。'
-        : '当前组合不允许加入鱼缸。');
+        ? t('encyclopedia.addInfoIncomplete')
+        : t('encyclopedia.addCombinationBlocked'));
     }
 
     persistAquariums(execution.aquariums, activeAquarium.id);
@@ -1072,7 +1117,8 @@ export default function Encyclopedia() {
       .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
       .filter(Boolean)
       .join('、');
-    const message = `已加入 ${normalizedItems.length} 种生物到 ${activeAquarium.name}${addedNames ? `：${addedNames}` : ''}。`;
+    const namesSuffix = addedNames ? `：${addedNames}` : '';
+    const message = t('encyclopedia.addedManyToTank', { count: normalizedItems.length, tankName: activeAquarium.name, names: namesSuffix });
     setLastAddedToTankMessage(message);
     setCalculatorFeedback(message);
     return { message };
@@ -1084,7 +1130,7 @@ export default function Encyclopedia() {
       ? appState.aquariums
       : JSON.parse(localStorage.getItem('aquariums') || '[]');
     if (!Array.isArray(aquariums) || aquariums.length === 0) {
-      setDetailFeedback('请先在“我的鱼缸”页面创建一个鱼缸。');
+      setDetailFeedback(t('encyclopedia.noTankError'));
       return;
     }
 
@@ -1135,8 +1181,8 @@ export default function Encyclopedia() {
   const handleAddToCalculator = (fish: Fish, origin?: HTMLElement | null) => {
     if (calculatorSpeciesIds.includes(fish.id)) {
       setCalculatorSpeciesIds(prev => prev.filter(id => id !== fish.id));
-      setCalculatorFeedback(`已撤回 ${fish.name} 的混养计算选择。`);
-      setDetailFeedback(`已撤回 ${fish.name} 的混养计算选择。`);
+      setCalculatorFeedback(t('encyclopedia.removedFromCalc', { name: fish.name }));
+      setDetailFeedback(t('encyclopedia.removedFromCalc', { name: fish.name }));
       triggerCalculatorPulse();
       return;
     }
@@ -1144,8 +1190,8 @@ export default function Encyclopedia() {
     const nextCount = calculatorSpeciesIds.length + 1;
     runCalculatorAddAnimation(fish, origin);
     triggerCalculatorPulse();
-    setCalculatorFeedback(nextCount >= 2 ? `已加入 ${nextCount} 种生物，可以查看混养风险。` : `已加入混养计算：${fish.name}，可继续添加其他生物。`);
-    setDetailFeedback(nextCount >= 2 ? `已加入 ${nextCount} 种生物，去混养计算查看风险。` : '已加入混养计算，可继续添加其他生物。');
+    setCalculatorFeedback(nextCount >= 2 ? t('encyclopedia.addedToCalcMany', { count: nextCount }) : t('encyclopedia.addedToCalcSingle', { name: fish.name }));
+    setDetailFeedback(nextCount >= 2 ? t('encyclopedia.addedToCalcMany', { count: nextCount }) : t('encyclopedia.addedToCalcSingle', { name: fish.name }));
     setCalculatorSpeciesIds(prev => prev.includes(fish.id) ? prev : [...prev, fish.id]);
   };
 
@@ -1274,8 +1320,8 @@ export default function Encyclopedia() {
     setSelectedFish(fish);
   };
   const atlasModeItems = [
-    { id: 'browse' as const, label: '浏览图鉴', description: '查找生物、分类和适配结果' },
-    { id: 'compatibility' as const, label: '混养计算', description: '选择生物后查看混养风险' },
+    { id: 'browse' as const, label: t('encyclopedia.browseAtlas'), description: t('encyclopedia.browseAtlasDesc') },
+    { id: 'compatibility' as const, label: t('encyclopedia.compatibilityCalc'), description: t('encyclopedia.compatibilityCalcDesc') },
   ];
 
   return (
@@ -1312,7 +1358,7 @@ export default function Encyclopedia() {
             onClick={() => navigateToRoute('/collection?tab=wishlist')}
             className="h-10 rounded-full text-[13px] font-black text-rose-500 transition-colors hover:bg-rose-50"
           >
-            <Heart className="mr-1 inline h-3.5 w-3.5" />种草 {wishlistFishIds.size}
+            <Heart className="mr-1 inline h-3.5 w-3.5" />{t('encyclopedia.wishlistShort')} {wishlistFishIds.size}
           </button>
         </div>
       </div>
@@ -1321,7 +1367,7 @@ export default function Encyclopedia() {
         <div className="flex items-center justify-between gap-3 rounded-[16px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] font-bold text-emerald-800">
           <span>{lastAddedToTankMessage}</span>
           <button type="button" onClick={() => setLastAddedToTankMessage('')} className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[10px] font-black text-emerald-700">
-            知道了
+            {t('encyclopedia.dismiss')}
           </button>
         </div>
       )}
@@ -1343,14 +1389,14 @@ export default function Encyclopedia() {
                 onClick={() => navigateToRoute('/collection/wishlist')}
                 className="h-8 rounded-full bg-white px-3 text-[10px] font-black text-rose-600 shadow-sm"
               >
-                查看水族册
+                {t('encyclopedia.viewWishlist')}
               </button>
             )}
             <button
               type="button"
               onClick={() => setWishlistFeedback(null)}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75"
-              aria-label="关闭收藏提示"
+              aria-label={t('encyclopedia.closeWarning')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -1403,7 +1449,7 @@ export default function Encyclopedia() {
         <div style={{ flex: '1 1 420px' }} className="relative min-w-0 md:mx-auto md:max-w-[560px] min-[1200px]:mx-0 min-[1200px]:max-w-[420px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/42" />
           <Input
-            placeholder="搜索鱼、虾、螺、水草或用途"
+            placeholder={t('encyclopedia.searchPlaceholder')}
             className="h-11 rounded-full border-border bg-white pl-9 pr-12 text-[14px] font-medium text-ink placeholder:text-ink/42"
             value={searchTerm}
             onChange={(e) => handleSearchTermChange(e.target.value)}
@@ -1413,7 +1459,7 @@ export default function Encyclopedia() {
           />
           <button
             type="button"
-            aria-label="搜索"
+            aria-label={t('encyclopedia.search')}
             onClick={submitSearch}
             className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-accent-light text-accent"
           >
@@ -1424,8 +1470,8 @@ export default function Encyclopedia() {
         <section style={{ flex: '1 1 420px' }} className="mx-auto flex w-full min-w-0 max-w-[720px] flex-col gap-2 md:mx-0 md:max-w-none">
           <div className="flex items-center justify-between gap-3 md:hidden">
             <div>
-              <div className="text-[15px] font-black text-ink">快速找</div>
-              <div className="mt-0.5 text-[11px] font-bold text-ink/42">先给你 3 个最常用入口。</div>
+              <div className="text-[15px] font-black text-ink">{t('encyclopedia.quickFind')}</div>
+              <div className="mt-0.5 text-[11px] font-bold text-ink/42">{t('encyclopedia.quickFindDesc')}</div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -1442,7 +1488,7 @@ export default function Encyclopedia() {
                       : 'border-border bg-white text-ink/54 hover:border-accent/40 hover:text-accent'
                   }`}
                 >
-                  {label}
+                  {filterLabelKeys[label] ? t('encyclopedia.' + filterLabelKeys[label]) : label}
                 </button>
               );
             })}
@@ -1454,8 +1500,8 @@ export default function Encyclopedia() {
                 setIsMoreFilterOpen(true);
               }}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
-              aria-label="更多筛选条件"
-              title="更多筛选条件"
+              aria-label={t('encyclopedia.moreFilters')}
+              title={t('encyclopedia.moreFilters')}
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>
@@ -1466,12 +1512,12 @@ export default function Encyclopedia() {
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-[13px] font-black text-ink">
-                {resultTitle} · 当前展示 {pagedAtlasItems.length} 个条目
+                {resultTitle} · {t('encyclopedia.showingEntriesCount', { count: pagedAtlasItems.length })}
               </div>
               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">
                 {isSuitableCurrentTankFilter
-                  ? `已按水质、温度、空间、设备和混养基础条件筛选 · 第 ${currentResultPage + 1}/${resultPageCount} 组`
-                  : `匹配物种 ${filteredFishes.length} 种 · 展示 ${resultItemCount} 个品类/物种 · 第 ${currentResultPage + 1}/${resultPageCount} 组`}
+                  ? t('encyclopedia.filteredByCurrentTankDesc', { current: currentResultPage + 1, total: resultPageCount })
+                  : t('encyclopedia.matchedSpeciesDesc', { count: filteredFishes.length, itemsCount: resultItemCount, current: currentResultPage + 1, total: resultPageCount })}
               </div>
             </div>
             {hasAnyActiveCriteria && (
@@ -1480,7 +1526,7 @@ export default function Encyclopedia() {
                 onClick={clearFilters}
                 className="shrink-0 rounded-full bg-bg px-2.5 py-1.5 text-[10px] font-black text-ink/50"
               >
-                清除
+                {t('encyclopedia.clear')}
               </button>
             )}
           </div>
@@ -1491,22 +1537,22 @@ export default function Encyclopedia() {
                 onClick={() => goToResultPage(currentResultPage - 1)}
                 disabled={currentResultPage === 0}
                 className="inline-flex h-10 min-w-[94px] items-center justify-center gap-1 whitespace-nowrap rounded-full border border-border bg-white px-3 text-[12px] font-black text-ink/64 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/26 disabled:shadow-none"
-                aria-label="上一组图鉴"
+                aria-label={t('encyclopedia.prevGroup')}
               >
                 <ChevronRight className="h-4 w-4 rotate-180" />
-                上一组
+                {t('encyclopedia.prevGroup')}
               </button>
               <div className="min-w-[110px] whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">
-                第 {currentResultPage + 1} / {resultPageCount} 组
+                {t('encyclopedia.showingGroupCount', { current: currentResultPage + 1, total: resultPageCount })}
               </div>
               <button
                 type="button"
                 onClick={() => goToResultPage(currentResultPage + 1)}
                 disabled={currentResultPage >= resultPageCount - 1}
                 className="inline-flex h-10 min-w-[94px] items-center justify-center gap-1 whitespace-nowrap rounded-full border border-border bg-white px-3 text-[12px] font-black text-ink/64 shadow-sm transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:bg-bg disabled:text-ink/26 disabled:shadow-none"
-                aria-label="下一组图鉴"
+                aria-label={t('encyclopedia.nextGroup')}
               >
-                下一组
+                {t('encyclopedia.nextGroup')}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -1514,7 +1560,7 @@ export default function Encyclopedia() {
           {resultItemCount > resultPageSize && (
             <div className="w-full rounded-[18px] border border-emerald-100 bg-emerald-50/75 px-4 py-3 shadow-sm xl:min-w-[280px]">
               <div className="mb-2 flex items-center justify-between text-[12px] font-black text-ink/58">
-                <span>拖动切换图鉴组</span>
+                <span>{t('encyclopedia.dragToSwitch')}</span>
                 <span>{currentResultPage * resultPageSize + 1}-{Math.min((currentResultPage + 1) * resultPageSize, resultItemCount)} / {resultItemCount}</span>
               </div>
               <div className="grid items-center">
@@ -1525,13 +1571,13 @@ export default function Encyclopedia() {
                   step={1}
                   value={currentResultPage + 1}
                   onChange={(event) => goToResultPage(Number(event.target.value) - 1)}
-                  aria-label="拖动切换图鉴结果页"
+                  aria-label={t('encyclopedia.dragSliderLabel')}
                   className="h-4 w-full cursor-pointer accent-emerald-700"
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-ink/48">
-                <span>第 1 组</span>
-                <span>第 {resultPageCount} 组</span>
+                <span>{t('encyclopedia.groupStart')}</span>
+                <span>{t('encyclopedia.groupEnd', { count: resultPageCount })}</span>
               </div>
             </div>
           )}
@@ -1617,7 +1663,7 @@ export default function Encyclopedia() {
                         </h2>
                       </button>
                       <p className="mt-0.5 line-clamp-2 text-[12px] font-bold leading-snug text-ink/54">
-                        品类集合 / {group.variantCount} 个规格可选{theme.needsHeater ? ' · 建议稳定加热' : ''}
+                        {t('encyclopedia.groupCollectionDesc', { count: group.variantCount })}{theme.needsHeater ? t('encyclopedia.groupHeaterHint') : ''}
                       </p>
                     </div>
                     <div className="grid min-h-[66px] grid-cols-5 items-start gap-1 overflow-hidden">
@@ -1627,7 +1673,7 @@ export default function Encyclopedia() {
                           type="button"
                           onClick={() => openSpeciesGroup(group, variant.id, `atlas-group-${group.groupId}`)}
                           className="group flex min-w-0 flex-col items-center gap-1"
-                          aria-label={`查看${variant.name}`}
+                          aria-label={t('encyclopedia.viewThisVariant', { name: variant.name })}
                         >
                           <span className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-bg shadow-sm transition-colors group-hover:border-emerald-300 ${getSpeciesImageSurfaceClass(variant)}`}>
                             <ResilientImage
@@ -1649,12 +1695,12 @@ export default function Encyclopedia() {
                           type="button"
                           onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)}
                           className="flex min-w-0 flex-col items-center gap-1"
-                          aria-label={`查看其余${hiddenVariantCount}个变种`}
+                          aria-label={t('encyclopedia.viewMoreVariants', { count: hiddenVariantCount })}
                         >
                           <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-emerald-200 bg-emerald-50 text-[11px] font-black text-emerald-700">
                             +{hiddenVariantCount}
                           </span>
-                          <span className="block text-[9px] font-black leading-tight text-ink/42">更多</span>
+                          <span className="block text-[9px] font-black leading-tight text-ink/42">{t('encyclopedia.moreLabel')}</span>
                         </button>
                       )}
                     </div>
@@ -1664,7 +1710,7 @@ export default function Encyclopedia() {
                         onClick={() => openSpeciesGroup(group, undefined, `atlas-group-${group.groupId}`)}
                         className="h-9 w-full rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
                       >
-                        查看品类
+                        {t('encyclopedia.viewCategory')}
                       </button>
                       <button
                         type="button"
@@ -1675,7 +1721,7 @@ export default function Encyclopedia() {
                             : 'bg-accent text-white hover:bg-accent/90'
                         }`}
                       >
-                        {isInCalculator ? '已选择' : '选择计算'}
+                        {isInCalculator ? t('encyclopedia.selectedInCalc') : t('encyclopedia.addToCalculatorBtn')}
                       </button>
                     </div>
                   </div>
@@ -1708,8 +1754,8 @@ export default function Encyclopedia() {
                   type="button"
                   onClick={() => handleWishlistToggle(fish)}
                   aria-pressed={wishlistFishIds.has(fish.id)}
-                  aria-label={wishlistFishIds.has(fish.id) ? `取消收藏${fish.name}` : `收藏${fish.name}`}
-                  title={wishlistFishIds.has(fish.id) ? '取消收藏' : '收藏到水族册'}
+                  aria-label={wishlistFishIds.has(fish.id) ? t('encyclopedia.wishlistRemoved', { name: fish.name }) : t('encyclopedia.wishlistAdded', { name: fish.name })}
+                  title={wishlistFishIds.has(fish.id) ? t('encyclopedia.wishlistRemoved', { name: fish.name }) : t('encyclopedia.wishlistAdded', { name: fish.name })}
                   className={`absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border bg-white/94 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
                     wishlistFishIds.has(fish.id)
                       ? 'border-rose-200 text-rose-500'
@@ -1730,12 +1776,12 @@ export default function Encyclopedia() {
                 >
                   {isInCalculator && (
                     <span className="absolute right-1.5 top-1.5 z-10 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black text-white shadow-sm">
-                      已选择
+                      {t('encyclopedia.selectedInCalc')}
                     </span>
                   )}
                   {isMarine && !isInCalculator && (
                     <span className="absolute right-1.5 top-1.5 z-10 rounded-full border border-sky-100 bg-white/92 px-1.5 py-0.5 text-[9px] font-black text-sky-700 shadow-sm">
-                      海缸
+                      {t('encyclopedia.marineTag')}
                     </span>
                   )}
                   <ResilientImage
@@ -1751,7 +1797,7 @@ export default function Encyclopedia() {
                   />
                 </div>
               <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-                <div className="min-h-[54px]">
+                <div className="min-w-0">
                   <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
                     {fish.name}
                   </h2>
@@ -1766,7 +1812,7 @@ export default function Encyclopedia() {
                           ? 'bg-amber-50 text-amber-700 border-amber-100'
                           : 'bg-emerald-50 text-emerald-700 border-emerald-100'
                     }`}>
-                      {tag}
+                      {tag === '需稳定加热' ? t('encyclopedia.heaterTag') : (filterLabelKeys[tag] ? t('encyclopedia.' + filterLabelKeys[tag]) : tag)}
                     </span>
                   ))}
                 </div>
@@ -1777,7 +1823,7 @@ export default function Encyclopedia() {
                     onClick={() => openSpeciesDetail(fish, `atlas-species-${fish.id}`)}
                     className="h-9 w-full rounded-full border border-border bg-white text-[11px] font-black text-ink/55 hover:border-accent hover:text-accent"
                   >
-                    查看详情
+                    {t('encyclopedia.viewDetails')}
                   </button>
                   <button
                     type="button"
@@ -1788,7 +1834,7 @@ export default function Encyclopedia() {
                         : 'bg-accent text-white hover:bg-accent/90'
                     }`}
                   >
-                    {isInCalculator ? '已选择' : '选择计算'}
+                    {isInCalculator ? t('encyclopedia.selectedInCalc') : t('encyclopedia.addToCalculatorBtn')}
                   </button>
                 </div>
               </div>
@@ -1805,8 +1851,8 @@ export default function Encyclopedia() {
               onClick={() => goToResultPage(0)}
               disabled={currentResultPage === 0}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
-              aria-label="图鉴首页"
-              title="首页"
+              aria-label={t('encyclopedia.firstPage')}
+              title={t('encyclopedia.firstPageLabel')}
             >
               <ChevronsLeft className="h-4 w-4" />
             </button>
@@ -1815,8 +1861,8 @@ export default function Encyclopedia() {
               onClick={() => goToResultPage(currentResultPage - 1)}
               disabled={currentResultPage === 0}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
-              aria-label="上一组图鉴"
-              title="上一组"
+              aria-label={t('encyclopedia.prevPageLabel')}
+              title={t('encyclopedia.prevPageLabel')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -1828,8 +1874,8 @@ export default function Encyclopedia() {
               onClick={() => goToResultPage(currentResultPage + 1)}
               disabled={currentResultPage >= resultPageCount - 1}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
-              aria-label="下一组图鉴"
-              title="下一组"
+              aria-label={t('encyclopedia.nextPageLabel')}
+              title={t('encyclopedia.nextPageLabel')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -1838,31 +1884,31 @@ export default function Encyclopedia() {
               onClick={() => goToResultPage(resultPageCount - 1)}
               disabled={currentResultPage >= resultPageCount - 1}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/70 disabled:bg-bg disabled:text-ink/25"
-              aria-label="图鉴尾页"
-              title="尾页"
+              aria-label={t('encyclopedia.lastPage')}
+              title={t('encyclopedia.lastPageLabel')}
             >
               <ChevronsRight className="h-4 w-4" />
             </button>
           </div>
           <div className="hidden max-w-full items-center gap-2 rounded-full border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur-sm md:inline-flex">
-            <button type="button" onClick={() => goToResultPage(currentResultPage - 1)} disabled={currentResultPage === 0} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28"><ChevronLeft className="h-4 w-4" />上一组</button>
-            <div className="min-w-[104px] rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">第 {currentResultPage + 1} / {resultPageCount} 组</div>
-            <button type="button" onClick={() => goToResultPage(currentResultPage + 1)} disabled={currentResultPage >= resultPageCount - 1} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28">下一组<ChevronRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => goToResultPage(currentResultPage - 1)} disabled={currentResultPage === 0} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28"><ChevronLeft className="h-4 w-4" />{t('encyclopedia.prevGroup')}</button>
+            <div className="min-w-[104px] rounded-full bg-emerald-50 px-4 py-2 text-center text-[12px] font-black text-emerald-800 ring-1 ring-emerald-100">{t('encyclopedia.showingGroupCount', { current: currentResultPage + 1, total: resultPageCount })}</div>
+            <button type="button" onClick={() => goToResultPage(currentResultPage + 1)} disabled={currentResultPage >= resultPageCount - 1} className="flex h-11 min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-border bg-white px-4 text-[13px] font-black text-ink/70 disabled:bg-bg disabled:text-ink/28">{t('encyclopedia.nextGroup')}<ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
       )}
 
       {filteredFishes.length === 0 && (
         <div className="rounded-[18px] border border-dashed border-border bg-bg px-5 py-12 text-center">
-          <div className="text-[15px] font-black text-ink">{showWishlistOnly ? '还没有种草的生物' : '没有找到相关条目'}</div>
+          <div className="text-[15px] font-black text-ink">{showWishlistOnly ? t('encyclopedia.emptyWishlist') : t('encyclopedia.noResultsFound')}</div>
           <div className="mx-auto mt-2 max-w-[260px] text-[12px] font-medium leading-relaxed text-ink/55">
-            {showWishlistOnly ? '在图鉴里点击心形或“加入种草”，收藏的生物会出现在这里。' : '可以换个关键词，例如：莫斯、水榕、灯鱼、虾、螺。'}
+            {showWishlistOnly ? t('encyclopedia.emptyWishlistDesc') : t('encyclopedia.noResultsFoundDesc')}
           </div>
           {!showWishlistOnly && resultFilterLabels.length > 0 && (
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {resultFilterLabels.map(label => (
                 <span key={label} className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-ink/50 ring-1 ring-border">
-                  {label}
+                  {formatFilterLabel(label)}
                 </span>
               ))}
             </div>
@@ -1873,7 +1919,7 @@ export default function Encyclopedia() {
               onClick={clearFilters}
               className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-5 text-[12px] font-black text-white"
             >
-              清除筛选
+              {t('encyclopedia.clearFiltersBtn')}
             </button>
           )}
         </div>
@@ -1889,7 +1935,7 @@ export default function Encyclopedia() {
           }`}
         >
           <div className="mb-2 flex items-center gap-2 text-[12px] font-black text-ink">
-            <span>Mini 混养判断</span>
+            <span>{t('encyclopedia.miniCalcTitle')}</span>
             <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] transition-all ${calculatorPulse ? 'scale-125 bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'}`}>{calculatorSpeciesIds.length}</span>
           </div>
           {miniCompatibilityResult ? (
@@ -1905,8 +1951,8 @@ export default function Encyclopedia() {
             />
           ) : (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-medium leading-relaxed text-ink/50">{calculatorFeedback || '再选择至少 1 种生物，系统会立即判断所选组合。'}</p>
-              <span className="shrink-0 text-[11px] font-black text-emerald-700">请继续选择</span>
+              <p className="text-[11px] font-medium leading-relaxed text-ink/50">{calculatorFeedback || t('encyclopedia.miniCalcHint')}</p>
+              <span className="shrink-0 text-[11px] font-black text-emerald-700">{t('encyclopedia.continueSelecting')}</span>
             </div>
           )}
         </div>
@@ -1956,19 +2002,19 @@ export default function Encyclopedia() {
         <DialogContent className="w-[94vw] max-w-[920px] overflow-hidden rounded-[24px] border-border bg-white p-0">
           {selectedGroup && selectedGroupVariant && (
             <div className="flex max-h-[86dvh] flex-col">
-          <DialogHeader className="border-b border-border/70 px-6 py-4 text-left">
+              <DialogHeader className="border-b border-border/70 px-6 py-4 text-left">
                 <DialogTitle className="text-[20px] font-black text-ink">{selectedGroup.groupName}</DialogTitle>
                 <DialogDescription className="text-[12px] font-bold text-ink/50">
-                  共 {selectedGroup.variantCount} 个变种，选择具体规格后再进入混养计算或完整详情。
+                  {t('encyclopedia.groupVariantDesc', { count: selectedGroup.variantCount })}
                 </DialogDescription>
               </DialogHeader>
-          <div className="modalBody app-scrollbar-hidden flex-1 overflow-y-auto px-6 py-4 pb-8">
+              <div className="modalBody app-scrollbar-hidden flex-1 overflow-y-auto px-6 py-4 pb-8">
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)]">
                   <button
                     type="button"
                     onClick={() => openSpeciesPreview(selectedGroupVariant)}
                     className={`flex min-h-[240px] items-center justify-center rounded-[22px] bg-bg p-5 ${getSpeciesImageSurfaceClass(selectedGroupVariant)}`}
-                    aria-label={`放大查看${selectedGroupVariant.name}`}
+                    aria-label={t('encyclopedia.viewThisVariant', { name: selectedGroupVariant.name })}
                   >
                     <ResilientImage
                       src={getSpeciesVisualSources(selectedGroupVariant).detail}
@@ -1983,7 +2029,7 @@ export default function Encyclopedia() {
                     <div>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-black text-emerald-700">当前规格</p>
+                          <p className="text-[11px] font-black text-emerald-700">{t('encyclopedia.currentSpec')}</p>
                           <h3 className="mt-1 font-serif text-[24px] font-bold italic leading-tight text-ink">
                             {selectedGroupVariant.name}
                           </h3>
@@ -1998,8 +2044,8 @@ export default function Encyclopedia() {
 
                     <div className="rounded-[18px] border border-border/70 bg-bg/50 p-3">
                       <div className="mb-2 flex items-center justify-between">
-                        <div className="text-[13px] font-black text-ink">选择规格</div>
-                        <div className="text-[11px] font-bold text-ink/42">{selectedGroup.variantCount} 个可选</div>
+                        <div className="text-[13px] font-black text-ink">{t('encyclopedia.selectSpec')}</div>
+                        <div className="text-[11px] font-bold text-ink/42">{t('encyclopedia.variantOptions', { count: selectedGroup.variantCount })}</div>
                       </div>
                       <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                         {selectedGroup.variants.map(variant => {
@@ -2035,8 +2081,8 @@ export default function Encyclopedia() {
                                 type="button"
                                 onClick={() => handleWishlistToggle(variant)}
                                 aria-pressed={isFavorite}
-                                aria-label={isFavorite ? `取消收藏${variant.name}` : `收藏${variant.name}`}
-                                title={isFavorite ? '取消收藏' : '收藏到水族册'}
+                                aria-label={isFavorite ? t('encyclopedia.wishlistRemoved', { name: variant.name }) : t('encyclopedia.wishlistAdded', { name: variant.name })}
+                                title={isFavorite ? t('encyclopedia.wishlistRemoved', { name: variant.name }) : t('encyclopedia.wishlistAdded', { name: variant.name })}
                                 className={`absolute right-1 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border bg-white/95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
                                   isFavorite ? 'border-rose-200 text-rose-500' : 'border-white text-ink/42 hover:text-rose-500'
                                 }`}
@@ -2051,26 +2097,26 @@ export default function Encyclopedia() {
 
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        ['水温', selectedGroupVariant.waterTemperature],
+                        [t('encyclopedia.tempShort'), selectedGroupVariant.waterTemperature],
                         ['pH', selectedGroupVariant.phLevel],
-                        ['缸体', selectedGroupVariant.tankSize],
+                        [t('encyclopedia.tankSizeShort'), selectedGroupVariant.tankSize],
                         [
-                          '适配',
+                          t('encyclopedia.fitLabelCol'),
                           selectedGroupCompatibility?.status === 'compatible'
-                            ? '适合当前鱼缸'
+                            ? t('encyclopedia.fitCompatible')
                             : selectedGroupCompatibility?.status === 'caution'
-                              ? '需谨慎确认'
+                              ? t('encyclopedia.fitCaution')
                               : selectedGroupCompatibility?.status === 'not_recommended'
-                                ? '不建议加入'
+                                ? t('encyclopedia.fitNotRecommended')
                                 : selectedGroupCompatibility?.status === 'insufficient_data'
-                                  ? '信息不足'
+                                  ? t('encyclopedia.fitInsufficient')
                                   : selectedGroupFit?.status === 'suitable'
-                                    ? '适合当前鱼缸'
+                                    ? t('encyclopedia.fitSuitable')
                                     : selectedGroupFit?.status === 'adjustable'
-                                      ? '需确认'
+                                      ? t('encyclopedia.fitAdjustable')
                                       : selectedGroupFit?.status === 'unsuitable'
-                                        ? '不适合'
-                                        : '待评估',
+                                        ? t('encyclopedia.fitUnsuitable')
+                                        : t('encyclopedia.fitPending'),
                         ],
                       ].map(([label, value]) => (
                         <div key={label} className="rounded-[16px] bg-bg px-3 py-3">
@@ -2089,14 +2135,14 @@ export default function Encyclopedia() {
                     onClick={(event) => handleAddToCalculator(selectedGroupVariant, event.currentTarget)}
                     className="h-11 rounded-full bg-accent px-5 text-[13px] font-black text-white hover:bg-accent/90"
                   >
-                    {calculatorSpeciesIds.includes(selectedGroupVariant.id) ? '已加入计算' : '选择该变种计算'}
+                    {calculatorSpeciesIds.includes(selectedGroupVariant.id) ? t('encyclopedia.fitGroupAlreadyAdded') : t('encyclopedia.fitGroupAdded')}
                   </button>
                   <button
                     type="button"
                     onClick={() => openSelectedVariantDetails(selectedGroupVariant)}
                     className="h-11 rounded-full border border-border bg-white px-5 text-[13px] font-black text-ink/62 hover:border-accent hover:text-accent"
                   >
-                    查看完整详情
+                    {t('encyclopedia.fitGroupViewFull')}
                   </button>
                 </div>
               </DialogFooter>
@@ -2141,7 +2187,7 @@ export default function Encyclopedia() {
                     onClick={() => openSpeciesPreview(selectedFish)}
                     data-species-detail-hero
                     className={`flex h-[250px] w-full items-center justify-center rounded-[18px] border border-transparent bg-transparent p-3 ${getSpeciesImageSurfaceClass(selectedFish)}`}
-                    aria-label={`放大查看${selectedFish.name}图片`}
+                    aria-label={t('encyclopedia.viewThisVariant', { name: selectedFish.name })}
                   >
                     <img
                       src={getEncyclopediaImage(selectedFish)}
@@ -2162,10 +2208,11 @@ export default function Encyclopedia() {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {[selectedTaxonomy?.variety, selectedFish.housingMode, ...getToolFunctions(selectedFish)].filter(Boolean).slice(0, 3).map(tag => {
-                        const displayTag = tag === '主题生物' ? '观赏主角' : tag === '单独饲养' ? '建议单养' : tag;
+                        const displayTag = tag === '主题生物' ? '观赏鱼' : tag === '单独饲养' ? '建议单养' : tag;
+                        const translatedTag = filterLabelKeys[displayTag] ? t('encyclopedia.' + filterLabelKeys[displayTag]) : displayTag;
                         return (
                           <span key={tag} className="rounded-full border border-border bg-white px-2 py-1 text-[10px] font-bold text-ink/60">
-                            {displayTag}
+                            {translatedTag}
                           </span>
                         );
                       })}
@@ -2191,19 +2238,23 @@ export default function Encyclopedia() {
                         {selectedFit.status === 'suitable' ? <CheckCircle2 className="h-5 w-5" /> : selectedFit.status === 'unknown' ? <Info className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-black text-ink/45">能不能养</div>
+                        <div className="text-[11px] font-black text-ink/45">{t('encyclopedia.canKeepLabel')}</div>
                         <p className="mt-1 text-[18px] font-black leading-tight text-ink">
                           {selectedFit.status === 'suitable'
-                            ? '适合加入'
+                            ? t('encyclopedia.fitSuitableLabel')
                             : selectedFit.status === 'risk'
-                              ? '不建议加入当前鱼缸'
+                              ? t('encyclopedia.fitRiskLabel')
                               : selectedFit.status === 'warning'
-                                ? '谨慎加入'
-                                : '先完善鱼缸设置'}
+                                ? t('encyclopedia.fitWarningLabel')
+                                : t('encyclopedia.fitUnknownLabel')}
                         </p>
                         <p className="mt-1 text-[12px] font-bold leading-relaxed text-ink/68">{selectedFit.conclusion}</p>
                         <p className="mt-1 text-[11px] font-medium text-ink/55">
-                          参考鱼缸：{referenceAquarium ? `${referenceAquarium.name} · ${referenceAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${referenceAquarium.targetTemperature || '温度未设置'}℃` : '暂无鱼缸数据'}
+                          {t('encyclopedia.referenceAquariumLabel')}{referenceAquarium ? t('encyclopedia.referenceAquariumDetail', {
+                            name: referenceAquarium.name,
+                            water: referenceAquarium.waterType === 'Saltwater' ? t('encyclopedia.saltwater_label') : t('encyclopedia.freshwater_label'),
+                            temp: referenceAquarium.targetTemperature || '--'
+                          }) : t('encyclopedia.noTankDataLabel')}
                         </p>
                       </div>
                     </div>
@@ -2215,7 +2266,9 @@ export default function Encyclopedia() {
                       .slice(0, 3)
                       .map(item => (
                         <div key={item.label} className="rounded-[14px] border border-border bg-bg/45 p-2">
-                          <div className="text-[11px] font-black text-ink">{item.label === '缸体大小' ? '空间' : item.label.replace(' / 混养', '')}</div>
+                          <div className="text-[11px] font-black text-ink">
+                            {item.label === '缸体大小' ? t('encyclopedia.spaceLabel') : (item.label === '温度' ? t('encyclopedia.tempLabelBasic') : t('encyclopedia.temperamentMixing'))}
+                          </div>
                           {item.status !== 'ok' && (
                             <div className="mt-1 line-clamp-2 text-[9px] font-medium leading-snug text-ink/48">
                               需求：{item.requirement}
@@ -2223,7 +2276,7 @@ export default function Encyclopedia() {
                             </div>
                           )}
                           <span className={`mt-2 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black ${getFitStatusClass(item.status)}`}>
-                            {getFitStatusLabel(item.status)}
+                            {item.status === 'ok' ? t('encyclopedia.fitStatusOkLabel') : item.status === 'warning' ? t('encyclopedia.fitStatusWarningLabel') : item.status === 'danger' ? t('encyclopedia.fitStatusDangerLabel') : t('encyclopedia.fitStatusInfoLabel')}
                           </span>
                         </div>
                       ))}
@@ -2232,7 +2285,7 @@ export default function Encyclopedia() {
                   <div className="grid gap-2">
                     {ownedFishIds.has(selectedFish.id) ? (
                       <div className="flex h-11 items-center justify-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-700">
-                        <CheckCircle2 className="h-4 w-4" /> 已在鱼缸中
+                        <CheckCircle2 className="h-4 w-4" /> {t('encyclopedia.inTankAlready')}
                       </div>
                     ) : (
                       <Button
@@ -2240,7 +2293,7 @@ export default function Encyclopedia() {
                         onClick={() => handleAddToTank(selectedFish)}
                       >
                         <Plus className="mr-1 h-4 w-4" />
-                        {selectedFit.status === 'unknown' ? '完善后再确认添加' : selectedFit.status === 'risk' ? '查看风险后确认添加' : '添加到我的鱼缸'}
+                        {selectedFit.status === 'unknown' ? t('encyclopedia.btnCompleteInfo') : selectedFit.status === 'risk' ? t('encyclopedia.btnConfirmRisks') : t('encyclopedia.btnConfirmAdd')}
                       </Button>
                     )}
                     <div className="grid grid-cols-2 gap-2">
@@ -2249,7 +2302,7 @@ export default function Encyclopedia() {
                         className={`h-9 rounded-full text-xs font-black ${calculatorSpeciesIds.includes(selectedFish.id) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border text-ink/65'}`}
                         onClick={() => handleAddToCalculator(selectedFish)}
                       >
-                        {calculatorSpeciesIds.includes(selectedFish.id) ? '已选择' : '加入混养计算'}
+                        {calculatorSpeciesIds.includes(selectedFish.id) ? t('encyclopedia.inCalcBtn') : t('encyclopedia.addToCalcBtn')}
                       </Button>
                       <Button
                         variant="outline"
@@ -2257,7 +2310,7 @@ export default function Encyclopedia() {
                         onClick={() => toggleWishlist(selectedFish.id)}
                       >
                         {wishlistFishIds.has(selectedFish.id) ? <Heart className="mr-1 h-4 w-4 fill-current" /> : <HeartOff className="mr-1 h-4 w-4" />}
-                        {wishlistFishIds.has(selectedFish.id) ? '已种草' : '加入种草'}
+                        {wishlistFishIds.has(selectedFish.id) ? t('encyclopedia.inWishlistBtn') : t('encyclopedia.addToWishlistBtn')}
                       </Button>
                     </div>
                     {detailFeedback && (
@@ -2265,7 +2318,7 @@ export default function Encyclopedia() {
                         <span>{detailFeedback}</span>
                         {calculatorSpeciesIds.length > 0 && (
                           <button type="button" className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={() => { setSelectedFish(null); setViewMode('compatibility'); }}>
-                            去计算
+                            {t('encyclopedia.goToCalcBtn')}
                           </button>
                         )}
                       </div>
@@ -2274,15 +2327,15 @@ export default function Encyclopedia() {
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                      基础需求
+                      {t('encyclopedia.basicRequirements')}
                       <ChevronRight className="h-4 w-4 text-ink/38" />
                     </summary>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
                       {[
-                        ['温度', selectedFish.waterTemperature],
-                        ['最小缸体', selectedFish.tankSize],
-                        ['加热', getFishTemperatureTheme(selectedFish.waterTemperature).needsHeater ? '建议稳定加热' : '通常不需加热'],
-                        ['新手适合', selectedFish.difficulty === 'Easy' ? '适合' : selectedFish.difficulty === 'Medium' ? '一般' : '不建议新手'],
+                        [t('encyclopedia.tempLabelBasic'), selectedFish.waterTemperature],
+                        [t('encyclopedia.minTankLabel'), selectedFish.tankSize],
+                        [t('encyclopedia.heaterLabel'), getFishTemperatureTheme(selectedFish.waterTemperature).needsHeater ? t('encyclopedia.heaterYes') : t('encyclopedia.heaterNo')],
+                        [t('encyclopedia.beginnerFitLabel'), selectedFish.difficulty === 'Easy' ? t('encyclopedia.beginnerSuitable') : selectedFish.difficulty === 'Medium' ? t('encyclopedia.beginnerMedium') : t('encyclopedia.beginnerNo')],
                       ].map(([label, value]) => (
                         <div key={label} className="rounded-[12px] bg-bg p-2">
                           <div className="text-[10px] font-bold text-ink/42">{label}</div>
@@ -2294,12 +2347,12 @@ export default function Encyclopedia() {
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                      混养与风险
+                      {t('encyclopedia.housingRisk')}
                       <ChevronRight className="h-4 w-4 text-ink/38" />
                     </summary>
                     <div className="mt-3 grid gap-2">
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-bold text-ink/42">性情 / 混养</div>
+                        <div className="text-[10px] font-bold text-ink/42">{t('encyclopedia.temperamentMixing')}</div>
                         <div className="mt-1 text-[12px] font-black text-ink">{getTemperamentLabel(selectedFish.temperament)} · {selectedFish.housingMode || '需观察'}</div>
                       </div>
                       <p className="rounded-[12px] bg-bg p-2 text-[11px] font-medium leading-relaxed text-ink/65">
@@ -2320,21 +2373,21 @@ export default function Encyclopedia() {
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                      喂养与养护
+                      {t('encyclopedia.feedingCare')}
                       <ChevronRight className="h-4 w-4 text-ink/38" />
                     </summary>
                     <div className="mt-3 grid gap-3">
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">喂食</div>
+                        <div className="text-[10px] font-black text-ink/42">{t('encyclopedia.feedingSection')}</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{selectedFish.feedingProfile?.recommendedFoods || selectedFish.diet}</p>
                         <p className="mt-1 text-[11px] font-bold text-ink/48">{selectedFish.feedingProfile?.feedingFrequency || '少量投喂，避免残饵。'}</p>
                       </div>
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">换水 / 环境</div>
-                        <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">约 {selectedFish.waterChangeCycle} 天 · {selectedFish.waterTemperature} · pH {selectedFish.phLevel}</p>
+                        <div className="text-[10px] font-black text-ink/42">{t('encyclopedia.waterEnvLabel')}</div>
+                        <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{t('encyclopedia.waterEnvDetail', { days: selectedFish.waterChangeCycle, temp: selectedFish.waterTemperature, ph: selectedFish.phLevel })}</p>
                       </div>
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">提醒</div>
+                        <div className="text-[10px] font-black text-ink/42">{t('encyclopedia.reminderSection')}</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{selectedFish.feedingProfile?.specialNotes || selectedFish.description}</p>
                       </div>
                     </div>
@@ -2368,9 +2421,9 @@ export default function Encyclopedia() {
         <DialogContent className="w-[90vw] max-w-[440px] rounded-[18px] border-border p-0 overflow-hidden">
           <DialogHeader>
             <div className="border-b border-border bg-bg/60 px-5 py-4 text-left">
-              <DialogTitle className="font-serif text-xl font-bold italic text-ink">确认添加到鱼缸</DialogTitle>
+              <DialogTitle className="font-serif text-xl font-bold italic text-ink">{t('encyclopedia.confirmAddTitle')}</DialogTitle>
               <DialogDescription className="mt-1 text-xs text-ink/60">
-                添加前确认目标鱼缸和当前风险，不会修改现有数据结构。
+                {t('encyclopedia.confirmAddDesc')}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -2382,8 +2435,8 @@ export default function Encyclopedia() {
                     <img src={getEncyclopediaImage(pendingTankFish)} alt={pendingTankFish.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-black text-ink">将添加：{pendingTankFish.name} × 1</div>
-                    <div className="mt-1 text-[11px] font-medium text-ink/45">入缸日期：今天 · 默认数量可在我的鱼缸中调整</div>
+                    <div className="text-sm font-black text-ink">{t('encyclopedia.willAdd', { name: pendingTankFish.name })}</div>
+                    <div className="mt-1 text-[11px] font-medium text-ink/45">{t('encyclopedia.entryDate')}</div>
                   </div>
                 </div>
               </div>
@@ -2405,7 +2458,7 @@ export default function Encyclopedia() {
                 >
                   <div className="text-sm font-black">{aquarium.name}</div>
                   <div className={`mt-1 text-[11px] font-medium ${isActive ? 'text-white/70' : 'text-ink/45'}`}>
-                    {aquarium.dimensions?.length || 60}x{aquarium.dimensions?.width || 40}x{aquarium.dimensions?.height || 40}cm · {aquarium.fishes.length} 种生物
+                    {aquarium.dimensions?.length || 60}x{aquarium.dimensions?.width || 40}x{aquarium.dimensions?.height || 40}cm · {t('encyclopedia.tankSpeciesCount', { count: aquarium.fishes.length })}
                   </div>
                 </button>
               );
@@ -2416,7 +2469,7 @@ export default function Encyclopedia() {
                 pendingFit.status === 'not_recommended' ? 'border-red-100 bg-red-50' : pendingFit.status === 'caution' ? 'border-amber-100 bg-amber-50' : pendingFit.status === 'insufficient_data' ? 'border-sky-100 bg-sky-50' : 'border-emerald-100 bg-emerald-50'
               }`}>
                 <div className="flex items-center justify-between gap-2 text-[12px] font-black text-ink">
-                  <span>添加前预检</span>
+                  <span>{t('encyclopedia.preCheckLabel')}</span>
                   <span>{getTankCompatibilityStatusLabel(pendingFit.status)}</span>
                 </div>
                 <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{pendingFit.evaluations[0]?.result.summary}</p>
@@ -2426,7 +2479,7 @@ export default function Encyclopedia() {
                   </p>
                 ))}
                 {pendingTankAddConfirmed && pendingAddPolicy === 'confirm' && (
-                  <p className="mt-2 text-[11px] font-black text-amber-700">请再次确认：我已了解风险，仍要谨慎加入。</p>
+                  <p className="mt-2 text-[11px] font-black text-amber-700">{t('encyclopedia.secondConfirmWarning')}</p>
                 )}
               </div>
             )}
@@ -2435,7 +2488,7 @@ export default function Encyclopedia() {
             <Button variant="outline" onClick={() => {
               setPendingTankFish(null);
               setPendingTankAddConfirmed(false);
-            }} className="h-10 rounded-full text-sm font-bold">取消</Button>
+            }} className="h-10 rounded-full text-sm font-bold">{t('encyclopedia.btnCancel')}</Button>
             <Button
               disabled={!pendingTankFish || !targetAquariumId || pendingAddPolicy === 'block' || pendingAddPolicy === 'complete_information'}
               onClick={() => {
@@ -2449,12 +2502,12 @@ export default function Encyclopedia() {
               className="h-10 rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90"
             >
               {pendingAddPolicy === 'block'
-                ? '当前不建议加入'
+                ? t('encyclopedia.btnBlock')
                 : pendingAddPolicy === 'complete_information'
-                  ? '请先补充鱼缸信息'
+                  ? t('encyclopedia.btnCompleteInfo')
                   : pendingAddPolicy === 'confirm'
-                    ? pendingTankAddConfirmed ? '确认谨慎加入' : '查看风险并继续'
-                    : '确认添加'}
+                    ? pendingTankAddConfirmed ? t('encyclopedia.btnConfirmCautious') : t('encyclopedia.btnConfirmRisks')
+                    : t('encyclopedia.btnConfirmAdd')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2464,11 +2517,13 @@ export default function Encyclopedia() {
         <Suspense fallback={null}>
           <FilterBottomSheet
         open
-        title="更多条件"
-        subtitle={filterSheetMessage || '完整条件都在这里，页面上方只保留最常用入口。'}
+        title={t('encyclopedia.filterSheetTitle')}
+        subtitle={filterSheetMessage || t('encyclopedia.filterSheetSubtitle')}
+        resetLabel={t('encyclopedia.filterSheetReset')}
+        applyLabel={t('encyclopedia.filterSheetApply')}
         groups={[
           {
-            title: '想找什么',
+            title: t('encyclopedia.findCategory'),
             selected: draftFunctionTag,
             onSelect: (label) => {
               setFilterSheetMessage('');
@@ -2477,7 +2532,7 @@ export default function Encyclopedia() {
             options: functionFilterOptions.map(label => makeFilterOption(label, { functionTag: label === '全部' ? null : label })),
           },
           {
-            title: '鱼缸环境',
+            title: t('encyclopedia.tankEnvironment'),
             selected: draftEnvironment,
             onSelect: (label) => {
               setFilterSheetMessage('');
@@ -2494,7 +2549,7 @@ export default function Encyclopedia() {
             )),
           },
           {
-            title: '饲养难度',
+            title: t('encyclopedia.difficultyCategory'),
             selected: difficultyFilterOptions.includes(draftFunctionTag || '') ? draftFunctionTag : null,
             onSelect: (label) => {
               setFilterSheetMessage('');
@@ -2503,7 +2558,7 @@ export default function Encyclopedia() {
             options: difficultyFilterOptions.map(label => makeFilterOption(label, { functionTag: label === '全部' ? null : label })),
           },
           {
-            title: '混养倾向',
+            title: t('encyclopedia.housingTendency'),
             selected: housingFilterOptions.includes(draftFunctionTag || '') ? draftFunctionTag : null,
             onSelect: (label) => {
               setFilterSheetMessage('');
@@ -2533,7 +2588,7 @@ export default function Encyclopedia() {
             compatibilityEvaluations
           ).length;
           if (nextCount === 0) {
-            setFilterSheetMessage('当前组合暂无结果，可以减少一个条件再试。');
+            setFilterSheetMessage(t('encyclopedia.noResultsCombination'));
             return;
           }
           if (draftFunctionTag) recordFilterUsage(draftFunctionTag);
