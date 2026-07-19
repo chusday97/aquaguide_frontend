@@ -1362,7 +1362,7 @@ export default function Encyclopedia() {
         ))}
           <button
             type="button"
-            onClick={() => navigateToRoute('/collection?tab=wishlist')}
+            onClick={() => navigateToRoute('/collection/wishlist')}
             className="h-10 rounded-full text-[13px] font-black text-rose-500 transition-colors hover:bg-rose-50"
           >
             <Heart className="mr-1 inline h-3.5 w-3.5" />{t('encyclopedia.wishlistShort')} {wishlistFishIds.size}

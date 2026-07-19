@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
+import i18n from '../i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -931,7 +932,7 @@ export default function AquariumManager() {
     const updated = [...aquariums, newAq];
     saveAquariums(updated);
     setActiveId(newAq.id);
-    showToast(`已新建“${newAq.name}”`);
+    showToast(i18n.language === 'en' ? `Created new aquarium "${newAq.name}"` : `已新建“${newAq.name}”`);
   };
 
   const openTankArchive = () => {
@@ -944,9 +945,9 @@ export default function AquariumManager() {
   const handleCompleteReminder = (reminder: CareReminderRecord) => {
     try {
       completeCareReminder(reminder.id);
-      showToast('养护计划已完成');
+      showToast(i18n.language === 'en' ? 'Care plan task marked completed' : '养护计划已完成');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有更新成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to update care plan.' : '养护计划没有更新成功。'), 'error');
     }
   };
 
@@ -956,9 +957,9 @@ export default function AquariumManager() {
     try {
       rescheduleCareReminder(reminder.id, scheduled.toISOString(), `${days} 天后提醒`);
       setPendingReminderReschedule(null);
-      showToast(`已改为 ${days} 天后提醒`);
+      showToast(i18n.language === 'en' ? `Rescheduled to remind in ${days} days` : `已改为 ${days} 天后提醒`);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有改期成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to reschedule care plan.' : '养护计划没有改期成功。'), 'error');
     }
   };
 
@@ -967,9 +968,9 @@ export default function AquariumManager() {
     try {
       deleteCareReminder(pendingReminderDelete.id);
       setPendingReminderDelete(null);
-      showToast('养护计划已删除');
+      showToast(i18n.language === 'en' ? 'Care plan task deleted' : '养护计划已删除');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有删除成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to delete care plan.' : '养护计划没有删除成功。'), 'error');
     }
   };
 
@@ -995,7 +996,7 @@ export default function AquariumManager() {
 
   const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {
     if (!activeAquarium) {
-      showToast('暂时无法打开设置，请先选择一个鱼缸。', 'error');
+      showToast(i18n.language === 'en' ? 'Cannot open settings, please select an aquarium first.' : '暂时无法打开设置，请先选择一个鱼缸。', 'error');
       return;
     }
     setSettingsForm(activeAquarium);
@@ -1031,24 +1032,24 @@ export default function AquariumManager() {
 
   const handleExportLocalData = () => {
     setLocalDataText(exportLocalAppState());
-    setLocalDataMessage('已生成本地数据，可复制保存。');
+    setLocalDataMessage(i18n.language === 'en' ? 'Local data generated, copy to save.' : '已生成本地数据，可复制保存。');
   };
 
   const handleImportLocalData = () => {
     try {
       importLocalAppState(localDataText);
-      setLocalDataMessage('导入成功，正在重新加载。');
+      setLocalDataMessage(i18n.language === 'en' ? 'Import successful, reloading...' : '导入成功，正在重新加载。');
       window.setTimeout(() => window.location.reload(), 300);
     } catch (error) {
-      setLocalDataMessage(error instanceof Error ? error.message : '导入失败，请检查 JSON 格式。');
+      setLocalDataMessage(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Import failed, please check JSON format.' : '导入失败，请检查 JSON 格式。'));
     }
   };
 
   const handleClearLocalData = () => {
-    const confirmed = window.confirm('确认清除本地数据吗？清除后鱼缸、种草、诊断和记录都不会恢复。');
+    const confirmed = window.confirm(i18n.language === 'en' ? 'Are you sure you want to clear local data? Tank, stocking, diagnosis, and logs cannot be recovered.' : '确认清除本地数据吗？清除后鱼缸、种草、诊断和记录都不会恢复。');
     if (!confirmed) return;
     clearLocalAppState();
-    setLocalDataMessage('已清除本地数据，正在恢复默认鱼缸。');
+    setLocalDataMessage(i18n.language === 'en' ? 'Local data cleared, restoring default aquarium...' : '已清除本地数据，正在恢复默认鱼缸。');
     window.setTimeout(() => window.location.reload(), 300);
   };
 
@@ -1067,7 +1068,7 @@ export default function AquariumManager() {
     handledAddSpeciesRequestRef.current = requestKey;
     const fish = fishData.find(item => item.id === speciesId);
     if (!fish) {
-      showToast('没有找到这条生命纪念对应的物种', 'error');
+      showToast(i18n.language === 'en' ? 'No corresponding species found for this memorial' : '没有找到这条生命纪念对应的物种', 'error');
       routeNavigate('/aquarium', { replace: true });
       return;
     }
@@ -1077,7 +1078,7 @@ export default function AquariumManager() {
     setFishSearchTerm('');
     setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
     setIsAddFishOpen(true);
-    showToast(`已预选“${fish.name}”，加入前会再次检查混养风险`);
+    showToast(i18n.language === 'en' ? `Pre-selected "${fish.name}", compatibility will be checked before adding` : `已预选“${fish.name}”，加入前会再次检查混养风险`);
     routeNavigate('/aquarium', { replace: true });
   }, [activeAquarium, routeLocation.search, routeNavigate, showToast]);
 
@@ -1137,23 +1138,28 @@ export default function AquariumManager() {
     const hasSmall = curFishes.some(f => f.size === 'Small');
     const hasLarge = curFishes.some(f => f.size === 'Large');
 
+    const isEn = i18n.language === 'en';
     if (hasAggressive && hasPeaceful) {
-      const aggressiveNames = curFishes.filter(f => f.temperament === 'Aggressive').map(f => f.name).slice(0, 3).join('、');
+      const aggressiveNames = curFishes.filter(f => f.temperament === 'Aggressive').map(f => f.name).slice(0, 3).join(isEn ? ', ' : '、');
       risks.push({
-        group: '混养风险',
+        group: isEn ? '混养风险' : '混养风险', // Keep internal key matching if needed, or map display
         severity: 'danger',
-        title: '攻击性和温和生物同缸',
-        detail: `${aggressiveNames || '攻击性生物'} 与温和小型生物同缸，发生撕咬、追逐或吞食的风险较高。`,
-        nextStep: '优先移除攻击性生物，或单独规划主题缸。',
+        title: isEn ? 'Aggressive & Peaceful Species Mixed' : '攻击性和温和生物同缸',
+        detail: isEn 
+          ? `${aggressiveNames || 'Aggressive species'} housed with peaceful small species carries a high risk of nipping, chasing, or predation.`
+          : `${aggressiveNames || '攻击性生物'} 与温和小型生物同缸，发生撕咬、追逐或吞食的风险较高。`,
+        nextStep: isEn ? 'Prioritize removing aggressive species or setup a separate theme tank.' : '优先移除攻击性生物，或单独规划主题缸。',
       });
     }
     if (hasLarge && hasSmall && !hasAggressive) { // if aggressive already marked, avoid spam
       risks.push({
-        group: '混养风险',
+        group: isEn ? '混养风险' : '混养风险',
         severity: 'danger',
-        title: '体型差异过大',
-        detail: '当前同时存在大型和小型生物，小型鱼虾可能被追逐、抢食或吞食。',
-        nextStep: '减少大型鱼，或为小型生物单独开缸。',
+        title: isEn ? 'Extremely Large Size Difference' : '体型差异过大',
+        detail: isEn
+          ? 'Large and small species co-exist; small fish or shrimp may be chased, outcompeted, or eaten.'
+          : '当前同时存在大型和小型生物，小型鱼虾可能被追逐、抢食或吞食。',
+        nextStep: isEn ? 'Reduce large fish or build a separate tank for small species.' : '减少大型鱼，或为小型生物单独开缸。',
       });
     }
 
@@ -1186,11 +1192,13 @@ export default function AquariumManager() {
       const low = sorted[0];
       const high = sorted[sorted.length - 1];
       risks.push({
-        group: '水质参数冲突',
+        group: isEn ? '水质参数冲突' : '水质参数冲突',
         severity: 'danger',
-        title: 'pH 要求冲突',
-        detail: `${low.fish.name}：${low.fish.phLevel}；${high.fish.name}：${high.fish.phLevel}。两者重叠区间为空，因此不建议同缸。`,
-        nextStep: '移除偏酸或偏碱需求差异最大的对象，保持同缸生物 pH 区间有交集。',
+        title: isEn ? 'pH Requirement Conflict' : 'pH 要求冲突',
+        detail: isEn
+          ? `${low.fish.name}: ${low.fish.phLevel}; ${high.fish.name}: ${high.fish.phLevel}. There is no overlapping pH range, so mixing is not recommended.`
+          : `${low.fish.name}：${low.fish.phLevel}；${high.fish.name}：${high.fish.phLevel}。两者重叠区间为空，因此不建议同缸。`,
+        nextStep: isEn ? 'Remove the species with the most extreme pH demand to ensure overlapping ranges.' : '移除偏酸或偏碱需求差异最大的对象，保持同缸生物 pH 区间有交集。',
       });
     }
 
@@ -1198,11 +1206,11 @@ export default function AquariumManager() {
     const waterTypes = new Set(curFishes.map(f => f.category === '海水鱼' ? 'Saltwater' : 'Freshwater'));
     if (waterTypes.size > 1) {
       risks.push({
-        group: '水质参数冲突',
+        group: isEn ? '水质参数冲突' : '水质参数冲突',
         severity: 'danger',
-        title: '水体类型冲突',
-        detail: '当前同时存在海水与淡水生物，水体类型无法同时满足。',
-        nextStep: '把海水生物和淡水生物分缸管理。',
+        title: isEn ? 'Water Type Conflict' : '水体类型冲突',
+        detail: isEn ? 'Both saltwater and freshwater species are present; water conditions cannot satisfy both.' : '当前同时存在海水与淡水生物，水体类型无法同时满足。',
+        nextStep: isEn ? 'Separate saltwater and freshwater species into different tanks.' : '把海水生物和淡水生物分缸管理。',
       });
     }
 
@@ -1322,7 +1330,7 @@ export default function AquariumManager() {
 
   const handleAddFish = () => {
     if (!activeAquarium) {
-      setTankActionMessage('请先选择当前鱼缸。');
+      setTankActionMessage(i18n.language === 'en' ? 'Please select an aquarium first.' : '请先选择当前鱼缸。');
       return;
     }
     if (selectedAddFishItems.length === 0) return;
@@ -1343,7 +1351,7 @@ export default function AquariumManager() {
     if (!addFishCompatibilityReview) return;
     const addPolicy = getTankCompatibilityAddPolicy(addFishCompatibilityReview.status);
     if (addPolicy === 'block') {
-      setTankActionMessage('当前组合不建议加入，请先返回调整。');
+      setTankActionMessage(i18n.language === 'en' ? 'Current stocking mix is not recommended, please adjust.' : '当前组合不建议加入，请先返回调整。');
       return;
     }
     if (addPolicy === 'complete_information') {
@@ -1356,7 +1364,7 @@ export default function AquariumManager() {
       setIsAddFishOpen(false);
       setAddFishCompatibilityReview(null);
       openAquariumSettings(settingsPanel);
-      setTankActionMessage('请先补充鱼缸信息，再评估是否可以加入。');
+      setTankActionMessage(i18n.language === 'en' ? 'Please fill in aquarium details before evaluating.' : '请先补充鱼缸信息，再评估是否可以加入。');
       return;
     }
     commitAddFishItems(addFishCompatibilityReview.items, true);
@@ -1364,7 +1372,7 @@ export default function AquariumManager() {
 
   const handleAddCompatibilitySpeciesToTank = async (items: { fishId: string; quantity: number }[]) => {
     if (!activeAquarium) {
-      throw new Error('请先选择当前鱼缸。');
+      throw new Error(i18n.language === 'en' ? 'Please select an aquarium first.' : '请先选择当前鱼缸。');
     }
 
     const entryDate = format(new Date(), 'yyyy-MM-dd');
@@ -1377,7 +1385,7 @@ export default function AquariumManager() {
       }));
 
     if (normalizedItems.length === 0) {
-      throw new Error('没有可加入当前鱼缸的生物。');
+      throw new Error(i18n.language === 'en' ? 'No species to add to the active aquarium.' : '没有可加入当前鱼缸的生物。');
     }
 
     const execution = executeSpeciesAddition({
@@ -1389,10 +1397,10 @@ export default function AquariumManager() {
     });
     if (!execution.added) {
       throw new Error(execution.reason === 'missing_information'
-        ? '请先补充鱼缸信息后再添加。'
+        ? (i18n.language === 'en' ? 'Please complete aquarium details before adding.' : '请先补充鱼缸信息后再添加。')
         : execution.reason === 'blocked'
-          ? '当前组合不建议加入鱼缸。'
-          : '请先确认混养提醒后再添加。');
+          ? (i18n.language === 'en' ? 'Stocking mix is not recommended for this aquarium.' : '当前组合不建议加入鱼缸。')
+          : (i18n.language === 'en' ? 'Please acknowledge compatibility warning first.' : '请先确认混养提醒后再添加。'));
     }
 
     saveAquariums(execution.aquariums);
@@ -1400,7 +1408,7 @@ export default function AquariumManager() {
       .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
       .filter(Boolean)
       .join('、');
-    const message = `已加入 ${normalizedItems.length} 种生物到当前鱼缸${addedNames ? `：${addedNames}` : ''}。`;
+    const message = i18n.language === 'en' ? `Added ${normalizedItems.length} species to active aquarium${addedNames ? `: ${addedNames}` : ''}.` : `已加入 ${normalizedItems.length} 种生物到当前鱼缸${addedNames ? `：${addedNames}` : ''}。`;
     setTankActionMessage(message);
     return { message };
   };
@@ -1474,7 +1482,7 @@ export default function AquariumManager() {
       } : a
     );
     saveAquariums(updated);
-    setTankActionMessage(hasTodayRecord ? '已撤回今日换水记录' : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
+    setTankActionMessage(hasTodayRecord ? (i18n.language === 'en' ? 'Recalled today\'s water change record' : '已撤回今日换水记录') : (i18n.language === 'en' ? `Logged water change: ${format(new Date(), 'yyyy-MM-dd HH:mm')}` : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`));
   };
 
   const handleDailyActionPrimary = () => {
@@ -1496,7 +1504,7 @@ export default function AquariumManager() {
     if (task.actionType === 'care_plan') {
       const reminder = activeCareReminders.find(item => item.id === task.targetId);
       if (reminder) navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`);
-      else showToast('这条养护计划已经更新，请查看最新任务。', 'error');
+      else showToast(i18n.language === 'en' ? 'This care task has been updated, please view latest tasks.' : '这条养护计划已经更新，请查看最新任务。', 'error');
       return;
     }
     if (task.actionType === 'water_change') {
@@ -1511,7 +1519,7 @@ export default function AquariumManager() {
   const handleApplyBuildTemplate = (adaptedPlan: AdaptedBuildPlan) => {
     if (!activeAquarium) return;
     if (!adaptedPlan.canApply) {
-      setTankActionMessage('当前鱼缸低于该方案最低要求，无法直接应用。');
+      setTankActionMessage(i18n.language === 'en' ? 'Active aquarium size is smaller than the minimum setup requirement.' : '当前鱼缸低于该方案最低要求，无法直接应用。');
       return;
     }
     const template = adaptedPlan.template;
@@ -1567,7 +1575,7 @@ export default function AquariumManager() {
     ));
 
     saveAquariums(updated);
-    setTankActionMessage(`已应用「${template.name}」的适配方案：${adaptedPlan.summary}`);
+    setTankActionMessage(i18n.language === 'en' ? `Applied "${template.name}" setup layout: ${adaptedPlan.summary}` : `已应用「${template.name}」的适配方案：${adaptedPlan.summary}`);
     setIsBuildPlanOpen(false);
   };
 
@@ -1620,7 +1628,7 @@ export default function AquariumManager() {
     setTankCopilotError('');
     setTankCopilotResult(null);
     setTankCopilotAnswers({});
-    setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? '基于当前鱼缸规划下一步安全搭配' : '新手小型淡水缸'));
+    setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? (i18n.language === 'en' ? 'Plan safe additions based on active tank' : '基于当前鱼缸规划下一步安全搭配') : (i18n.language === 'en' ? 'Beginner small freshwater tank' : '新手小型淡水缸')));
     setIsTankCopilotOpen(true);
   };
 
@@ -1761,8 +1769,8 @@ export default function AquariumManager() {
     }
 
     saveAquariums(execution.aquariums);
-    setTankActionMessage(`已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
-    showToast(`已加入 ${species.name} x${smartAddQuantity}`, 'success');
+    setTankActionMessage(i18n.language === 'en' ? `Added ${species.name} x${smartAddQuantity}, recommend to observe for 3-7 days.` : `已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
+    showToast(i18n.language === 'en' ? `Added ${species.name} x${smartAddQuantity}` : `已加入 ${species.name} x${smartAddQuantity}`, 'success');
     setSmartSimulation(null);
     setSmartCandidateScopeIds(null);
     setIsSmartRecommendOpen(false);

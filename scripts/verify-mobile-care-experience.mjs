@@ -33,12 +33,13 @@ const seedStorage = async (context) => {
     localStorage.setItem('aquarium_app_state_v1', JSON.stringify(state));
     localStorage.setItem('aquariums', JSON.stringify(state.aquariums));
     localStorage.setItem('wishlistFishIds', JSON.stringify(state.wishlist));
+    localStorage.setItem('aquaguide_locale', 'zh-CN');
   }, seededState);
 };
 
 try {
   for (const width of [320, 375, 390, 430]) {
-    const context = await browser.newContext({ viewport: { width, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true });
+    const context = await browser.newContext({ viewport: { width, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true, locale: 'zh-CN' });
     await seedStorage(context);
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
@@ -48,7 +49,7 @@ try {
     const buttonY = await pager.locator('button').evaluateAll(buttons => buttons.map(button => Math.round(button.getBoundingClientRect().top)));
     assert.equal(new Set(buttonY).size, 1, `${width}px pager stays on one row`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `${width}px has no horizontal overflow`);
-    await pager.getByRole('button', { name: '下一组图鉴' }).click();
+    await pager.getByRole('button', { name: '下一组' }).click();
     await pager.getByText(/^2 \/ /).waitFor();
     await pager.getByRole('button', { name: '图鉴尾页' }).click();
     assert.equal(await pager.getByRole('button', { name: '图鉴尾页' }).isDisabled(), true);
@@ -57,7 +58,7 @@ try {
     await context.close();
   }
 
-  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true });
+  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: phoneUserAgent, isMobile: true, hasTouch: true, locale: 'zh-CN' });
   await seedStorage(phoneContext);
   const phonePage = await phoneContext.newPage();
   phonePage.setDefaultTimeout(20000);
@@ -87,7 +88,7 @@ try {
   await tankPreview.getByRole('button', { name: /极火虾.*6 只\/条/ }).waitFor();
   await phoneContext.close();
 
-  const desktopContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const desktopContext = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'zh-CN' });
   await seedStorage(desktopContext);
   const desktopPage = await desktopContext.newPage();
   desktopPage.setDefaultTimeout(20000);

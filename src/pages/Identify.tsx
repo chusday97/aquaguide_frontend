@@ -9,6 +9,7 @@ import type {
   DiagnosticFollowUpQuestion,
 } from '../../packages/contracts/src/index';
 import { fishData } from '../data/fishData';
+import i18n from '../i18n';
 import type { Aquarium, Fish } from '../types';
 import { loadAppStateFromStorage } from '../services/storage/local-app-state';
 import {
@@ -32,29 +33,30 @@ type Stage = 'upload' | 'candidates' | 'describe' | 'question' | 'result';
 
 const aquariumVolume = (aquarium?: Aquarium | null) => {
   const dimensions = aquarium?.dimensions;
-  if (!dimensions) return '未填写';
+  const isEn = i18n.language === 'en';
+    if (!dimensions) return isEn ? 'Not filled' : '未填写';
   const liters = Number(dimensions.length) * Number(dimensions.width) * Number(dimensions.height) * 0.85 / 1000;
-  return Number.isFinite(liters) && liters > 0 ? `约 ${Math.round(liters)}L` : '未填写';
+  return Number.isFinite(liters) && liters > 0 ? (isEn ? `~${Math.round(liters)}L` : `约 ${Math.round(liters)}L`) : (isEn ? 'Not filled' : '未填写');
 };
 
 const buildSnapshot = (aquarium?: Aquarium | null) => ({
   aquariumId: aquarium?.id || 'unselected',
-  waterType: aquarium?.waterType || '未选择鱼缸',
-  temperature: aquarium?.targetTemperature ? `${aquarium.targetTemperature}°C` : '未填写',
+  waterType: aquarium?.waterType || (isEn ? 'No aquarium selected' : '未选择鱼缸'),
+  temperature: aquarium?.targetTemperature ? `${aquarium.targetTemperature}°C` : (isEn ? 'Not filled' : '未填写'),
   volume: aquariumVolume(aquarium),
   stocked: aquarium?.fishes.map(item => {
     const fish = fishData.find(candidate => candidate.id === item.fishId);
     return `${fish?.name || item.fishId} × ${item.quantity}`;
-  }).join('、') || '空缸或未选择鱼缸',
-  recentWaterChange: aquarium?.lastWaterChangeDate || '未记录',
-  recentFeeding: '未记录',
+  }).join(isEn ? ', ' : '、') || (isEn ? 'Empty or no aquarium selected' : '空缸或未选择鱼缸'),
+  recentWaterChange: aquarium?.lastWaterChangeDate || (isEn ? 'No record' : '未记录'),
+  recentFeeding: isEn ? 'No record' : '未记录',
   recentAddedSpecies: aquarium?.fishes.some(item => {
     const entered = new Date(item.entryDate).getTime();
     return Number.isFinite(entered) && Date.now() - entered < 7 * 86_400_000;
-  }) ? '近 7 天有新生物入缸' : '未发现近 7 天新增记录',
+  }) ? (isEn ? 'New stocking in last 7 days' : '近 7 天有新生物入缸') : (isEn ? 'No stocking in last 7 days' : '未发现近 7 天新增记录'),
   dimensions: aquarium?.dimensions ? `${aquarium.dimensions.length}×${aquarium.dimensions.width}×${aquarium.dimensions.height}cm` : undefined,
   equipment: aquarium?.equipment
-    ? [aquarium.equipment.filter && `过滤:${aquarium.equipment.filter}`, aquarium.equipment.oxygen ? '增氧:有' : '增氧:未记录', aquarium.equipment.heater ? '加热:有' : '加热:未记录'].filter(Boolean).join('；')
+    ? [aquarium.equipment.filter && isEn ? `Filter:${aquarium.equipment.filter}` : `过滤:${aquarium.equipment.filter}`, aquarium.equipment.oxygen ? (isEn ? 'Aeration:Yes' : '增氧:有') : (isEn ? 'Aeration:No record' : '增氧:未记录'), aquarium.equipment.heater ? (isEn ? 'Heater:Yes' : '加热:有') : (isEn ? 'Heater:No record' : '加热:未记录')].filter(Boolean).join('；')
     : undefined,
   livestockCount: aquarium?.fishes.reduce((sum, item) => sum + Math.max(1, item.quantity || 1), 0),
 });
@@ -273,7 +275,7 @@ export default function Identify() {
       setDetailFish(fish);
       showToast(i18n.language === 'en'
         ? 'Health triage currently supports fish species only. You can still view this catalog entry.'
-        : '状态判断第一版仅支持鱼类；你仍可查看该物种资料。', 'error');
+        : i18n.language === 'en' ? 'Health assessment only supports fish currently; you can still view species info.' : '状态判断第一版仅支持鱼类；你仍可查看该物种资料。', 'error');
       return;
     }
     setSelectedFish(fish);
@@ -400,7 +402,7 @@ export default function Identify() {
       ],
       currentAction: diagnosis.emergencyActions[0] || top?.recommendedActions[0] || t('identify.keepObserving'),
       primaryAction: diagnosis.urgency === 'urgent'
-        ? { label: i18n.language === 'en' ? 'Follow emergency steps' : '执行应急步骤', actionType: 'section' }
+        ? { label: i18n.language === 'en' ? 'Follow emergency steps' : isEn ? 'Execute Emergency Steps' : '执行应急步骤', actionType: 'section' }
         : diagnosis.nextQuestion
         ? { label: t('identify.continueQuestion'), actionType: 'section' }
         : top?.recommendedArticleIds[0]
@@ -576,7 +578,7 @@ export default function Identify() {
                 {diagnosis.nextQuestion && <button type="button" onClick={() => setStage('question')} className="mt-4 min-h-11 w-full rounded-full bg-red-700 px-4 text-xs font-black text-white">{t('identify.continueQuestion')}</button>}
               </section>
             )}
-            <div className="grid gap-3 md:grid-cols-3">{diagnosis.hypotheses.map(hypothesis => <article key={hypothesis.code} className="rounded-[18px] border border-border bg-white p-4"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black ${hypothesis.likelihood === 'more_likely' ? 'bg-red-50 text-red-700' : hypothesis.likelihood === 'possible' ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'}`}>{t(`identify.likelihood.${hypothesis.likelihood}`)}</span><h3 className="mt-2 text-sm font-black">{hypothesis.label}</h3><p className="mt-2 text-[11px] font-bold leading-5 text-ink/55">{hypothesis.supportingEvidence[0] || t('identify.needMoreEvidence')}</p><details className="mt-3 rounded-[12px] border border-border bg-bg p-3"><summary className="cursor-pointer text-[10px] font-black text-emerald-800">{i18n.language === 'en' ? 'View evidence and actions' : '展开证据与建议'}</summary><div className="mt-3 grid gap-3 text-[10px] leading-5 text-ink/60"><div><strong className="text-ink">{t('identify.supportingEvidence')}</strong>{hypothesis.supportingEvidence.map(item => <p key={item}>{item}</p>)}</div>{hypothesis.contradictingEvidence.length > 0 && <div><strong className="text-ink">{i18n.language === 'en' ? 'Contradicting evidence' : '不一致的事实'}</strong>{hypothesis.contradictingEvidence.map(item => <p key={item}>{item}</p>)}</div>}<div><strong className="text-ink">{t('identify.missingEvidence')}</strong>{hypothesis.missingEvidence.length > 0 ? hypothesis.missingEvidence.map(item => <p key={item}>{item}</p>) : <p>{i18n.language === 'en' ? 'No key evidence is currently missing.' : '当前没有缺失的关键项。'}</p>}</div><div><strong className="text-ink">{i18n.language === 'en' ? 'Recommended actions' : '建议动作'}</strong>{hypothesis.recommendedActions.map(item => <p key={item}>{item}</p>)}</div><div><strong className="text-ink">{t('identify.avoidActions')}</strong>{hypothesis.avoidActions.map(item => <p key={item}>{item}</p>)}</div></div></details></article>)}</div>
+            <div className="grid gap-3 md:grid-cols-3">{diagnosis.hypotheses.map(hypothesis => <article key={hypothesis.code} className="rounded-[18px] border border-border bg-white p-4"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black ${hypothesis.likelihood === 'more_likely' ? 'bg-red-50 text-red-700' : hypothesis.likelihood === 'possible' ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'}`}>{t(`identify.likelihood.${hypothesis.likelihood}`)}</span><h3 className="mt-2 text-sm font-black">{hypothesis.label}</h3><p className="mt-2 text-[11px] font-bold leading-5 text-ink/55">{hypothesis.supportingEvidence[0] || t('identify.needMoreEvidence')}</p><details className="mt-3 rounded-[12px] border border-border bg-bg p-3"><summary className="cursor-pointer text-[10px] font-black text-emerald-800">{i18n.language === 'en' ? 'View evidence and actions' : isEn ? 'View Evidence and Actions' : '展开证据与建议'}</summary><div className="mt-3 grid gap-3 text-[10px] leading-5 text-ink/60"><div><strong className="text-ink">{t('identify.supportingEvidence')}</strong>{hypothesis.supportingEvidence.map(item => <p key={item}>{item}</p>)}</div>{hypothesis.contradictingEvidence.length > 0 && <div><strong className="text-ink">{i18n.language === 'en' ? 'Contradicting evidence' : isEn ? 'Contradicting evidence' : '不一致的事实'}</strong>{hypothesis.contradictingEvidence.map(item => <p key={item}>{item}</p>)}</div>}<div><strong className="text-ink">{t('identify.missingEvidence')}</strong>{hypothesis.missingEvidence.length > 0 ? hypothesis.missingEvidence.map(item => <p key={item}>{item}</p>) : <p>{i18n.language === 'en' ? 'No key evidence is currently missing.' : isEn ? 'No key evidence is currently missing.' : '当前没有缺失的关键项。'}</p>}</div><div><strong className="text-ink">{i18n.language === 'en' ? 'Recommended actions' : isEn ? 'Recommended actions' : '建议动作'}</strong>{hypothesis.recommendedActions.map(item => <p key={item}>{item}</p>)}</div><div><strong className="text-ink">{t('identify.avoidActions')}</strong>{hypothesis.avoidActions.map(item => <p key={item}>{item}</p>)}</div></div></details></article>)}</div>
             <p className="text-center text-[11px] font-bold leading-5 text-ink/45">{diagnosis.disclaimer}</p>
           </section>
         )}

@@ -103,6 +103,11 @@
 
 ### Fixed
 
+- 修复 `scripts/verify-mobile-care-experience.mjs` 在 Playwright 测试中未在 local storage 内设置 `'aquaguide_locale': 'zh-CN'`，导致浏览器首选语言可能载入英文，无法与测试脚本中的中文按钮及文本断言相匹配。
+- 修复测试脚本中 `nextPageLabel` 的按钮可访问名称从 `'下一页'` / `'下一组'` 错配成 `'下一组图鉴'`，导致分页操作超时无法点击的问题。
+- 修复 `CareEncyclopedia.tsx` 在英文模式重构中，`CareArticleDetail` 和 `CareImage` 子组件缺失 `t` 和 `isEn` 的词法作用域定义，造成在访问养护页面或大图预览时抛出 `ReferenceError` 崩溃。
+- 修复 `Collection.tsx` 在加入英文多语言代码后缺失 `i18n` 实例导入，导致访问“自然水族册” `/collection` 路由时直接抛出 `ReferenceError: i18n is not defined` 导致页面白屏的问题。
+- 修复 `CareEncyclopedia.tsx` 和 `Encyclopedia.tsx` 中仍在使用废弃的 Collection 查询参数路由（`/collection?tab=care` 和 `/collection?tab=wishlist`），更新为与 `App.tsx` 匹配的新版嵌套路由 `/collection/care` 和 `/collection/wishlist`，确保手机水族册收藏点击能正常进入对应子页签。
 - 修复识别页使用仅 Data Router 支持的 `useBlocker` 导致 `BrowserRouter` 页面崩溃；改用页面内离开确认和浏览器刷新保护。
 - 修复图片预览清理 effect 在上传时提前中止识别请求；请求生命周期和 Object URL 生命周期改为独立清理。
 - 限制文本 AI 观察结果只能使用登记过的代码和值，非法结构化输出不会影响本地问题策略。
