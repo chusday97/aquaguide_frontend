@@ -269,20 +269,26 @@ const matchesKeyword = (fish: Fish, keyword: string) => {
   const name = fish.name.toLowerCase();
   const scientificName = fish.scientificName.toLowerCase();
   const category = fish.category.toLowerCase();
+  
+  const originalName = (fish as any)._originalName?.toLowerCase() || '';
+  const originalCategory = (fish as any)._originalCategory?.toLowerCase() || '';
 
   if (normalized === '草') {
     return getLifeType(fish) === 'plant'
       || category.includes('水草')
       || category === 'plant'
       || name.includes('草')
+      || originalName.includes('草')
       || aliases.some(alias => alias.includes('草'));
   }
 
   const tags = getSpeciesFilterTags(fish);
   return name.includes(normalized)
+    || originalName.includes(normalized)
     || aliases.some(alias => alias.includes(normalized))
     || scientificName.includes(normalized)
     || category.includes(normalized)
+    || originalCategory.includes(normalized)
     || tags.searchKeywords.some(keyword => keyword.includes(normalized));
 };
 
@@ -300,20 +306,21 @@ const getSearchRank = (fish: Fish, keyword: string) => {
   if (!normalized) return 0;
   const aliases = getSpeciesAliases(fish);
   const name = fish.name.toLowerCase();
+  const originalName = (fish as any)._originalName?.toLowerCase() || '';
   const scientificName = fish.scientificName.toLowerCase();
   const category = fish.category.toLowerCase();
   const isPlant = getLifeType(fish) === 'plant' || category.includes('水草') || category === 'plant';
 
   if (normalized === '草') {
-    if (isPlant && name.includes('草')) return 0;
+    if (isPlant && (name.includes('草') || originalName.includes('草'))) return 0;
     if (isPlant) return 1;
-    if (name.includes('草')) return 2;
+    if (name.includes('草') || originalName.includes('草')) return 2;
     if (aliases.some(alias => alias.includes('草'))) return 3;
     return 99;
   }
 
-  if (name === normalized) return 0;
-  if (name.includes(normalized)) return 1;
+  if (name === normalized || originalName === normalized) return 0;
+  if (name.includes(normalized) || originalName.includes(normalized)) return 1;
   if (aliases.some(alias => alias.includes(normalized))) return 2;
   if (scientificName.includes(normalized)) return 3;
   if (category.includes(normalized)) return 4;
@@ -869,7 +876,7 @@ export default function Encyclopedia() {
       noMatchLabel: t('encyclopedia.filterSheetNoMatch'),
     };
   };
-  const allSpeciesGroups = useMemo(() => deriveSpeciesGroups(allFishes), [allFishes]);
+  const allSpeciesGroups = useMemo(() => deriveSpeciesGroups(allFishes), [allFishes, i18n.language]);
   const filteredFishes = useMemo(() => {
     if (showWishlistOnly) return wishlistFishes;
 
@@ -885,10 +892,10 @@ export default function Encyclopedia() {
     });
 
     return allFishes.filter(fish => matchedIds.has(fish.id));
-  }, [activeFilters, allFishes, allSpeciesGroups, compatibilityEvaluations, fitEvaluations, showWishlistOnly, wishlistFishes]);
+  }, [activeFilters, allFishes, allSpeciesGroups, compatibilityEvaluations, fitEvaluations, showWishlistOnly, wishlistFishes, i18n.language]);
   const atlasDisplayItems = useMemo(
     () => buildAtlasDisplayItems(filteredFishes),
-    [filteredFishes]
+    [filteredFishes, i18n.language]
   );
   const formatFilterLabel = (label: string) => {
     if (label.startsWith('搜索：“')) {

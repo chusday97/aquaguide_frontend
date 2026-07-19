@@ -1,5 +1,7 @@
 import { fishData } from '../data/fishData';
 import { autoTranslations } from './localizeDataAuto';
+import { careTopicsData } from '../data/careTopicsData';
+import { careTranslations } from './localizeCareDataAuto';
 
 export const categoryTranslations: Record<string, string> = {
   "两栖/爬宠": "Amphibians/Reptiles",
@@ -317,6 +319,51 @@ export const applyLocalization = (lng: string) => {
         fish.feedingProfile.avoidFoods = (fish as any)._originalAvoidFoods;
         fish.feedingProfile.specialNotes = (fish as any)._originalSpecialNotes;
       }
+    }
+  });
+
+  // 3. Localize careTopicsData
+  careTopicsData.forEach(topic => {
+    // Initialize original cache if not exists
+    if (!(topic as any)._originalTitle) {
+      (topic as any)._originalTitle = topic.title;
+      (topic as any)._originalCategory = topic.category;
+      (topic as any)._originalUrgency = topic.urgency;
+      (topic as any)._originalSummary = topic.summary;
+      (topic as any)._originalSymptoms = [...topic.symptoms];
+      (topic as any)._originalFirstSteps = [...topic.firstSteps];
+      (topic as any)._originalAvoid = [...topic.avoid];
+      (topic as any)._originalObserve = [...topic.observe];
+      (topic as any)._originalDiagnoseWhen = [...topic.diagnoseWhen];
+      (topic as any)._originalNextStep = topic.nextStep;
+      (topic as any)._originalKeywords = [...topic.keywords];
+    }
+
+    if (isEn) {
+      const trans = careTranslations[topic.id];
+      topic.title = trans?.title || (topic as any)._originalTitle;
+      topic.category = trans?.category || (topic as any)._originalCategory;
+      topic.urgency = (trans?.urgency || (topic as any)._originalUrgency) as any;
+      topic.summary = trans?.summary || (topic as any)._originalSummary;
+      topic.symptoms = trans?.symptoms || (topic as any)._originalSymptoms;
+      topic.firstSteps = trans?.firstSteps || (topic as any)._originalFirstSteps;
+      topic.avoid = trans?.avoid || (topic as any)._originalAvoid;
+      topic.observe = trans?.observe || (topic as any)._originalObserve;
+      topic.diagnoseWhen = trans?.diagnoseWhen || (topic as any)._originalDiagnoseWhen;
+      topic.nextStep = trans?.nextStep || (topic as any)._originalNextStep;
+      topic.keywords = trans?.keywords || (topic as any)._originalKeywords;
+    } else {
+      topic.title = (topic as any)._originalTitle;
+      topic.category = (topic as any)._originalCategory;
+      topic.urgency = (topic as any)._originalUrgency;
+      topic.summary = (topic as any)._originalSummary;
+      topic.symptoms = (topic as any)._originalSymptoms;
+      topic.firstSteps = (topic as any)._originalFirstSteps;
+      topic.avoid = (topic as any)._originalAvoid;
+      topic.observe = (topic as any)._originalObserve;
+      topic.diagnoseWhen = (topic as any)._originalDiagnoseWhen;
+      topic.nextStep = (topic as any)._originalNextStep;
+      topic.keywords = (topic as any)._originalKeywords;
     }
   });
 };

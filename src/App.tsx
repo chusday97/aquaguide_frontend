@@ -366,6 +366,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
             type="button"
             onClick={openSettings}
             title={collapsed ? t('common.settings') : undefined}
+            aria-label={t('common.settings')}
             className={cn('flex min-h-11 w-full items-center gap-3 rounded-[16px] bg-white px-3 text-left text-ink/58 shadow-sm transition-colors hover:text-emerald-700', collapsed && 'justify-center px-0')}
           >
             <Settings className="h-5 w-5 shrink-0" />

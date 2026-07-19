@@ -34,24 +34,46 @@ function computeHash(content: string): string {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-async function translateText(text: string): Promise<string> {
+async function translateText(text: string, retries = 5, delayMs = 1000): Promise<string> {
   if (!text || typeof text !== 'string') return '';
-  // Clean up any double quotes inside text to avoid json syntax issues
   const queryText = text.trim();
   if (!queryText) return '';
 
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=${encodeURIComponent(queryText)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    const data = (await res.json()) as any;
-    const translated = data[0].map((x: any) => x[0]).join('');
-    return translated;
-  } catch (error) {
-    console.warn(`Translation failed for: "${text}". Using fallback prefix.`, error);
-    return `[EN] ${text}`;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=${encodeURIComponent(queryText)}`;
+      const res = await fetch(url);
+      if (res.status === 429) {
+        console.warn(`Rate limit hit (429). Retrying in ${delayMs * 2}ms...`);
+        await delay(delayMs * 2);
+        delayMs *= 2;
+        continue;
+      }
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = (await res.json()) as any;
+      const translated = data[0].map((x: any) => x[0]).join('');
+      return translated;
+    } catch (error) {
+      if (i === retries - 1) {
+        console.warn(`Translation failed for: "${text}". Using fallback prefix.`, error);
+        return `[EN] ${text}`;
+      }
+      await delay(delayMs);
+    }
   }
+  return `[EN] ${text}`;
 }
+
+async function translateArray(arr: string[]): Promise<string[]> {
+  if (!arr) return [];
+  const res: string[] = [];
+  for (const item of arr) {
+    res.push(await translateText(item));
+    await delay(100);
+  }
+  return res;
+}
+
 
 async function syncUIObjects(zhObj: any, enObj: any): Promise<boolean> {
   let changed = false;
@@ -106,6 +128,7 @@ async function main() {
   const rootDir = path.resolve(__dirname, '..');
   const indexTsPath = path.join(rootDir, 'src', 'i18n', 'index.ts');
   const localizeDataAutoPath = path.join(rootDir, 'src', 'i18n', 'localizeDataAuto.ts');
+  const localizeCareDataAutoPath = path.join(rootDir, 'src', 'i18n', 'localizeCareDataAuto.ts');
 
   // A. Dynamically load modules to inspect current runtime values
   const i18nModule = await import('../src/i18n/index');
@@ -113,6 +136,18 @@ async function main() {
   const { fishData } = await import('../src/data/fishData');
   const { englishTranslations } = await import('../src/i18n/localizeData');
   const { autoTranslations } = await import('../src/i18n/localizeDataAuto');
+  const { careTopicsData } = await import('../src/data/careTopicsData');
+  const { categoryTranslations } = await import('../src/i18n/localizeData');
+
+  let careTranslations: Record<string, any> = {};
+  if (fs.existsSync(localizeCareDataAutoPath)) {
+    try {
+      const careModule = await import('../src/i18n/localizeCareDataAuto');
+      careTranslations = careModule.careTranslations || {};
+    } catch {
+      // Ignored
+    }
+  }
 
   // B. Sync UI Translation keys in src/i18n/index.ts
   console.log('\n--- Auditing UI resources in index.ts ---');
@@ -273,6 +308,91 @@ async function main() {
     console.log('[Species Sync] localizeDataAuto.ts updated successfully.');
   } else {
     console.log('[Species Sync] localizeDataAuto.ts is already fully synchronized.');
+  }
+
+  // D. Sync Care Topics Data in src/data/careTopicsData.ts -> src/i18n/localizeCareDataAuto.ts
+  console.log('\n--- Auditing care topics in careTopicsData.ts ---');
+  let careTranslationsChanged = false;
+  const updatedCareTranslations = { ...careTranslations };
+
+  for (const topic of careTopicsData) {
+    // Compute hash of source Chinese content
+    const chsContent = [
+      topic.title,
+      topic.category,
+      topic.urgency,
+      topic.summary,
+      topic.symptoms.join('|||'),
+      topic.firstSteps.join('|||'),
+      topic.avoid.join('|||'),
+      topic.observe.join('|||'),
+      topic.diagnoseWhen.join('|||'),
+      topic.nextStep,
+      topic.keywords.join('|||')
+    ].join('===');
+    const currentHash = computeHash(chsContent);
+
+    const existingTrans = careTranslations[topic.id];
+    if (!existingTrans || existingTrans._srcHash !== currentHash) {
+      if (translatedCount >= maxTranslations) {
+        continue;
+      }
+
+      console.log(`[Care Sync] Translating topic: ${topic.id} (${topic.title})`);
+
+      const translatedTitle = await translateText(topic.title);
+      const translatedCategory = categoryTranslations[topic.category] || await translateText(topic.category);
+      const translatedUrgency = topic.urgency === '日常' ? 'Routine' : topic.urgency === '尽快处理' ? 'Urgent' : 'High Priority';
+      const translatedSummary = await translateText(topic.summary);
+      const translatedSymptoms = await translateArray(topic.symptoms);
+      const translatedFirstSteps = await translateArray(topic.firstSteps);
+      const translatedAvoid = await translateArray(topic.avoid);
+      const translatedObserve = await translateArray(topic.observe);
+      const translatedDiagnoseWhen = await translateArray(topic.diagnoseWhen);
+      const translatedNextStep = await translateText(topic.nextStep);
+      const translatedKeywords = await translateArray(topic.keywords);
+
+      updatedCareTranslations[topic.id] = {
+        title: translatedTitle,
+        category: translatedCategory,
+        urgency: translatedUrgency,
+        summary: translatedSummary,
+        symptoms: translatedSymptoms,
+        firstSteps: translatedFirstSteps,
+        avoid: translatedAvoid,
+        observe: translatedObserve,
+        diagnoseWhen: translatedDiagnoseWhen,
+        nextStep: translatedNextStep,
+        keywords: translatedKeywords,
+        _srcHash: currentHash
+      };
+      careTranslationsChanged = true;
+      translatedCount++;
+      await delay(200);
+    }
+  }
+
+  if (careTranslationsChanged) {
+    console.log('[Care Sync] Detected care translation updates. Saving localizeCareDataAuto.ts...');
+    const fileContent = `export const careTranslations: Record<string, {
+  title: string;
+  category: string;
+  urgency: string;
+  summary: string;
+  symptoms: string[];
+  firstSteps: string[];
+  avoid: string[];
+  observe: string[];
+  diagnoseWhen: string[];
+  nextStep: string;
+  keywords: string[];
+  _srcHash?: string;
+}> = ${JSON.stringify(updatedCareTranslations, null, 2)};
+`;
+    fs.writeFileSync(localizeCareDataAutoPath, fileContent, 'utf8');
+    console.log('[Care Sync] localizeCareDataAuto.ts updated successfully.');
+  } else {
+    console.log('[Care Sync] localizeCareDataAuto.ts is already fully synchronized.');
   }
 
   console.log('\nLocalization synchronization complete!');

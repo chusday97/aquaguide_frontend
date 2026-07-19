@@ -95,84 +95,84 @@ export const autoTranslations: Record<string, {
     "_srcHash": "fae61b8bd34fb8ef84cab0c1bd7964648f59ee8525753156895ac69bbdabbc76"
   },
   "sp_0008": {
-    "name": "Cynops orientalis",
-    "description": "Care requirements: temperature 15-22°C, pH 6.5-7.5. Water changes: once every 7 days.",
-    "diet": "Diet type: Carnivore. Standard food: Frozen red worms + water earthworms + small sinking meat pellets.",
-    "housingReason": "Compatibility behavior: Single Specimen. Ensure compatible tank parameters.",
+    "name": "[EN] [EN] Cynops orientalis",
+    "description": "[EN] [EN] Care requirements: temperature 15-22°C, pH 6.5-7.5. Water changes: once every 7 days.",
+    "diet": "[EN] [EN] Diet type: Carnivore. Standard food: Frozen red worms + water earthworms + small sinking meat pellets.",
+    "housingReason": "[EN] [EN] Compatibility behavior: Single Specimen. Ensure compatible tank parameters.",
     "feedingProfile": {
-      "feedingType": "Carnivore",
-      "recommendedFoods": "Frozen red worms + water earthworms + small bottom-sinking meat pellets",
-      "feedingFrequency": "1-2 times daily",
-      "portionRule": "Eat within 3 minutes",
-      "feedingLayer": "full layer",
-      "avoidFoods": "Overfeeding; uneaten leftovers",
-      "specialNotes": "Maintain clean, stable water conditions."
+      "feedingType": "[EN] [EN] Carnivore",
+      "recommendedFoods": "[EN] [EN] Frozen red worms + water earthworms + small bottom-sinking meat pellets",
+      "feedingFrequency": "[EN] [EN] 1-2 times daily",
+      "portionRule": "[EN] [EN] Eat within 3 minutes",
+      "feedingLayer": "[EN] [EN] full layer",
+      "avoidFoods": "[EN] [EN] Overfeeding; uneaten leftovers",
+      "specialNotes": "[EN] [EN] Maintain clean, stable water conditions."
     },
-    "_srcHash": "45f35280d61aa24d24845b9e6c6a412f68829bc04c35245bfc7cde093b504fb3"
+    "_srcHash": "482d328433386399a8d9804ea739fbaec5a81877a2a67adbe438aeb454d2dd49"
   },
   "sp_0009": {
-    "name": "Ceratophrys ornata",
-    "description": "Care requirements: temperature 24-28°C, pH 6.0-7.0. Water changes: once every 7 days.",
-    "diet": "Diet type: Carnivore. Standard food: Crickets+earthworms+Dubia+occasionally small fish and shrimps.",
-    "housingReason": "Compatibility behavior: Single Specimen. Ensure compatible tank parameters.",
+    "name": "[EN] [EN] Ceratophrys ornata",
+    "description": "[EN] [EN] Care requirements: temperature 24-28°C, pH 6.0-7.0. Water changes: once every 7 days.",
+    "diet": "[EN] [EN] Diet type: Carnivore. Standard food: Crickets+earthworms+Dubia+occasionally small fish and shrimps.",
+    "housingReason": "[EN] [EN] Compatibility behavior: Single Specimen. Ensure compatible tank parameters.",
     "feedingProfile": {
-      "feedingType": "Carnivore",
-      "recommendedFoods": "Crickets + earthworms + dubia + occasional small fish and shrimps",
-      "feedingFrequency": "1-2 times daily",
-      "portionRule": "Eat within 3 minutes",
-      "feedingLayer": "full layer",
-      "avoidFoods": "Overfeeding; uneaten leftovers",
-      "specialNotes": "Maintain clean, stable water conditions."
+      "feedingType": "[EN] [EN] Carnivore",
+      "recommendedFoods": "[EN] [EN] Crickets + earthworms + dubia + occasional small fish and shrimps",
+      "feedingFrequency": "[EN] [EN] 1-2 times daily",
+      "portionRule": "[EN] [EN] Eat within 3 minutes",
+      "feedingLayer": "[EN] [EN] full layer",
+      "avoidFoods": "[EN] [EN] Overfeeding; uneaten leftovers",
+      "specialNotes": "[EN] [EN] Maintain clean, stable water conditions."
     },
-    "_srcHash": "da6f877587a9349d80399718510e9db4e5d4e9c4cff2f218b1e63be5ce4c4736"
+    "_srcHash": "e71cb5b5c3e528f4d143cd986ca64ea2b5ce6ce7b307799257daebfcb9159f5b"
   },
   "sp_0010": {
-    "name": "Gymnocorymbus ternetzi",
-    "description": "Care requirements: temperature 20-28°C, pH 6.0-8.5. Water changes: once every 7 days.",
-    "diet": "Diet type: Omnivore. Standard food: Fine pellet feed + brine shrimp.",
-    "housingReason": "Compatibility behavior: Caution Mix. Ensure compatible tank parameters.",
+    "name": "[EN] [EN] Gymnocorymbus ternetzi",
+    "description": "[EN] [EN] Care requirements: temperature 20-28°C, pH 6.0-8.5. Water changes: once every 7 days.",
+    "diet": "[EN] [EN] Diet type: Omnivore. Standard food: Fine pellet feed + brine shrimp.",
+    "housingReason": "[EN] [EN] Compatibility behavior: Caution Mix. Ensure compatible tank parameters.",
     "feedingProfile": {
-      "feedingType": "Omnivore",
-      "recommendedFoods": "Fine particle feed + brine shrimp",
-      "feedingFrequency": "1-2 times daily",
-      "portionRule": "Eat within 3 minutes",
-      "feedingLayer": "Midwater",
-      "avoidFoods": "Overfeeding; uneaten leftovers",
-      "specialNotes": "Maintain clean, stable water conditions."
+      "feedingType": "[EN] [EN] Omnivore",
+      "recommendedFoods": "[EN] [EN] Fine particle feed + brine shrimp",
+      "feedingFrequency": "[EN] [EN] 1-2 times daily",
+      "portionRule": "[EN] [EN] Eat within 3 minutes",
+      "feedingLayer": "[EN] [EN] Midwater",
+      "avoidFoods": "[EN] [EN] Overfeeding; uneaten leftovers",
+      "specialNotes": "[EN] [EN] Maintain clean, stable water conditions."
     },
-    "_srcHash": "43c09f7568ab0e12dd8ecff1ce363410027dc171178e2328fe5e9da1da58d14f"
+    "_srcHash": "226d035af98dc4d0cc27332615e80deed904d257dec7b4c2589ebafaa1f2a032"
   },
   "sp_0011": {
-    "name": "Xiphophorus maculatus",
-    "description": "Care requirements: temperature 20-28°C, pH 7.0-8.5. Water changes: once every 7 days.",
-    "diet": "Diet type: Omnivore. Standard food: flake feed + micro pellets.",
-    "housingReason": "Compatibility behavior: Compatible. Ensure compatible tank parameters.",
+    "name": "[EN] [EN] Xiphophorus maculatus",
+    "description": "[EN] [EN] Care requirements: temperature 20-28°C, pH 7.0-8.5. Water changes: once every 7 days.",
+    "diet": "[EN] [EN] Diet type: Omnivore. Standard food: flake feed + micro pellets.",
+    "housingReason": "[EN] [EN] Compatibility behavior: Compatible. Ensure compatible tank parameters.",
     "feedingProfile": {
-      "feedingType": "Omnivore",
-      "recommendedFoods": "Flake feed + microparticles",
-      "feedingFrequency": "1-2 times daily",
-      "portionRule": "Eat within 3 minutes",
-      "feedingLayer": "upper layer",
-      "avoidFoods": "Overfeeding; uneaten leftovers",
-      "specialNotes": "Maintain clean, stable water conditions."
+      "feedingType": "[EN] [EN] Omnivore",
+      "recommendedFoods": "[EN] [EN] Flake feed + microparticles",
+      "feedingFrequency": "[EN] [EN] 1-2 times daily",
+      "portionRule": "[EN] [EN] Eat within 3 minutes",
+      "feedingLayer": "[EN] [EN] upper layer",
+      "avoidFoods": "[EN] [EN] Overfeeding; uneaten leftovers",
+      "specialNotes": "[EN] [EN] Maintain clean, stable water conditions."
     },
-    "_srcHash": "1ba933d8ce987df6da6517c79fafa2e34e315f3411ac942e36641ecc257173c1"
+    "_srcHash": "5027b24eb12773dc480a32ca6edf6952d3d44f2629221a95160edeed65254835"
   },
   "sp_0012": {
-    "name": "Puntius titteya",
-    "description": "Care requirements: temperature 23-27°C, pH 6.0-8.0. Water changes: once every 7 days.",
-    "diet": "Diet type: Omnivore. Standard food: General pellet feed + algae.",
-    "housingReason": "Compatibility behavior: Compatible. Ensure compatible tank parameters.",
+    "name": "[EN] [EN] Puntius titteya",
+    "description": "[EN] [EN] Care requirements: temperature 23-27°C, pH 6.0-8.0. Water changes: once every 7 days.",
+    "diet": "[EN] [EN] Diet type: Omnivore. Standard food: General pellet feed + algae.",
+    "housingReason": "[EN] [EN] Compatibility behavior: Compatible. Ensure compatible tank parameters.",
     "feedingProfile": {
-      "feedingType": "Omnivore",
-      "recommendedFoods": "General pellet feed + algae",
-      "feedingFrequency": "1-2 times daily",
-      "portionRule": "Eat within 3 minutes",
-      "feedingLayer": "full layer",
-      "avoidFoods": "Overfeeding; uneaten leftovers",
-      "specialNotes": "Maintain clean, stable water conditions."
+      "feedingType": "[EN] [EN] Omnivore",
+      "recommendedFoods": "[EN] [EN] General pellet feed + algae",
+      "feedingFrequency": "[EN] [EN] 1-2 times daily",
+      "portionRule": "[EN] [EN] Eat within 3 minutes",
+      "feedingLayer": "[EN] [EN] full layer",
+      "avoidFoods": "[EN] [EN] Overfeeding; uneaten leftovers",
+      "specialNotes": "[EN] [EN] Maintain clean, stable water conditions."
     },
-    "_srcHash": "6117f6abeb71dfa88306aff5d757979de39ae37472baad96c53c67087c4a7f09"
+    "_srcHash": "779864afb1c05e07be56f315df9b4283f2e57be6f60a2e6e53d052c7eb96ba5b"
   },
   "sp_0013": {
     "name": "Otocinclus vittatus",
