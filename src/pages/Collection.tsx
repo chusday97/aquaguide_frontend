@@ -39,12 +39,7 @@ import { CareArticleDetail } from './CareEncyclopedia';
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const PAGE_SIZE = 20;
 
-const tabConfig: Array<{ id: CollectionModule; label: string; shortLabel: string; icon: typeof Heart }> = [
-  { id: 'wishlist', label: '种草图鉴', shortLabel: '种草', icon: Heart },
-  { id: 'care', label: '养护收藏', shortLabel: '养护', icon: BookOpenCheck },
-  { id: 'memorial', label: '生命纪念', shortLabel: '纪念', icon: Skull },
-  { id: 'achievements', label: '成就勋章', shortLabel: '勋章', icon: Medal },
-];
+// tabConfig is defined dynamically inside the component to support i18n
 
 const achievementIcons: Record<AchievementId, typeof Medal> = {
   first_aquarium: Waves,
@@ -66,6 +61,13 @@ export default function Collection({ module }: { module: CollectionModule }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { captureContext, restoreContext } = useWorkspaceNavigation();
+  const isEn = i18n.language === 'en';
+  const tabConfig = useMemo(() => [
+    { id: 'wishlist' as CollectionModule, label: isEn ? 'Species Wishlist' : '种草图鉴', shortLabel: isEn ? 'Wishlist' : '种草', icon: Heart },
+    { id: 'care' as CollectionModule, label: isEn ? 'Care Collection' : '养护收藏', shortLabel: isEn ? 'Care' : '养护', icon: BookOpenCheck },
+    { id: 'memorial' as CollectionModule, label: isEn ? 'Life Memorial' : '生命纪念', shortLabel: isEn ? 'Memorial' : '纪念', icon: Skull },
+    { id: 'achievements' as CollectionModule, label: isEn ? 'Achievements & Badges' : '成就勋章', shortLabel: isEn ? 'Badges' : '勋章', icon: Medal },
+  ], [isEn]);
   const activeTab = module;
   const [snapshot, setSnapshot] = useState(() => getCollectionSnapshot());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -87,7 +89,7 @@ export default function Collection({ module }: { module: CollectionModule }) {
     const newlyUnlocked = next.achievements.find(item => item.unlocked && !previousUnlockedRef.current.has(item.id));
     previousUnlockedRef.current = new Set(next.achievements.filter(item => item.unlocked).map(item => item.id));
     setSnapshot(next);
-    if (newlyUnlocked) showToast(`解锁勋章：${newlyUnlocked.title}`);
+    if (newlyUnlocked) showToast(isEn ? `Unlocked Badge: ${newlyUnlocked.title}` : `解锁勋章：${newlyUnlocked.title}`);
   }), [showToast]);
 
   useEffect(() => {
@@ -122,22 +124,22 @@ export default function Collection({ module }: { module: CollectionModule }) {
     if (!pendingFishRemoval) return;
     setSpeciesFavoriteIds(snapshot.wishlistIds.filter(id => id !== pendingFishRemoval.id));
     if (getSpeciesFavoriteIds().includes(pendingFishRemoval.id)) {
-      showToast('移除失败，请检查浏览器存储权限', 'error');
+      showToast(isEn ? 'Failed to remove, check storage permissions' : '移除失败，请检查浏览器存储权限', 'error');
       return;
     }
     setPendingFishRemoval(null);
-    showToast('已从种草图鉴移除');
+    showToast(isEn ? 'Removed from species wishlist' : '已从种草图鉴移除');
   };
 
   const removeCareFavorite = () => {
     if (!pendingCareRemoval) return;
     toggleCareFavorite({ id: pendingCareRemoval.id, title: pendingCareRemoval.title, favoritedAt: new Date().toISOString() });
     if (getCareFavorites()[pendingCareRemoval.id]) {
-      showToast('移除失败，请检查浏览器存储权限', 'error');
+      showToast(isEn ? 'Failed to remove, check storage permissions' : '移除失败，请检查浏览器存储权限', 'error');
       return;
     }
     setPendingCareRemoval(null);
-    showToast('已从养护收藏移除');
+    showToast(isEn ? 'Removed from care collection' : '已从养护收藏移除');
   };
 
   const openCarePreview = (topic: CareTopic) => {

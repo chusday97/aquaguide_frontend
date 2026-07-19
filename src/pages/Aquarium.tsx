@@ -105,16 +105,16 @@ import {
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
 const substrateOptions = [
-  { value: '无', label: '裸缸', hint: '方便清洁' },
-  { value: '河沙', label: '河沙', hint: '自然浅色' },
-  { value: '溪流砂', label: '溪流砂', hint: '原生溪流' },
-  { value: '化妆砂', label: '化妆砂', hint: '明亮前景' },
-  { value: '水草泥', label: '水草泥', hint: '草缸首选' },
-  { value: '黑金沙', label: '黑金沙', hint: '显色强烈' },
-  { value: '陶粒', label: '陶粒', hint: '透气颗粒' },
-  { value: '碎石', label: '碎石', hint: '粗颗粒' },
-  { value: '鹅卵石', label: '鹅卵石', hint: '溪流大石' },
-  { value: '珊瑚砂', label: '珊瑚砂', hint: '海水/硬水' },
+  { value: '无', label: '裸缸', labelEn: 'Bare Bottom', hint: '方便清洁', hintEn: 'Easy to clean' },
+  { value: '河沙', label: '河沙', labelEn: 'River Sand', hint: '自然浅色', hintEn: 'Natural light color' },
+  { value: '溪流砂', label: '溪流砂', labelEn: 'Creek Sand', hint: '原生溪流', hintEn: 'Natural river style' },
+  { value: '化妆砂', label: '化妆砂', labelEn: 'Cosmetic Sand', hint: '明亮前景', hintEn: 'Bright foreground' },
+  { value: '水草泥', label: '水草泥', labelEn: 'Aquarium Soil', hint: '草缸首选', hintEn: 'Best for planted tanks' },
+  { value: '黑金沙', label: '黑金沙', labelEn: 'Black Quartz Sand', hint: '显色强烈', hintEn: 'Strong color contrast' },
+  { value: '陶粒', label: '陶粒', labelEn: 'Ceramic Gravel', hint: '透气颗粒', hintEn: 'Porous clay pebbles' },
+  { value: '碎石', label: '碎石', labelEn: 'Gravel', hint: '粗颗粒', hintEn: 'Coarse texture' },
+  { value: '鹅卵石', label: '鹅卵石', labelEn: 'Pebbles', hint: '溪流大石', hintEn: 'Stream river stones' },
+  { value: '珊瑚砂', label: '珊瑚砂', labelEn: 'Coral Sand', hint: '海水/硬水', hintEn: 'Marine / hard water' },
 ];
 
 const plantOptions = fishData
@@ -444,6 +444,156 @@ const tankBuildTemplates: TankBuildTemplate[] = ([
   hardscape: template.hardscape.map(name => findSpeciesValueByName(name, isHardscapeSpecies)),
 }));
 
+const getLocalizedTemplates = (isEn: boolean): TankBuildTemplate[] => {
+  if (!isEn) return tankBuildTemplates;
+  
+  const translations: Record<string, Partial<TankBuildTemplate>> = {
+    'beginner-low-tech': {
+      name: 'Beginner Low-Tech Planted Tank',
+      tagline: 'Low light, low CO2 dependency. Form good stability habits first.',
+      bestFor: '30-60cm starter tanks, office desktop setups',
+      difficulty: 'Beginner',
+      baseEquipment: ['Hang-on-back or small canister filter', 'Standard/entry-level light', 'Optional heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Anubias Nana', 'Java Fern', 'Bolbitis', 'Christmas Moss'],
+      baseHardscape: ['Driftwood', 'Spider Wood'],
+      visualLabel: 'Low Maintenance Greenery',
+      benefitTags: ['Perfect for first tank', 'Low maintenance pressure', 'Desktop friendly'],
+      tankSize: 'At least 30L, 60cm tank is more stable',
+      substrate: 'Aquarium soil',
+      plants: ['Anubias Nana', 'Java Fern', 'Bolbitis', 'Christmas Moss'],
+      hardscape: ['Driftwood', 'Spider Wood'],
+      equipment: ['Hang-on-back or small canister filter', 'Standard/entry-level light', 'Optional heater'],
+      livestock: ['Cardinal Tetra 8-12 pcs', 'Bronze Corydoras 3-5 pcs', 'Zebra Snail 1-2 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '30-60L',
+        maxLivestock: 'Small schooling fish 8-12; bottom corydoras 3-5; snail 1-2',
+        suitableTypes: ['Small tetras', 'Peaceful bottom dwellers', 'A few utility snails'],
+        avoidTypes: ['Large fish', 'High-waste fish', 'Strong territorial fish'],
+      },
+      maintenance: ['Weekly water change of 20%-30%', 'Weekly glass cleaning & pruning old leaves', 'Light 6-7 hours daily; reduce light if algae blooms'],
+      caution: 'Do not bury the rhizomes of Anubias and Java Fern in soil; tie them to driftwood or stones instead.',
+    },
+    'tetra-planted': {
+      name: 'Tetra Planted Tank',
+      tagline: 'Schooling tetras as the visual center, with plants providing depth and safety.',
+      bestFor: '45-90cm small and medium planted tanks',
+      difficulty: 'Beginner',
+      baseEquipment: ['Planted tank light', 'Canister or strong HOB filter', 'Optional CO2', 'Heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Dwarf Hairgrass', 'Rotala Rotundifolia', 'Rotala Green', 'Anubias'],
+      baseHardscape: ['Seiryu Stones', 'Cosmetic Sand'],
+      visualLabel: 'Schooling Nature Scape',
+      benefitTags: ['Great schooling effect', 'Highly ornamental', 'Planted tank starter'],
+      tankSize: 'At least 45L, 60cm or larger recommended',
+      substrate: 'Aquarium soil',
+      plants: ['Dwarf Hairgrass', 'Rotala Rotundifolia', 'Rotala Green', 'Anubias'],
+      hardscape: ['Seiryu Stones', 'Cosmetic Sand'],
+      equipment: ['Planted tank light', 'Canister or strong HOB filter', 'Optional CO2', 'Heater'],
+      livestock: ['Cardinal Tetra 12-20 pcs', 'Rummy-nose Tetra 10-15 pcs', 'Bronze Corydoras 4-6 pcs', 'Cherry Shrimp'],
+      capacityGuidance: {
+        recommendedLiters: '45-90L',
+        maxLivestock: 'Small schooling tetras 18-28; bottom corydoras 4-6; utility shrimp 5-10',
+        suitableTypes: ['Small schooling tetras', 'Peaceful corydoras', 'Utility shrimps'],
+        avoidTypes: ['Large fish', 'Aggressive fish', 'Hard-water sensitive fish'],
+      },
+      maintenance: ['Weekly water change of 30%', 'Prune stem plants every 2 weeks', 'Light 7+ hours daily; reduce red plants if CO2 is unstable'],
+      caution: 'Foreground and red plants are sensitive to light, nutrients, and CO2. Starters can reduce dwarf hairgrass area.',
+    },
+    'shrimp-tank': {
+      name: 'Shrimp Breeding Tank',
+      tagline: 'Provide plenty of hiding spots and biofilms. Focus on water parameter stability.',
+      bestFor: '30-45cm nano tanks, breeding observation setups',
+      difficulty: 'Beginner',
+      baseEquipment: ['Sponge filter', 'Standard light', 'Heater (depending on room temperature)'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Christmas Moss', 'Flame Moss', 'Anubias Nana', 'Bucephalandra'],
+      baseHardscape: ['Driftwood', 'Lava Rock Slabs'],
+      visualLabel: 'Shrimp Observation',
+      benefitTags: ['Shrimp friendly', 'Easy to observe', 'Stable nano setup'],
+      tankSize: 'At least 20L, 30L+ is more stable',
+      substrate: 'Aquarium soil',
+      plants: ['Christmas Moss', 'Flame Moss', 'Anubias Nana', 'Bucephalandra'],
+      hardscape: ['Driftwood', 'Lava Rock Slabs'],
+      equipment: ['Sponge filter', 'Standard light', 'Heater (depending on room temp)'],
+      livestock: ['Cherry Shrimp 10-20 pcs', 'Yellow/Blue Velvet Shrimp (single color group)', 'Zebra Snail 1 pc'],
+      capacityGuidance: {
+        recommendedLiters: '20-40L',
+        maxLivestock: 'Neocaridina shrimp 10-20; snail 1; fish not recommended',
+        suitableTypes: ['Neocaridina/Caridina shrimp', 'Single utility snail', 'Moss/low-light plants'],
+        avoidTypes: ['Fish that prey on shrimp', 'Large fish', 'Combinations requiring frequent medications'],
+      },
+      maintenance: ['Weekly small water change of 10%-20%', 'Keep water temp difference within 1-2°C during changes', 'Avoid copper meds and strong algaecides'],
+      caution: 'Mixing different color shrimp will result in wild-type (brownish) offspring. Keep single colors to preserve breed.',
+    },
+    'south-american-blackwater': {
+      name: 'Amazon Blackwater Tank',
+      tagline: 'Soft, acidic water with driftwood, leaf litter, and dim lighting to show fish colors.',
+      bestFor: '60cm+ display tanks, Apistogramma/Angelfish theme setups',
+      difficulty: 'Intermediate',
+      baseEquipment: ['Canister filter', 'Dim light', 'Heater', 'Blackwater extract / Almond leaves'],
+      baseSubstrate: 'River sand',
+      basePlants: ['Amazon Sword', 'Chain Sword', 'Bolbitis'],
+      baseHardscape: ['Driftwood', 'Spider Wood'],
+      visualLabel: 'Amazon Native',
+      benefitTags: ['Strong atmospheric feel', 'Amazon theme', 'Excellent state display'],
+      tankSize: 'At least 60L, Angelfish requires taller tank',
+      substrate: 'River sand',
+      plants: ['Amazon Sword', 'Chain Sword', 'Bolbitis'],
+      hardscape: ['Driftwood', 'Spider Wood'],
+      equipment: ['Canister filter', 'Dim light', 'Heater', 'Blackwater extract / Almond leaves'],
+      livestock: ['Cardinal Tetra 15-30 pcs', 'Apistogramma 1 pair', 'Angelfish 2-4 pcs', 'Bronze Corydoras 4-6 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '60-120L',
+        maxLivestock: 'Tetras 15-25; Apistogramma 1 pair; Angelfish 2; corydoras 4-6',
+        suitableTypes: ['Acidic Amazon tetras', 'Apistogramma pairs', 'Angelfish', 'Peaceful bottom dwellers'],
+        avoidTypes: ['Hard-water livebearers', 'Large predatory fish', 'High-current stream fish'],
+      },
+      maintenance: ['Weekly water change of 20%', 'Periodically add leaf litter or blackwater extract', 'Keep flow gentle; avoid frequent large pH adjustments'],
+      caution: 'Blackwater setups target stable soft acidic parameters. Do not mix hard-water or high-flow demanding species.',
+    },
+    'seiryu-stone-iwagumi': {
+      name: 'Seiryu Stone Iwagumi Scape',
+      tagline: 'Strong stone composition and clean aesthetics, but tests algae control and hardness management.',
+      bestFor: '45-90cm stone Iwagumi layouts, minimalist planted tanks',
+      difficulty: 'Intermediate',
+      baseEquipment: ['High-power planted light', 'Canister filter', 'CO2 system highly recommended', 'Heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Dwarf Baby Tears', 'Hairgrass', 'Staurogyne Repens'],
+      baseHardscape: ['Seiryu Stones', 'ADA style cosmetic sand'],
+      visualLabel: 'Minimalist Iwagumi',
+      benefitTags: ['Strong visual depth', 'Minimalist style', 'Advanced aquascaping'],
+      tankSize: 'At least 45L, 60cm+ makes it easier to create depth',
+      substrate: 'Aquarium soil',
+      plants: ['Dwarf Baby Tears', 'Hairgrass', 'Staurogyne Repens'],
+      hardscape: ['Seiryu Stones', 'ADA style cosmetic sand'],
+      equipment: ['High-power planted light', 'Canister filter', 'CO2 system highly recommended', 'Heater'],
+      livestock: ['Cardinal Tetra 12-20 pcs', 'Neon Tetra 15-25 pcs', 'Cherry Shrimp', 'Zebra Snail 1-2 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '45-90L',
+        maxLivestock: 'Small tetras 20-30; utility shrimp 5-10; snail 1-2',
+        suitableTypes: ['Small schooling tetras', 'A few utility shrimps', 'Utility snails'],
+        avoidTypes: ['Large fish', 'Bottom-digging fish', 'Sensitive species vulnerable to hardness fluctuations'],
+      },
+      maintenance: ['Weekly water change of 30%-40%', 'Focus on light control and water changes in the first 4 weeks', 'Prune foreground carpet once fully covered'],
+      caution: 'Seiryu stones leach calcium and raise hardness. Monitor GH/KH when keeping soft-water tetras.',
+    },
+  };
+
+  return tankBuildTemplates.map(template => {
+    const tr = translations[template.id];
+    if (!tr) return template;
+    return {
+      ...template,
+      ...tr,
+      capacityGuidance: {
+        ...template.capacityGuidance,
+        ...tr.capacityGuidance,
+      },
+    };
+  });
+};
+
 const safeJsonParse = <T,>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -663,6 +813,8 @@ const loadWishlistFishIds = () => {
 
 export default function AquariumManager() {
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const localizedTemplates = useMemo(() => getLocalizedTemplates(isEn), [isEn]);
   const filterOptionKeys: Record<string, string> = {
     '无': 'none',
     '瀑布过滤': 'filterCascade',
@@ -730,7 +882,7 @@ export default function AquariumManager() {
   const [dailyCheckArticles, setDailyCheckArticles] = useState<typeof careTopicsData>([]);
   const [selectedDailyCheckArticle, setSelectedDailyCheckArticle] = useState<(typeof careTopicsData)[number] | null>(null);
   const [careDiagnosisContext, setCareDiagnosisContext] = useState<CareDiagnosisContext | null>(null);
-  const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(tankBuildTemplates[0].id);
+  const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(localizedTemplates[0].id);
   const [isTankArchiveExpanded, setIsTankArchiveExpanded] = useState(false);
   const [tankArchiveCategory, setTankArchiveCategory] = useState('全部');
   const [isTankContentFilterOpen, setIsTankContentFilterOpen] = useState(false);
@@ -2544,7 +2696,7 @@ export default function AquariumManager() {
   const wishlistFishes = Array.from(wishlistFishIds)
     .map(id => fishData.find(fish => fish.id === id))
     .filter(Boolean) as Fish[];
-  const selectedBuildTemplate = tankBuildTemplates.find(template => template.id === selectedBuildTemplateId) || tankBuildTemplates[0];
+  const selectedBuildTemplate = localizedTemplates.find(template => template.id === selectedBuildTemplateId) || localizedTemplates[0];
   const currentTankVolumeLiters = getTankVolumeLiters(activeAquarium);
   const currentTankLengthCm = parseFloat(activeAquarium.dimensions?.length || '0') || 0;
   const getSpeciesDisplayName = (value: string) => fishData.find(fish => fish.id === value)?.name || value;
@@ -2601,28 +2753,34 @@ export default function AquariumManager() {
 
     const riskItems: string[] = [];
     if (belowMinimum) {
-      riskItems.push(`当前约 ${volumeLiters}L / ${tankLengthCm || '未设置'}cm，低于 ${template.name} 的最低要求 ${template.minVolumeLiters}L / ${template.minLengthCm}cm。`);
+      riskItems.push(isEn 
+        ? `Current water: ~${volumeLiters}L / ${tankLengthCm || 'Not Set'}cm, below minimum requirement ${template.minVolumeLiters}L / ${template.minLengthCm}cm.`
+        : `当前约 ${volumeLiters}L / ${tankLengthCm || '未设置'}cm，低于 ${template.name} 的最低要求 ${template.minVolumeLiters}L / ${template.minLengthCm}cm。`);
     }
     if (existingAnimalLoad > safeLoadBudget * 0.8) {
-      riskItems.push('当前已有动物负载偏高，应用方案时不建议继续加入完整生物组合。');
+      riskItems.push(isEn ? 'Current livestock bioload is high; not recommended to add full stocking list.' : '当前已有动物负载偏高，应用方案时不建议继续加入完整生物组合。');
     }
     if (status !== 'unsuitable' && appliedSpecies.length === 0 && template.speciesRecommendations.length > 0) {
-      riskItems.push('当前鱼缸剩余承载空间不足，方案只建议应用环境配置，暂不新增生物。');
+      riskItems.push(isEn ? 'Insufficient remaining space; only environment settings recommended, no new species added.' : '当前鱼缸剩余承载空间不足，方案只建议应用环境配置，暂不新增生物。');
     }
 
     const school = appliedSpecies.find(item => item.role === 'schooling');
     const omittedSecondSchool = template.speciesRecommendations.filter(item => item.role === 'schooling').length > 1 && status === 'caution';
     const autoFixes = [
-      status === 'caution' && school ? `已根据你的 ${volumeLiters}L 鱼缸调整：建议 ${school.name} ${school.quantity} 条。` : '',
-      omittedSecondSchool ? '不建议同时加入第二种群游鱼，避免满配多个鱼群。' : '',
-      existingAnimalLoad > 0 ? '已预留当前已有生物的承载空间。' : '',
+      status === 'caution' && school ? (isEn ? `Adjusted for your ${volumeLiters}L tank: recommend ${school.name} ${school.quantity} pcs.` : `已根据你的 ${volumeLiters}L 鱼缸调整：建议 ${school.name} ${school.quantity} 条。`) : '',
+      omittedSecondSchool ? (isEn ? 'Do not add a second schooling fish group to avoid overstocking multiple schools.' : '不建议同时加入第二种群游鱼，避免满配多个鱼群。') : '',
+      existingAnimalLoad > 0 ? (isEn ? 'Reserved space for existing livestock in the tank.' : '已预留当前已有生物的承载空间。') : '',
     ].filter(Boolean);
-    const statusLabel = status === 'suitable' ? '适合当前鱼缸' : status === 'caution' ? '可用，已缩减生物' : '不适合当前鱼缸';
+    const statusLabel = status === 'suitable' 
+      ? (isEn ? 'Suitable for active tank' : '适合当前鱼缸') 
+      : status === 'caution' 
+        ? (isEn ? 'Available, scaled list' : '可用，已缩减生物') 
+        : (isEn ? 'Unsuitable for active tank' : '不适合当前鱼缸');
     const ctaLabel = status === 'suitable'
-      ? '应用到当前鱼缸'
+      ? (isEn ? 'Apply to active tank' : '应用到当前鱼缸')
       : status === 'caution'
-        ? '应用调整后的安全方案'
-        : '当前鱼缸偏小';
+        ? (isEn ? 'Apply adjusted safe setup' : '应用调整后的安全方案')
+        : (isEn ? 'Tank size too small' : '当前鱼缸偏小');
 
     return {
       template,
@@ -2633,10 +2791,12 @@ export default function AquariumManager() {
       currentLengthCm: tankLengthCm,
       volumeRatio,
       summary: status === 'unsuitable'
-        ? `当前鱼缸低于最低要求，建议更换更大鱼缸或选择更小方案。`
-        : autoFixes.join(' ') || `当前鱼缸可承接该方案，按 ${volumeLiters}L 水体生成安全组合。`,
+        ? (isEn ? 'Current tank size is below requirements. Larger tank or smaller plan recommended.' : '当前鱼缸低于最低要求，建议更换更大鱼缸或选择更小方案。')
+        : autoFixes.join(' ') || (isEn ? `Tank suitable, safe stocking combination generated for ${volumeLiters}L.` : `当前鱼缸可承接该方案，按 ${volumeLiters}L 水体生成安全组合。`),
       coreConfigSummary: `${template.baseSubstrate} · ${template.baseEquipment.slice(0, 2).join(' · ')}`,
-      livestockSummary: appliedSpecies.length > 0 ? appliedSpecies.map(item => `${item.name} ${item.quantity}`).join(' · ') : '仅应用环境配置，暂不新增生物',
+      livestockSummary: appliedSpecies.length > 0 
+        ? appliedSpecies.map(item => `${item.name} ${item.quantity}`).join(' · ') 
+        : (isEn ? 'Environment setup only, no new species added' : '仅应用环境配置，暂不新增生物'),
       appliedSpecies,
       riskItems,
       autoFixes,
@@ -2644,28 +2804,39 @@ export default function AquariumManager() {
       ctaLabel,
     };
   };
-  const adaptedBuildPlans = tankBuildTemplates.map(template => adaptBuildTemplate(template, activeAquarium));
+  const adaptedBuildPlans = localizedTemplates.map(template => adaptBuildTemplate(template, activeAquarium));
   const selectedAdaptedBuildPlan = adaptedBuildPlans.find(plan => plan.template.id === selectedBuildTemplate.id) || adaptedBuildPlans[0];
   const getTemplateEnvironmentSummary = (template: TankBuildTemplate) => {
-    const heatText = template.equipmentSettings.heater ? '稳定加热' : '室温可养';
-    return `${template.waterType === 'Saltwater' ? '海水' : '淡水'} · ${template.temperatureRange[0]}-${template.temperatureRange[1]}°C · ${heatText}`;
+    const heatText = template.equipmentSettings.heater ? (isEn ? 'Stable Heated' : '稳定加热') : (isEn ? 'Room Temp' : '室温可养');
+    return `${template.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水')} · ${template.temperatureRange[0]}-${template.temperatureRange[1]}°C · ${heatText}`;
   };
   const getTemplateLayoutSummary = (template: TankBuildTemplate) => {
-    const plantNames = template.plants.map(getSpeciesDisplayName).slice(0, 2).join('、') || '少量水草';
-    const hardscapeNames = template.hardscape.map(getSpeciesDisplayName).slice(0, 2).join('、') || '自然造景';
+    const plantNames = template.plants.map(getSpeciesDisplayName).slice(0, 2).join(isEn ? ', ' : '、') || (isEn ? 'Few plants' : '少量水草');
+    const hardscapeNames = template.hardscape.map(getSpeciesDisplayName).slice(0, 2).join(isEn ? ', ' : '、') || (isEn ? 'Natural scape' : '自然造景');
     return `${template.substrate} · ${hardscapeNames} · ${plantNames}`;
   };
   const getTemplateLivestockSummary = (template: TankBuildTemplate) => (
-    template.livestock.slice(0, 3).join(' · ') || '按方案选择生物'
+    template.livestock.slice(0, 3).join(' · ') || (isEn ? 'Select species by plan' : '按方案选择生物')
   );
   const getTemplateEquipmentSummary = (template: TankBuildTemplate) => {
+    const translateEquip = (name: string) => {
+      if (!isEn) return name;
+      if (name === '瀑布过滤') return 'HOB Filter';
+      if (name === '桶滤') return 'Canister Filter';
+      if (name === '上滤') return 'Top Filter';
+      if (name === '海绵过滤') return 'Sponge Filter';
+      if (name === '普通灯') return 'Standard Light';
+      if (name === '水草灯') return 'Planted Light';
+      if (name === '海水灯') return 'Marine Light';
+      return name;
+    };
     const equipment = [
-      template.equipmentSettings.filter,
-      template.equipmentSettings.light,
-      template.equipmentSettings.heater ? '加热棒' : null,
-      template.equipmentSettings.oxygen ? '氧气/气泡石' : null,
+      template.equipmentSettings.filter ? translateEquip(template.equipmentSettings.filter) : null,
+      template.equipmentSettings.light ? translateEquip(template.equipmentSettings.light) : null,
+      template.equipmentSettings.heater ? (isEn ? 'Heater' : '加热棒') : null,
+      template.equipmentSettings.oxygen ? (isEn ? 'Aeration' : '氧气/气泡石') : null,
     ].filter(Boolean);
-    return equipment.join(' · ') || template.equipment.slice(0, 2).join(' · ');
+    return equipment.join(' · ') || template.equipment.slice(0, 2).map(translateEquip).join(' · ');
   };
   const getTemplateVisualImages = (template: TankBuildTemplate) => [
     ...template.hardscape,
@@ -2788,8 +2959,8 @@ export default function AquariumManager() {
       type: 'substrate' as const,
       id: `substrate-${option.value}`,
       value: option.value,
-      label: option.label,
-      hint: option.hint,
+      label: isEn ? option.labelEn : option.label,
+      hint: isEn ? option.hintEn : option.hint,
     })),
     ...availableHardscapeOptions.map(item => ({
       type: 'hardscape' as const,
@@ -2838,46 +3009,50 @@ export default function AquariumManager() {
   }> = [
     {
       id: 'size',
-      title: '尺寸',
+      title: isEn ? 'Dimensions' : '尺寸',
       summary: settingsEstimatedWaterLiters > 0
-        ? `${settingsForm.dimensions?.length || '--'}x${settingsForm.dimensions?.width || '--'}x${settingsForm.dimensions?.height || '--'}cm · 约 ${settingsEstimatedWaterLiters}L`
-        : '长宽高未完整填写',
+        ? `${settingsForm.dimensions?.length || '--'}x${settingsForm.dimensions?.width || '--'}x${settingsForm.dimensions?.height || '--'}cm · ${isEn ? `~${Math.round(settingsEstimatedWaterLiters)}L` : `约 ${settingsEstimatedWaterLiters}L`}`
+        : (isEn ? 'Incomplete dimensions' : '长宽高未完整填写'),
       configured: Boolean(settingsForm.dimensions?.length && settingsForm.dimensions?.width && settingsForm.dimensions?.height),
     },
     {
       id: 'parameters',
-      title: '参数',
-      summary: `${settingsForm.waterType === 'Saltwater' ? '海水' : '淡水'} · ${settingsForm.targetTemperature || '--'}°C`,
+      title: isEn ? 'Parameters' : '参数',
+      summary: `${settingsForm.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水')} · ${settingsForm.targetTemperature || '--'}°C`,
       configured: Boolean(settingsForm.waterType && settingsForm.targetTemperature),
     },
     {
       id: 'substrate',
-      title: '底砂',
+      title: isEn ? 'Substrate' : '底砂',
       summary: currentSubstrate !== '无' || selectedHardscapeNames.length > 0
-        ? [currentSubstrate !== '无' ? currentSubstrate : null, ...selectedHardscapeNames].filter(Boolean).join('、')
-        : '未选择底砂或造景',
+        ? [currentSubstrate !== '无' ? (isEn ? (substrateOptions.find(opt => opt.value === currentSubstrate)?.labelEn || currentSubstrate) : currentSubstrate) : null, ...selectedHardscapeNames].filter(Boolean).join(isEn ? ', ' : '、')
+        : (isEn ? 'No substrate or hardscape selected' : '未选择底砂或造景'),
       configured: currentSubstrate !== '无' || selectedHardscapeCount > 0,
     },
     {
       id: 'plants',
-      title: '水草',
-      summary: selectedPlantNames.length > 0 ? selectedPlantNames.join('、') : '未选择水草',
+      title: isEn ? 'Plants' : '水草',
+      summary: selectedPlantNames.length > 0 ? selectedPlantNames.join(isEn ? ', ' : '、') : (isEn ? 'No plants selected' : '未选择水草'),
       configured: selectedPlantCount > 0,
     },
     {
       id: 'lighting',
-      title: '灯光',
-      summary: settingsForm.equipment?.light && settingsForm.equipment.light !== '无' ? settingsForm.equipment.light : '未选择灯光',
+      title: isEn ? 'Lighting' : '灯光',
+      summary: settingsForm.equipment?.light && settingsForm.equipment.light !== '无' 
+        ? (isEn ? (t(`aquarium.${lightOptionKeys[settingsForm.equipment.light] || 'none'}`) || settingsForm.equipment.light) : settingsForm.equipment.light) 
+        : (isEn ? 'No lighting selected' : '未选择灯光'),
       configured: Boolean(settingsForm.equipment?.light && settingsForm.equipment.light !== '无'),
     },
     {
       id: 'equipment',
-      title: '设备',
+      title: isEn ? 'Equipment' : '设备',
       summary: [
-        settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无' ? settingsForm.equipment.filter : null,
-        settingsForm.equipment?.heater ? '加热棒' : null,
-        settingsForm.equipment?.oxygen ? '氧气/气泡石' : null,
-      ].filter(Boolean).join('、') || '未选择过滤或辅助设备',
+        settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无' 
+          ? (isEn ? (t(`aquarium.${filterOptionKeys[settingsForm.equipment.filter] || 'none'}`) || settingsForm.equipment.filter) : settingsForm.equipment.filter) 
+          : null,
+        settingsForm.equipment?.heater ? (isEn ? 'Heater' : '加热棒') : null,
+        settingsForm.equipment?.oxygen ? (isEn ? 'Aeration' : '氧气/气泡石') : null,
+      ].filter(Boolean).join(isEn ? ', ' : '、') || (isEn ? 'No filter or auxiliary equipment selected' : '未选择过滤或辅助设备'),
       configured: Boolean(
         (settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无')
         || settingsForm.equipment?.heater
@@ -3239,34 +3414,42 @@ export default function AquariumManager() {
       : item.source === 'plant'
         ? '已配置水草'
         : item.source === 'substrate'
-          ? '当前底砂'
-          : '已配置造景',
+          ? (isEn ? 'Current Substrate' : '当前底砂')
+          : (isEn ? 'Configured Hardscape' : '已配置造景'),
   }));
-  if (activeAquarium.substrate && activeAquarium.substrate !== '无' && !tankConfiguredContentItems.some(item => item.category === '底砂')) {
+  if (activeAquarium.substrate && activeAquarium.substrate !== '无' && !tankConfiguredContentItems.some(item => item.category === '底砂' || item.category === 'Substrate')) {
     const substrateMeta = substrateOptions.find(item => item.value === activeAquarium.substrate);
     tankConfiguredContentItems.push({
       id: `substrate-${activeAquarium.substrate}`,
       fish: null,
-      name: substrateMeta?.label || activeAquarium.substrate,
-      category: '底砂',
+      name: isEn ? (substrateMeta?.labelEn || activeAquarium.substrate) : (substrateMeta?.label || activeAquarium.substrate),
+      category: isEn ? 'Substrate' : '底砂',
       quantity: 1,
       acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
       source: 'substrate',
-      description: substrateMeta?.hint ? `当前底砂 · ${substrateMeta.hint}` : '当前底砂配置',
+      description: substrateMeta ? (isEn ? `Current Substrate · ${substrateMeta.hintEn}` : `当前底砂 · ${substrateMeta.hint}`) : (isEn ? 'Current substrate setup' : '当前底砂配置'),
     });
   }
   const equipmentSummaryItems = [
-    activeAquarium.equipment?.filter && `过滤：${activeAquarium.equipment.filter}`,
-    activeAquarium.equipment?.light && `灯光：${activeAquarium.equipment.light}`,
-    typeof activeAquarium.equipment?.heater === 'boolean' && (activeAquarium.equipment.heater ? '加热棒：已开启' : '加热棒：未开启'),
-    typeof activeAquarium.equipment?.oxygen === 'boolean' && (activeAquarium.equipment.oxygen ? '氧气：已开启' : '氧气：未开启'),
+    activeAquarium.equipment?.filter && (isEn 
+      ? `Filter: ${t(`aquarium.${filterOptionKeys[activeAquarium.equipment.filter] || 'none'}`) || activeAquarium.equipment.filter}`
+      : `过滤：${activeAquarium.equipment.filter}`),
+    activeAquarium.equipment?.light && (isEn 
+      ? `Lighting: ${t(`aquarium.${lightOptionKeys[activeAquarium.equipment.light] || 'none'}`) || activeAquarium.equipment.light}`
+      : `灯光：${activeAquarium.equipment.light}`),
+    typeof activeAquarium.equipment?.heater === 'boolean' && (activeAquarium.equipment.heater 
+      ? (isEn ? 'Heater: On' : '加热棒：已开启') 
+      : (isEn ? 'Heater: Off' : '加热棒：未开启')),
+    typeof activeAquarium.equipment?.oxygen === 'boolean' && (activeAquarium.equipment.oxygen 
+      ? (isEn ? 'Aeration: On' : '氧气：已开启') 
+      : (isEn ? 'Aeration: Off' : '氧气：未开启')),
   ].filter(Boolean) as string[];
   if (equipmentSummaryItems.length > 0) {
     tankConfiguredContentItems.push({
       id: 'equipment-summary',
       fish: null,
-      name: '设备配置',
-      category: '设备',
+      name: isEn ? 'Equipment Setup' : '设备配置',
+      category: isEn ? 'Equipment' : '设备',
       quantity: equipmentSummaryItems.length,
       acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
       source: 'equipment',
@@ -3276,7 +3459,7 @@ export default function AquariumManager() {
   const filteredTankContentItems = tankConfiguredContentItems;
   const formatTankContentDate = (dateValue: string) => {
     const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return '时间未知';
+    if (Number.isNaN(date.getTime())) return isEn ? 'Unknown time' : '时间未知';
     return format(date, 'yyyy/MM/dd');
   };
   const ownedArchivePreviewItems = tankConfiguredContentItems

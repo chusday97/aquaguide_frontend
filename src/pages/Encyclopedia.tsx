@@ -187,8 +187,10 @@ const getAquariumSnapshots = () => {
   }
 };
 
-const getTemperamentLabel = (temperament: Fish['temperament']) => (
-  temperament === 'Peaceful' ? '温和' : temperament === 'Aggressive' ? '凶猛' : '领地意识强'
+const getTemperamentLabel = (temperament: Fish['temperament'], isEn?: boolean) => (
+  isEn
+    ? (temperament === 'Peaceful' ? 'Peaceful' : temperament === 'Aggressive' ? 'Aggressive' : 'Territorial')
+    : (temperament === 'Peaceful' ? '温和' : temperament === 'Aggressive' ? '凶猛' : '领地意识强')
 );
 
 const getSizeLabel = (size: Fish['size']) => (
@@ -451,6 +453,7 @@ function AnimatedFishBackground() {
 
 export default function Encyclopedia() {
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const filterLabelKeys: Record<string, string> = {
     '全部': 'all',
     '淡水': 'freshwater',
@@ -2374,10 +2377,10 @@ export default function Encyclopedia() {
                     <div className="mt-3 grid gap-2">
                       <div className="rounded-[12px] bg-bg p-2">
                         <div className="text-[10px] font-bold text-ink/42">{t('encyclopedia.temperamentMixing')}</div>
-                        <div className="mt-1 text-[12px] font-black text-ink">{getTemperamentLabel(selectedFish.temperament)} · {selectedFish.housingMode || '需观察'}</div>
+                        <div className="mt-1 text-[12px] font-black text-ink">{getTemperamentLabel(selectedFish.temperament, isEn)} · {selectedFish.housingMode || (isEn ? 'Observe' : '需观察')}</div>
                       </div>
                       <p className="rounded-[12px] bg-bg p-2 text-[11px] font-medium leading-relaxed text-ink/65">
-                        {selectedFish.housingReason || '建议加入混养计算后再确认。'}
+                        {selectedFish.housingReason || (isEn ? 'Recommended to run compatibility check first.' : '建议加入混养计算后再确认。')}
                       </p>
                       {selectedFit.risks.length > 0 && (
                         <div className="grid gap-1.5">

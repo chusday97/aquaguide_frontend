@@ -57,8 +57,9 @@
 
 ### Changed
 
-- 优化默认语言包逻辑：默认使用英文（en）作为包的主语言和 fallbackLng，如果浏览器语言是中文（如 zh-CN, zh-TW）则自适应切换为中文（zh-CN）。
-- 确定性结果页由长文字堆叠改为“视觉结论层 + 折叠证据层”；点击关联对象只切换说明，不重新计算或改变风险结论。
+- 全面本地化五个核心页面与弹窗：`Collection.tsx`（水族册）、`Identify.tsx`（拍照识别）、`Encyclopedia.tsx`（图鉴）、`CareEncyclopedia.tsx`（养护百科）与 `Aquarium.tsx`（鱼缸管理器）。
+- 动态转换底砂选项（`substrateOptions`）和五种建缸方案模板（`tankBuildTemplates`）的中文展示文本为对应英文属性。
+- 本地化每日检查状态判定、养护紧急状态等级（`CareUrgencyTag`）及动作详情提示，确保无缝切换与持久化语言设置。
 
 
 - 物种与养护内容 API 支持 `locale=zh-CN|en`；未发布英文内容安全回退中文，规则仍使用中文主数据。

@@ -39,33 +39,37 @@ const aquariumVolume = (aquarium?: Aquarium | null) => {
   return Number.isFinite(liters) && liters > 0 ? (isEn ? `~${Math.round(liters)}L` : `约 ${Math.round(liters)}L`) : (isEn ? 'Not filled' : '未填写');
 };
 
-const buildSnapshot = (aquarium?: Aquarium | null) => ({
-  aquariumId: aquarium?.id || 'unselected',
-  waterType: aquarium?.waterType || (isEn ? 'No aquarium selected' : '未选择鱼缸'),
-  temperature: aquarium?.targetTemperature ? `${aquarium.targetTemperature}°C` : (isEn ? 'Not filled' : '未填写'),
-  volume: aquariumVolume(aquarium),
-  stocked: aquarium?.fishes.map(item => {
-    const fish = fishData.find(candidate => candidate.id === item.fishId);
-    return `${fish?.name || item.fishId} × ${item.quantity}`;
-  }).join(isEn ? ', ' : '、') || (isEn ? 'Empty or no aquarium selected' : '空缸或未选择鱼缸'),
-  recentWaterChange: aquarium?.lastWaterChangeDate || (isEn ? 'No record' : '未记录'),
-  recentFeeding: isEn ? 'No record' : '未记录',
-  recentAddedSpecies: aquarium?.fishes.some(item => {
-    const entered = new Date(item.entryDate).getTime();
-    return Number.isFinite(entered) && Date.now() - entered < 7 * 86_400_000;
-  }) ? (isEn ? 'New stocking in last 7 days' : '近 7 天有新生物入缸') : (isEn ? 'No stocking in last 7 days' : '未发现近 7 天新增记录'),
-  dimensions: aquarium?.dimensions ? `${aquarium.dimensions.length}×${aquarium.dimensions.width}×${aquarium.dimensions.height}cm` : undefined,
-  equipment: aquarium?.equipment
-    ? [aquarium.equipment.filter && isEn ? `Filter:${aquarium.equipment.filter}` : `过滤:${aquarium.equipment.filter}`, aquarium.equipment.oxygen ? (isEn ? 'Aeration:Yes' : '增氧:有') : (isEn ? 'Aeration:No record' : '增氧:未记录'), aquarium.equipment.heater ? (isEn ? 'Heater:Yes' : '加热:有') : (isEn ? 'Heater:No record' : '加热:未记录')].filter(Boolean).join('；')
-    : undefined,
-  livestockCount: aquarium?.fishes.reduce((sum, item) => sum + Math.max(1, item.quantity || 1), 0),
-});
+const buildSnapshot = (aquarium?: Aquarium | null) => {
+  const isEn = i18n.language === 'en';
+  return {
+    aquariumId: aquarium?.id || 'unselected',
+    waterType: aquarium?.waterType || (isEn ? 'No aquarium selected' : '未选择鱼缸'),
+    temperature: aquarium?.targetTemperature ? `${aquarium.targetTemperature}°C` : (isEn ? 'Not filled' : '未填写'),
+    volume: aquariumVolume(aquarium),
+    stocked: aquarium?.fishes.map(item => {
+      const fish = fishData.find(candidate => candidate.id === item.fishId);
+      return `${fish?.name || item.fishId} × ${item.quantity}`;
+    }).join(isEn ? ', ' : '、') || (isEn ? 'Empty or no aquarium selected' : '空缸或未选择鱼缸'),
+    recentWaterChange: aquarium?.lastWaterChangeDate || (isEn ? 'No record' : '未记录'),
+    recentFeeding: isEn ? 'No record' : '未记录',
+    recentAddedSpecies: aquarium?.fishes.some(item => {
+      const entered = new Date(item.entryDate).getTime();
+      return Number.isFinite(entered) && Date.now() - entered < 7 * 86_400_000;
+    }) ? (isEn ? 'New stocking in last 7 days' : '近 7 天有新生物入缸') : (isEn ? 'No stocking in last 7 days' : '未发现近 7 天新增记录'),
+    dimensions: aquarium?.dimensions ? `${aquarium.dimensions.length}×${aquarium.dimensions.width}×${aquarium.dimensions.height}cm` : undefined,
+    equipment: aquarium?.equipment
+      ? [aquarium.equipment.filter && isEn ? `Filter:${aquarium.equipment.filter}` : `过滤:${aquarium.equipment.filter}`, aquarium.equipment.oxygen ? (isEn ? 'Aeration:Yes' : '增氧:有') : (isEn ? 'Aeration:No record' : '增氧:未记录'), aquarium.equipment.heater ? (isEn ? 'Heater:Yes' : '加热:有') : (isEn ? 'Heater:No record' : '加热:未记录')].filter(Boolean).join('；')
+      : undefined,
+    livestockCount: aquarium?.fishes.reduce((sum, item) => sum + Math.max(1, item.quantity || 1), 0),
+  };
+};
 
 const statusFromUrgency = (urgency: SpeciesDiagnosisStepOutput['urgency']): VisualResultStatus => urgency;
 
 
 export default function Identify() {
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const navigate = useNavigate();
   const { navigateToRoute, registerNavigationGuard } = useWorkspaceNavigation();
   const { showToast } = useToast();

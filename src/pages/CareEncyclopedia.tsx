@@ -91,6 +91,20 @@ type StepDiagnosisState = {
   result: StepDiagnosisResult | null;
 };
 type CareUrgencyTag = '科普了解' | '入缸前准备' | '观察为主' | '阶段护理' | '建议尽快处理' | '需要立即处理' | '谨慎操作';
+
+const getUrgencyTagLabel = (tag: CareUrgencyTag, isEn: boolean) => {
+  if (!isEn) return tag;
+  const map: Record<CareUrgencyTag, string> = {
+    '科普了解': 'Info',
+    '入缸前准备': 'Pre-Stocking',
+    '观察为主': 'Observation',
+    '阶段护理': 'Routine Care',
+    '建议尽快处理': 'ASAP',
+    '需要立即处理': 'Immediate',
+    '谨慎操作': 'Caution',
+  };
+  return map[tag] || tag;
+};
 type CareGuideType = 'diagnosis' | 'procedure' | 'careChecklist' | 'knowledge' | 'reminder';
 type CareActionLevel = '日常学习' | '操作指南' | '建议关注' | '立即排查';
 type CareHomeMeta = {
@@ -2568,7 +2582,7 @@ export function CareArticleDetail({
                   <span key={tag} className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/50">{tag}</span>
                 ))}
                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
-                  {meta.urgencyTag}
+                  {getUrgencyTagLabel(meta.urgencyTag, isEn)}
                 </span>
               </div>
               <div className="flex items-start gap-2">
@@ -2628,17 +2642,17 @@ export function CareArticleDetail({
             <section className="mt-4 rounded-[22px] border border-emerald-100 bg-[#F8FCF8] p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[16px] font-black text-ink">操作后注意</div>
-                  <div className="mt-0.5 text-[11px] font-bold text-ink/45">完成操作后，继续观察状态并保持环境平稳。</div>
+                  <div className="text-[16px] font-black text-ink">{isEn ? 'Post-Operation Notes' : '操作后注意'}</div>
+                  <div className="mt-0.5 text-[11px] font-bold text-ink/45">{isEn ? 'After operation, monitor the tank and maintain stable conditions.' : '完成操作后，继续观察状态并保持环境平稳。'}</div>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
-                  {meta.urgencyTag}
+                  {getUrgencyTagLabel(meta.urgencyTag, isEn)}
                 </span>
               </div>
 
               {procedureReminders.length > 0 && (
                 <div className="mt-3 rounded-[16px] bg-yellow-50 px-3 py-3">
-                  <div className="text-[12px] font-black text-yellow-800">操作提醒</div>
+                  <div className="text-[12px] font-black text-yellow-800">{isEn ? 'Operation Reminders' : '操作提醒'}</div>
                   <div className="mt-2 grid gap-2">
                     {procedureReminders.slice(0, 3).map(item => (
                       <div key={item.title} className="rounded-[13px] bg-white/72 px-3 py-2">
@@ -2660,16 +2674,18 @@ export function CareArticleDetail({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[16px] font-black text-ink">
-                    {meta.guideType === 'careChecklist' ? '护理清单' : '完整说明'}
+                    {meta.guideType === 'careChecklist'
+                      ? (isEn ? 'Care Checklist' : '护理清单')
+                      : (isEn ? 'Full Description' : '完整说明')}
                   </div>
                   <div className="mt-0.5 text-[11px] font-bold text-ink/45">
                     {meta.guideType === 'careChecklist'
-                        ? '按阶段照料，重点是稳定、观察和少量操作。'
-                        : '先理解原理，再决定是否需要操作。'}
+                        ? (isEn ? 'Care by phase, focusing on stability, observation, and minimal operations.' : '按阶段照料，重点是稳定、观察和少量操作。')
+                        : (isEn ? 'Understand the logic first, then decide whether to operate.' : '先理解原理，再决定是否需要操作。')}
                   </div>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
-                  {meta.urgencyTag}
+                  {getUrgencyTagLabel(meta.urgencyTag, isEn)}
                 </span>
               </div>
 
