@@ -57,6 +57,8 @@
 
 ### Changed
 
+- 修复 `getLifeType` 在英文模式下因分类字段 `Amphibians/Reptiles` 变更导致六角恐龙（`Ambystoma mexicanum`）错误归类为“淡水特色鱼”的问题，精准重建其两栖/爬宠（`Reptile / Amphibian`）分类。
+- 本地化物种角色标签（`getSpeciesRoleLabel` / `getSpeciesPositioning`），在英文模式下自动转换“观赏生物 / 鱼缸搭配”、“工具虾螺 / 除藻生物”等为“Ornamental Creature / Tank Mix”等标准英文标签。
 - 彻底清除 `localizeDataAuto.ts` 自动翻译数据中残留的 `[EN]` 前缀，并在 `applyLocalization` 中增加正则剥离处理，确保物种英文名无杂质。
 - 新增 `getLocalizedAquariumName` 动态翻译函数，将默认与自动编号鱼缸名称（如“我的鱼缸”、“我的鱼缸 1”）在英文模式下自动映射为“My Aquarium / My Aquarium 1”，同时保留用户自定义名称。
 - 深度本地化 `Aquarium.tsx`（首页/鱼缸管理器）、`Home.tsx`、`CollectionHub.tsx`、`SpeciesDetailDialog.tsx` 与 `CompatibilityRiskCalculator.tsx` 剩余全部 100+ 处硬编码中文文本，包括基础容量、诊断排查、水质警告、养护指南、确认弹窗及各组件辅助描述。

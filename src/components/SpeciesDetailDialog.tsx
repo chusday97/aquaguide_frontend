@@ -203,17 +203,8 @@ const toRuleFitStatus = (status: FitStatus): RuleFitStatus => {
   return 'unknown';
 };
 
-const getSpeciesRole = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  const taxonomy = getCareTaxonomyPath(fish);
-  if (getSecondaryCareType(fish) === '水母') return '观赏生物 / 特殊缸体';
-  if (getSecondaryCareType(fish) === '海葵') return '观赏生物 / 海水特殊养护';
-  if (taxonomy.waterType.includes('水草') || fish.category.includes('水草')) return '水草造景 / 环境植物';
-  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
-  if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
-  if (tools.includes('清残饵')) return '底层生物 / 清残饵';
-  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  return getLifeType(fish) === 'invertebrate' ? '工具生物 / 生态搭配' : '观赏生物 / 鱼缸搭配';
+const getSpeciesRole = (fish: Fish, isEn = false) => {
+  return getSpeciesRoleLabel(fish, isEn);
 };
 
 const getSexIdentificationGuide = (fish: Fish) => {
@@ -978,7 +969,7 @@ export function SpeciesDetailDialog({
                         );
                       })}
                     </div>
-                    <p className="mt-3 line-clamp-1 text-[12px] font-medium leading-relaxed text-ink/62">{getSpeciesRole(fish)}</p>
+                    <p className="mt-3 line-clamp-1 text-[12px] font-medium leading-relaxed text-ink/62">{getSpeciesRole(fish, isEn)}</p>
                   </div>
                 </div>
 
