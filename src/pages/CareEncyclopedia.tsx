@@ -587,10 +587,13 @@ const copyPlainText = async (text: string) => {
   }
 };
 
-const getCareImage = (topic: CareTopic) => {
+const getCareImage = (topic: CareTopic, isEn = false) => {
   if (!topic.imageUrl) return '';
-  if (topic.imageUrl.startsWith('/')) return topic.imageUrl;
-  return `/${topic.imageUrl}`;
+  let url = topic.imageUrl.startsWith('/') ? topic.imageUrl : `/${topic.imageUrl}`;
+  if (isEn && url.includes('pregnant_fish_breeder_box')) {
+    return '/assets/qa/pregnant_fish_breeder_box.png';
+  }
+  return url;
 };
 
 const displayTitleMapEn: Record<string, string> = {
@@ -1944,9 +1947,10 @@ export default function CareEncyclopedia() {
 }
 
 function CareImage({ topic, className, showPreviewHint = false }: { topic: CareTopic; className: string; showPreviewHint?: boolean }) {
+  const { i18n } = useTranslation();
   const isEn = i18n.language === 'en';
   const Icon = categoryIconMap[topic.category] || HelpCircle;
-  const image = getCareImage(topic);
+  const image = getCareImage(topic, isEn);
   const visualSources = image ? getCareVisualSources(image) : null;
   return (
     <div className={`relative flex items-center justify-center overflow-hidden bg-[#F7F4EC] ${className}`}>
@@ -1976,6 +1980,8 @@ function CareShareCardPreview({
   topic: CareTopic;
   cardRef: RefObject<HTMLDivElement | null>;
 }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const careCard = buildCareCard(topic);
   return (
     <div

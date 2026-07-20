@@ -316,7 +316,7 @@ export const getSpeciesRoleLabel = (fish: Fish, isEn = false) => {
   if (tools.includes('除藻')) return lifeType === 'invertebrate' ? (isEn ? 'Cleaner Shrimp/Snail / Algae Control' : '工具虾螺 / 除藻生物') : (isEn ? 'Utility Creature / Algae Helper' : '工具生物 / 除藻辅助');
   if (tools.includes('清残饵')) return isEn ? 'Bottom Dweller / Scavenger' : '底层生物 / 清残饵';
   if (lifeType === 'reptile') return isEn ? 'Semi-Aquatic / Standalone Tank' : '水陆生物 / 独立规划';
-  if (fish.housingMode === '建议单养' || fish.housingMode === 'Single Specimen') return isEn ? 'Feature Specimen / Single Species' : '观赏主角 / 建议单养';
+  if (fish.housingMode === '建议单养' || (fish.housingMode as string) === 'Single Specimen') return isEn ? 'Feature Specimen / Single Species' : '观赏主角 / 建议单养';
   if (fish.size === 'Small' && fish.temperament === 'Peaceful') return isEn ? 'Small Fish / Schooling Mix' : '小型观赏鱼 / 群游搭配';
   return lifeType === 'invertebrate' ? (isEn ? 'Ornamental Invertebrate / Eco Balance' : '观赏无脊椎 / 生态搭配') : (isEn ? 'Ornamental Creature / Tank Mix' : '观赏生物 / 鱼缸搭配');
 };
@@ -327,8 +327,8 @@ export const getSpeciesPositioning = (fish: Fish, isEn = false) => {
   const tools = getToolFunctions(fish);
   if (tools.includes('除藻')) return isEn ? 'Suitable as an algae control helper' : '适合作为除藻辅助生物';
   if (tools.includes('清残饵')) return isEn ? 'Suitable bottom dweller for clearing leftover food' : '适合清理残饵的底层生物';
-  if (fish.housingMode === '建议单养' || fish.housingMode === 'Single Specimen') return isEn ? 'Best suited for single species keeping' : '更适合单独饲养观察';
-  if (fish.housingMode === '谨慎混养' || fish.housingMode === 'Caution Mix') return isEn ? 'Compatible, but confirm tank mates first' : '可混养，但需要先确认同缸对象';
+  if (fish.housingMode === '建议单养' || (fish.housingMode as string) === 'Single Specimen') return isEn ? 'Best suited for single species keeping' : '更适合单独饲养观察';
+  if (fish.housingMode === '谨慎混养' || (fish.housingMode as string) === 'Caution Mix') return isEn ? 'Compatible, but confirm tank mates first' : '可混养，但需要先确认同缸对象';
   if (fish.difficulty === 'Easy' && fish.size === 'Small') return isEn ? 'Beginner-friendly small ornamental species' : '适合新手的小型观赏生物';
   return fish.temperament === 'Peaceful' ? (isEn ? 'Suitable for peaceful community tanks' : '适合温和社区缸搭配') : (isEn ? 'Requires attention to temperament and tank space' : '需要留意性情和空间');
 };

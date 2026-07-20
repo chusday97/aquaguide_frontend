@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
-import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/species/species.service';
+import { getCareTaxonomyPath, getLifeType, getSpeciesRoleLabel, getToolFunctions } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
 import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
