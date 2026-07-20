@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fishData } from '../data/fishData';
 import i18n from '../i18n';
+import { getLocalizedAquariumName } from '../i18n/localizeData';
 import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
@@ -504,10 +505,13 @@ const getCommonPreviewSpecies = () => (
     .filter((fish): fish is Fish => Boolean(fish))
 );
 
-const getAquariumLabel = (aquarium?: Aquarium | null) => {
-  if (!aquarium) return '未选择鱼缸';
+const getAquariumLabel = (aquarium?: Aquarium | null, isEn = false) => {
+  if (!aquarium) return isEn ? 'No Tank Selected' : '未选择鱼缸';
   const volume = getAquariumVolumeLiters(aquarium);
-  return `${aquarium.name || '我的鱼缸'} · ${volume ? `${volume}L` : '容量待补充'} · ${aquarium.waterType === 'Saltwater' ? '海水' : '淡水'}`;
+  const name = getLocalizedAquariumName(aquarium.name, isEn);
+  const typeLabel = aquarium.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水');
+  const capLabel = volume ? `${volume}L` : (isEn ? 'Pending Capacity' : '容量待补充');
+  return `${name} · ${capLabel} · ${typeLabel}`;
 };
 
 export function CompatibilityRiskCalculator({
@@ -521,6 +525,7 @@ export function CompatibilityRiskCalculator({
   aquariums = [],
   activeAquariumId = '',
 }: CompatibilityRiskCalculatorProps = {}) {
+  const isEn = i18n.language === 'en';
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSpeciesIds, setInternalSpeciesIds] = useState<string[]>([]);
   const [resultFeedback, setResultFeedback] = useState('');
@@ -694,8 +699,8 @@ export function CompatibilityRiskCalculator({
       return next;
     });
     setResultFeedback(livestockIds.length > 0
-      ? `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`
-      : '当前鱼缸暂无可导入的活体生物。');
+      ? (isEn ? `Imported ${livestockIds.length} species from ${getAquariumLabel(selectedAquarium, isEn)}.` : `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`)
+      : (isEn ? 'No species available to import from active tank.' : '当前鱼缸暂无可导入的活体生物。'));
   };
   const performAddToAquarium = async () => {
     if (isAddingToAquarium) return;
@@ -804,13 +809,13 @@ export function CompatibilityRiskCalculator({
                   className="min-w-0 flex-1 bg-transparent text-[12px] font-black outline-none"
                 >
                   {aquariums.map(aquarium => (
-                    <option key={aquarium.id} value={aquarium.id}>{getAquariumLabel(aquarium)}</option>
+                    <option key={aquarium.id} value={aquarium.id}>{getAquariumLabel(aquarium, isEn)}</option>
                   ))}
                 </select>
                 <ChevronDown className="h-3.5 w-3.5 text-ink/35" />
               </label>
             ) : (
-              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/58">{getAquariumLabel(selectedAquarium)}</div>
+              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/58">{getAquariumLabel(selectedAquarium, isEn)}</div>
             )}
             {currentLivestock.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1004,7 +1009,7 @@ export function CompatibilityRiskCalculator({
                       onClick={onViewAquarium}
                       className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-emerald-800 shadow-sm"
                     >
-                      查看我的鱼缸
+                      {isEn ? 'View My Aquarium' : '查看我的鱼缸'}
                     </button>
                   )}
                 </div>

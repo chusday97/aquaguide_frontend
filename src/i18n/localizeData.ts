@@ -370,3 +370,11 @@ export const applyLocalization = (lng: string) => {
     }
   });
 };
+
+export const getLocalizedAquariumName = (name: string | undefined, isEn: boolean): string => {
+  if (!name) return isEn ? 'My Aquarium' : '我的鱼缸';
+  if (isEn) {
+    return name.replace(/^我的鱼缸/g, 'My Aquarium');
+  }
+  return name;
+};

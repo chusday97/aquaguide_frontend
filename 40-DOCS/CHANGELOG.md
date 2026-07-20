@@ -58,7 +58,8 @@
 ### Changed
 
 - 彻底清除 `localizeDataAuto.ts` 自动翻译数据中残留的 `[EN]` 前缀，并在 `applyLocalization` 中增加正则剥离处理，确保物种英文名无杂质。
-- 深度本地化 `Aquarium.tsx`（首页/鱼缸管理器）剩余全部 100+ 处硬编码中文文本，包括基础容量、诊断排查、水质警告、养护指南、确认弹窗及各组件辅助描述。
+- 新增 `getLocalizedAquariumName` 动态翻译函数，将默认与自动编号鱼缸名称（如“我的鱼缸”、“我的鱼缸 1”）在英文模式下自动映射为“My Aquarium / My Aquarium 1”，同时保留用户自定义名称。
+- 深度本地化 `Aquarium.tsx`（首页/鱼缸管理器）、`Home.tsx`、`CollectionHub.tsx`、`SpeciesDetailDialog.tsx` 与 `CompatibilityRiskCalculator.tsx` 剩余全部 100+ 处硬编码中文文本，包括基础容量、诊断排查、水质警告、养护指南、确认弹窗及各组件辅助描述。
 - 全面本地化五个核心页面与弹窗：`Collection.tsx`（水族册）、`Identify.tsx`（拍照识别）、`Encyclopedia.tsx`（图鉴）、`CareEncyclopedia.tsx`（养护百科）与 `Aquarium.tsx`（鱼缸管理器）。
 - 动态转换底砂选项（`substrateOptions`）和五种建缸方案模板（`tankBuildTemplates`）的中文展示文本为对应英文属性。
 - 本地化每日检查状态判定、养护紧急状态等级（`CareUrgencyTag`）及动作详情提示，确保无缝切换与持久化语言设置。

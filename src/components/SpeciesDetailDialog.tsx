@@ -431,7 +431,8 @@ export function SpeciesDetailDialog({
   onOpenTankSettings,
   onRecordDeath,
 }: SpeciesDetailDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const translateLabel = (label: string) => {
     if (label === '水体类型') return t('encyclopedia.waterType');
     if (label === '温度') return t('encyclopedia.tempLabelBasic');
@@ -1029,16 +1030,16 @@ export function SpeciesDetailDialog({
                       <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => onAddToTank(fish)}>
                         <Plus className="mr-1 h-4 w-4" />{
                           displayFit.status === 'unknown'
-                            ? '先配置鱼缸环境'
+                            ? (isEn ? 'Configure Tank First' : '先配置鱼缸环境')
                             : displayFit.status === 'conflictRisk'
-                              ? '查看风险后确认添加'
+                              ? (isEn ? 'Check Risks Then Add' : '查看风险后确认添加')
                               : displayFit.status === 'setupNeeded'
-                                ? displayFit.isEmptyTank ? '完善鱼缸环境' : '调整后加入'
+                                ? displayFit.isEmptyTank ? (isEn ? 'Improve Tank Setup' : '完善鱼缸环境') : (isEn ? 'Adjust Then Add' : '调整后加入')
                                 : displayFit.status === 'unsuitable'
-                                  ? '先配置鱼缸环境'
+                                  ? (isEn ? 'Configure Tank First' : '先配置鱼缸环境')
                                   : displayFit.status === 'needConfirmation'
-                                    ? '补充确认后加入'
-                                  : '添加到我的鱼缸'
+                                    ? (isEn ? 'Confirm Then Add' : '补充确认后加入')
+                                  : (isEn ? 'Add to My Aquarium' : '添加到我的鱼缸')
                         }
                       </Button>
                     ) : null}

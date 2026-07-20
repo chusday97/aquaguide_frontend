@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { getLocalizedAquariumName } from '../i18n/localizeData';
 import { Fish, Aquarium, DeceasedRecord } from '../types';
 import { fishData } from '../data/fishData';
 import { Bot, BookOpen, ChevronRight, Skull, Droplets, Droplet, Search, Thermometer, Heart, HeartOff } from 'lucide-react';
@@ -21,6 +23,8 @@ const getDifficultyLabel = (difficulty: string) => {
 
 
 export default function Home() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [defaultAquarium, setDefaultAquarium] = useState<Aquarium | null>(null);
   const [ownedFishes, setOwnedFishes] = useState<Fish[]>([]);
   const [deceasedRecords, setDeceasedRecords] = useState<DeceasedRecord[]>([]);
@@ -127,23 +131,23 @@ export default function Home() {
       {/* 1. Aquarium Preview */}
       <section className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex justify-between items-center">
-          <h2 className="font-serif font-bold text-lg text-ink">我的鱼缸 {defaultAquarium ? `(${defaultAquarium.name})` : ''}</h2>
+          <h2 className="font-serif font-bold text-lg text-ink">{isEn ? 'My Aquarium' : '我的鱼缸'} {defaultAquarium ? `(${getLocalizedAquariumName(defaultAquarium.name, isEn)})` : ''}</h2>
           <Link to="/aquarium" className="text-xs font-bold text-accent hover:underline flex items-center">
-            进入管理 <ChevronRight className="w-3 h-3 ml-0.5" />
+            {isEn ? 'Manage' : '进入管理'} <ChevronRight className="w-3 h-3 ml-0.5" />
           </Link>
         </div>
         <div className="relative h-[250px] w-full bg-[#f8f9fa] overflow-hidden group">
           <ThreeAquarium aquarium={defaultAquarium || emptyAquariumFallback} />
           {/* Overlay to catch clicks and redirect, or leave interactive? */}
           <Link to="/aquarium" className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm text-ink px-2 py-1 rounded-sm text-[10px] font-bold shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10 border border-white/50">
-            进入详细管理
+            {isEn ? 'View Details' : '进入详细管理'}
           </Link>
         </div>
       </section>
 
       {/* Wishlist Section on Home */}
       <div>
-        <h2 className="font-serif font-bold text-lg text-ink mb-2">我的种草清单</h2>
+        <h2 className="font-serif font-bold text-lg text-ink mb-2">{isEn ? 'My Wishlist' : '我的种草清单'}</h2>
         <section className="bg-rose-50/50 rounded-xl shadow-sm border border-rose-100 overflow-hidden p-4">
           <WishlistPreview />
         </section>
@@ -151,7 +155,7 @@ export default function Home() {
 
       {/* 2. Open Book (Encyclopedia & AI Assistant) */}
       <div>
-        <h2 className="font-serif font-bold text-lg text-ink mb-2">水族百科</h2>
+        <h2 className="font-serif font-bold text-lg text-ink mb-2">{isEn ? 'Aquarium Encyclopedia' : '水族百科'}</h2>
         <section className="relative w-full h-[180px] flex" style={{ perspective: '1200px' }}>
           {/* Left Page (Encyclopedia) */}
           <Link 

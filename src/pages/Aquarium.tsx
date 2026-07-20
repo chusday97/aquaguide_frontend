@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import i18n from '../i18n';
+import { getLocalizedAquariumName } from '../i18n/localizeData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -4079,10 +4080,10 @@ export default function AquariumManager() {
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[12px] font-black leading-tight text-ink">
-                    {activeAquarium?.name || '我的鱼缸'}
+                    {getLocalizedAquariumName(activeAquarium?.name, isEn)}
                   </span>
                   <span className="block text-[9px] font-bold leading-tight text-ink/42">
-                    {aquariums.length} 个鱼缸
+                    {isEn ? `${aquariums.length} ${aquariums.length === 1 ? 'Tank' : 'Tanks'}` : `${aquariums.length} 个鱼缸`}
                   </span>
                 </span>
               </span>
@@ -4098,6 +4099,7 @@ export default function AquariumManager() {
                 <div className="max-h-[240px] overflow-y-auto p-1.5">
                   {aquariums.map(aq => {
                     const isActiveAquarium = activeId === aq.id;
+                    const localizedAqName = getLocalizedAquariumName(aq.name, isEn);
                     return (
                       <div
                         key={aq.id}
@@ -4119,27 +4121,29 @@ export default function AquariumManager() {
                             <Droplets className="h-4 w-4" />
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate text-[12px] font-black text-ink">{aq.name}</span>
+                            <span className="block truncate text-[12px] font-black text-ink">{localizedAqName}</span>
                             <span className="block text-[9px] font-bold text-ink/42">
-                              {aq.fishes.length > 0 ? `${aq.fishes.length} 种内容` : '暂无生物'}
+                              {aq.fishes.length > 0 
+                                ? (isEn ? `${aq.fishes.length} ${aq.fishes.length === 1 ? 'item' : 'items'}` : `${aq.fishes.length} 种内容`) 
+                                : (isEn ? 'No species' : '暂无生物')}
                             </span>
                           </span>
                         </button>
                         {isActiveAquarium && (
                           <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-emerald-700 shadow-sm">
-                            当前
+                            {isEn ? 'Active' : '当前'}
                           </span>
                         )}
                         <button
                           type="button"
-                          aria-label={`删除${aq.name}`}
+                          aria-label={isEn ? `Delete ${localizedAqName}` : `删除${aq.name}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             setIsAquariumMenuOpen(false);
                             requestDeleteAquarium(aq.id);
                           }}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink/28 transition-colors hover:bg-red-50 hover:text-red-600"
-                          title="删除鱼缸"
+                          title={isEn ? 'Delete Aquarium' : '删除鱼缸'}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -4156,7 +4160,7 @@ export default function AquariumManager() {
                   className="flex w-full items-center justify-center gap-1.5 border-t border-border/60 bg-bg/55 px-3 py-2.5 text-[12px] font-black text-emerald-700 transition-colors hover:bg-emerald-50"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  新建鱼缸
+                  {isEn ? 'New Aquarium' : '新建鱼缸'}
                 </button>
               </div>
             )}

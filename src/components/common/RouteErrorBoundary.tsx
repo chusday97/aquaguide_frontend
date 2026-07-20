@@ -37,18 +37,19 @@ class RouteErrorBoundaryInner extends Component<{
   render() {
     if (!this.state.error) return this.props.children;
     const diagnostic = this.state.diagnostic;
+    const isEn = typeof window !== 'undefined' && localStorage.getItem('i18nextLng')?.startsWith('en');
     return (
       <section className="mx-auto my-6 w-full max-w-[620px] rounded-[26px] border border-amber-100 bg-white p-5 text-center shadow-sm" role="alert">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[18px] bg-amber-50 text-amber-700">
           <AlertTriangle className="h-5 w-5" />
         </div>
-        <h1 className="mt-4 text-[20px] font-black text-ink">这个页面暂时没有加载好</h1>
-        <p className="mx-auto mt-2 max-w-md text-[12px] font-bold leading-5 text-ink/52">其他页面仍可继续使用。可以先重试一次；如果再次出现，请复制诊断信息。</p>
+        <h1 className="mt-4 text-[20px] font-black text-ink">{isEn ? 'Page Failed to Load' : '这个页面暂时没有加载好'}</h1>
+        <p className="mx-auto mt-2 max-w-md text-[12px] font-bold leading-5 text-ink/52">{isEn ? 'Other pages are still accessible. Try refreshing or copy diagnostic info.' : '其他页面仍可继续使用。可以先重试一次；如果再次出现，请复制诊断信息。'}</p>
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
           <button type="button" onClick={() => this.setState({ error: null, diagnostic: null, copyState: '' })} className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-800 px-4 text-[12px] font-black text-white">
-            <RotateCcw className="mr-1.5 h-4 w-4" />重新尝试
+            <RotateCcw className="mr-1.5 h-4 w-4" />{isEn ? 'Try Again' : '重新尝试'}
           </button>
-          <button type="button" onClick={() => window.location.assign('/aquarium')} className="h-11 rounded-full border border-emerald-100 bg-white px-4 text-[12px] font-black text-emerald-800">返回我的鱼缸</button>
+          <button type="button" onClick={() => window.location.assign('/aquarium')} className="h-11 rounded-full border border-emerald-100 bg-white px-4 text-[12px] font-black text-emerald-800">{isEn ? 'Back to My Aquarium' : '返回我的鱼缸'}</button>
           <button
             type="button"
             disabled={!diagnostic}
