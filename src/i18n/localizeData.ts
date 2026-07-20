@@ -249,11 +249,14 @@ export const applyLocalization = (lng: string) => {
     }
 
     if (isEn) {
+      const stripEnPrefix = (str: string | undefined) => str ? str.replace(/^(?:\[EN\]\s*)+/gi, '').trim() : '';
+
       // Apply English Translation
       const translation = englishTranslations[fish.id] || autoTranslations[fish.id];
       
       // Name Fallback: translation name -> scientificName -> originalName
-      fish.name = translation?.name || fish.scientificName || (fish as any)._originalName;
+      const rawName = translation?.name || fish.scientificName || (fish as any)._originalName;
+      fish.name = stripEnPrefix(rawName);
       
       // Category translation mapping
       fish.category = categoryTranslations[(fish as any)._originalCategory] || (fish as any)._originalCategory;
@@ -268,9 +271,9 @@ export const applyLocalization = (lng: string) => {
 
       // Description, Diet, and HousingReason fallback
       if (translation) {
-        fish.description = translation.description;
-        fish.diet = translation.diet;
-        fish.housingReason = translation.housingReason;
+        fish.description = stripEnPrefix(translation.description);
+        fish.diet = stripEnPrefix(translation.diet);
+        fish.housingReason = stripEnPrefix(translation.housingReason);
         
         if (fish.feedingProfile && translation.feedingProfile) {
           fish.feedingProfile.feedingType = translation.feedingProfile.feedingType || fish.feedingProfile.feedingType;

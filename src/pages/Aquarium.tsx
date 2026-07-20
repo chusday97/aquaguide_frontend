@@ -3088,11 +3088,11 @@ export default function AquariumManager() {
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-emerald-50/70 p-3">
             <div>
-              <div className="text-[10px] font-black text-ink/45">理论容量</div>
+              <div className="text-[10px] font-black text-ink/45">{isEn ? 'Gross Capacity' : '理论容量'}</div>
               <div className="mt-1 text-2xl font-black text-ink">{settingsGrossVolumeLiters > 0 ? `${settingsGrossVolumeLiters}L` : '--'}</div>
             </div>
             <div>
-              <div className="text-[10px] font-black text-ink/45">估算实际水量</div>
+              <div className="text-[10px] font-black text-ink/45">{isEn ? 'Estimated Water Volume' : '估算实际水量'}</div>
               <div className="mt-1 text-2xl font-black text-emerald-700">{settingsEstimatedWaterLiters > 0 ? `${settingsEstimatedWaterLiters}L` : '--'}</div>
             </div>
           </div>
@@ -3120,7 +3120,7 @@ export default function AquariumManager() {
             ))}
           </div>
           <div className="mt-3 grid gap-1.5">
-            <Label className="text-[11px] font-bold text-ink/55">目标温度 (°C)</Label>
+            <Label className="text-[11px] font-bold text-ink/55">{isEn ? 'Target Temp (°C)' : '目标温度 (°C)'}</Label>
             <Input
               type="number"
               value={settingsForm.targetTemperature || ''}
@@ -4071,7 +4071,7 @@ export default function AquariumManager() {
               onClick={() => setIsAquariumMenuOpen(prev => !prev)}
               className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-white/80 bg-white px-2.5 text-left shadow-sm ring-1 ring-ink/5 transition-colors hover:border-emerald-100"
               aria-expanded={isAquariumMenuOpen}
-              title="切换鱼缸"
+              title={isEn ? 'Switch Tank' : '切换鱼缸'}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
@@ -4092,8 +4092,8 @@ export default function AquariumManager() {
             {isAquariumMenuOpen && (
               <div className="absolute left-0 top-[calc(100%+8px)] z-[70] w-[min(300px,calc(100vw-112px))] overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-ink/5">
                 <div className="border-b border-border/60 px-3 py-2">
-                  <div className="text-[11px] font-black text-ink">切换鱼缸</div>
-                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">选择当前正在管理的鱼缸</div>
+                  <div className="text-[11px] font-black text-ink">{isEn ? 'Switch Tank' : '切换鱼缸'}</div>
+                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">{isEn ? 'Select active aquarium to manage' : '选择当前正在管理的鱼缸'}</div>
                 </div>
                 <div className="max-h-[240px] overflow-y-auto p-1.5">
                   {aquariums.map(aq => {
@@ -4228,8 +4228,8 @@ export default function AquariumManager() {
       <section id="aquarium-discovery" className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[13px] font-black text-ink">今日种草</div>
-            <div className="text-[10px] font-bold text-ink/45">每天随机 10 个物种，完整模式点卡片进入。</div>
+            <div className="text-[13px] font-black text-ink">{isEn ? 'Daily Recommendations' : '今日种草'}</div>
+            <div className="text-[10px] font-bold text-ink/45">{isEn ? '10 random species daily. Tap card for full details.' : '每天随机 10 个物种，完整模式点卡片进入。'}</div>
           </div>
           <span className="shrink-0 rounded-full bg-white px-2.5 py-1.5 text-[10px] font-black text-ink/42">
             今日 {discoveryRemainingToday}/10
@@ -4374,7 +4374,7 @@ export default function AquariumManager() {
           <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,#dff4f6,#a9d7cf)]">
             {currentFishesDetails[0] ? (
               <div className="h-40 w-56 opacity-85"><ResilientImage src={getSpeciesVisualSources(currentFishesDetails[0]).thumbnail} alt={currentFishesDetails[0].name} className="h-full w-full object-contain" /></div>
-            ) : <span className="text-xs font-black text-emerald-900/55">鱼缸画面将在空闲时加载</span>}
+            ) : <span className="text-xs font-black text-emerald-900/55">{isEn ? 'Aquarium view will load when idle' : '鱼缸画面将在空闲时加载'}</span>}
             {requiresManualThreeLoad && (
               <Button type="button" onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); }} className="absolute bottom-3 left-1/2 h-9 -translate-x-1/2 rounded-full bg-white px-4 text-[11px] font-black text-emerald-800 shadow-sm hover:bg-white">
                 加载 3D 鱼缸
@@ -4396,7 +4396,7 @@ export default function AquariumManager() {
         {/* Species Sidebar Overlay for 3D navigation */}
         {activeAquarium && activeAquarium.fishes.length > 0 && (
           <div className="absolute top-12 left-2 z-10 bg-white/80 backdrop-blur-md border border-white/50 rounded-sm shadow-sm p-1.5 max-h-[60%] overflow-y-auto w-24 sm:w-28 custom-scrollbar flex flex-col gap-1 hidden md:flex">
-            <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider px-1 text-center mb-1">切换镜头</span>
+            <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider px-1 text-center mb-1">{isEn ? 'Switch Camera' : '切换镜头'}</span>
             {Array.from(new Set(activeAquarium.fishes.map(f => f.fishId))).map(uId => {
               const fishInfo = fishData.find(f => f.id === uId);
               if (!fishInfo) return null;
@@ -4437,8 +4437,8 @@ export default function AquariumManager() {
             <Maximize2 className="h-4 w-4" />
           </Button>
           <Button
-            aria-label="鱼缸设置"
-            title="鱼缸设置"
+            aria-label={isEn ? 'Tank Settings' : '鱼缸设置'}
+            title={isEn ? 'Tank Settings' : '鱼缸设置'}
             onClick={() => openAquariumSettings()}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
           >
@@ -4520,7 +4520,7 @@ export default function AquariumManager() {
               <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-[11px] font-bold text-ink/45">配置项</div>
+              <div className="text-[11px] font-bold text-ink/45">{isEn ? 'Configurations' : '配置项'}</div>
               <div className="mt-1 rounded-full bg-white/80 px-2.5 py-1 text-[13px] font-black tabular-nums text-ink shadow-sm">
                 {activeConfiguredSettingCount} 项
               </div>
@@ -4535,7 +4535,7 @@ export default function AquariumManager() {
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-sky-600">
                 <Plus className="h-6 w-6" />
               </div>
-              <div className="text-sm font-black text-ink">当前还没有配置鱼缸内容</div>
+              <div className="text-sm font-black text-ink">{isEn ? 'No tank contents configured yet' : '当前还没有配置鱼缸内容'}</div>
               <p className="mx-auto mt-1 max-w-[260px] text-[11px] font-medium leading-relaxed text-ink/50">
                 可以先完善配置、添加生物，或套用搭建方案快速起步。
               </p>
@@ -4549,7 +4549,7 @@ export default function AquariumManager() {
             <div className="relative grid grid-cols-5 gap-x-1.5 gap-y-4 rounded-[16px] bg-[#FBFAF6] px-1 py-2">
               {!hasStockedAnimals && hasEnvironmentContent && tankArchiveCategory === '全部' && (
                 <div className="col-span-5 rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
-                  <div className="text-[12px] font-black text-sky-800">暂无鱼虾螺，已配置环境内容</div>
+                  <div className="text-[12px] font-black text-sky-800">{isEn ? 'No livestock yet, environment configured' : '暂无鱼虾螺，已配置环境内容'}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/55">
                     你已配置水草、底砂、造景或设备，可以继续添加适合的生物。
                   </p>
@@ -4734,8 +4734,8 @@ export default function AquariumManager() {
       <Dialog open={isTankPreviewOpen} onOpenChange={setIsTankPreviewOpen}>
         <DialogContent className="h-[92dvh] w-[96vw] max-w-[1180px] overflow-hidden rounded-[24px] border-border p-0 md:h-[calc(100dvh-24px)] md:w-[calc(100vw-32px)] md:max-w-[1480px]">
           <DialogHeader className="sr-only">
-            <DialogTitle>鱼缸全屏预览</DialogTitle>
-            <DialogDescription>放大查看当前鱼缸 3D 画面。</DialogDescription>
+            <DialogTitle>{isEn ? 'Full Screen Preview' : '鱼缸全屏预览'}</DialogTitle>
+            <DialogDescription>{isEn ? 'Enlarge to view current 3D tank scene.' : '放大查看当前鱼缸 3D 画面。'}</DialogDescription>
           </DialogHeader>
           <div className="grid h-full w-full bg-[#DDEAE8] md:grid-cols-[minmax(0,1fr)_280px]">
             <div id="aquarium-tank-preview" tabIndex={-1} className="relative min-h-0">
@@ -4777,12 +4777,12 @@ export default function AquariumManager() {
                   </button>
                 );
               })}
-              {activeAquarium.fishes.length === 0 && <div className="px-3 py-2 text-[11px] font-bold text-ink/45">还没有缸内物种。</div>}
+              {activeAquarium.fishes.length === 0 && <div className="px-3 py-2 text-[11px] font-bold text-ink/45">{isEn ? 'No species in tank yet.' : '还没有缸内物种。'}</div>}
             </div>
             </div>
             <aside className="hidden min-h-0 border-l border-white/70 bg-white/78 p-4 backdrop-blur md:block">
               <div className="text-[18px] font-black text-ink">{activeAquarium.name}</div>
-              <div className="mt-1 text-[12px] font-bold text-ink/48">沉浸式鱼缸视图</div>
+              <div className="mt-1 text-[12px] font-bold text-ink/48">{isEn ? 'Immersive Tank View' : '沉浸式鱼缸视图'}</div>
               <div className="mt-4 grid gap-2">
                 {[
                   `${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${activeAquarium.targetTemperature || '25'}°C`,
@@ -4794,7 +4794,7 @@ export default function AquariumManager() {
                   </div>
                 ))}
               </div>
-              <div className="mt-5 text-[13px] font-black text-ink">镜头切换</div>
+              <div className="mt-5 text-[13px] font-black text-ink">{isEn ? 'Camera Angle' : '镜头切换'}</div>
               <div className="app-scrollbar-hidden mt-2 grid max-h-[48dvh] gap-2 overflow-y-auto">
                 {Array.from(new Set(activeAquarium.fishes.map(f => f.fishId))).map(fishId => {
                   const fishInfo = fishData.find(fish => fish.id === fishId);
@@ -4935,8 +4935,8 @@ export default function AquariumManager() {
 
                   <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
                     <div>
-                      <div className="text-[13px] font-black text-ink">选择问题类型</div>
-                      <p className="mt-0.5 text-[11px] font-medium text-ink/50">点击后进入逐题测试，每次只回答一道题。</p>
+                      <div className="text-[13px] font-black text-ink">{isEn ? 'Select Problem Type' : '选择问题类型'}</div>
+                      <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Tap to start test, answer one question at a time.' : '点击后进入逐题测试，每次只回答一道题。'}</p>
                     </div>
                     <div className="grid gap-2">
                       {diagnosisIssueTypes.map(type => {
@@ -4967,8 +4967,8 @@ export default function AquariumManager() {
                   <div>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-[13px] font-black text-ink">一次完成今天检查</div>
-                        <p className="mt-0.5 text-[11px] font-medium text-ink/50">按实际观察选择，补充描述可以留空。</p>
+                        <div className="text-[13px] font-black text-ink">{isEn ? 'Complete Daily Check' : '一次完成今天检查'}</div>
+                        <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Select based on observation, extra notes optional.' : '按实际观察选择，补充描述可以留空。'}</p>
                       </div>
                       <div className="shrink-0 text-[11px] font-black text-emerald-700">
                         {dailyCheckAnsweredCount} / {dailyCheckRequiredQuestions.length}
@@ -5082,9 +5082,9 @@ export default function AquariumManager() {
                     )}
                     {activeDiagnosisQuestion.id === 'optionalTestData' && (
                       <div className="mt-3 grid gap-1.5 rounded-[12px] bg-white px-3 py-2 text-[10px] font-medium leading-relaxed text-ink/55">
-                        <div><span className="font-black text-ink/65">pH：</span>水偏酸还是偏碱，很多鱼能适应一定范围，不需要每天测。</div>
-                        <div><span className="font-black text-ink/65">氨氮：</span>鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。</div>
-                        <div><span className="font-black text-ink/65">亚硝酸盐：</span>过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。</div>
+                        <div><span className="font-black text-ink/65">pH：</span>{isEn ? 'Water pH level. Most fish adapt well, daily tests unnecessary.' : '水偏酸还是偏碱，很多鱼能适应一定范围，不需要每天测。'}</div>
+                        <div><span className="font-black text-ink/65">氨氮：</span>{isEn ? 'Toxic waste from uneaten food and fish waste. Spikes in new tanks or overfeeding.' : '鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。'}</div>
+                        <div><span className="font-black text-ink/65">亚硝酸盐：</span>{isEn ? 'Harmful compound when filter cycle is unstable; can cause gasping or lethargy.' : '过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。'}</div>
                       </div>
                     )}
                   </div>
@@ -5126,7 +5126,7 @@ export default function AquariumManager() {
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2 text-[12px] font-black leading-relaxed text-ink">{selectedDiagnosisRecord.resultSummary}</div>
                   <div>
-                    <div className="text-[12px] font-black text-ink">建议动作</div>
+                    <div className="text-[12px] font-black text-ink">{isEn ? 'Suggested Actions' : '建议动作'}</div>
                     <div className="mt-1 grid gap-1">
                       {selectedDiagnosisRecord.suggestedActions.map(action => (
                         <div key={action} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium text-ink/70">{action}</div>
@@ -5135,7 +5135,7 @@ export default function AquariumManager() {
                   </div>
                   {selectedDiagnosisRecord.followUpNotes.length > 0 && (
                     <div>
-                      <div className="text-[12px] font-black text-ink">补充记录</div>
+                      <div className="text-[12px] font-black text-ink">{isEn ? 'Additional Notes' : '补充记录'}</div>
                       <div className="mt-1 grid gap-1">
                         {selectedDiagnosisRecord.followUpNotes.map(note => (
                           <div key={note} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium text-ink/70">{note}</div>
@@ -5207,7 +5207,7 @@ export default function AquariumManager() {
                 </div>
               </section>
               <section className="mt-3 rounded-[18px] border border-red-100 bg-red-50 p-3">
-                <div className="text-[13px] font-black text-red-800">暂时不要做</div>
+                <div className="text-[13px] font-black text-red-800">{isEn ? 'Avoid For Now' : '暂时不要做'}</div>
                 <div className="mt-2 grid gap-1.5">
                   {selectedDailyCheckArticle.avoid.map(item => (
                     <div key={item} className="rounded-[12px] bg-white/80 px-3 py-2 text-[11px] font-medium leading-relaxed text-red-900/72">{item}</div>
@@ -5217,7 +5217,7 @@ export default function AquariumManager() {
             </div>
           )}
           <DialogFooter className="shrink-0 border-t border-border bg-white p-4">
-            <Button onClick={() => setSelectedDailyCheckArticle(null)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white">返回检查结果</Button>
+            <Button onClick={() => setSelectedDailyCheckArticle(null)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white">{isEn ? 'Back to Results' : '返回检查结果'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -5225,7 +5225,7 @@ export default function AquariumManager() {
       <Dialog open={isRiskReminderOpen} onOpenChange={setIsRiskReminderOpen}>
         <DialogContent className="flex max-h-[82dvh] w-[90vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
-            <DialogTitle className="font-serif text-xl font-bold italic text-ink">全部提醒</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-bold italic text-ink">{isEn ? 'All Reminders' : '全部提醒'}</DialogTitle>
             <DialogDescription className="text-xs font-medium text-ink/55">
               不是所有提醒都需要立即处理，先完成最明确的一项。
             </DialogDescription>
@@ -5290,7 +5290,7 @@ export default function AquariumManager() {
       <Dialog open={isObservationOpen} onOpenChange={setIsObservationOpen}>
         <DialogContent className="w-[90vw] max-w-[420px] overflow-hidden rounded-[20px] border-border p-0">
           <DialogHeader className="border-b border-border bg-white px-5 py-4 text-left">
-            <DialogTitle className="font-serif text-xl font-bold italic text-ink">观察鱼的状态</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-bold italic text-ink">{isEn ? 'Observe Fish Condition' : '观察鱼的状态'}</DialogTitle>
             <DialogDescription className="text-xs font-medium text-ink/55">
               2 分钟内你看到以下情况了吗？
             </DialogDescription>
@@ -5380,7 +5380,7 @@ export default function AquariumManager() {
               }}>
         <AdaptiveTaskContent className="bg-bg md:max-w-[680px]">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">添加生物到鱼缸</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Add Species to Tank' : '添加生物到鱼缸'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               先选择生物，再填写数量和入缸日期。
             </DialogDescription>
@@ -5394,7 +5394,7 @@ export default function AquariumManager() {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <div className="min-w-0">
-                      <div className="text-lg font-black text-emerald-800">已添加到当前鱼缸</div>
+                      <div className="text-lg font-black text-emerald-800">{isEn ? 'Added to active tank' : '已添加到当前鱼缸'}</div>
                       <p className="mt-1 text-[12px] font-bold leading-relaxed text-emerald-900/70">
                         已加入 {addFishSuccess.aquariumName}，你可以回到鱼缸查看，也可以继续添加其他生物。
                       </p>
@@ -5434,7 +5434,7 @@ export default function AquariumManager() {
                 }`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-black text-ink/45">第 2 步：混养复核</div>
+                      <div className="text-[11px] font-black text-ink/45">{isEn ? 'Step 2: Compatibility Review' : '第 2 步：混养复核'}</div>
                       <div className="mt-1 text-lg font-black text-ink">
                         {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
                       </div>
@@ -5465,7 +5465,7 @@ export default function AquariumManager() {
 
                   {addFishCompatibilityReview.keyRules.length > 0 && (
                     <div className="rounded-[14px] bg-white/72 p-3">
-                      <div className="text-[11px] font-black text-ink">最关键的依据</div>
+                      <div className="text-[11px] font-black text-ink">{isEn ? 'Key Reasons' : '最关键的依据'}</div>
                       <div className="mt-2 grid gap-1.5">
                         {addFishCompatibilityReview.keyRules.slice(0, 3).map(rule => (
                           <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[11px] font-medium leading-relaxed text-ink/62">
@@ -5481,7 +5481,7 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <div className="text-[13px] font-black text-ink">第 1 步：选择生物</div>
+                  <div className="text-[13px] font-black text-ink">{isEn ? 'Step 1: Select Species' : '第 1 步：选择生物'}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/50">{addFishIntro}</p>
                 </div>
               <div className="relative">
@@ -5501,7 +5501,7 @@ export default function AquariumManager() {
 
                 <div className="flex items-center justify-between">
                   <div className="text-[12px] font-black text-ink/55">{fishSearchTerm.trim() ? '搜索结果' : '智能推荐'}</div>
-                  {!fishSearchTerm.trim() && <span className="text-[10px] font-bold text-ink/35">基于当前鱼缸</span>}
+                  {!fishSearchTerm.trim() && <span className="text-[10px] font-bold text-ink/35">{isEn ? 'Based on active tank' : '基于当前鱼缸'}</span>}
                 </div>
 
                 <div className="grid max-h-[300px] gap-2 overflow-y-auto pr-1">
@@ -5543,7 +5543,7 @@ export default function AquariumManager() {
                     );
                   })}
                   {fishSearchTerm.trim() && searchResults.length === 0 && (
-                    <div className="rounded-[14px] bg-bg px-3 py-5 text-center text-xs font-medium text-ink/50">没有找到相关生物</div>
+                    <div className="rounded-[14px] bg-bg px-3 py-5 text-center text-xs font-medium text-ink/50">{isEn ? 'No species found' : '没有找到相关生物'}</div>
                   )}
                   {!fishSearchTerm.trim() && recommendedFishes.length === 0 && (
                     <div className="rounded-[14px] bg-amber-50 p-3 text-xs font-medium leading-relaxed text-amber-800">
@@ -5556,7 +5556,7 @@ export default function AquariumManager() {
               <section className={`grid gap-3 rounded-[18px] bg-white p-3 shadow-sm ${selectedAddSpeciesCount > 0 ? '' : 'opacity-80'}`}>
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-[13px] font-black text-ink">第 2 步：确认已选生物</div>
+                    <div className="text-[13px] font-black text-ink">{isEn ? 'Step 2: Confirm Selected Species' : '第 2 步：确认已选生物'}</div>
                     {selectedAddSpeciesCount > 0 && (
                       <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">
                         已选择 {selectedAddSpeciesCount} 种
@@ -5584,7 +5584,7 @@ export default function AquariumManager() {
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-ink">{item.fish.name}</div>
                               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">{item.fish.category}</div>
-                              <div className="mt-1 text-[10px] font-bold text-emerald-700">建议先少量加入，观察 3-7 天。</div>
+                              <div className="mt-1 text-[10px] font-bold text-emerald-700">{isEn ? 'Recommend adding a small amount first and observing for 3-7 days.' : '建议先少量加入，观察 3-7 天。'}</div>
                             </div>
                                     <button
                                       type="button"
@@ -5624,7 +5624,7 @@ export default function AquariumManager() {
                               </div>
                             </div>
                             <div className="rounded-[14px] bg-white p-2">
-                              <Label className="text-[10px] font-black text-ink/48">入缸日期</Label>
+                              <Label className="text-[10px] font-black text-ink/48">{isEn ? 'Entry Date' : '入缸日期'}</Label>
                               <button
                                 type="button"
                                 onClick={() => setAddFishDatePicker(prev => (
@@ -5750,7 +5750,7 @@ export default function AquariumManager() {
                         {addFishCompatibilityReview ? '返回调整' : '取消'}
                       </Button>
                       <div className="grid gap-1">
-                        {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
+                        {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">{isEn ? 'Select species from search or recommendations above to add.' : '从上方搜索或推荐中选择要加入鱼缸的生物'}</div>}
                         <Button
                           className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
                           onClick={addFishCompatibilityReview
@@ -5818,7 +5818,7 @@ export default function AquariumManager() {
               <section className="rounded-[20px] border border-border bg-bg/70 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="text-sm font-black text-ink">你想建什么样的缸？</div>
+                    <div className="text-sm font-black text-ink">{isEn ? 'What tank do you want to build?' : '你想建什么样的缸？'}</div>
                     <div className="text-[11px] font-bold text-ink/45">
                       当前参考：{activeAquarium.name} · {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || 25}°C
                     </div>
@@ -5866,7 +5866,7 @@ export default function AquariumManager() {
                 <>
                   <section className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-accent">目标理解</div>
+                      <div className="text-sm font-black text-accent">{isEn ? 'Goal Interpretation' : '目标理解'}</div>
                       <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
                         tankCopilotResult.source === 'model'
                           ? 'bg-emerald-100 text-emerald-700'
@@ -5883,7 +5883,7 @@ export default function AquariumManager() {
                     {tankCopilotNeedsAnswers && (
                       <div className="mt-3 rounded-[16px] bg-white/85 p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-xs font-black text-amber-700">第 2 步：补充关键信息</div>
+                          <div className="text-xs font-black text-amber-700">{isEn ? 'Step 2: Key Information' : '第 2 步：补充关键信息'}</div>
                           <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">
                             {tankCopilotMissingQuestions.length} 项
                           </span>
@@ -5918,7 +5918,7 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && Boolean(tankCopilotResult.planSummary?.trim()) && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
-                      <div className="text-sm font-black text-ink">推荐方向</div>
+                      <div className="text-sm font-black text-ink">{isEn ? 'Recommended Direction' : '推荐方向'}</div>
                       <div className="mt-3 rounded-[14px] bg-bg px-3 py-2 text-xs font-bold leading-relaxed text-ink/65">
                         {tankCopilotResult.planSummary}
                       </div>
@@ -5928,7 +5928,7 @@ export default function AquariumManager() {
                   {!tankCopilotNeedsAnswers && tankCopilotAllowedCandidates.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-black text-ink">候选生物</div>
+                        <div className="text-sm font-black text-ink">{isEn ? 'Candidate Species' : '候选生物'}</div>
                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
                           本地规则允许
                         </span>
@@ -5955,7 +5955,7 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && tankCopilotResult.selectedCandidateIds.length > 0 && tankCopilotAllowedCandidates.length === 0 && (
                     <section className="rounded-[20px] border border-amber-100 bg-amber-50/70 p-4">
-                      <div className="text-sm font-black text-amber-800">暂无可执行候选</div>
+                      <div className="text-sm font-black text-amber-800">{isEn ? 'No executable candidates' : '暂无可执行候选'}</div>
                       <p className="mt-2 text-xs font-bold leading-relaxed text-amber-700">
                         模型或模板给出的候选没有通过本地规则候选池校验。请重新描述目标，或先完善鱼缸信息。
                       </p>
@@ -5970,9 +5970,9 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && (
                   <section className="rounded-[20px] border border-border bg-white p-4">
-                    <div className="text-sm font-black text-ink">下一步动作</div>
+                    <div className="text-sm font-black text-ink">{isEn ? 'Next Step' : '下一步动作'}</div>
                     <div className="mt-3 rounded-[16px] bg-emerald-50 px-3 py-3">
-                      <div className="text-xs font-black text-emerald-700">建议先做</div>
+                      <div className="text-xs font-black text-emerald-700">{isEn ? 'Recommended First' : '建议先做'}</div>
                       <div className="mt-1 text-sm font-black text-ink">{tankCopilotActionView.label}</div>
                       <div className="mt-1 text-[11px] font-bold leading-relaxed text-ink/55">
                         {tankCopilotActionView.description}
@@ -5980,7 +5980,7 @@ export default function AquariumManager() {
                     </div>
                     {tankCopilotResult.blockedExplanation.length > 0 && (
                       <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
-                        <summary className="cursor-pointer">查看不建议方向</summary>
+                        <summary className="cursor-pointer">{isEn ? 'View Not Recommended' : '查看不建议方向'}</summary>
                         <div className="mt-2 grid gap-1.5">
                           {tankCopilotResult.blockedExplanation.map(reason => (
                             <div key={reason}>• {reason}</div>
@@ -5993,7 +5993,7 @@ export default function AquariumManager() {
                 </>
               ) : (
                 <section className="rounded-[20px] border border-dashed border-border bg-white p-5 text-center">
-                  <div className="text-sm font-black text-ink">还没有生成方案</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'No setup plan generated yet' : '还没有生成方案'}</div>
                   <p className="mt-2 text-xs font-bold leading-relaxed text-ink/45">
                     输入一个目标后，系统会先用本地规则筛掉不安全方向，再让 AI 组织成可执行方案。
                   </p>
@@ -6062,7 +6062,7 @@ export default function AquariumManager() {
 
               <div className="grid gap-3 rounded-[20px] border border-emerald-100 bg-emerald-50/60 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <div className="text-sm font-black text-ink">当前鱼缸画像</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'Current Tank Profile' : '当前鱼缸画像'}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black">
                     <span className="rounded-full bg-white px-2.5 py-1 text-accent">负载 {smartRecommendation.profile.load.loadRate}%</span>
                     <span className="rounded-full bg-white px-2.5 py-1 text-ink/58">剩余 {smartRecommendation.profile.load.remainingCapacity} 负载</span>
@@ -6076,7 +6076,7 @@ export default function AquariumManager() {
               </div>
 
               <div className="grid gap-2 rounded-[18px] border border-border/70 bg-white p-3">
-                <Label className="text-[12px] font-black text-ink">偏好关键词</Label>
+                <Label className="text-[12px] font-black text-ink">{isEn ? 'Preference Keywords' : '偏好关键词'}</Label>
                 <div className="flex flex-wrap gap-2">
                   {['新手友好', '低维护', '群游', '清洁工具', '草缸友好'].map(keyword => (
                     <button
@@ -6107,7 +6107,7 @@ export default function AquariumManager() {
 
               {!smartCandidateScope && smartRecommendation.mode === 'empty_tank' && smartRecommendation.emptyPlans.length > 0 && (
                 <section className="grid gap-3">
-                  <div className="text-sm font-black text-ink">空缸组合方案</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'Empty Tank Preset Plans' : '空缸组合方案'}</div>
                   <div className="grid gap-3 md:grid-cols-3">
                     {smartRecommendation.emptyPlans.map(plan => (
                       <div key={plan.id} className="rounded-[20px] border border-border/70 bg-bg/45 p-4">
@@ -6224,7 +6224,7 @@ export default function AquariumManager() {
                       <div className="text-xl font-black text-accent">{smartSimulation.afterLoadRate}%</div>
                     </div>
                     <div className="rounded-[16px] bg-white px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">设备支持</div>
+                      <div className="text-[10px] font-black text-ink/38">{isEn ? 'Equipment Support' : '设备支持'}</div>
                       <div className="text-sm font-black text-ink">{smartSimulation.equipmentStillFits ? '仍满足' : '需确认'}</div>
                     </div>
                   </div>
@@ -6265,7 +6265,7 @@ export default function AquariumManager() {
       }}>
         <DialogContent className="flex h-[86dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">换水记录</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Water Change Log' : '换水记录'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               记录换水日期，系统会据此更新下次提醒。
             </DialogDescription>
@@ -6275,19 +6275,19 @@ export default function AquariumManager() {
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">最近换水</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Last Change' : '最近换水'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">{latestWaterChangeDate ? format(new Date(latestWaterChangeDate), 'yyyy/MM/dd') : '暂无记录'}</div>
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">下次建议</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Next Due' : '下次建议'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">{nextSuggestedWaterChangeDate}</div>
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">周期</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Cycle' : '周期'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">约 {shortestCycle} 天</div>
                   </div>
                   <div className={`rounded-[14px] px-3 py-2 ${waterChangedToday ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
-                    <div className="text-[10px] font-black opacity-60">今日状态</div>
+                    <div className="text-[10px] font-black opacity-60">{isEn ? 'Today Status' : '今日状态'}</div>
                     <div className="mt-1 text-[12px] font-black">{waterChangedToday ? '今天已记录' : '今天未记录'}</div>
                   </div>
                 </div>
@@ -6402,8 +6402,8 @@ export default function AquariumManager() {
 
               <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <div className="text-[13px] font-black text-ink">先选择方案名称</div>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/45">选中方案后，下方会展示这个鱼缸的图片、尺寸、环境、造景和生物组合。</p>
+                  <div className="text-[13px] font-black text-ink">{isEn ? 'Select a setup plan name first' : '先选择方案名称'}</div>
+                  <p className="mt-0.5 text-[11px] font-medium text-ink/45">{isEn ? 'Once selected, details will display below.' : '选中方案后，下方会展示这个鱼缸的图片、尺寸、环境、造景和生物组合。'}</p>
                 </div>
                 <div className="grid gap-2">
                   {adaptedBuildPlans.map(plan => {
@@ -6433,7 +6433,7 @@ export default function AquariumManager() {
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${plan.statusTone}`}>
                             {plan.statusLabel}
                           </span>
-                          {isSelected && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white">已选</span>}
+                          {isSelected && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white">{isEn ? 'Selected' : '已选'}</span>}
                         </div>
                       </button>
                     );
@@ -6485,7 +6485,7 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <h3 className="text-[14px] font-black text-ink">A. 当前鱼缸适配结果</h3>
+                  <h3 className="text-[14px] font-black text-ink">{isEn ? 'A. Active Tank Compatibility Results' : 'A. 当前鱼缸适配结果'}</h3>
                   <p className="mt-0.5 text-[11px] font-medium text-ink/50">{selectedAdaptedBuildPlan.summary}</p>
                 </div>
                 <div className={`grid gap-2 rounded-[16px] p-3 ${selectedAdaptedBuildPlan.status === 'unsuitable' ? 'bg-red-50' : selectedAdaptedBuildPlan.status === 'caution' ? 'bg-amber-50' : 'bg-emerald-50/70'}`}>
@@ -6505,8 +6505,8 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <h3 className="text-[14px] font-black text-ink">B. 综合方案摘要</h3>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">这里展示会真正应用到当前鱼缸的适配结果。</p>
+                  <h3 className="text-[14px] font-black text-ink">{isEn ? 'B. Setup Plan Summary' : 'B. 综合方案摘要'}</h3>
+                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Displays results that will apply to your active tank.' : '这里展示会真正应用到当前鱼缸的适配结果。'}</p>
                 </div>
                 <div className="grid gap-2 rounded-[16px] bg-emerald-50/70 p-3">
                   {[
@@ -6527,9 +6527,9 @@ export default function AquariumManager() {
                 <details>
                   <summary className="cursor-pointer list-none text-[14px] font-black text-ink">
                     C. 配置明细
-                    <span className="ml-2 text-[11px] font-bold text-ink/45">点击展开</span>
+                    <span className="ml-2 text-[11px] font-bold text-ink/45">{isEn ? 'Tap to expand' : '点击展开'}</span>
                   </summary>
-                  <p className="mt-1 text-[11px] font-medium text-ink/50">需要确认或微调时，再看具体底砂、水草、硬景、设备和维护提醒。</p>
+                  <p className="mt-1 text-[11px] font-medium text-ink/50">{isEn ? 'Expand to view detailed substrate, plants, hardscape, equipment, and tips.' : '需要确认或微调时，再看具体底砂、水草、硬景、设备和维护提醒。'}</p>
                   <div className="mt-3 grid gap-3">
                 {[
                   { title: '底砂', items: [selectedBuildTemplate.baseSubstrate] },
@@ -6553,14 +6553,14 @@ export default function AquariumManager() {
                   </div>
                 </details>
                 <div className="rounded-[14px] border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] font-medium leading-relaxed text-amber-900">
-                  <span className="font-black">主要提醒：</span>{selectedBuildTemplate.caution}
+                  <span className="font-black">{isEn ? 'Key Notes:' : '主要提醒：'}</span>{selectedBuildTemplate.caution}
                 </div>
               </section>
             </div>
           </div>
 
           <DialogFooter className="shrink-0 border-t border-white bg-white/90 px-4 py-3">
-            <Button variant="outline" onClick={() => setIsBuildPlanOpen(false)} className="h-10 rounded-full text-sm font-bold">暂不应用</Button>
+            <Button variant="outline" onClick={() => setIsBuildPlanOpen(false)} className="h-10 rounded-full text-sm font-bold">{isEn ? 'Cancel' : '暂不应用'}</Button>
             <Button
               onClick={() => handleApplyBuildTemplate(selectedAdaptedBuildPlan)}
               disabled={!selectedAdaptedBuildPlan.canApply}
@@ -6582,7 +6582,7 @@ export default function AquariumManager() {
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <AdaptiveTaskContent className="bg-bg">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">鱼缸设置</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Tank Settings' : '鱼缸设置'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               调整尺寸、水质、设备与环境配置
             </DialogDescription>
@@ -6805,8 +6805,8 @@ export default function AquariumManager() {
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <div className="text-[13px] font-black text-ink">水草种类</div>
-                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">已选和常用水草</div>
+                        <div className="text-[13px] font-black text-ink">{isEn ? 'Plant Species' : '水草种类'}</div>
+                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">{isEn ? 'Selected & Common Plants' : '已选和常用水草'}</div>
                       </div>
                       <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-ink/42">已选 {selectedPlantCount}</span>
                     </div>
@@ -6964,7 +6964,7 @@ export default function AquariumManager() {
               const updated = aquariums.map(a => a.id === activeId ? { ...a, ...settingsForm } : a);
               saveAquariums(updated);
               setIsSettingsOpen(false);
-            }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">保存设置</Button>
+            }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">{isEn ? 'Save Settings' : '保存设置'}</Button>
           </DialogFooter>
         </AdaptiveTaskContent>
       </Dialog>
@@ -6997,23 +6997,23 @@ export default function AquariumManager() {
             </div>
             <div className="bg-blue-50 p-3 rounded-sm border border-blue-100">
               <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-blue-600" /> 囤水小贴士</h4>
-              <p className="text-xs text-blue-900/80 leading-relaxed font-medium">换水前建议提前 24 小时囤水，除氯并调到接近缸内水温后再换。冬季或温差较大时，优先保证新水温度稳定。</p>
+              <p className="text-xs text-blue-900/80 leading-relaxed font-medium">{isEn ? 'Age water 24 hours prior to remove chlorine and match tank temp.' : '换水前建议提前 24 小时囤水，除氯并调到接近缸内水温后再换。冬季或温差较大时，优先保证新水温度稳定。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 新鱼入缸换水方法</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">新鱼入缸前需严格过温过水。建议入缸后前三天不喂食、不换水，保持水质稳定，减少应激。第四天可进行第一次少量换水（约10%）。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Acclimate new fish carefully. Do not feed or change water for 3 days.' : '新鱼入缸前需严格过温过水。建议入缸后前三天不喂食、不换水，保持水质稳定，减少应激。第四天可进行第一次少量换水（约10%）。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 周期换水方法</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">根据过滤系统能力和生物密度，建议每周或每两周换水 20%-30%。切忌一次性全缸换水，以免破坏硝化系统。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Change 20%-30% water weekly or bi-weekly. Never change 100% at once.' : '根据过滤系统能力和生物密度，建议每周或每两周换水 20%-30%。切忌一次性全缸换水，以免破坏硝化系统。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 温度控制</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">换水时，新水温度应与缸内水温尽量保持一致，温差不应超过 1-2°C。冬季换水建议提前加热新水。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Match new water temp within 1-2°C. Pre-heat in winter.' : '换水时，新水温度应与缸内水温尽量保持一致，温差不应超过 1-2°C。冬季换水建议提前加热新水。'}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsGuideOpen(false)}>我知道了</Button>
+            <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsGuideOpen(false)}>{isEn ? 'Got it' : '我知道了'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -7065,13 +7065,13 @@ export default function AquariumManager() {
                 </div>
 
                 <div className="mt-3 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-3">
-                  <div className="text-xs font-black text-emerald-800">适合谁</div>
+                  <div className="text-xs font-black text-emerald-800">{isEn ? 'Who is it for' : '适合谁'}</div>
                   <p className="mt-1 text-xs font-bold leading-relaxed text-emerald-900/75">
                     {getDiscoveryFitText(selectedDiscoveryFish).suitable}
                   </p>
                 </div>
                 <div className="mt-2 rounded-[18px] border border-amber-100 bg-amber-50 px-4 py-3">
-                  <div className="text-xs font-black text-amber-800">加入前注意</div>
+                  <div className="text-xs font-black text-amber-800">{isEn ? 'Pre-Stocking Notes' : '加入前注意'}</div>
                   <p className="mt-1 text-xs font-bold leading-relaxed text-amber-900/75">
                     {getDiscoveryFitText(selectedDiscoveryFish).unsuitable}
                   </p>
@@ -7186,60 +7186,60 @@ export default function AquariumManager() {
 
                 <div className="grid grid-cols-2 gap-3 text-[12px] border-t border-b border-border py-4 bg-bg/50 px-3 rounded-sm">
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">水温</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Temp' : '水温'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.waterTemperature}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">酸碱度 (pH)</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'pH Level' : '酸碱度 (pH)'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.phLevel}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">换水周期</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Change Cycle' : '换水周期'}</span>
                     <span className="text-ink font-bold">约 {selectedAqFish.fish.waterChangeCycle} 天</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">鱼缸尺寸</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Tank Size' : '鱼缸尺寸'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.tankSize}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">性情</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Temperament' : '性情'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.temperament === 'Peaceful' ? '温和' : selectedAqFish.fish.temperament === 'Aggressive' ? '凶猛' : '领地意识强'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">体型</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Size' : '体型'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.size === 'Small' ? '小型' : selectedAqFish.fish.size === 'Medium' ? '中型' : '大型'}</span>
                   </div>
                 </div>
 
                 <div className="border border-amber-200 bg-amber-50/60 p-4 rounded-sm">
                   <div className="flex items-center justify-between gap-3 mb-3">
-                    <h4 className="text-[11px] uppercase tracking-[1px] text-amber-800 font-bold">饮食习惯</h4>
+                    <h4 className="text-[11px] uppercase tracking-[1px] text-amber-800 font-bold">{isEn ? 'Diet & Feeding' : '饮食习惯'}</h4>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-amber-800 border border-amber-200">
                       {selectedAqFish.fish.feedingProfile?.feedingType || '杂食性'}
                     </span>
                   </div>
                   <div className="grid gap-3 text-sm md:text-[14px] text-ink">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">推荐食物</div>
+                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Recommended Foods' : '推荐食物'}</div>
                       <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.recommendedFoods || selectedAqFish.fish.diet}</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">喂食频率</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Frequency' : '喂食频率'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.feedingFrequency || '每天1-2次'}</p>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">投喂量</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Portion Rule' : '投喂量'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.portionRule || '2-3分钟内吃完，残饵及时清理'}</p>
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">禁忌</div>
+                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Avoid Foods' : '禁忌'}</div>
                       <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.avoidFoods || '过量投喂；变质饲料；长期残饵'}</p>
                     </div>
                     {selectedAqFish.fish.feedingProfile?.specialNotes && (
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">特殊提醒</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Special Notes' : '特殊提醒'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile.specialNotes}</p>
                       </div>
                     )}
@@ -7247,10 +7247,10 @@ export default function AquariumManager() {
                 </div>
 
                 <div className="bg-accent-light/30 border border-accent/20 p-4 rounded-sm flex flex-col gap-3">
-                  <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold">入缸管理</h4>
+                  <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold">{isEn ? 'Stocking Management' : '入缸管理'}</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">入缸日期</Label>
+                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">{isEn ? 'Entry Date' : '入缸日期'}</Label>
                       <Input 
                         type="date" 
                         className="h-9 text-sm bg-white" 
@@ -7271,7 +7271,7 @@ export default function AquariumManager() {
                     </div>
                   </div>
                   <div className="flex justify-between items-center text-sm font-bold text-ink bg-white/50 p-2 rounded-sm mt-1">
-                    <span>已入缸时间:</span>
+                    <span>{isEn ? 'Days in tank:' : '已入缸时间:'}</span>
                     <span className="font-serif text-lg">{differenceInDays(new Date(), new Date(selectedAqFish.aqFish.entryDate))} 天</span>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -7306,7 +7306,7 @@ export default function AquariumManager() {
             <div className="border-b border-white bg-white px-5 py-4">
              <div className="flex items-center gap-2 text-amber-600">
                 <AlertTriangle className="w-5 h-5" />
-                <DialogTitle className="text-xl font-bold font-serif">鱼缸风险提示</DialogTitle>
+                <DialogTitle className="text-xl font-bold font-serif">{isEn ? 'Tank Risk Warnings' : '鱼缸风险提示'}</DialogTitle>
              </div>
              <DialogDescription className="mt-1 text-amber-700/80 text-xs">
                {activeAquarium && (activeAquarium as Aquarium & { buildTemplateMeta?: { name: string } }).buildTemplateMeta
