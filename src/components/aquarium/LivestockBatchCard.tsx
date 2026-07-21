@@ -57,6 +57,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   const pendingHistoryDeltaRef = useRef<number | null>(null);
   const restoringHistoryRef = useRef(false);
   const allowHistoryNavigationRef = useRef(false);
+  const allowRouteNavigationRef = useRef(false);
   const [error, setError] = useState('');
   const { navigateToRoute, registerNavigationGuard } = useWorkspaceNavigation();
 
@@ -133,6 +134,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   const hasUnsavedChanges = JSON.stringify(draft) !== JSON.stringify(record);
   const requestClose = () => {
     if (hasUnsavedChanges) {
+      setPendingNavigationPath(null);
       setIsDiscardConfirmOpen(true);
       return;
     }
@@ -142,6 +144,10 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   useEffect(() => {
     if (!open || !hasUnsavedChanges) return;
     return registerNavigationGuard(path => {
+      if (allowRouteNavigationRef.current) {
+        allowRouteNavigationRef.current = false;
+        return true;
+      }
       setPendingNavigationPath(path);
       setIsDiscardConfirmOpen(true);
       return false;
@@ -196,7 +202,16 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       window.history.go(historyDelta);
       return;
     }
-    if (target) navigateToRoute(target);
+    if (target) {
+      allowRouteNavigationRef.current = true;
+      navigateToRoute(target);
+    }
+  };
+
+  const continueEditing = () => {
+    setPendingNavigationPath(null);
+    pendingHistoryDeltaRef.current = null;
+    setIsDiscardConfirmOpen(false);
   };
 
   return (
@@ -278,7 +293,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       <Dialog open={isDiscardConfirmOpen} onOpenChange={next => { setIsDiscardConfirmOpen(next); if (!next) setPendingNavigationPath(null); }}>
         <DialogContent className="max-w-md rounded-[26px]">
           <DialogHeader><DialogTitle>{t('livestock.discardTitle')}</DialogTitle><DialogDescription>{t('livestock.discardDescription')}</DialogDescription></DialogHeader>
-          <DialogFooter><button type="button" onClick={() => setIsDiscardConfirmOpen(false)} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black">{t('livestock.continueEditing')}</button><button type="button" onClick={discardAndContinue} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white">{t('livestock.discard')}</button></DialogFooter>
+          <DialogFooter><button type="button" onClick={continueEditing} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black">{t('livestock.continueEditing')}</button><button type="button" onClick={discardAndContinue} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white">{t('livestock.discard')}</button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>
