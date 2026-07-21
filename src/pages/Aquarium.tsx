@@ -93,6 +93,7 @@ import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord }
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { recordSpeciesMemorialAndDecrementBatch } from '../services/collection/memorial.service';
+import { getAquaGuideRepository, getCurrentAquaGuideRepository, resolveRepositoryMode, subscribeToRepositoryMode } from '../services/repository/repository-provider';
 import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 import {
   completeCareReminder,
@@ -983,6 +984,27 @@ export default function AquariumManager() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    const loadRepositoryAquariums = async (mode?: 'local' | 'cloud') => {
+      try {
+        const resolvedMode = mode ?? await resolveRepositoryMode();
+        const repositoryAquariums = resolvedMode === 'cloud'
+          ? await getAquaGuideRepository('cloud').getAquariums()
+          : loadAppStateFromStorage().aquariums;
+        if (!active || repositoryAquariums.length === 0) return;
+        const normalized = normalizeAquariumPlants(repositoryAquariums);
+        setAquariums(normalized);
+        setActiveId(current => normalized.some(item => item.id === current) ? current : normalized[0].id);
+      } catch (error) {
+        if (active) showToast(error instanceof Error ? error.message : (isEn ? 'Cloud aquarium data could not be loaded.' : '云端鱼缸暂时无法读取。'), 'error');
+      }
+    };
+    void loadRepositoryAquariums();
+    const unsubscribe = subscribeToRepositoryMode(mode => void loadRepositoryAquariums(mode));
+    return () => { active = false; unsubscribe(); };
+  }, [isEn, showToast]);
+
+  useEffect(() => {
     const appState = loadAppStateFromStorage();
     setWishlistFishIds(loadWishlistFishIds());
     setDeceasedRecords(Array.isArray(appState.deceasedRecords) ? appState.deceasedRecords as DeceasedRecord[] : []);
@@ -1082,19 +1104,22 @@ export default function AquariumManager() {
     setAquariums(saved.aquariums);
   };
 
-  const saveLivestockBatches = (recordId: string, nextRecord: AquariumFish | null) => {
-    const updated = aquariums.map(aquarium => aquarium.id === activeId ? {
-      ...aquarium,
+  const saveLivestockBatches = async (recordId: string, nextRecord: AquariumFish | null) => {
+    const active = aquariums.find(aquarium => aquarium.id === activeId);
+    if (!active) throw new Error(isEn ? 'No active aquarium was found.' : '没有找到当前鱼缸。');
+    const nextAquarium = {
+      ...active,
       fishes: nextRecord
-        ? aquarium.fishes.map(record => record.id === recordId ? nextRecord : record)
-        : aquarium.fishes.filter(record => record.id !== recordId),
-    } : aquarium);
-    saveAquariums(updated);
+        ? active.fishes.map(record => record.id === recordId ? nextRecord : record)
+        : active.fishes.filter(record => record.id !== recordId),
+    };
+    const repository = await getCurrentAquaGuideRepository();
+    const savedAquarium = await repository.saveAquarium(nextAquarium);
+    setAquariums(current => current.map(aquarium => aquarium.id === activeId ? savedAquarium : aquarium));
     showToast(nextRecord
       ? (isEn ? 'Livestock group states updated' : '体态与数量已更新')
       : (isEn ? 'Species removed from this tank' : '该物种已移出鱼缸'));
   };
-
   const handleAddAquarium = () => {
     const newAq = createDefaultAquarium(`我的鱼缸 ${aquariums.length + 1}`);
     const updated = [...aquariums, newAq];
