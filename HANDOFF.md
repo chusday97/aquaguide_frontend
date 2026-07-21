@@ -6,18 +6,18 @@
 
 - 项目解决什么问题：帮助水族新手管理鱼缸、选择物种、判断混养并完成养护补救。
 - 目标用户：刚开始养鱼或缺少系统养护经验的用户。
-- 当前阶段：核心体验已收口，正在实施三层拆分与中英文国际化。
+- 当前阶段：任务式导航、新手引导与体态批次已通过独立 Critic/Evaluator，达到可交付本地预览。
 
 ## 当前目标与成功标准
 
-- 当前目标：完成任务式导航、首次引导和缸内物种体态批次，并通过独立 Critic/Evaluator 交付门禁。
+- 当前目标：任务式导航、首次引导和缸内物种体态批次已通过独立交付门禁；下一阶段只处理真实 Supabase、全站翻译审核和外部可用性证据。
 - 本轮范围：`/search`、`/settings`、`/welcome`、侧栏/手机直达、引导偏好同步、批次数据库/API/Repository/游客 UI、双语专项和回归。
-- 明确不做：不继续 Antigravity 未完成的全站翻译，不让体态直接改变混养四态，不实现视觉自动判定怀孕/生产，不推送 GitHub。
+- 明确不做：不让体态直接改变混养四态，不实现视觉自动判定怀孕/生产，不推送 GitHub；Antigravity 已暂停，本轮只补本功能必要的中英文文案，不宣称全站翻译完成。
 - 成功标准与验证方式：导航点击进入正式地址并定位真实任务；首次用户一键进入建缸/物种；批次数量始终汇总一致；390px 手机和 600px 英文桌面无溢出；本地与 API 边界测试通过。
 
 ## 正在做什么
 
-- 当前步骤：实现、专项测试、生产构建与真实浏览器主路径已完成；下一步是独立 Critic 审查、修复复验和 Evaluator 裁决。
+- 当前步骤：实现、Critic 修复复验、Evaluator 裁决、专项测试、生产构建与真实浏览器主路径均已完成，本地预览可交付。
 - 已开始但未完成的工作：真实 Supabase migration/RLS、登录偏好同步和真实视觉准确率依赖外部环境；Antigravity 全局翻译暂停。
 - 涉及文件/模块：`src/App.tsx`、`src/pages/{Search,Settings,Welcome,Aquarium}.tsx`、`src/services/onboarding/`、`src/services/aquarium/species-batches.service.ts`、`apps/api/src/routes/{aquariums,profile}.ts`、`supabase/migrations/202607220001_livestock_batches.sql`。
 - 工作区未提交状态及归属：实现提交已拆分；审查前需以 `git status --short` 再确认工作区。
@@ -50,6 +50,7 @@
 | 2026-07-22 | 任务式搜索/设置/识别路由和首次引导 | commits `551f34a`–`b19280e`；浏览器验证建缸任务、搜索、识别和设置直达 |
 | 2026-07-22 | 体态批次契约、API、游客 UI 与登录 Repository | commits `5c3032d`, `e079432`, `e0c91ca`, `5dc311c`, `70b22cd`；批次/混养/API/Repository 测试 |
 | 2026-07-22 | 引导偏好同步、旧设置浮层清理和双语浏览器回归 | commits `315e0d9`, `22a3876`, `6f49f80`；390px 手机与 600px 英文桌面通过 |
+| 2026-07-22 | 修复批次/纪念云端一致性、迁移门禁、未保存导航与本地快照覆盖 | commits `67ecc0d`–`79ebd56`；lint/API check/build；Repository/API/批次专项；真实 Chromium guided navigation 通过 |
 
 ## 当前卡点
 
@@ -64,10 +65,9 @@
 
 ## 下一步计划
 
-1. 启动独立 Critic，读取原计划、实际 diff、测试和浏览器证据并输出六维修复清单。
-2. Builder 修复后交回同一 Critic 复验，再由独立 Evaluator 裁决三步用户路径。
-3. 在测试 Supabase 项目执行批次 migration、RLS 双账号隔离、父级数量触发器和引导偏好同步。
-4. 用户决定恢复翻译工作后，只读检查 Antigravity 交付，再继续剩余全站词条与内容审核。
+1. 在测试 Supabase 项目执行 5 个批次 migration、RLS 双账号隔离、父级数量触发器、原子合并/纪念重放和引导偏好同步。
+2. 继续全站翻译前先审计 Antigravity 已提交范围，避免覆盖或重复翻译；当前只保证本功能新增文案双语。
+3. 组织真实手机与水族新手完成建缸、浏览物种和管理体态的外部可用性测试。
 
 ## 关键决策与理由
 

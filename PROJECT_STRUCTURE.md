@@ -17,6 +17,7 @@
 - `supabase/migrations/202607160002_localization.sql`：四张翻译表、审核字段、索引与公开/管理员 RLS。
 - `supabase/migrations/202607180001_species_recognition.sql`：只允许后端聚合写入的匿名识别未命中表。
 - `supabase/migrations/202607220001_livestock_batches.sql`：缸内物种批次、生长阶段、繁殖状态、汇总数量触发器与所有者 RLS。
+- `supabase/migrations/202607220002_atomic_livestock_batch_split.sql` 至 `202607220005_fix_livestock_batch_merge_signature.sql`：拆分、生命纪念扣减与合并的原子数据库函数，以及旧合并函数签名的显式升级。
 
 - `src/App.tsx`：设备级应用壳、导航与路由。
 - `src/i18n/`：i18next 初始化、浏览器语言检测和本地偏好保存。
@@ -45,6 +46,7 @@
 - `src/services/api/`：携带 Supabase JWT、幂等键和结构化错误的版本化 API 客户端。
 - `src/services/admin/content-admin.service.ts`：内容后台唯一 API 访问层，封装 CRUD、发布状态与原始图片上传。
 - `src/services/repository/`：游客本地与登录云端两种 Repository 实现；页面后续只依赖统一接口。
+- `apps/api/src/livestock-memorial-replay.ts`：最后一组被删除后仍可读取已提交生命纪念的幂等重放门禁。
 - `src/services/analytics/`：只驻留当前会话的隐私安全事件白名单。
 - `src/services/collection/`：水族册聚合读取与 8 枚派生成就计算。
 - `src/services/collection/memorial.service.ts`：生命纪念校验、兼容存储写入与统一变更通知。
@@ -96,6 +98,7 @@
 - `src/types/database.ts`：camelCase 数据库与关联实体共享类型。
 - `scripts/test-three-tier-contract.ts` / `scripts/test-api-boundary.ts`：三层契约与本地 API 边界回归。
 - `scripts/test-business-api-contract.ts` / `scripts/test-repository-boundary.ts`：业务路由、校验、稳定 ID、安全规则与本地/云端访问边界回归。
+- `scripts/test-livestock-memorial-replay.ts`：已提交纪念重放先于父记录所有权查询的行为回归。
 - `scripts/verify-admin-content.mjs`：内容后台列表、编辑、保存反馈、权限错误与 390/1280px 布局验收。
 - `scripts/verify-localization-ui.mjs`：浏览器首选、桌面/手机设置、即时切换、持久化、触控尺寸与横向溢出验收。
 - `docs/01-definition/UX_REFACTOR_PRD.md`：本轮交互重构定义。
