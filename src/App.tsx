@@ -7,6 +7,7 @@ import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { shouldStartOnboarding } from './services/onboarding/onboarding.service';
 import {
   Activity,
   BookHeart,
@@ -42,6 +43,7 @@ const loadIdentify = () => import('./pages/Identify');
 const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
 const loadSearch = () => import('./pages/Search');
 const loadSettings = () => import('./pages/Settings');
+const loadWelcome = () => import('./pages/Welcome');
 
 const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
 const Encyclopedia = lazyWithRecovery(loadEncyclopedia, 'encyclopedia');
@@ -55,6 +57,7 @@ const Identify = lazyWithRecovery(loadIdentify, 'identify');
 const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
 const SearchPage = lazyWithRecovery(loadSearch, 'search');
 const SettingsPage = lazyWithRecovery(loadSettings, 'settings');
+const WelcomePage = lazyWithRecovery(loadWelcome, 'welcome');
 
 const preloadRoute = (path: string) => {
   const loader = path === '/aquarium'
@@ -191,8 +194,8 @@ const desktopSubMenus: Record<string, Array<{
   path?: string;
 }>> = {
   '/encyclopedia': [
-    { id: 'browse', labelKey: 'nav.browse', descriptionKey: 'nav.browseDescription', icon: BookOpen, hash: '#browse' },
-    { id: 'compatibility', labelKey: 'nav.compatibility', descriptionKey: 'nav.compatibilityDescription', icon: Activity, hash: '#compatibility' },
+    { id: 'browse', labelKey: 'nav.browse', descriptionKey: 'nav.browseDescription', icon: BookOpen, path: '/encyclopedia?mode=browse' },
+    { id: 'compatibility', labelKey: 'nav.compatibility', descriptionKey: 'nav.compatibilityDescription', icon: Activity, path: '/encyclopedia?mode=compatibility' },
   ],
   '/collection': [
     { id: 'wishlist', labelKey: 'nav.wishlist', descriptionKey: 'nav.wishlistDescription', icon: Heart, path: '/collection/wishlist' },
@@ -357,7 +360,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
             <div className="grid gap-1.5">
               {activeMenu.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? location.pathname === item.path : location.hash === item.hash;
+                const isActive = item.path ? `${location.pathname}${location.search}` === item.path : location.hash === item.hash;
                 return (
                   <button
                     key={item.id}
@@ -448,6 +451,7 @@ function AppShell() {
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
   const isAdminContent = location.pathname === '/admin/content';
+  const isWelcome = location.pathname === '/welcome';
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('aquaguide_desktop_sidebar_collapsed') === 'true';
@@ -546,6 +550,17 @@ function AppShell() {
     );
   }
 
+  if (isWelcome) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/welcome" element={<RouteErrorBoundary page="welcome"><WelcomePage /></RouteErrorBoundary>} />
+          <Route path="*" element={<Navigate to="/welcome" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   if (isPhoneLayout) return <MobileAppShell />;
 
   return (
@@ -579,12 +594,13 @@ function WorkspaceRoutes() {
       <DataRecoveryNotice />
       <Suspense fallback={<PageLoading />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/aquarium" replace />} />
+          <Route path="/" element={<Navigate to={shouldStartOnboarding() ? '/welcome' : '/aquarium'} replace />} />
           <Route path="/login" element={page(<Login />, 'login')} />
           <Route path="/encyclopedia" element={page(<Encyclopedia />, 'encyclopedia')} />
           <Route path="/identify" element={page(<Identify />, 'identify')} />
           <Route path="/search" element={page(<SearchPage />, 'search')} />
           <Route path="/settings" element={page(<SettingsPage />, 'settings')} />
+          <Route path="/welcome" element={page(<WelcomePage />, 'welcome')} />
           <Route path="/care" element={page(<CareEncyclopedia />, 'care')} />
           <Route path="/collection" element={page(<CollectionEntry />, 'collection')} />
           <Route path="/collection/wishlist" element={page(<Collection module="wishlist" />, 'collection-wishlist')} />
@@ -593,7 +609,7 @@ function WorkspaceRoutes() {
           <Route path="/collection/achievements" element={page(<Collection module="achievements" />, 'collection-achievements')} />
           <Route path="/wishlist" element={<Navigate to="/collection/wishlist" replace />} />
           <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
-          <Route path="/aquarium" element={page(<AquariumManager />, 'aquarium')} />
+          <Route path="/aquarium" element={shouldStartOnboarding() ? <Navigate to="/welcome" replace /> : page(<AquariumManager />, 'aquarium')} />
           <Route path="/3d-demo" element={page(<ThreeDemo />, '3d-demo')} />
           <Route path="/admin/content" element={page(<AdminContent />, 'admin-content')} />
         </Routes>

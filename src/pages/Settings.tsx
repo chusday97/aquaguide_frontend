@@ -1,6 +1,8 @@
 import { Check, Languages, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { setLocale, type SupportedLocale } from '../i18n';
+import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import { restartOnboarding } from '../services/onboarding/onboarding.service';
 
 const localeOptions: Array<{ locale: SupportedLocale; label: string }> = [
   { locale: 'zh-CN', label: '简体中文' },
@@ -10,6 +12,7 @@ const localeOptions: Array<{ locale: SupportedLocale; label: string }> = [
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const currentLocale: SupportedLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en';
+  const { navigateToRoute } = useWorkspaceNavigation();
 
   return (
     <div className="mx-auto w-full max-w-3xl px-1 py-2 md:px-8 md:py-8">
@@ -45,9 +48,10 @@ export default function SettingsPage() {
       <section className="mt-4 rounded-[24px] border border-emerald-100 bg-emerald-50/65 p-5">
         <div className="flex items-start gap-3">
           <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm font-black text-emerald-950">{t('settingsPage.onboardingTitle')}</h2>
-            <p className="mt-1 text-xs font-semibold leading-5 text-emerald-900/60">{t('settingsPage.onboardingPending')}</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-emerald-900/60">{t('settingsPage.onboardingHint')}</p>
+            <button type="button" onClick={() => { restartOnboarding(); navigateToRoute('/welcome'); }} className="mt-3 min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-emerald-800 shadow-sm hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">{t('settingsPage.replayOnboarding')}</button>
           </div>
         </div>
       </section>

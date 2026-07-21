@@ -71,6 +71,7 @@ import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
 import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
+import { OnboardingTaskCard } from '../components/onboarding/OnboardingTaskCard';
 import { VisualResultCard } from '../components/visual-results/VisualResultCard';
 import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
 import {
@@ -893,6 +894,7 @@ export default function AquariumManager() {
   const settingsBodyRef = useRef<HTMLDivElement | null>(null);
   const settingPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const handledAddSpeciesRequestRef = useRef('');
+  const handledOnboardingActionRef = useRef('');
   
   // 3D Highlight state
   const [active3DSpecies, setActive3DSpecies] = useState<string | null>(null);
@@ -2204,6 +2206,22 @@ export default function AquariumManager() {
     setDailyCheckInterpretation(null);
     setDailyCheckArticles([]);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(routeLocation.search);
+    const action = params.get('action');
+    if (!activeAquarium || !action || !['create', 'setup', 'daily-check'].includes(action)) return;
+    const requestKey = `${activeAquarium.id}:${action}:${params.get('source') ?? ''}`;
+    if (handledOnboardingActionRef.current === requestKey) return;
+    handledOnboardingActionRef.current = requestKey;
+
+    if (action === 'daily-check') {
+      setIsDiagnosisOpen(true);
+      handleStartDiagnosisQuiz('巡检');
+      return;
+    }
+    openAquariumSettings('size');
+  }, [activeAquarium?.id, routeLocation.search]);
 
   const handleDiagnosisAnswer = (questionId: string, answer: string) => {
     setDiagnosisQuizAnswers(prev => ({ ...prev, [questionId]: answer }));
@@ -4197,6 +4215,8 @@ export default function AquariumManager() {
         </div>
 
       </section>
+
+      <OnboardingTaskCard />
 
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard

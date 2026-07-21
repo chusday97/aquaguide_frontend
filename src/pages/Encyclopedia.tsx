@@ -516,6 +516,16 @@ export default function Encyclopedia() {
     if (fish) openSpeciesDetail(fish);
   }, [location.search, selectedFish?.id]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('difficulty') === 'Easy') {
+      setActiveFilters(current => ({ ...current, functionTag: '简单' }));
+      setResultPage(0);
+    }
+    if (params.get('mode') === 'compatibility') setViewMode('compatibility');
+    if (params.get('mode') === 'browse') setViewMode('browse');
+  }, [location.search]);
+
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());
   const [discoveryState, setDiscoveryState] = useState<DiscoveryDeckState>(() => loadDiscoveryState());

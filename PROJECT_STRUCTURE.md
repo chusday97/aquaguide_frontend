@@ -28,6 +28,8 @@
 - `src/pages/Identify.tsx`：拍照识别候选、手动兜底、物种确认、动态追问与可视化风险结果。
 - `src/pages/Search.tsx`：物种与养护指南的双语统一搜索，结果直达具体资料。
 - `src/pages/Settings.tsx`：正式设置路由，替代侧栏设置弹层。
+- `src/pages/Welcome.tsx`：首次使用的“先建缸 / 先看物种”目标选择页。
+- `src/components/onboarding/OnboardingTaskCard.tsx`：根据真实鱼缸、浏览、收藏/入缸和巡检记录自动更新的新手任务卡。
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
 - `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
@@ -48,6 +50,7 @@
 - `src/services/collection/memorial.service.ts`：生命纪念校验、兼容存储写入与统一变更通知。
 - `src/modules/collection/`：水族册模块、纪念条目与成就进度类型。
 - `src/services/aquarium/`：鱼缸生物写入与复核。
+- `src/services/onboarding/onboarding.service.ts`：新手引导状态、首次识别、真实任务进度与完成派生。
 - `src/services/aquarium/aquarium-state.service.ts`：鱼缸集合兼容存储、当前鱼缸校验与统一变更通知。
 - `src/services/care/care-activity.service.ts`：应用内养护计划、完成操作与护理清单的旧键兼容写入。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。

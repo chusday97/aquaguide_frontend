@@ -17,6 +17,7 @@ import { AdaptiveDetailContent } from './common/AdaptiveDetailContent';
 import { VisualResultCard } from './visual-results/VisualResultCard';
 import { getVisualEmphasis, mapFitStatus } from './visual-results/visual-result.adapters';
 import type { VisualResultViewModel } from './visual-results/visual-result.types';
+import { markSpeciesViewed } from '../services/onboarding/onboarding.service';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const Interactive3DFishWrapper = lazy(() => import('./Interactive3DFishWrapper'));
@@ -451,6 +452,10 @@ export function SpeciesDetailDialog({
   const displayFit = selectedFit;
   const selectedTaxonomy = fish ? getCareTaxonomyPath(fish) : null;
   const resolvedImageSrc = fish ? (imageSrc || getSpeciesDisplayImage(fish)) : '';
+
+  useEffect(() => {
+    if (open && fish) markSpeciesViewed();
+  }, [fish, open]);
 
   useEffect(() => {
     if (!open) return;
