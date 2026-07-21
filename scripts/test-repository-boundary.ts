@@ -29,6 +29,9 @@ assert.equal((await repository.getAquariums()).length, 1);
 const stateWithLocalTank = JSON.parse(localStorage.getItem('aquarium_app_state_v1') || '{}');
 assert.equal(selectRepositoryMode(true, stateWithLocalTank), 'local', 'login must not bypass local migration confirmation');
 assert.equal(selectRepositoryMode(true, { ...stateWithLocalTank, cloudMigrationConfirmed: true }), 'cloud');
+assert.equal(selectRepositoryMode(true, { ...stateWithLocalTank, aquariums: [], feedingRecords: [{ id: 'feed-1' }] }), 'local', 'feeding history must keep the local repository until migration');
+assert.equal(selectRepositoryMode(true, { ...stateWithLocalTank, aquariums: [], observationRecords: [{ id: 'observe-1' }] }), 'local', 'observation history must keep the local repository until migration');
+assert.equal(selectRepositoryMode(true, { ...stateWithLocalTank, aquariums: [] }, true), 'local', 'care data stored under compatibility keys must keep the local repository until migration');
 
 await repository.updateFavorite({ type: 'species', catalogKey: 'sp_0001', favorite: true });
 assert.deepEqual(JSON.parse(localStorage.getItem('wishlistFishIds') || '[]'), ['sp_0001']);
