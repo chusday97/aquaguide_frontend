@@ -22,6 +22,23 @@ export const profileLocaleUpdateSchema = z.object({
   version: versionSchema,
 });
 
+export const onboardingPreferenceSchema = z.object({
+  version: z.literal(1),
+  status: z.enum(['pending', 'completed', 'skipped']),
+  goal: z.enum(['build_tank', 'browse_species']).optional(),
+  viewedSpecies: z.boolean(),
+  taskCardDismissed: z.boolean(),
+  completedAt: z.string().datetime().optional(),
+});
+
+export const profilePreferencesUpdateSchema = z.object({
+  locale: supportedLocaleSchema.optional(),
+  onboarding: onboardingPreferenceSchema.optional(),
+  version: versionSchema,
+}).refine(value => value.locale !== undefined || value.onboarding !== undefined, {
+  message: '至少提供一项偏好设置。',
+});
+
 export const translationStatusSchema = z.enum(['draft', 'published', 'archived']);
 
 export const translationReviewSchema = z.object({

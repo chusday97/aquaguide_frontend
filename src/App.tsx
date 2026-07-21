@@ -7,7 +7,7 @@ import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { shouldStartOnboarding } from './services/onboarding/onboarding.service';
+import { hydrateOnboardingFromProfile, ONBOARDING_SYNC_FAILED_EVENT, shouldStartOnboarding } from './services/onboarding/onboarding.service';
 import {
   Activity,
   BookHeart,
@@ -24,7 +24,7 @@ import {
   Search as SearchIcon,
   Camera,
 } from 'lucide-react';
-import { ToastProvider } from './components/common/ToastProvider';
+import { ToastProvider, useToast } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
 import { DataRecoveryNotice, RouteErrorBoundary } from './components/common/RouteErrorBoundary';
@@ -447,7 +447,10 @@ export default function App() {
 
 function AppShell() {
   const location = useLocation();
+  const { t } = useTranslation();
+  const { showToast } = useToast();
   const { isPhoneLayout } = useLayoutMode();
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
   const isAdminContent = location.pathname === '/admin/content';
@@ -459,6 +462,19 @@ function AppShell() {
       return false;
     }
   });
+
+  useEffect(() => {
+    const handleSyncFailure = () => showToast(t('onboarding.syncFailed'), 'error');
+    window.addEventListener(ONBOARDING_SYNC_FAILED_EVENT, handleSyncFailure);
+    let active = true;
+    void hydrateOnboardingFromProfile().finally(() => {
+      if (active) setPreferencesReady(true);
+    });
+    return () => {
+      active = false;
+      window.removeEventListener(ONBOARDING_SYNC_FAILED_EVENT, handleSyncFailure);
+    };
+  }, [showToast, t]);
 
   const desktopShellStyle = useMemo(() => ({
     '--desktop-sidebar-width': isDesktopSidebarCollapsed ? '76px' : '280px',
@@ -516,6 +532,8 @@ function AppShell() {
       root.removeEventListener('pointercancel', clearTouchTimer, true);
     };
   }, []);
+
+  if (!preferencesReady && !isStructurePreview && !isLogin && !isAdminContent) return <PageLoading />;
 
   if (isStructurePreview) {
     return (

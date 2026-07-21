@@ -8,6 +8,7 @@ import {
   aquariumSpeciesBatchSplitSchema,
   careReminderCreateSchema,
   diagnosisSaveSchema,
+  profilePreferencesUpdateSchema,
 } from '../packages/contracts/src/index';
 import { clampAiPriority, highestRisk } from '../packages/domain-rules/src/index';
 import { camelize, deterministicUuid, snakeize } from '../apps/api/src/data-utils';
@@ -20,6 +21,8 @@ assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 1, lifeStage:
 assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 0, lifeStage: 'adult', reproductiveState: 'normal', sourceVersion: 1 }).success, false);
 assert.equal(careReminderCreateSchema.safeParse({ sourceCatalogKey: 'guide_water', title: '换水', reminderType: '换水', scheduledFor: '2026-07-17T08:00:00+08:00' }).success, true);
 assert.equal(diagnosisSaveSchema.safeParse({ diagnosisKey: 'daily', answers: {}, resultSummary: '正常', riskLevel: '低' }).success, true);
+assert.equal(profilePreferencesUpdateSchema.safeParse({ version: 1, onboarding: { version: 1, status: 'pending', goal: 'build_tank', viewedSpecies: false, taskCardDismissed: false } }).success, true);
+assert.equal(profilePreferencesUpdateSchema.safeParse({ version: 1 }).success, false);
 
 const firstId = deterministicUuid('user:operation:key');
 assert.equal(firstId, deterministicUuid('user:operation:key'));

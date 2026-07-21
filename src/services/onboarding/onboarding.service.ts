@@ -1,4 +1,7 @@
 import type { OnboardingGoal, OnboardingState } from '../../types';
+import { onboardingPreferenceSchema } from '../../../packages/contracts/src/index';
+import { supabase } from '../../lib/supabaseClient';
+import { apiRequest, AquaGuideApiError, createIdempotencyKey } from '../api/api-client';
 import { getCareFavorites } from '../favorites/favorites.service';
 import { loadAppStateFromStorage, patchLocalAppState } from '../storage/local-app-state';
 
@@ -9,6 +12,72 @@ const createState = (patch: Partial<OnboardingState> = {}): OnboardingState => (
   taskCardDismissed: false,
   ...patch,
 });
+
+export const ONBOARDING_SYNC_FAILED_EVENT = 'aquaguide:onboarding-sync-failed';
+
+type ProfilePreferenceResponse = {
+  version: number;
+  preferences?: {
+    onboarding?: unknown;
+  };
+};
+
+const emitSyncFailure = () => {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(ONBOARDING_SYNC_FAILED_EVENT));
+};
+
+const hasSignedInUser = async () => {
+  if (!supabase) return false;
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return Boolean(data.session);
+};
+
+const syncOnboardingToProfile = async (onboarding: OnboardingState) => {
+  if (!await hasSignedInUser()) return;
+  const save = async () => {
+    const profile = await apiRequest<ProfilePreferenceResponse>('/profile');
+    await apiRequest('/profile', {
+      method: 'PATCH',
+      body: { onboarding, version: profile.version },
+      idempotencyKey: createIdempotencyKey('onboarding-preference'),
+    });
+  };
+  try {
+    await save();
+  } catch (error) {
+    if (error instanceof AquaGuideApiError && error.code === 'VERSION_CONFLICT') {
+      await save();
+      return;
+    }
+    throw error;
+  }
+};
+
+const queueProfileSync = (onboarding: OnboardingState) => {
+  void syncOnboardingToProfile(onboarding).catch(() => emitSyncFailure());
+};
+
+const persistOnboarding = (onboarding: OnboardingState) => {
+  const saved = patchLocalAppState({ onboarding }).onboarding!;
+  queueProfileSync(saved);
+  return saved;
+};
+
+export const hydrateOnboardingFromProfile = async () => {
+  try {
+    if (!await hasSignedInUser()) return getOnboardingState();
+    const profile = await apiRequest<ProfilePreferenceResponse>('/profile');
+    const local = getOnboardingState();
+    const cloud = onboardingPreferenceSchema.safeParse(profile.preferences?.onboarding);
+    if (!local && cloud.success) return patchLocalAppState({ onboarding: cloud.data }).onboarding;
+    if (local && !cloud.success) queueProfileSync(local);
+    return local;
+  } catch {
+    emitSyncFailure();
+    return getOnboardingState();
+  }
+};
 
 export const shouldStartOnboarding = () => {
   const state = loadAppStateFromStorage();
@@ -24,33 +93,27 @@ export const shouldStartOnboarding = () => {
 
 export const getOnboardingState = () => loadAppStateFromStorage().onboarding;
 
-export const chooseOnboardingGoal = (goal: OnboardingGoal) => patchLocalAppState({
-  onboarding: createState({ goal }),
-});
+export const chooseOnboardingGoal = (goal: OnboardingGoal) => persistOnboarding(createState({ goal }));
 
-export const skipOnboarding = () => patchLocalAppState({
-  onboarding: createState({ status: 'skipped' }),
-});
+export const skipOnboarding = () => persistOnboarding(createState({ status: 'skipped' }));
 
 export const restartOnboarding = () => {
   const current = getOnboardingState();
-  return patchLocalAppState({
-    onboarding: createState({
+  return persistOnboarding(createState({
       viewedSpecies: current?.viewedSpecies ?? false,
       taskCardDismissed: false,
-    }),
-  });
+    }));
 };
 
 export const markSpeciesViewed = () => {
   const current = getOnboardingState();
   if (!current || current.viewedSpecies) return current;
-  return patchLocalAppState({ onboarding: { ...current, viewedSpecies: true } }).onboarding;
+  return persistOnboarding({ ...current, viewedSpecies: true });
 };
 
 export const dismissOnboardingTaskCard = () => {
   const current = getOnboardingState() ?? createState();
-  return patchLocalAppState({ onboarding: { ...current, taskCardDismissed: true } }).onboarding;
+  return persistOnboarding({ ...current, taskCardDismissed: true });
 };
 
 export interface OnboardingTaskProgress {
@@ -79,7 +142,5 @@ export const syncOnboardingCompletion = () => {
   const current = getOnboardingState();
   const progress = getOnboardingTaskProgress();
   if (!current || !progress.complete || current.status === 'completed') return current;
-  return patchLocalAppState({
-    onboarding: { ...current, status: 'completed', completedAt: new Date().toISOString() },
-  }).onboarding;
+  return persistOnboarding({ ...current, status: 'completed', completedAt: new Date().toISOString() });
 };

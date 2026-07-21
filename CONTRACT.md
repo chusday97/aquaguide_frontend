@@ -152,6 +152,7 @@ type AssetVariant =
 ### 4.1 Profile / UserRoleRecord
 
 - `profiles` 保存昵称和非敏感偏好，不复制认证凭据。
+- `profiles.preferences` 可保存 `locale` 与 `onboarding`；新设备仅在本地没有选择时读取云端引导状态，本地操作失败同步时不得阻断游客使用。
 - `user_roles` 保存 `user | admin`，普通用户不能修改自己的角色。
 
 ### 4.2 AquariumWithRelations

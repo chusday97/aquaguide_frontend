@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { profileLocaleUpdateSchema } from '../../../../packages/contracts/src/index';
+import { profilePreferencesUpdateSchema } from '../../../../packages/contracts/src/index';
 import { requireAuth } from '../auth';
 import {
   authenticatedRequest,
@@ -32,8 +32,8 @@ profileRouter.get('/profile', asyncRoute(async (request, response) => {
 }));
 
 profileRouter.patch('/profile', requireIdempotencyKey, asyncRoute(async (request, response) => {
-  const parsed = profileLocaleUpdateSchema.safeParse(request.body);
-  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '语言偏好无效。', parsed.error.flatten());
+  const parsed = profilePreferencesUpdateSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '用户偏好无效。', parsed.error.flatten());
 
   const idempotency = await beginIdempotentWrite(request);
   const client = userClientFor(request);
@@ -57,7 +57,13 @@ profileRouter.patch('/profile', requireIdempotencyKey, asyncRoute(async (request
     : {};
   const { data, error } = await client
     .from('profiles')
-    .update({ preferences: { ...preferences, locale: parsed.data.locale } })
+    .update({
+      preferences: {
+        ...preferences,
+        ...(parsed.data.locale ? { locale: parsed.data.locale } : {}),
+        ...(parsed.data.onboarding ? { onboarding: parsed.data.onboarding } : {}),
+      },
+    })
     .eq('id', current.id)
     .eq('version', parsed.data.version)
     .select('*')

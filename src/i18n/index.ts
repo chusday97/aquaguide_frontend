@@ -101,6 +101,7 @@ const resources = {
         taskChooseSpecies: '收藏或加入一个物种',
         taskCheck: '完成第一次每日检查',
         dismiss: '隐藏新手起步',
+        syncFailed: '新手引导已保存在本机，云端同步暂时失败。',
       },
       visualResult: {
         status: {
@@ -866,6 +867,7 @@ const resources = {
         taskChooseSpecies: 'Save or add one species',
         taskCheck: 'Complete the first daily check',
         dismiss: 'Hide getting started',
+        syncFailed: 'Getting started is saved on this device, but cloud sync failed.',
       },
       visualResult: {
         status: {
