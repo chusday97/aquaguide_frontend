@@ -1096,7 +1096,9 @@ export default function AquariumManager() {
       const initialAquariums = normalizeAquariumPlants(oldAquarium ? [oldAquarium] : [createDefaultAquarium()]);
       setAquariums(initialAquariums);
       setActiveId(initialAquariums[0].id);
-      saveAppStateToStorage({ ...appState, aquariums: initialAquariums, currentAquariumId: initialAquariums[0].id });
+      if (oldAquarium) {
+        saveAppStateToStorage({ ...appState, aquariums: initialAquariums, currentAquariumId: initialAquariums[0].id });
+      }
     }
   }, []);
 
