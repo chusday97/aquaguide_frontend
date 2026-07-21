@@ -30,6 +30,7 @@
 - `src/pages/Settings.tsx`：正式设置路由，替代侧栏设置弹层。
 - `src/pages/Welcome.tsx`：首次使用的“先建缸 / 先看物种”目标选择页。
 - `src/components/onboarding/OnboardingTaskCard.tsx`：根据真实鱼缸、浏览、收藏/入缸和巡检记录自动更新的新手任务卡。
+- `src/components/aquarium/LivestockBatchCard.tsx`：缸内物种批次汇总、体态调整、拆分与最后一组移除确认。
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
 - `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
@@ -52,6 +53,7 @@
 - `src/services/aquarium/`：鱼缸生物写入与复核。
 - `src/services/onboarding/onboarding.service.ts`：新手引导状态、首次识别、真实任务进度与完成派生。
 - `src/services/aquarium/aquarium-state.service.ts`：鱼缸集合兼容存储、当前鱼缸校验与统一变更通知。
+- `src/services/aquarium/species-batches.service.ts`：游客模式的批次规范化、汇总、拆分、体态更新与观察提示。
 - `src/services/care/care-activity.service.ts`：应用内养护计划、完成操作与护理清单的旧键兼容写入。
 - `src/services/compatibility/`：Mini 与完整混养的会话级选择传递。
 - `src/services/diagnosis/`：巡检记录的同日更新策略。
@@ -80,6 +82,7 @@
 - `scripts/content-import/import-catalog.ts`：本地目录内容与图片的预检、去重、版本化 Storage 上传和数据库导入工具。
 - `scripts/test-visual-results.ts`：视觉结果适配、关注对象、折叠依据和规则只读性的专项断言。
 - `scripts/test-species-diagnosis.ts`：单条新鱼、全缸急促呼吸、最多三问和中英文一致性规则断言。
+- `scripts/test-species-batches.ts`：旧鱼缸批次回填、体态更新、拆分、追加和最后一组移除断言。
 - `scripts/verify-species-identification.mjs`：真实手机降级流程、紧急追问、英文桌面、600–1440px 溢出和图鉴入口验收。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。

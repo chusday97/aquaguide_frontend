@@ -72,6 +72,7 @@ import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { OnboardingTaskCard } from '../components/onboarding/OnboardingTaskCard';
+import { LivestockBatchCard } from '../components/aquarium/LivestockBatchCard';
 import { VisualResultCard } from '../components/visual-results/VisualResultCard';
 import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
 import {
@@ -102,6 +103,7 @@ import {
   subscribeToCareActivity,
   type CareReminderRecord,
 } from '../services/care/care-activity.service';
+import { appendSpeciesBatch, createSpeciesBatch, getSpeciesBatchContextLabel, withNormalizedSpeciesBatches } from '../services/aquarium/species-batches.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
@@ -1080,6 +1082,19 @@ export default function AquariumManager() {
     setAquariums(saved.aquariums);
   };
 
+  const saveLivestockBatches = (recordId: string, nextRecord: AquariumFish | null) => {
+    const updated = aquariums.map(aquarium => aquarium.id === activeId ? {
+      ...aquarium,
+      fishes: nextRecord
+        ? aquarium.fishes.map(record => record.id === recordId ? nextRecord : record)
+        : aquarium.fishes.filter(record => record.id !== recordId),
+    } : aquarium);
+    saveAquariums(updated);
+    showToast(nextRecord
+      ? (isEn ? 'Livestock group states updated' : '体态与数量已更新')
+      : (isEn ? 'Species removed from this tank' : '该物种已移出鱼缸'));
+  };
+
   const handleAddAquarium = () => {
     const newAq = createDefaultAquarium(`我的鱼缸 ${aquariums.length + 1}`);
     const updated = [...aquariums, newAq];
@@ -1688,10 +1703,10 @@ export default function AquariumManager() {
             templateFish.forEach(({ fish, quantity }) => {
               const existingIndex = nextFishes.findIndex(item => item.fishId === fish.id);
               if (existingIndex >= 0) {
-                nextFishes[existingIndex] = {
-                  ...nextFishes[existingIndex],
-                  quantity: Math.max(nextFishes[existingIndex].quantity || 1, quantity),
-                };
+                const existing = withNormalizedSpeciesBatches(nextFishes[existingIndex]);
+                nextFishes[existingIndex] = quantity > existing.quantity
+                  ? appendSpeciesBatch(existing, { quantity: quantity - existing.quantity, entryDate: now })
+                  : existing;
                 return;
               }
 
@@ -1701,6 +1716,7 @@ export default function AquariumManager() {
                 quantity,
                 entryDate: now,
                 lastWaterChangeDate: now,
+                batches: [createSpeciesBatch({ quantity, entryDate: now })],
               });
             });
 
@@ -1961,7 +1977,7 @@ export default function AquariumManager() {
     const stockedFishes = targetAquarium?.fishes || [];
     const currentLivestock = getDiagnosisLivestock(targetAquarium);
     const stocked = currentLivestock
-      .map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`)
+      .map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1} (${getSpeciesBatchContextLabel(aqFish, isEn)})`)
       .join(i18n.language === 'zh-CN' ? '、' : ', ') || t('aquarium.noLivestock');
     const latestAdded = [...stockedFishes]
       .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())[0];
@@ -4568,9 +4584,9 @@ export default function AquariumManager() {
               </div>
             </div>
           ) : filteredTankContentItems.length > 0 ? (
-            <div className="relative grid grid-cols-5 gap-x-1.5 gap-y-4 rounded-[16px] bg-[#FBFAF6] px-1 py-2">
+            <div className="relative grid grid-cols-1 gap-3 rounded-[16px] bg-[#FBFAF6] px-1 py-2 sm:grid-cols-2 lg:grid-cols-5">
               {!hasStockedAnimals && hasEnvironmentContent && tankArchiveCategory === '全部' && (
-                <div className="col-span-5 rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
+                <div className="col-span-full rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
                   <div className="text-[12px] font-black text-sky-800">{isEn ? 'No livestock yet, environment configured' : '暂无鱼虾螺，已配置环境内容'}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/55">
                     你已配置水草、底砂、造景或设备，可以继续添加适合的生物。
@@ -4581,6 +4597,19 @@ export default function AquariumManager() {
                 const ownedAqFish = item.fish ? activeAquarium.fishes.find(aqFish => aqFish.fishId === item.fish?.id) : undefined;
                 const canOpenDetail = Boolean(item.fish && ownedAqFish && item.source === 'stocked');
                 const canOpenSettings = ['equipment', 'substrate', 'plant'].includes(item.source);
+
+                if (canOpenDetail && item.fish && ownedAqFish) {
+                  return (
+                    <LivestockBatchCard
+                      key={item.id}
+                      fish={item.fish}
+                      record={ownedAqFish}
+                      reproductiveApplicable={!isAquaticPlantSpecies(item.fish) && !isHardscapeSpecies(item.fish)}
+                      onOpenDetail={() => openAquariumSpeciesDetail(item.fish!, ownedAqFish, `aquarium-archive-species-${item.fish!.id}`)}
+                      onSave={(nextRecord) => saveLivestockBatches(ownedAqFish.id, nextRecord)}
+                    />
+                  );
+                }
 
                 return (
                   <button

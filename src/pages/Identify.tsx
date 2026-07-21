@@ -28,6 +28,7 @@ import { getSpeciesFavoriteIds, setSpeciesFavoriteIds } from '../services/favori
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { buildSpeciesDiagnosisContextAnswers, isSpeciesEligibleForHealthTriage, mapVisionCandidateToCatalog, normalizeSpeciesName, type MappedRecognitionCandidate } from '../lib/speciesRecognition';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
+import { getSpeciesBatchContextLabel } from '../services/aquarium/species-batches.service';
 
 type Stage = 'upload' | 'candidates' | 'describe' | 'question' | 'result';
 
@@ -48,7 +49,7 @@ const buildSnapshot = (aquarium?: Aquarium | null) => {
     volume: aquariumVolume(aquarium),
     stocked: aquarium?.fishes.map(item => {
       const fish = fishData.find(candidate => candidate.id === item.fishId);
-      return `${fish?.name || item.fishId} × ${item.quantity}`;
+      return `${fish?.name || item.fishId} × ${item.quantity} (${getSpeciesBatchContextLabel(item, isEn)})`;
     }).join(isEn ? ', ' : '、') || (isEn ? 'Empty or no aquarium selected' : '空缸或未选择鱼缸'),
     recentWaterChange: aquarium?.lastWaterChangeDate || (isEn ? 'No record' : '未记录'),
     recentFeeding: isEn ? 'No record' : '未记录',

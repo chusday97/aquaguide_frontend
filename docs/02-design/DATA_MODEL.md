@@ -24,6 +24,7 @@ erDiagram
 | `Fish` / 物种 | 名称、图片、饲养与混养资料 | 静态物种服务 | 构建时维护 |
 | `Aquarium` / 鱼缸 | 尺寸、水体、温度、参数、设备、生物 | 应用主状态 | 鱼缸设置与添加流程 |
 | `AquariumFish` | 物种引用、数量、加入日期等 | 鱼缸 | 通过鱼缸动作修改 |
+| `AquariumSpeciesBatch` | 同一物种的一组数量、入缸日期、生长阶段和繁殖状态 | `AquariumFish.batches` / 云端批次表 | 添加、调整体态、拆分或移除批次 |
 | `DiagnosisRecord` | 问题类型、答案、结论、行动与观察项 | 每日检查/诊断 | 同缸同日巡检更新 |
 | 种草收藏 | 物种 ID 集合 | 收藏服务 | 收藏切换 |
 | 养护收藏 | 文章 ID 集合 | 收藏服务 | 收藏切换 |
@@ -46,6 +47,8 @@ erDiagram
 | `aqua_care_saved_checklists` | 保存的检查清单 | 辅助状态 |
 
 不新增新的 localStorage 集合来保存每日检查、收藏或成就。成就由现有鱼缸、收藏、巡检、换水和死亡记录实时计算。
+
+游客模式将批次嵌入现有 `AquariumFish`，不新增 localStorage 键；旧物种记录读取时自动生成“未知阶段、未知繁殖状态”的默认批次。云端模式使用 `aquarium_species_batches`，父记录 `quantity` 仅为有效批次数量之和。水草和硬景的繁殖状态固定为 `not_applicable`。
 
 ## 4. 关键业务约束
 

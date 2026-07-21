@@ -34,6 +34,7 @@ import {
 } from '../services/care/care-activity.service';
 import { useToast } from '../components/common/ToastProvider';
 import { VisualResultCard } from '../components/visual-results/VisualResultCard';
+import { normalizeSpeciesBatches } from '../services/aquarium/species-batches.service';
 import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
 import type { DiagnosisOutput } from '../modules/diagnosis/diagnosis.types';
 
@@ -761,6 +762,11 @@ const getCareRecommendations = (aquarium: Aquarium | null, allGuides: CareTopic[
   const hasWaterChangeRecord = Boolean(aquarium?.lastWaterChangeDate || (aquarium?.waterChangeHistory || []).length > 0);
   const isNewTank = Boolean(aquarium) && (!hasWaterChangeRecord || livestock.length === 0);
   const hasBreedingSpecies = livestockDetails.some(fish => /孔雀|玛丽|月光|胎生|鱼苗|虾/.test(`${fish.name} ${fish.category} ${fish.description}`));
+  const hasActivePregnancy = livestock.some(item => normalizeSpeciesBatches(item).some(batch => [
+    'pregnant_or_gravid',
+    'in_labor_or_spawning',
+    'postpartum_recovery',
+  ].includes(batch.reproductiveState)));
   const hasFilter = Boolean(aquarium?.equipment?.filter && aquarium.equipment.filter !== '无');
 
   if (hasRecentLivestock) {
@@ -769,8 +775,10 @@ const getCareRecommendations = (aquarium: Aquarium | null, allGuides: CareTopic[
   if (isNewTank) {
     addRecommendation(findCareTopic(topic => /白蒙蒙|白浊|新缸刚放水/.test(getDisplayTitle(topic) + topic.summary)), '当前鱼缸像新缸状态，先看白浊和开缸稳定问题。');
   }
-  if (hasBreedingSpecies) {
-    addRecommendation(findCareTopic(topic => topic.id === 'guide_fry_care' || topic.id === 'guide_pregnant_care'), '当前鱼缸有繁殖或鱼苗相关生物，建议提前看护理节奏。');
+  if (hasActivePregnancy || hasBreedingSpecies) {
+    addRecommendation(findCareTopic(topic => topic.id === 'guide_pregnant_care' || topic.id === 'guide_fry_care'), hasActivePregnancy
+      ? '已记录怀孕、生产或产后恢复状态，优先查看对应观察与护理。'
+      : '当前鱼缸有繁殖或鱼苗相关生物，建议提前看护理节奏。');
   }
   if (!hasFilter && aquarium) {
     addRecommendation(findCareTopic(topic => /过滤|滤棉|过滤器/.test(getDisplayTitle(topic) + topic.summary + topic.keywords.join(' '))), '当前鱼缸设备信息不完整，建议先确认过滤和维护方式。');

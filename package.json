@@ -46,6 +46,7 @@
     "test:three-tier-contract": "node --import tsx scripts/test-three-tier-contract.ts",
     "test:api-boundary": "node --import tsx scripts/test-api-boundary.ts",
     "test:business-api-contract": "node --import tsx scripts/test-business-api-contract.ts",
+    "test:species-batches": "node --import tsx scripts/test-species-batches.ts",
     "test:repository-boundary": "node --import tsx scripts/test-repository-boundary.ts",
     "test:admin-content-contract": "node --import tsx scripts/test-admin-content-contract.ts",
     "content:import": "node --import tsx scripts/content-import/import-catalog.ts",
