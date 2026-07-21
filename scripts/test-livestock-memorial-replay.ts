@@ -11,6 +11,7 @@ assert.deepEqual(replay, { id: 'memorial-1' });
 assert.equal(ownershipChecks, 0, 'a committed replay must not require the now-deleted livestock parent');
 
 const fresh = await resolveLivestockMemorialReplay({
+  resourceId: 'deterministic-new-id',
   loadReplay: async () => null,
   assertOwnedSpecies: async () => { ownershipChecks += 1; },
 });
@@ -20,6 +21,7 @@ assert.equal(ownershipChecks, 1, 'a fresh request must still verify livestock ow
 await assert.rejects(
   resolveLivestockMemorialReplay({
     resourceId: 'missing-result',
+    replayRequired: true,
     loadReplay: async () => null,
     assertOwnedSpecies: async () => { ownershipChecks += 1; },
   }),

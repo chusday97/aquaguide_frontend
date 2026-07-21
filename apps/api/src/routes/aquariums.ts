@@ -406,17 +406,23 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/memorial
   const idempotency = await beginIdempotentWrite(request);
   const client = userClientFor(request);
   const userId = authenticatedRequest(request).authUser.id;
+  const memorialId = deterministicUuid(`${userId}:${recordId}:memorial:${idempotency.key}`);
   const replay = await resolveLivestockMemorialReplay({
-    resourceId: idempotency.replay?.resourceId,
+    resourceId: idempotency.replay?.resourceId || memorialId,
+    replayRequired: Boolean(idempotency.replay?.resourceId),
     loadReplay: async (resourceId) => {
       const { data, error } = await client.from('memorial_records').select('*').eq('id', resourceId).maybeSingle();
       if (error) throwDatabaseError(error, '已保存的生命纪念暂时无法读取。');
+      if (data && (
+        data.species_catalog_key !== parsed.data.speciesCatalogKey
+        || data.memorial_date !== parsed.data.memorialDate
+        || (data.reason || undefined) !== parsed.data.reason
+      )) throw new ApiError(409, 'DUPLICATE_RESOURCE', '这个操作号已经用于另一条生命纪念。');
       return data;
     },
     assertOwnedSpecies: async () => { await getOwnedSpeciesRecord(client, aquariumId, recordId); },
   });
   if (replay) return sendData(request, response, camelize(replay), idempotency.replay?.responseStatus || 201);
-  const memorialId = deterministicUuid(`${userId}:${recordId}:memorial:${idempotency.key}`);
   const { data, error } = await client.rpc('record_livestock_memorial', {
     target_aquarium_id: aquariumId,
     target_species_record_id: recordId,

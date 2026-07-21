@@ -101,6 +101,7 @@ const aquariumApiSource = readFileSync(resolve(import.meta.dirname, '../apps/api
 const atomicSplitMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220002_atomic_livestock_batch_split.sql'), 'utf8');
 const atomicMemorialMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220003_atomic_livestock_memorial.sql'), 'utf8');
 const atomicMergeMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220004_atomic_livestock_batch_merge.sql'), 'utf8');
+const mergeSignatureFixMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220005_fix_livestock_batch_merge_signature.sql'), 'utf8');
 const aquariumPageSource = readFileSync(resolve(import.meta.dirname, '../src/pages/Aquarium.tsx'), 'utf8');
 assert.doesNotMatch(apiRepositorySource, /supabase\.from\(/);
 assert.match(apiRepositorySource, /apiRequest/);
@@ -128,6 +129,7 @@ assert.match(atomicMergeMigration, /for update/);
 assert.match(atomicMergeMigration, /final_life_stage/);
 assert.match(atomicMergeMigration, /final_life_stage public\.aquarium_life_stage/);
 assert.match(atomicMergeMigration, /final_reproductive_state public\.aquarium_reproductive_state/);
+assert.match(mergeSignatureFixMigration, /drop function if exists public\.merge_aquarium_species_batches\(uuid, uuid, uuid, date, text, text, integer, integer\)/);
 assert.match(apiRepositorySource, /targetLifeStage: increased\[0\]\.desired\.lifeStage/);
 assert.match(aquariumPageSource, /getCurrentAquaGuideRepository/);
 assert.match(aquariumPageSource, /subscribeToRepositoryMode/);
