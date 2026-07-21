@@ -92,7 +92,7 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
-import { recordSpeciesMemorial } from '../services/collection/memorial.service';
+import { recordSpeciesMemorialAndDecrementBatch } from '../services/collection/memorial.service';
 import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 import {
   completeCareReminder,
@@ -7194,12 +7194,19 @@ export default function AquariumManager() {
         }}
         onRecordDeath={selectedAqFish ? (fish, input) => {
           if (!selectedAqFish) return;
-          const { records } = recordSpeciesMemorial({ fishId: fish.id, ...input });
+          const batchId = input.batchId || selectedAqFish.aqFish.batches?.[0]?.id || `${selectedAqFish.aqFish.id}_legacy`;
+          const result = recordSpeciesMemorialAndDecrementBatch({
+            fishId: fish.id,
+            date: input.date,
+            reason: input.reason,
+            batchId,
+            aquariumId: activeAquarium.id,
+            aquariumFishId: selectedAqFish.aqFish.id,
+          });
+          setAquariums(result.aquariums);
+          const { records } = result;
           setDeceasedRecords(records);
-          if ((selectedAqFish.aqFish.quantity || 1) > 1) {
-            handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
-          } else {
-            handleRemoveFish(selectedAqFish.aqFish.id);
+          if ((selectedAqFish.aqFish.quantity || 1) <= 1) {
             closeAquariumSpeciesDetail();
           }
         } : undefined}

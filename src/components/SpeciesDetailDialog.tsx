@@ -18,6 +18,7 @@ import { VisualResultCard } from './visual-results/VisualResultCard';
 import { getVisualEmphasis, mapFitStatus } from './visual-results/visual-result.adapters';
 import type { VisualResultViewModel } from './visual-results/visual-result.types';
 import { markSpeciesViewed } from '../services/onboarding/onboarding.service';
+import { normalizeSpeciesBatches } from '../services/aquarium/species-batches.service';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const Interactive3DFishWrapper = lazy(() => import('./Interactive3DFishWrapper'));
@@ -69,7 +70,7 @@ type SpeciesDetailDialogProps = {
   onToggleWishlist: (fishId: string) => void;
   onGoCalculator?: () => void;
   onOpenTankSettings?: (panel: 'size' | 'parameters' | 'equipment') => void;
-  onRecordDeath?: (fish: Fish, input: { date: string; reason: string }) => void | Promise<void>;
+  onRecordDeath?: (fish: Fish, input: { date: string; reason: string; batchId?: string }) => void | Promise<void>;
 };
 
 const getLocalDateValue = () => {
@@ -445,6 +446,9 @@ export function SpeciesDetailDialog({
   const [isDeathFormOpen, setIsDeathFormOpen] = useState(false);
   const [deathDate, setDeathDate] = useState(getLocalDateValue);
   const [deathReason, setDeathReason] = useState('');
+  const ownedRecord = useMemo(() => aquariumContext?.fishes.find(item => item.fishId === fish?.id), [aquariumContext, fish?.id]);
+  const deathBatches = useMemo(() => ownedRecord ? normalizeSpeciesBatches(ownedRecord) : [], [ownedRecord]);
+  const [deathBatchId, setDeathBatchId] = useState('');
   const [deathError, setDeathError] = useState('');
   const [isRecordingDeath, setIsRecordingDeath] = useState(false);
   const deathReasonRef = useRef<HTMLTextAreaElement | null>(null);
@@ -677,7 +681,9 @@ export function SpeciesDetailDialog({
     setIsRecordingDeath(true);
     setDeathError('');
     try {
-      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim() });
+      const selectedBatchId = deathBatchId || deathBatches[0]?.id;
+      if (deathBatches.length > 0 && !selectedBatchId) throw new Error(t('livestock.selectMemorialBatch'));
+      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim(), batchId: selectedBatchId });
       setIsDeathFormOpen(false);
       setInlineFeedback(t('encyclopedia.freshwater') === '淡水' ? `已保存 ${fish.name} 的生命纪念。` : `Saved memorial for ${fish.name}.`);
     } catch (error) {
@@ -935,6 +941,7 @@ export function SpeciesDetailDialog({
                     <input id="death-date" type="date" value={deathDate} onChange={event => setDeathDate(event.target.value)} disabled={isRecordingDeath} className="mt-2 h-11 w-full rounded-[14px] border border-border bg-white px-3 text-[14px] font-bold text-ink outline-none focus:border-accent" />
                     <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-reason">{t('encyclopedia.reasonLabel')}</label>
                     <textarea ref={deathReasonRef} id="death-reason" value={deathReason} onChange={event => setDeathReason(event.target.value)} disabled={isRecordingDeath} rows={4} placeholder={t('encyclopedia.deathReasonPlaceholder')} className="mt-2 w-full resize-none rounded-[14px] border border-border bg-white p-3 text-[14px] font-medium leading-relaxed text-ink outline-none focus:border-accent" />
+                    {deathBatches.length > 1 && <><label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-batch">{t('livestock.memorialBatch')}</label><select id="death-batch" value={deathBatchId || deathBatches[0]?.id || ''} onChange={event => setDeathBatchId(event.target.value)} disabled={isRecordingDeath} className="mt-2 h-11 w-full rounded-[14px] border border-border bg-white px-3 text-[14px] font-bold text-ink"><option value="" disabled>{t('livestock.selectMemorialBatch')}</option>{deathBatches.map((batch, index) => <option key={batch.id} value={batch.id}>{t('livestock.groupOption', { index: index + 1, count: batch.quantity })}</option>)}</select></>}
                     {deathError && <p className="mt-2 rounded-[12px] bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700" role="alert">{deathError}</p>}
                     <div className="mt-5 grid grid-cols-2 gap-2">
                       <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" disabled={isRecordingDeath} onClick={() => setIsDeathFormOpen(false)}>{t('encyclopedia.btnCancel')}</Button>

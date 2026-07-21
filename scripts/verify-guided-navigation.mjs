@@ -62,6 +62,12 @@ try {
   await sidebarSearch.press('Enter');
   await desktop.waitForURL('**/search?q=*');
   await desktop.getByRole('heading', { name: '物种' }).waitFor();
+  await desktop.locator('#search-species-sp_0001').click();
+  await desktop.waitForURL('**/encyclopedia?species=sp_0001&source=search');
+  await desktop.getByRole('dialog').waitFor();
+  await desktop.keyboard.press('Escape');
+  await desktop.waitForURL('**/search?q=*');
+  assert.equal(new URL(desktop.url()).searchParams.get('q'), '极火虾');
   await desktop.getByRole('button', { name: '拍照识别' }).first().click();
   await desktop.waitForURL('**/identify');
   await desktop.goBack();
@@ -96,6 +102,16 @@ try {
   const stored = await phone.evaluate(() => JSON.parse(localStorage.getItem('aquarium_app_state_v1')).aquariums[0].fishes[0]);
   assert.equal(stored.quantity, 3);
   assert.equal(stored.batches.length, 2);
+  await phone.getByRole('button', { name: '调整体态' }).click();
+  await phone.getByRole('button', { name: '删除第 2 组' }).click();
+  await phone.getByRole('button', { name: '删除这一组' }).click();
+  await phone.getByRole('button', { name: '保存修改' }).click();
+  await phone.getByRole('button', { name: '调整体态' }).click();
+  await phone.getByRole('button', { name: '删除第 1 组' }).click();
+  await phone.getByText('这是最后一组，确认后会将极火虾移出鱼缸。').waitFor();
+  await phone.getByRole('button', { name: '删除这一组' }).click();
+  await phone.getByText('该物种已移出鱼缸').waitFor();
+  assert.equal(await phone.evaluate(() => JSON.parse(localStorage.getItem('aquarium_app_state_v1')).aquariums[0].fishes.length), 0);
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '390px batch manager must not overflow');
   assert.deepEqual(phoneErrors, []);
   console.log('PASS mobile livestock split persists without overflow');
@@ -105,6 +121,8 @@ try {
   narrowEnglish.setDefaultTimeout(8_000);
   await seed(narrowEnglish, baseState({ withTank: true }), 'en');
   await narrowEnglish.goto(`${baseUrl}/aquarium`, { waitUntil: 'networkidle' });
+  assert.ok(await narrowEnglish.locator('.desktop-sidebar').isVisible(), '600px desktop must keep the desktop sidebar');
+  assert.equal(await narrowEnglish.locator('[data-layout-mode="phone"]').count(), 0, '600px desktop must not render the phone shell');
   await narrowEnglish.getByText('Livestock in Tank', { exact: true }).last().click();
   await narrowEnglish.getByRole('button', { name: 'Manage groups' }).click();
   assert.ok(await narrowEnglish.getByRole('heading', { name: /^Manage / }).isVisible());

@@ -1,4 +1,5 @@
-import type { DeceasedRecord } from '../../types';
+import type { Aquarium, DeceasedRecord } from '../../types';
+import { decrementSpeciesBatch, normalizeSpeciesBatches } from '../aquarium/species-batches.service';
 import { loadAppStateFromStorage, patchLocalAppState } from '../storage/local-app-state';
 
 export type MemorialRecordInput = {
@@ -40,4 +41,38 @@ export const recordSpeciesMemorial = ({ fishId, date, reason }: MemorialRecordIn
     throw new Error('记录没有保存成功，请检查浏览器存储权限后重试。');
   }
   return { record, records: saved };
+};
+
+export const recordSpeciesMemorialAndDecrementBatch = (input: MemorialRecordInput & {
+  aquariumId: string;
+  aquariumFishId: string;
+  batchId: string;
+}) => {
+  const normalizedReason = input.reason.trim();
+  if (!input.fishId || !input.date || !normalizedReason) throw new Error('请填写日期和原因后再保存。');
+  const current = loadAppStateFromStorage();
+  const aquarium = current.aquariums.find(item => item.id === input.aquariumId);
+  const aquariumFish = aquarium?.fishes.find(item => item.id === input.aquariumFishId);
+  if (!aquarium || !aquariumFish) throw new Error('没有找到需要更新的缸内物种。');
+  if (!normalizeSpeciesBatches(aquariumFish).some(batch => batch.id === input.batchId)) throw new Error('请选择记录减少数量的批次。');
+
+  const nextFish = decrementSpeciesBatch(aquariumFish, input.batchId);
+  const nextAquarium: Aquarium = {
+    ...aquarium,
+    fishes: nextFish
+      ? aquarium.fishes.map(item => item.id === aquariumFish.id ? nextFish : item)
+      : aquarium.fishes.filter(item => item.id !== aquariumFish.id),
+  };
+  const record: DeceasedRecord = {
+    id: createRecordId(),
+    fishId: input.fishId,
+    date: new Date(`${input.date}T12:00:00`).toISOString(),
+    reason: normalizedReason,
+  };
+  const records = [...normalizeRecords(current.deceasedRecords), record];
+  const aquariums = current.aquariums.map(item => item.id === aquarium.id ? nextAquarium : item);
+  patchLocalAppState({ aquariums, deceasedRecords: records });
+  const saved = loadAppStateFromStorage();
+  if (!normalizeRecords(saved.deceasedRecords).some(item => item.id === record.id)) throw new Error('生命纪念没有保存成功，请重试。');
+  return { record, records: normalizeRecords(saved.deceasedRecords), aquariums: saved.aquariums };
 };

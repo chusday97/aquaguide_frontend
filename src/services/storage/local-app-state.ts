@@ -118,6 +118,7 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
       emitAppStateChanged();
     } catch (error) {
       console.warn('AquaGuide local app state save failed', error);
+      throw error instanceof Error ? error : new Error('本地数据没有保存成功。');
     }
   };
 
@@ -142,6 +143,7 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
         emitAppStateChanged();
       } catch (error) {
         console.warn('AquaGuide local app state debounced save failed', error);
+        notifyDataRecovery(AQUARIUM_APP_STATE_KEY, error);
       }
     }
     pendingTimer = null;

@@ -103,6 +103,11 @@ const resources = {
         dismiss: '隐藏新手起步',
         syncFailed: '新手引导已保存在本机，云端同步暂时失败。',
       },
+      livestock: {
+        memorialBatch: '从哪一组减少数量',
+        selectMemorialBatch: '请选择对应体态批次',
+        groupOption: '第 {{index}} 组 · {{count}} 条/只',
+      },
       visualResult: {
         status: {
           compatible: '可以混养',
@@ -875,6 +880,11 @@ const resources = {
         taskCheck: 'Complete the first daily check',
         dismiss: 'Hide getting started',
         syncFailed: 'Getting started is saved on this device, but cloud sync failed.',
+      },
+      livestock: {
+        memorialBatch: 'Choose the group to reduce',
+        selectMemorialBatch: 'Select the matching livestock group',
+        groupOption: 'Group {{index}} · {{count}} animals',
       },
       visualResult: {
         status: {

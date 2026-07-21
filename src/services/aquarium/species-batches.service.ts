@@ -89,6 +89,17 @@ export const deleteSpeciesBatch = (record: AquariumFish, batchId: string) => {
   return withNormalizedSpeciesBatches({ ...record, batches: remaining });
 };
 
+export const decrementSpeciesBatch = (record: AquariumFish, batchId: string) => {
+  const batches = normalizeSpeciesBatches(record);
+  const target = batches.find(batch => batch.id === batchId);
+  if (!target) throw new Error('没有找到需要扣减的批次。');
+  if (target.quantity === 1) return deleteSpeciesBatch(record, batchId);
+  return withNormalizedSpeciesBatches({
+    ...record,
+    batches: batches.map(batch => batch.id === batchId ? { ...batch, quantity: batch.quantity - 1 } : batch),
+  });
+};
+
 export const summarizeSpeciesBatches = (record: AquariumFish) => {
   const batches = normalizeSpeciesBatches(record);
   const count = (predicate: (batch: AquariumSpeciesBatch) => boolean) => batches

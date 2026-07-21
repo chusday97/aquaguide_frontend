@@ -3,6 +3,7 @@ import type { Aquarium, AquariumFish } from '../src/types';
 import {
   appendSpeciesBatch,
   deleteSpeciesBatch,
+  decrementSpeciesBatch,
   getSpeciesBatchContextLabel,
   normalizeSpeciesBatches,
   splitSpeciesBatch,
@@ -44,6 +45,9 @@ const afterDelete = deleteSpeciesBatch(appended, appended.batches![2].id);
 assert.equal(afterDelete?.quantity, 4);
 const onlyBatch = withNormalizedSpeciesBatches(legacy);
 assert.equal(deleteSpeciesBatch(onlyBatch, onlyBatch.batches![0].id), null, 'deleting final batch removes parent species');
+const decremented = decrementSpeciesBatch(split, split.batches![0].id);
+assert.equal(decremented?.quantity, 3, 'decrementing a memorial batch must reduce aggregate quantity');
+assert.equal(decremented?.batches?.find(batch => batch.id === split.batches![0].id)?.quantity, 2);
 
 const aquarium: Aquarium = {
   id: 'tank-1',

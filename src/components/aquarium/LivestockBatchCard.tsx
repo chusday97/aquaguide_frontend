@@ -138,7 +138,11 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
         </div>
       </article>
 
-      <Dialog open={open} onOpenChange={next => { if (!isSaving) setOpen(next); }}>
+      <Dialog open={open} onOpenChange={next => {
+        if (isSaving) return;
+        if (!next && JSON.stringify(draft) !== JSON.stringify(record) && !window.confirm(isEn ? 'Discard unsaved changes?' : '放弃尚未保存的修改？')) return;
+        setOpen(next);
+      }}>
         <DialogContent className="max-h-[88dvh] max-w-3xl overflow-hidden rounded-[28px] p-0">
           <DialogHeader className="border-b border-border px-5 pb-4 pt-5">
             <DialogTitle>{isEn ? `Manage ${fish.name}` : `调整${fish.name}体态`}</DialogTitle>
@@ -179,7 +183,10 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
             {error && <p role="alert" className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{error}</p>}
           </div>
           <DialogFooter className="border-t border-border bg-white px-5 py-4">
-            <button type="button" onClick={() => setOpen(false)} disabled={isSaving} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black text-ink/60 disabled:opacity-50">{isEn ? 'Cancel' : '取消'}</button>
+            <button type="button" onClick={() => {
+              if (JSON.stringify(draft) !== JSON.stringify(record) && !window.confirm(isEn ? 'Discard unsaved changes?' : '放弃尚未保存的修改？')) return;
+              setOpen(false);
+            }} disabled={isSaving} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black text-ink/60 disabled:opacity-50">{isEn ? 'Cancel' : '取消'}</button>
             <button type="button" onClick={() => void save()} disabled={isSaving} className="min-h-11 rounded-2xl bg-emerald-700 px-5 text-sm font-black text-white disabled:opacity-60">{isSaving ? (isEn ? 'Saving…' : '保存中…') : (isEn ? 'Save changes' : '保存修改')}</button>
           </DialogFooter>
         </DialogContent>
@@ -188,6 +195,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       <Dialog open={Boolean(pendingDelete)} onOpenChange={next => { if (!next && !isDeleting) setPendingDelete(null); }}>
         <DialogContent className="max-w-md rounded-[26px]">
           <DialogHeader><DialogTitle>{isEn ? 'Delete this group?' : '删除这一组？'}</DialogTitle><DialogDescription>{batches.length === 1 ? (isEn ? `This is the last group. ${fish.name} will be removed from the tank.` : `这是最后一组，确认后会将${fish.name}移出鱼缸。`) : (isEn ? `This removes ${pendingDelete?.quantity ?? 0} from this tank record.` : `将删除这 ${pendingDelete?.quantity ?? 0} 条/只的批次记录。`)}</DialogDescription></DialogHeader>
+          {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{error}</p>}
           <DialogFooter><button type="button" onClick={() => setPendingDelete(null)} disabled={isDeleting} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black disabled:opacity-50">{isEn ? 'Keep' : '保留'}</button><button type="button" onClick={() => void confirmDelete()} disabled={isDeleting} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white disabled:opacity-60">{isDeleting ? (isEn ? 'Removing…' : '移除中…') : (isEn ? 'Delete group' : '删除这一组')}</button></DialogFooter>
         </DialogContent>
       </Dialog>
