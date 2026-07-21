@@ -5,6 +5,9 @@ import {
   aquariumCreateSchema,
   aquariumEquipmentUpsertSchema,
   aquariumSpeciesCreateSchema,
+  aquariumSpeciesBatchCreateSchema,
+  aquariumSpeciesBatchSplitSchema,
+  aquariumSpeciesBatchUpdateSchema,
   aquariumSpeciesUpdateSchema,
   aquariumUpdateSchema,
   uuidSchema,
@@ -35,7 +38,7 @@ const parseId = (value: string, label: string) => {
 
 const mapAquarium = (row: DbRow) => ({
   ...camelize<DbRow>(row),
-  species: (row.aquarium_species || []).filter((item: DbRow) => !item.deleted_at).map((item: DbRow) => camelize(item)),
+  species: (row.aquarium_species || []).filter((item: DbRow) => !item.deleted_at).map(mapAquariumSpecies),
   equipment: (row.aquarium_equipment || []).find((item: DbRow) => !item.deleted_at)
     ? camelize((row.aquarium_equipment || []).find((item: DbRow) => !item.deleted_at))
     : undefined,
@@ -45,7 +48,29 @@ const mapAquarium = (row: DbRow) => ({
   aquariumComponents: undefined,
 });
 
-const aquariumSelect = '*,aquarium_species(*),aquarium_equipment(*),aquarium_components(*)';
+const mapAquariumSpecies = (row: DbRow) => ({
+  ...camelize<DbRow>(row),
+  batches: (row.aquarium_species_batches || [])
+    .filter((item: DbRow) => !item.deleted_at)
+    .map((item: DbRow) => camelize(item)),
+  aquariumSpeciesBatches: undefined,
+});
+
+const aquariumSpeciesSelect = '*,aquarium_species_batches(*)';
+const aquariumSelect = `*,aquarium_species(${aquariumSpeciesSelect}),aquarium_equipment(*),aquarium_components(*)`;
+
+const getOwnedSpeciesRecord = async (client: ReturnType<typeof userClientFor>, aquariumId: string, recordId: string) => {
+  const { data, error } = await client
+    .from('aquarium_species')
+    .select(aquariumSpeciesSelect)
+    .eq('id', recordId)
+    .eq('aquarium_id', aquariumId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throwDatabaseError(error, '暂时无法读取缸内物种。');
+  if (!data) throw new ApiError(404, 'NOT_FOUND', '没有找到这条缸内物种记录。');
+  return data as DbRow;
+};
 
 export const aquariumsRouter = Router();
 aquariumsRouter.use((request, response, next) => (
@@ -145,8 +170,8 @@ aquariumsRouter.post('/aquariums/:id/species', asyncRoute(async (request, respon
   const userId = authenticatedRequest(request).authUser.id;
 
   if (idempotency.replay?.resourceId) {
-    const { data } = await client.from('aquarium_species').select('*').eq('id', idempotency.replay.resourceId).maybeSingle();
-    if (data) return sendData(request, response, camelize(data));
+    const { data } = await client.from('aquarium_species').select(aquariumSpeciesSelect).eq('id', idempotency.replay.resourceId).maybeSingle();
+    if (data) return sendData(request, response, mapAquariumSpecies(data));
   }
 
   const { data: species, error: speciesError } = await client
@@ -174,8 +199,25 @@ aquariumsRouter.post('/aquariums/:id/species', asyncRoute(async (request, respon
     .select('*')
     .single();
   if (error || !data) throwDatabaseError(error, '物种没有加入鱼缸。');
+
+  const batchId = deterministicUuid(`${id}:batch:initial`);
+  const { error: batchError } = await client.from('aquarium_species_batches').insert({
+    id: batchId,
+    aquarium_species_id: id,
+    quantity: parsed.data.quantity,
+    entry_date: parsed.data.entryDate,
+    life_stage: parsed.data.lifeStage,
+    reproductive_state: parsed.data.reproductiveState,
+    state_updated_at: new Date().toISOString(),
+  });
+  if (batchError) {
+    await client.from('aquarium_species').update({ deleted_at: new Date().toISOString() }).eq('id', id).is('deleted_at', null);
+    throwDatabaseError(batchError, '物种已校验，但首个体态批次没有保存成功。');
+  }
+
+  const created = await getOwnedSpeciesRecord(client, aquariumId, id);
   await finishIdempotentWrite(request, idempotency, 'aquarium_species', id, 201);
-  return sendData(request, response, camelize(data), 201);
+  return sendData(request, response, mapAquariumSpecies(created), 201);
 }));
 
 aquariumsRouter.patch('/aquariums/:id/species/:recordId', asyncRoute(async (request, response) => {
@@ -188,7 +230,7 @@ aquariumsRouter.patch('/aquariums/:id/species/:recordId', asyncRoute(async (requ
   const { data, error } = await client.from('aquarium_species').update(snakeize(updates)).eq('id', recordId).eq('aquarium_id', request.params.id).eq('version', version).is('deleted_at', null).select('*').maybeSingle();
   if (error) throwDatabaseError(error, '物种数量没有更新成功。');
   if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species', recordId);
-  return sendData(request, response, camelize(data));
+  return sendData(request, response, mapAquariumSpecies(await getOwnedSpeciesRecord(client, request.params.id, recordId)));
 }));
 
 aquariumsRouter.delete('/aquariums/:id/species/:recordId', asyncRoute(async (request, response) => {
@@ -201,6 +243,112 @@ aquariumsRouter.delete('/aquariums/:id/species/:recordId', asyncRoute(async (req
   if (error) throwDatabaseError(error, '物种没有移出鱼缸。');
   if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species', recordId);
   return sendData(request, response, { deleted: true });
+}));
+
+aquariumsRouter.post('/aquariums/:id/species/:recordId/batches', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const parsed = aquariumSpeciesBatchCreateSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '体态批次信息无效。', parsed.error.flatten());
+  const idempotency = await beginIdempotentWrite(request);
+  const client = userClientFor(request);
+  const userId = authenticatedRequest(request).authUser.id;
+  await getOwnedSpeciesRecord(client, aquariumId, recordId);
+
+  if (idempotency.replay?.resourceId) {
+    const { data } = await client.from('aquarium_species_batches').select('*').eq('id', idempotency.replay.resourceId).maybeSingle();
+    if (data) return sendData(request, response, camelize(data));
+  }
+
+  const id = deterministicUuid(`${userId}:${recordId}:batch:${idempotency.key}`);
+  const { data, error } = await client.from('aquarium_species_batches').insert({
+    id,
+    aquarium_species_id: recordId,
+    ...snakeize(parsed.data),
+    state_updated_at: new Date().toISOString(),
+  }).select('*').single();
+  if (error || !data) throwDatabaseError(error, '体态批次没有保存成功。');
+  await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', id, 201);
+  return sendData(request, response, camelize(data), 201);
+}));
+
+aquariumsRouter.patch('/aquariums/:id/species/:recordId/batches/:batchId', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const batchId = parseId(request.params.batchId, '批次标识');
+  const parsed = aquariumSpeciesBatchUpdateSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '体态更新内容无效。', parsed.error.flatten());
+  const client = userClientFor(request);
+  await getOwnedSpeciesRecord(client, aquariumId, recordId);
+  const { version, ...updates } = parsed.data;
+  const stateChanged = updates.lifeStage !== undefined || updates.reproductiveState !== undefined;
+  const { data, error } = await client.from('aquarium_species_batches').update({
+    ...snakeize(updates),
+    ...(stateChanged ? { state_updated_at: new Date().toISOString() } : {}),
+  }).eq('id', batchId).eq('aquarium_species_id', recordId).eq('version', version).is('deleted_at', null).select('*').maybeSingle();
+  if (error) throwDatabaseError(error, '体态批次没有更新成功。');
+  if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species_batches', batchId);
+  return sendData(request, response, camelize(data));
+}));
+
+aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/split', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const batchId = parseId(request.params.batchId, '批次标识');
+  const parsed = aquariumSpeciesBatchSplitSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '拆分批次信息无效。', parsed.error.flatten());
+  const idempotency = await beginIdempotentWrite(request);
+  const client = userClientFor(request);
+  const userId = authenticatedRequest(request).authUser.id;
+  await getOwnedSpeciesRecord(client, aquariumId, recordId);
+
+  if (idempotency.replay?.resourceId) {
+    const { data } = await client.from('aquarium_species_batches').select('*').eq('aquarium_species_id', recordId).is('deleted_at', null).order('created_at');
+    return sendData(request, response, (data || []).map(item => camelize(item)));
+  }
+
+  const { data: source, error: sourceError } = await client.from('aquarium_species_batches').select('*').eq('id', batchId).eq('aquarium_species_id', recordId).eq('version', parsed.data.sourceVersion).is('deleted_at', null).maybeSingle();
+  if (sourceError) throwDatabaseError(sourceError, '暂时无法读取待拆分批次。');
+  if (!source) await throwMissingOrVersionConflict(client, 'aquarium_species_batches', batchId);
+  if (parsed.data.quantity >= source.quantity) throw new ApiError(400, 'VALIDATION_ERROR', '拆分数量必须小于原批次数量。');
+
+  const { data: reduced, error: reduceError } = await client.from('aquarium_species_batches').update({ quantity: source.quantity - parsed.data.quantity }).eq('id', batchId).eq('version', parsed.data.sourceVersion).select('*').maybeSingle();
+  if (reduceError) throwDatabaseError(reduceError, '原批次数量没有更新成功。');
+  if (!reduced) throw new ApiError(409, 'VERSION_CONFLICT', '这个批次已更新，请刷新后再拆分。');
+
+  const newId = deterministicUuid(`${userId}:${recordId}:split:${idempotency.key}`);
+  const { error: insertError } = await client.from('aquarium_species_batches').insert({
+    id: newId,
+    aquarium_species_id: recordId,
+    quantity: parsed.data.quantity,
+    entry_date: parsed.data.entryDate ?? source.entry_date,
+    life_stage: parsed.data.lifeStage,
+    reproductive_state: parsed.data.reproductiveState,
+    state_updated_at: new Date().toISOString(),
+  });
+  if (insertError) {
+    await client.from('aquarium_species_batches').update({ quantity: source.quantity }).eq('id', batchId).eq('version', reduced.version);
+    throwDatabaseError(insertError, '新批次没有保存成功，原数量已尝试恢复。');
+  }
+  await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', newId, 201);
+  const { data, error } = await client.from('aquarium_species_batches').select('*').eq('aquarium_species_id', recordId).is('deleted_at', null).order('created_at');
+  if (error) throwDatabaseError(error, '批次已拆分，但暂时无法读取最新列表。');
+  return sendData(request, response, (data || []).map(item => camelize(item)), 201);
+}));
+
+aquariumsRouter.delete('/aquariums/:id/species/:recordId/batches/:batchId', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const batchId = parseId(request.params.batchId, '批次标识');
+  const parsed = versionSchema.safeParse(Number(request.query.version));
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '删除批次需要当前版本。');
+  const client = userClientFor(request);
+  const parent = await getOwnedSpeciesRecord(client, aquariumId, recordId);
+  const activeBatches = (parent.aquarium_species_batches || []).filter((item: DbRow) => !item.deleted_at);
+  const { data, error } = await client.from('aquarium_species_batches').update({ deleted_at: new Date().toISOString() }).eq('id', batchId).eq('aquarium_species_id', recordId).eq('version', parsed.data).is('deleted_at', null).select('id').maybeSingle();
+  if (error) throwDatabaseError(error, '批次没有删除成功。');
+  if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species_batches', batchId);
+  return sendData(request, response, { deleted: true, speciesRemoved: activeBatches.length === 1 });
 }));
 
 aquariumsRouter.put('/aquariums/:id/equipment', asyncRoute(async (request, response) => {

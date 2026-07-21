@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import {
   aquariumCreateSchema,
   aquariumSpeciesCreateSchema,
+  aquariumSpeciesBatchCreateSchema,
+  aquariumSpeciesBatchSplitSchema,
   careReminderCreateSchema,
   diagnosisSaveSchema,
 } from '../packages/contracts/src/index';
@@ -13,6 +15,9 @@ import { camelize, deterministicUuid, snakeize } from '../apps/api/src/data-util
 assert.equal(aquariumCreateSchema.safeParse({ name: '客厅缸', lengthCm: 60 }).success, true);
 assert.equal(aquariumCreateSchema.safeParse({ name: '', lengthCm: -1 }).success, false);
 assert.equal(aquariumSpeciesCreateSchema.safeParse({ speciesCatalogKey: 'sp_0001', quantity: 3, entryDate: '2026-07-16' }).success, true);
+assert.equal(aquariumSpeciesBatchCreateSchema.safeParse({ quantity: 2, entryDate: '2026-07-16', lifeStage: 'juvenile', reproductiveState: 'normal' }).success, true);
+assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 1, lifeStage: 'adult', reproductiveState: 'pregnant_or_gravid', sourceVersion: 1 }).success, true);
+assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 0, lifeStage: 'adult', reproductiveState: 'normal', sourceVersion: 1 }).success, false);
 assert.equal(careReminderCreateSchema.safeParse({ sourceCatalogKey: 'guide_water', title: '换水', reminderType: '换水', scheduledFor: '2026-07-17T08:00:00+08:00' }).success, true);
 assert.equal(diagnosisSaveSchema.safeParse({ diagnosisKey: 'daily', answers: {}, resultSummary: '正常', riskLevel: '低' }).success, true);
 
@@ -39,6 +44,8 @@ const routes = [
 for (const route of [
   '/aquariums',
   '/aquariums/:id/species',
+  '/aquariums/:id/species/:recordId/batches',
+  '/aquariums/:id/species/:recordId/batches/:batchId/split',
   '/aquariums/:id/equipment',
   '/aquariums/:id/daily-checks/:localDate',
   '/memorial-records',
