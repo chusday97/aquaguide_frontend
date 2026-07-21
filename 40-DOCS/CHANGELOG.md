@@ -120,6 +120,7 @@
 
 ### Fixed
 
+- 旧版物种数量更新不再绕过体态批次：单批次请求自动更新该批次，多批次请求要求选择具体组，父级数量继续由数据库汇总。
 - 修复 `scripts/verify-mobile-care-experience.mjs` 在 Playwright 测试中未在 local storage 内设置 `'aquaguide_locale': 'zh-CN'`，导致浏览器首选语言可能载入英文，无法与测试脚本中的中文按钮及文本断言相匹配。
 - 修复测试脚本中 `nextPageLabel` 的按钮可访问名称从 `'下一页'` / `'下一组'` 错配成 `'下一组图鉴'`，导致分页操作超时无法点击的问题。
 - 修复 `CareEncyclopedia.tsx` 在英文模式重构中，`CareArticleDetail` 和 `CareImage` 子组件缺失 `t` 和 `isEn` 的词法作用域定义，造成在访问养护页面或大图预览时抛出 `ReferenceError` 崩溃。

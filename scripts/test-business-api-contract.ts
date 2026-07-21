@@ -56,5 +56,7 @@ for (const route of [
 }
 assert.match(routes, /registerFavoriteRoutes\('species'\)/);
 assert.match(routes, /registerFavoriteRoutes\('care'\)/);
+assert.match(routes, /这个物种已有多个批次，请调整具体批次的数量/);
+assert.doesNotMatch(routes, /const \{ version, \.\.\.updates \} = parsed\.data;[\s\S]{0,300}from\('aquarium_species'\)\.update\(snakeize\(updates\)\)/);
 
 console.log('business API contract verified: validation, case conversion, deterministic ids, safety invariants and protected routes');

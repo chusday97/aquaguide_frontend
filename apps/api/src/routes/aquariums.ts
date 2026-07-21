@@ -221,13 +221,38 @@ aquariumsRouter.post('/aquariums/:id/species', asyncRoute(async (request, respon
 }));
 
 aquariumsRouter.patch('/aquariums/:id/species/:recordId', asyncRoute(async (request, response) => {
-  parseId(request.params.id, '鱼缸标识');
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
   const recordId = parseId(request.params.recordId, '物种记录标识');
   const parsed = aquariumSpeciesUpdateSchema.safeParse(request.body);
   if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '物种更新内容无效。', parsed.error.flatten());
-  const { version, ...updates } = parsed.data;
+  const { version, quantity, ...updates } = parsed.data;
   const client = userClientFor(request);
-  const { data, error } = await client.from('aquarium_species').update(snakeize(updates)).eq('id', recordId).eq('aquarium_id', request.params.id).eq('version', version).is('deleted_at', null).select('*').maybeSingle();
+  const current = await getOwnedSpeciesRecord(client, aquariumId, recordId);
+  if (current.version !== version) throw new ApiError(409, 'VERSION_CONFLICT', '这条物种记录已更新，请刷新后重试。');
+
+  let parentVersion = version;
+  if (quantity !== undefined) {
+    const activeBatches = (current.aquarium_species_batches || []).filter((item: DbRow) => !item.deleted_at);
+    if (activeBatches.length !== 1) {
+      throw new ApiError(409, 'VERSION_CONFLICT', '这个物种已有多个批次，请调整具体批次的数量。');
+    }
+    const batch = activeBatches[0];
+    const { data: updatedBatch, error: batchError } = await client
+      .from('aquarium_species_batches')
+      .update({ quantity })
+      .eq('id', batch.id)
+      .eq('version', batch.version)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
+    if (batchError) throwDatabaseError(batchError, '物种数量没有更新成功。');
+    if (!updatedBatch) throw new ApiError(409, 'VERSION_CONFLICT', '这个体态批次已更新，请刷新后重试。');
+    const refreshed = await getOwnedSpeciesRecord(client, aquariumId, recordId);
+    parentVersion = refreshed.version;
+    if (Object.keys(updates).length === 0) return sendData(request, response, mapAquariumSpecies(refreshed));
+  }
+
+  const { data, error } = await client.from('aquarium_species').update(snakeize(updates)).eq('id', recordId).eq('aquarium_id', aquariumId).eq('version', parentVersion).is('deleted_at', null).select('*').maybeSingle();
   if (error) throwDatabaseError(error, '物种数量没有更新成功。');
   if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species', recordId);
   return sendData(request, response, mapAquariumSpecies(await getOwnedSpeciesRecord(client, request.params.id, recordId)));

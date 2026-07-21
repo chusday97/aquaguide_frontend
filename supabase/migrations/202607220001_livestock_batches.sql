@@ -69,7 +69,7 @@ begin
     where id = target_species_id;
   end if;
 
-  return coalesce(new, old);
+  return null;
 end;
 $$;
 
