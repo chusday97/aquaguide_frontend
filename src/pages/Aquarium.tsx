@@ -93,7 +93,6 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
-import { recordSpeciesMemorialAndDecrementBatch } from '../services/collection/memorial.service';
 import { getAquaGuideRepository, getCurrentAquaGuideRepository, resolveRepositoryMode, subscribeToRepositoryMode } from '../services/repository/repository-provider';
 import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 import {
@@ -7222,20 +7221,20 @@ export default function AquariumManager() {
         onRecordDeath={selectedAqFish ? (fish, input) => {
           if (!selectedAqFish) return;
           const batchId = input.batchId || selectedAqFish.aqFish.batches?.[0]?.id || `${selectedAqFish.aqFish.id}_legacy`;
-          const result = recordSpeciesMemorialAndDecrementBatch({
-            fishId: fish.id,
+          return getCurrentAquaGuideRepository().then(repository => repository.saveLivestockMemorial({
+            speciesCatalogKey: fish.id,
             date: input.date,
             reason: input.reason,
             batchId,
             aquariumId: activeAquarium.id,
             aquariumFishId: selectedAqFish.aqFish.id,
+          })).then(result => {
+            setAquariums(current => current.map(item => item.id === result.aquarium.id ? result.aquarium : item));
+            setDeceasedRecords(current => [...current, result.record]);
+            if ((selectedAqFish.aqFish.quantity || 1) <= 1) {
+              closeAquariumSpeciesDetail();
+            }
           });
-          setAquariums(result.aquariums);
-          const { records } = result;
-          setDeceasedRecords(records);
-          if ((selectedAqFish.aqFish.quantity || 1) <= 1) {
-            closeAquariumSpeciesDetail();
-          }
         } : undefined}
       />
 

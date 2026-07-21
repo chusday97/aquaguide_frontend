@@ -7,6 +7,7 @@ import {
   aquariumSpeciesCreateSchema,
   aquariumSpeciesBatchCreateSchema,
   aquariumSpeciesBatchSplitSchema,
+  livestockMemorialCreateSchema,
   aquariumSpeciesBatchUpdateSchema,
   aquariumSpeciesUpdateSchema,
   aquariumUpdateSchema,
@@ -362,6 +363,37 @@ aquariumsRouter.delete('/aquariums/:id/species/:recordId/batches/:batchId', asyn
   if (error) throwDatabaseError(error, '批次没有删除成功。');
   if (!data) await throwMissingOrVersionConflict(client, 'aquarium_species_batches', batchId);
   return sendData(request, response, { deleted: true, speciesRemoved: activeBatches.length === 1 });
+}));
+
+aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/memorial', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const batchId = parseId(request.params.batchId, '批次标识');
+  const parsed = livestockMemorialCreateSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '生命纪念内容无效。', parsed.error.flatten());
+  const idempotency = await beginIdempotentWrite(request);
+  const client = userClientFor(request);
+  const userId = authenticatedRequest(request).authUser.id;
+  await getOwnedSpeciesRecord(client, aquariumId, recordId);
+  if (idempotency.replay?.resourceId) {
+    const { data } = await client.from('memorial_records').select('*').eq('id', idempotency.replay.resourceId).maybeSingle();
+    if (data) return sendData(request, response, camelize(data));
+  }
+  const memorialId = deterministicUuid(`${userId}:${recordId}:memorial:${idempotency.key}`);
+  const { data, error } = await client.rpc('record_livestock_memorial', {
+    target_aquarium_id: aquariumId,
+    target_species_record_id: recordId,
+    target_batch_id: batchId,
+    target_batch_version: parsed.data.batchVersion,
+    target_species_catalog_key: parsed.data.speciesCatalogKey,
+    target_memorial_date: parsed.data.memorialDate,
+    target_reason: parsed.data.reason ?? null,
+    new_memorial_id: memorialId,
+  }).single();
+  if (error?.message?.includes('BATCH_VERSION_CONFLICT')) throw new ApiError(409, 'VERSION_CONFLICT', '这个批次已更新，请刷新后再记录。');
+  if (error || !data) throwDatabaseError(error, '生命纪念没有保存成功，缸内数量保持不变。');
+  await finishIdempotentWrite(request, idempotency, 'memorial_record', memorialId, 201);
+  return sendData(request, response, camelize(data), 201);
 }));
 
 aquariumsRouter.put('/aquariums/:id/equipment', asyncRoute(async (request, response) => {

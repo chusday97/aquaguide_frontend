@@ -112,6 +112,10 @@ export const memorialCreateSchema = z.object({
   reason: z.string().trim().max(2000).optional(),
 });
 
+export const livestockMemorialCreateSchema = memorialCreateSchema.omit({ aquariumId: true }).extend({
+  batchVersion: versionSchema,
+});
+
 export const memorialUpdateSchema = z.object({
   memorialDate: isoDateSchema.optional(),
   reason: z.string().trim().max(2000).optional(),

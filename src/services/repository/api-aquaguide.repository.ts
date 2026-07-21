@@ -7,6 +7,7 @@ import type {
   CareReminderMutation,
   FavoriteMutation,
   MemorialSaveInput,
+  LivestockMemorialSaveInput,
 } from './aquaguide.repository';
 
 type ApiAquariumSpecies = {
@@ -372,6 +373,23 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
       date: new Date(`${saved.memorialDate}T12:00:00`).toISOString(),
       reason: saved.reason,
     } satisfies DeceasedRecord;
+  }
+
+  async saveLivestockMemorial(input: LivestockMemorialSaveInput) {
+    const current = await apiRequest<ApiAquarium>(`/aquariums/${input.aquariumId}`);
+    const batch = current.species.find(item => item.id === input.aquariumFishId)?.batches.find(item => item.id === input.batchId);
+    if (!batch) throw new Error('没有找到需要更新的缸内物种批次。');
+    const raw = await apiRequest<{ id: string; speciesCatalogKey: string; memorialDate: string; reason?: string }>(
+      `/aquariums/${input.aquariumId}/species/${input.aquariumFishId}/batches/${input.batchId}/memorial`,
+      {
+        method: 'POST',
+        body: { speciesCatalogKey: input.speciesCatalogKey, memorialDate: input.date, reason: input.reason, batchVersion: batch.version },
+        idempotencyKey: createIdempotencyKey('livestock-memorial'),
+      },
+    );
+    const refreshed = (await this.getAquariums()).find(item => item.id === input.aquariumId);
+    if (!refreshed) throw new Error('生命纪念已保存，但暂时无法读取最新鱼缸。');
+    return { record: { id: raw.id, fishId: raw.speciesCatalogKey, date: raw.memorialDate, reason: raw.reason }, aquarium: refreshed };
   }
 
   private rememberReminder(record: ApiReminder): CareReminderRecord {

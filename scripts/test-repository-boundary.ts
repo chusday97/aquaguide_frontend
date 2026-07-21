@@ -48,6 +48,17 @@ assert.equal(diagnosis.diagnosisId, 'daily-local');
 const memorial = await repository.saveMemorial({ speciesCatalogKey: 'sp_0001', date: '2026-07-16', reason: '完成复盘' });
 assert.equal(memorial.fishId, 'sp_0001');
 
+const stocked = await repository.saveAquarium({
+  ...aquarium,
+  fishes: [{
+    id: 'local-stock-1', fishId: 'sp_0001', quantity: 2,
+    entryDate: '2026-07-16T00:00:00.000Z', lastWaterChangeDate: '2026-07-16T00:00:00.000Z',
+    batches: [{ id: 'local-batch-1', quantity: 2, entryDate: '2026-07-16T00:00:00.000Z', lifeStage: 'adult', reproductiveState: 'normal', stateUpdatedAt: '2026-07-16T00:00:00.000Z' }],
+  }],
+});
+const memorialUpdate = await repository.saveLivestockMemorial({ aquariumId: stocked.id, aquariumFishId: 'local-stock-1', batchId: 'local-batch-1', speciesCatalogKey: 'sp_0001', date: '2026-07-17', reason: '批次复盘' });
+assert.equal(memorialUpdate.aquarium.fishes[0].quantity, 1, 'memorial and batch decrement must commit together');
+
 const reminder = await repository.updateCareReminder({
   action: 'upsert',
   record: {
@@ -71,6 +82,7 @@ const apiRepositorySource = readFileSync(resolve(import.meta.dirname, '../src/se
 const apiClientSource = readFileSync(resolve(import.meta.dirname, '../src/services/api/api-client.ts'), 'utf8');
 const aquariumApiSource = readFileSync(resolve(import.meta.dirname, '../apps/api/src/routes/aquariums.ts'), 'utf8');
 const atomicSplitMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220002_atomic_livestock_batch_split.sql'), 'utf8');
+const atomicMemorialMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220003_atomic_livestock_memorial.sql'), 'utf8');
 const aquariumPageSource = readFileSync(resolve(import.meta.dirname, '../src/pages/Aquarium.tsx'), 'utf8');
 assert.doesNotMatch(apiRepositorySource, /supabase\.from\(/);
 assert.match(apiRepositorySource, /apiRequest/);
@@ -84,6 +96,9 @@ assert.doesNotMatch(aquariumApiSource, /原数量已尝试恢复/);
 assert.match(atomicSplitMigration, /for update/);
 assert.match(atomicSplitMigration, /new_batch_id/);
 assert.match(atomicSplitMigration, /BATCH_VERSION_CONFLICT/);
+assert.match(aquariumApiSource, /rpc\('record_livestock_memorial'/);
+assert.match(atomicMemorialMigration, /for update/);
+assert.match(atomicMemorialMigration, /insert into public\.memorial_records/);
 assert.match(aquariumPageSource, /getCurrentAquaGuideRepository/);
 assert.match(aquariumPageSource, /subscribeToRepositoryMode/);
 

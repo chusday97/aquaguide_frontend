@@ -13,6 +13,12 @@ export type MemorialSaveInput = {
   reason: string;
 };
 
+export type LivestockMemorialSaveInput = MemorialSaveInput & {
+  aquariumId: string;
+  aquariumFishId: string;
+  batchId: string;
+};
+
 export type CareReminderMutation =
   | { action: 'upsert'; record: Omit<CareReminderRecord, 'id' | 'createdAt'> }
   | { action: 'complete'; id: string; completedAt: string }
@@ -25,5 +31,6 @@ export interface AquaGuideRepository {
   updateFavorite(input: FavoriteMutation): Promise<void>;
   saveDiagnosis(record: DiagnosisRecord): Promise<DiagnosisRecord>;
   saveMemorial(input: MemorialSaveInput): Promise<DeceasedRecord>;
+  saveLivestockMemorial(input: LivestockMemorialSaveInput): Promise<{ record: DeceasedRecord; aquarium: Aquarium }>;
   updateCareReminder(input: CareReminderMutation): Promise<CareReminderRecord | null>;
 }
