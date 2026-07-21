@@ -526,6 +526,13 @@ export default function Encyclopedia() {
     if (params.get('mode') === 'browse') setViewMode('browse');
   }, [location.search]);
 
+  useEffect(() => {
+    const mode = new URLSearchParams(location.search).get('mode');
+    if (mode !== 'compatibility' && mode !== 'browse') return;
+    const target = mode === 'compatibility' ? 'calculator-sticky-target' : 'atlas-toolbar';
+    window.requestAnimationFrame(() => void navigateToSection(target, { updateHash: false }));
+  }, [location.search, navigateToSection, viewMode]);
+
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());
   const [discoveryState, setDiscoveryState] = useState<DiscoveryDeckState>(() => loadDiscoveryState());
