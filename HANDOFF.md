@@ -1,6 +1,6 @@
 # AquaGuide 交接文档
 
-> 写给一个完全没有此前对话上下文的新接手者。最后更新：2026-07-18（Asia/Shanghai）。
+> 写给一个完全没有此前对话上下文的新接手者。最后更新：2026-07-22（Asia/Shanghai）。
 
 ## 项目一句话说明
 
@@ -10,17 +10,17 @@
 
 ## 当前目标与成功标准
 
-- 当前目标：实现拍照识别候选、用户确认和最多三问的物种状态风险分诊，同时保持本地规则拥有紧急等级和原因排序的最终控制权。
-- 本轮范围：共享契约、匿名未命中表、视觉/文本 AI API、确定性问题策略、`/identify` 页面、双语与回归。
-- 明确不做：不保存照片或症状原文，不直接确诊，不显示未校准概率，不自动用药，不让视觉候选跳过用户确认。
-- 成功标准与验证方式：图片与降级场景、候选匹配、红旗优先、最多三问、双语规则一致、390–1440px 布局和真实本地预览全部通过。
+- 当前目标：完成任务式导航、首次引导和缸内物种体态批次，并通过独立 Critic/Evaluator 交付门禁。
+- 本轮范围：`/search`、`/settings`、`/welcome`、侧栏/手机直达、引导偏好同步、批次数据库/API/Repository/游客 UI、双语专项和回归。
+- 明确不做：不继续 Antigravity 未完成的全站翻译，不让体态直接改变混养四态，不实现视觉自动判定怀孕/生产，不推送 GitHub。
+- 成功标准与验证方式：导航点击进入正式地址并定位真实任务；首次用户一键进入建缸/物种；批次数量始终汇总一致；390px 手机和 600px 英文桌面无溢出；本地与 API 边界测试通过。
 
 ## 正在做什么
 
-- 当前步骤：契约、API、确定性规则、`/identify` 前端、图鉴入口、Critic 修复复验和 Evaluator 最终裁决已完成；当前达到可交付本地预览级别，不是生产就绪。
-- 已开始但未完成的工作：最新 BrowserRouter Back/Forward Playwright 因 Codex 审批额度耗尽尚无运行证据；真实视觉准确率仍需配置视觉模型与真实照片集后验证。
-- 涉及文件/模块：`CONTRACT.md`、`supabase/migrations/`、`packages/contracts/`、`apps/api/`、`src/modules/diagnosis/`、`src/pages/Identify.tsx`。
-- 工作区未提交状态及归属：用户原有未跟踪文件 `scripts/synthetic-tests/scenarios.ts` 不属于本轮，禁止修改或提交；本功能按契约、API/规则、前端、验证文档拆分提交。
+- 当前步骤：实现、专项测试、生产构建与真实浏览器主路径已完成；下一步是独立 Critic 审查、修复复验和 Evaluator 裁决。
+- 已开始但未完成的工作：真实 Supabase migration/RLS、登录偏好同步和真实视觉准确率依赖外部环境；Antigravity 全局翻译暂停。
+- 涉及文件/模块：`src/App.tsx`、`src/pages/{Search,Settings,Welcome,Aquarium}.tsx`、`src/services/onboarding/`、`src/services/aquarium/species-batches.service.ts`、`apps/api/src/routes/{aquariums,profile}.ts`、`supabase/migrations/202607220001_livestock_batches.sql`。
+- 工作区未提交状态及归属：实现提交已拆分；审查前需以 `git status --short` 再确认工作区。
 
 ## 已完成
 
@@ -47,6 +47,9 @@
 | 2026-07-18 | 实现 `/identify`、图鉴入口、双语动态追问与可视化结果 | commit `1e96d31`；lint/API check/build；真实手机与 600–1440px 浏览器主流程；400/413/降级/紧急 API 实测 |
 | 2026-07-18 | 完成独立 Critic 审查、三轮修复与同线程静态复验 | commits `802e655`, `cdeec7f`, `c9fa49a`；上下文、类别、死亡红旗、信息增益、并发、全局导航、环境节点和原因详情通过；最新 history 浏览器运行待补 |
 | 2026-07-18 | 清除旧鱼类关键词追问并完成 Evaluator 最终复验 | commit `f1c535e`；鱼类异常入口统一进入 `/identify`；lint/API check/build、diff check 与 14 场景通过；Evaluator 判定为可交付本地预览 |
+| 2026-07-22 | 任务式搜索/设置/识别路由和首次引导 | commits `551f34a`–`b19280e`；浏览器验证建缸任务、搜索、识别和设置直达 |
+| 2026-07-22 | 体态批次契约、API、游客 UI 与登录 Repository | commits `5c3032d`, `e079432`, `e0c91ca`, `5dc311c`, `70b22cd`；批次/混养/API/Repository 测试 |
+| 2026-07-22 | 引导偏好同步、旧设置浮层清理和双语浏览器回归 | commits `315e0d9`, `22a3876`, `6f49f80`；390px 手机与 600px 英文桌面通过 |
 
 ## 当前卡点
 
@@ -61,10 +64,10 @@
 
 ## 下一步计划
 
-1. 审批额度恢复后补跑最新 Back/Forward、重置与环境节点 Playwright，并把结果写入本交接文档。
-2. 配置独立视觉模型和真实鱼缸照片集后，再评估真实识别准确率；当前预览明确使用手动确认兜底。
-3. 在测试 Supabase 项目执行 migration、RLS 双账号隔离和匿名 miss 并发聚合验证。
-4. 使用真实水族新手验证候选置信度与原因可能性是否能被正确区分。
+1. 启动独立 Critic，读取原计划、实际 diff、测试和浏览器证据并输出六维修复清单。
+2. Builder 修复后交回同一 Critic 复验，再由独立 Evaluator 裁决三步用户路径。
+3. 在测试 Supabase 项目执行批次 migration、RLS 双账号隔离、父级数量触发器和引导偏好同步。
+4. 用户决定恢复翻译工作后，只读检查 Antigravity 交付，再继续剩余全站词条与内容审核。
 
 ## 关键决策与理由
 

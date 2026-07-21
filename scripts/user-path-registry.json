@@ -130,5 +130,49 @@
     "safetyConfirmation": false,
     "returnBehavior": "取消后返回原鱼缸",
     "emptyStateNextAction": "填写名称、尺寸和水体"
+  },
+  {
+    "id": "first-use-onboarding",
+    "start": "首次访问",
+    "target": "建缸任务或新手物种列表",
+    "route": "/welcome",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "可跳过；设置页可重新打开",
+    "emptyStateNextAction": "选择先建缸或先浏览物种"
+  },
+  {
+    "id": "global-search",
+    "start": "桌面侧栏 / 手机页头",
+    "target": "具体物种或养护文章",
+    "route": "/search?q=:query",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "恢复搜索词、滚动和触发结果",
+    "emptyStateNextAction": "改用拍照识别或更换关键词"
+  },
+  {
+    "id": "photo-identification",
+    "start": "桌面侧栏 / 手机页头 / 图鉴",
+    "target": "候选确认或手动搜索",
+    "route": "/identify",
+    "maxNavigationClicks": 1,
+    "taskScreens": 3,
+    "safetyConfirmation": false,
+    "returnBehavior": "未保存判断离开时确认",
+    "emptyStateNextAction": "视觉不可用时手动选择物种"
+  },
+  {
+    "id": "livestock-batch-state",
+    "start": "我的鱼缸",
+    "target": "具体物种体态批次",
+    "route": "/aquarium",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": true,
+    "returnBehavior": "保存后回到缸内物种摘要",
+    "emptyStateNextAction": "没有缸内物种时先添加生物"
   }
 ]
