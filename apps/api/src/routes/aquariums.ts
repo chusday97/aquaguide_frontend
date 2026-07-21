@@ -7,6 +7,7 @@ import {
   aquariumSpeciesCreateSchema,
   aquariumSpeciesBatchCreateSchema,
   aquariumSpeciesBatchSplitSchema,
+  aquariumSpeciesBatchMergeSchema,
   livestockMemorialCreateSchema,
   aquariumSpeciesBatchUpdateSchema,
   aquariumSpeciesUpdateSchema,
@@ -349,6 +350,33 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/split', 
   if (error) throwDatabaseError(error, '批次没有拆分成功，数量保持不变。');
   await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', newId, 201);
   return sendData(request, response, (data || []).map(item => camelize(item)), 201);
+}));
+
+aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/merge', asyncRoute(async (request, response) => {
+  const aquariumId = parseId(request.params.id, '鱼缸标识');
+  const recordId = parseId(request.params.recordId, '物种记录标识');
+  const targetBatchId = parseId(request.params.batchId, '目标批次标识');
+  const parsed = aquariumSpeciesBatchMergeSchema.safeParse(request.body);
+  if (!parsed.success) throw new ApiError(400, 'VALIDATION_ERROR', '合并批次信息无效。', parsed.error.flatten());
+  const idempotency = await beginIdempotentWrite(request);
+  const client = userClientFor(request);
+  await getOwnedSpeciesRecord(client, aquariumId, recordId);
+  if (idempotency.replay?.resourceId) {
+    const { data } = await client.from('aquarium_species_batches').select('*').eq('aquarium_species_id', recordId).is('deleted_at', null).order('created_at');
+    return sendData(request, response, (data || []).map(item => camelize(item)));
+  }
+  const { data, error } = await client.rpc('merge_aquarium_species_batches', {
+    expected_species_record_id: recordId,
+    target_batch_id: targetBatchId,
+    source_batch_id: parsed.data.sourceBatchId,
+    target_version: parsed.data.targetVersion,
+    source_version: parsed.data.sourceVersion,
+  });
+  if (error?.message?.includes('BATCH_VERSION_CONFLICT')) throw new ApiError(409, 'VERSION_CONFLICT', '批次已更新，请刷新后再合并。');
+  if (error?.message?.includes('BATCH_STATE_MISMATCH')) throw new ApiError(400, 'VALIDATION_ERROR', '请先将两个批次调整为相同体态再合并。');
+  if (error) throwDatabaseError(error, '批次没有合并成功，数量保持不变。');
+  await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', targetBatchId, 200);
+  return sendData(request, response, (data || []).map(item => camelize(item)));
 }));
 
 aquariumsRouter.delete('/aquariums/:id/species/:recordId/batches/:batchId', asyncRoute(async (request, response) => {

@@ -96,6 +96,27 @@ export const deleteSpeciesBatch = (record: AquariumFish, batchId: string) => {
   return withNormalizedSpeciesBatches({ ...record, batches: remaining });
 };
 
+export const mergeSpeciesBatches = (record: AquariumFish, targetBatchId: string, sourceBatchId: string) => {
+  if (targetBatchId === sourceBatchId) throw new Error('请选择两个不同的批次。');
+  const batches = normalizeSpeciesBatches(record);
+  const target = batches.find(batch => batch.id === targetBatchId);
+  const source = batches.find(batch => batch.id === sourceBatchId);
+  if (!target || !source) throw new Error('没有找到需要合并的批次。');
+  if (target.lifeStage !== source.lifeStage || target.reproductiveState !== source.reproductiveState) {
+    throw new Error('请先将两个批次调整为相同体态再合并。');
+  }
+  return withNormalizedSpeciesBatches({
+    ...record,
+    batches: batches
+      .filter(batch => batch.id !== sourceBatchId)
+      .map(batch => batch.id === targetBatchId ? {
+        ...batch,
+        quantity: target.quantity + source.quantity,
+        entryDate: [target.entryDate, source.entryDate].sort()[0],
+      } : batch),
+  });
+};
+
 export const decrementSpeciesBatch = (record: AquariumFish, batchId: string) => {
   const batches = normalizeSpeciesBatches(record);
   const target = batches.find(batch => batch.id === batchId);

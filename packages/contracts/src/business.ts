@@ -63,6 +63,12 @@ export const aquariumSpeciesBatchSplitSchema = z.object({
   sourceVersion: versionSchema,
 });
 
+export const aquariumSpeciesBatchMergeSchema = z.object({
+  sourceBatchId: uuidSchema,
+  targetVersion: versionSchema,
+  sourceVersion: versionSchema,
+});
+
 export const aquariumEquipmentUpsertSchema = z.object({
   filterType: z.string().trim().max(80).optional(),
   heater: z.boolean().optional(),

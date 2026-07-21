@@ -5,6 +5,7 @@ import {
   deleteSpeciesBatch,
   decrementSpeciesBatch,
   getSpeciesBatchContextLabel,
+  mergeSpeciesBatches,
   normalizeSpeciesBatches,
   splitSpeciesBatch,
   summarizeSpeciesBatches,
@@ -48,6 +49,10 @@ assert.equal(deleteSpeciesBatch(onlyBatch, onlyBatch.batches![0].id), null, 'del
 const decremented = decrementSpeciesBatch(split, split.batches![0].id);
 assert.equal(decremented?.quantity, 3, 'decrementing a memorial batch must reduce aggregate quantity');
 assert.equal(decremented?.batches?.find(batch => batch.id === split.batches![0].id)?.quantity, 2);
+const mergeReady = updateSpeciesBatch(split, split.batches![1].id, { reproductiveState: 'normal' });
+const merged = mergeSpeciesBatches(mergeReady, mergeReady.batches![0].id, mergeReady.batches![1].id);
+assert.equal(merged.quantity, 4);
+assert.equal(merged.batches?.length, 1, 'merging equal-state batches must preserve total quantity');
 
 const aquarium: Aquarium = {
   id: 'tank-1',

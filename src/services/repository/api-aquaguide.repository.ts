@@ -131,6 +131,24 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
     const reduced = desired
       .map(batch => ({ desired: batch, current: currentById.get(batch.id) }))
       .filter(item => item.current && item.desired.quantity < item.current.quantity);
+    const increased = desired
+      .map(batch => ({ desired: batch, current: currentById.get(batch.id) }))
+      .filter(item => item.current && item.desired.quantity > item.current.quantity);
+    if (added.length === 0 && removed.length === 1 && increased.length === 1) {
+      const addedQuantity = increased[0].desired.quantity - increased[0].current!.quantity;
+      if (addedQuantity === removed[0].quantity) {
+        const mergeResult = await apiRequest<ApiAquariumSpeciesBatch[]>(`/aquariums/${aquariumId}/species/${current.id}/batches/${increased[0].current!.id}/merge`, {
+          method: 'POST',
+          body: {
+            sourceBatchId: removed[0].id,
+            targetVersion: increased[0].current!.version,
+            sourceVersion: removed[0].version,
+          },
+          idempotencyKey: createIdempotencyKey('aquarium-species-batch-merge'),
+        });
+        return this.syncSpeciesBatches(aquariumId, { ...current, batches: mergeResult }, desired);
+      }
+    }
     if (added.length === 1 && removed.length === 0 && reduced.length === 1) {
       const splitQuantity = reduced[0].current!.quantity - reduced[0].desired.quantity;
       if (splitQuantity === added[0].quantity) {

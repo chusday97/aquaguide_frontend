@@ -49,6 +49,7 @@ for (const route of [
   '/aquariums/:id/species',
   '/aquariums/:id/species/:recordId/batches',
   '/aquariums/:id/species/:recordId/batches/:batchId/split',
+  '/aquariums/:id/species/:recordId/batches/:batchId/merge',
   '/aquariums/:id/species/:recordId/batches/:batchId/memorial',
   '/aquariums/:id/equipment',
   '/aquariums/:id/daily-checks/:localDate',

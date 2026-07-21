@@ -294,6 +294,7 @@ type ApiErrorCode =
 | POST | `/aquariums/:id/species/:recordId/batches` | 数量、入缸日期、生长阶段、繁殖状态、幂等键 | `AquariumSpeciesBatchRecord` | 400/401/404/409 |
 | PATCH | `/aquariums/:id/species/:recordId/batches/:batchId` | 可变字段、`version` | `AquariumSpeciesBatchRecord` | 400/401/404/409 |
 | POST | `/aquariums/:id/species/:recordId/batches/:batchId/split` | 拆分数量、新体态、`sourceVersion`、幂等键 | `AquariumSpeciesBatchRecord[]` | 400/401/404/409 |
+| POST | `/aquariums/:id/species/:recordId/batches/:batchId/merge` | 来源批次、双方版本 | `AquariumSpeciesBatchRecord[]` | 400/401/404/409 |
 | POST | `/aquariums/:id/species/:recordId/batches/:batchId/memorial` | 日期、原因、批次版本、幂等键 | `MemorialRecord` | 400/401/404/409 |
 | DELETE | `/aquariums/:id/species/:recordId/batches/:batchId` | `version` | `{ deleted: true, speciesRemoved: boolean }` | 401/404/409 |
 | PUT | `/aquariums/:id/equipment` | 设备字段、可选 `version` | `AquariumEquipmentRecord` | 400/401/404/409 |
@@ -307,6 +308,7 @@ type ApiErrorCode =
 
 `aquarium_species` 继续作为同缸同物种的汇总记录，`aquarium_species_batches` 记录同一物种内的数量、入缸日期和体态差异。
 批次拆分必须调用数据库函数 `split_aquarium_species_batch`，在同一事务内减少来源批次数量并创建新批次；任一步失败时总数量保持不变，同一幂等键重放返回同一拆分结果。
+批次合并必须调用 `merge_aquarium_species_batches`，只允许体态相同的两组在同一事务内合并，合并前后总数量保持不变。
 从缸内物种记录生命纪念必须调用 `record_livestock_memorial`，在同一事务内写入纪念并扣减所选批次；任一步失败时两边都不得产生部分结果。
 
 ```ts

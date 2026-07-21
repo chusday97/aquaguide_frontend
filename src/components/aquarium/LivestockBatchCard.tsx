@@ -1,4 +1,4 @@
-import { Baby, GitBranch, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Baby, GitBranch, GitMerge, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -13,6 +13,7 @@ import {
   summarizeSpeciesBatches,
   updateSpeciesBatch,
   getSpeciesBatchObservation,
+  mergeSpeciesBatches,
 } from '../../services/aquarium/species-batches.service';
 
 type Props = {
@@ -232,6 +233,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
                     <div className="flex items-center gap-2 text-sm font-black text-ink"><Baby className="h-4 w-4 text-emerald-700" />{t('livestock.groupTitle', { index: index + 1 })}</div>
                     <div className="flex gap-1">
                       {batch.quantity > 1 && <button type="button" onClick={() => { setSplitSource(batch); setSplitQuantity(1); }} className="flex h-10 items-center gap-1 rounded-xl px-2 text-xs font-black text-emerald-700 hover:bg-emerald-50"><GitBranch className="h-4 w-4" />{t('livestock.split')}</button>}
+                      {index > 0 && batches[index - 1].lifeStage === batch.lifeStage && batches[index - 1].reproductiveState === batch.reproductiveState && <button type="button" onClick={() => { setDraft(current => mergeSpeciesBatches(current, batches[index - 1].id, batch.id)); setError(''); }} className="flex h-10 items-center gap-1 rounded-xl px-2 text-xs font-black text-sky-700 hover:bg-sky-50"><GitMerge className="h-4 w-4" />{t('livestock.mergePrevious')}</button>}
                       <button type="button" onClick={() => setPendingDelete(batch)} aria-label={t('livestock.deleteGroupLabel', { index: index + 1 })} className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>

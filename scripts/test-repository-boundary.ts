@@ -87,6 +87,7 @@ const apiClientSource = readFileSync(resolve(import.meta.dirname, '../src/servic
 const aquariumApiSource = readFileSync(resolve(import.meta.dirname, '../apps/api/src/routes/aquariums.ts'), 'utf8');
 const atomicSplitMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220002_atomic_livestock_batch_split.sql'), 'utf8');
 const atomicMemorialMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220003_atomic_livestock_memorial.sql'), 'utf8');
+const atomicMergeMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220004_atomic_livestock_batch_merge.sql'), 'utf8');
 const aquariumPageSource = readFileSync(resolve(import.meta.dirname, '../src/pages/Aquarium.tsx'), 'utf8');
 assert.doesNotMatch(apiRepositorySource, /supabase\.from\(/);
 assert.match(apiRepositorySource, /apiRequest/);
@@ -106,6 +107,9 @@ assert.match(atomicMemorialMigration, /for update/);
 assert.match(atomicMemorialMigration, /insert into public\.memorial_records/);
 assert.match(atomicMemorialMigration, /species_record\.species_catalog_key/);
 assert.doesNotMatch(atomicMemorialMigration, /target_species_catalog_key/);
+assert.match(apiRepositorySource, /aquarium-species-batch-merge/);
+assert.match(aquariumApiSource, /rpc\('merge_aquarium_species_batches'/);
+assert.match(atomicMergeMigration, /for update/);
 assert.match(aquariumPageSource, /getCurrentAquaGuideRepository/);
 assert.match(aquariumPageSource, /subscribeToRepositoryMode/);
 
