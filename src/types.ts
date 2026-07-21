@@ -40,6 +40,37 @@ export interface AquariumFish {
   quantity: number;
   entryDate: string; // ISO string
   lastWaterChangeDate: string; // ISO string
+  batches?: AquariumSpeciesBatch[];
+}
+
+export type LifeStage = 'unknown' | 'juvenile' | 'adult';
+
+export type ReproductiveState =
+  | 'unknown'
+  | 'not_applicable'
+  | 'normal'
+  | 'pregnant_or_gravid'
+  | 'in_labor_or_spawning'
+  | 'postpartum_recovery';
+
+export interface AquariumSpeciesBatch {
+  id: string;
+  quantity: number;
+  entryDate: string;
+  lifeStage: LifeStage;
+  reproductiveState: ReproductiveState;
+  stateUpdatedAt: string;
+}
+
+export type OnboardingGoal = 'build_tank' | 'browse_species';
+
+export interface OnboardingState {
+  version: 1;
+  status: 'pending' | 'completed' | 'skipped';
+  goal?: OnboardingGoal;
+  viewedSpecies: boolean;
+  taskCardDismissed: boolean;
+  completedAt?: string;
 }
 
 export interface Aquarium {

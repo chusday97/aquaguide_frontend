@@ -6,6 +6,7 @@ const root = resolve(import.meta.dirname, '..');
 const migration = [
   '202607160001_core_schema.sql',
   '202607160002_localization.sql',
+  '202607220001_livestock_batches.sql',
 ].map(file => readFileSync(resolve(root, 'supabase/migrations', file), 'utf8')).join('\n');
 const contract = readFileSync(resolve(root, 'CONTRACT.md'), 'utf8');
 const databaseTypes = readFileSync(resolve(root, 'src/types/database.ts'), 'utf8');
@@ -21,6 +22,7 @@ const tables = [
   'care_article_assets',
   'aquariums',
   'aquarium_species',
+  'aquarium_species_batches',
   'aquarium_equipment',
   'aquarium_components',
   'diagnosis_records',
@@ -54,6 +56,8 @@ assert.match(migration, /care_reminders_active_source_idx/);
 assert.match(migration, /create type public\.app_locale as enum \('zh-CN', 'en'\)/);
 assert.match(migration, /create policy species_translations_public_select/);
 assert.match(migration, /create policy care_translations_public_select/);
+assert.match(migration, /create policy aquarium_species_batches_owner_all/);
+assert.match(migration, /create trigger aquarium_species_batches_sync_quantity/);
 
 assert.match(contract, /前端仅使用 Supabase Auth 获取会话，不直接读写业务表/);
 assert.match(contract, /Idempotency-Key/);
@@ -61,6 +65,8 @@ assert.match(contract, /VERSION_CONFLICT/);
 assert.match(contract, /游客继续使用本地 Repository/);
 assert.match(contract, /LocalizedContentMeta/);
 assert.match(contract, /\/api\/v1\/profile/);
+assert.match(contract, /AquariumSpeciesBatchRecord/);
+assert.match(contract, /\/search\?q=/);
 
 assert.match(databaseTypes, /export interface Database/);
 assert.match(databaseTypes, /export interface AquariumWithRelations/);
@@ -69,5 +75,6 @@ assert.match(databaseTypes, /export interface MigrationBatchRecord/);
 assert.match(databaseTypes, /export interface IdempotencyRecord/);
 assert.match(databaseTypes, /export interface SpeciesTranslationRecord/);
 assert.match(databaseTypes, /export interface CareArticleTranslationRecord/);
+assert.match(databaseTypes, /export interface AquariumSpeciesBatchRecord/);
 
 console.log(`three-tier contract verified: ${tables.length} tables, RLS, Storage, API and shared types`);

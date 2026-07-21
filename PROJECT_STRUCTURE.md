@@ -16,6 +16,7 @@
 - `supabase/migrations/`：PostgreSQL 表、索引、RLS、触发器和 Storage 策略。
 - `supabase/migrations/202607160002_localization.sql`：四张翻译表、审核字段、索引与公开/管理员 RLS。
 - `supabase/migrations/202607180001_species_recognition.sql`：只允许后端聚合写入的匿名识别未命中表。
+- `supabase/migrations/202607220001_livestock_batches.sql`：缸内物种批次、生长阶段、繁殖状态、汇总数量触发器与所有者 RLS。
 
 - `src/App.tsx`：设备级应用壳、导航与路由。
 - `src/i18n/`：i18next 初始化、浏览器语言检测和本地偏好保存。

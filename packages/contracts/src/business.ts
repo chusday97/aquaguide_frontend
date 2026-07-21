@@ -18,11 +18,23 @@ export const aquariumCreateSchema = z.object({
 
 export const aquariumUpdateSchema = aquariumCreateSchema.partial().extend({ version: versionSchema });
 
+export const lifeStageSchema = z.enum(['unknown', 'juvenile', 'adult']);
+export const reproductiveStateSchema = z.enum([
+  'unknown',
+  'not_applicable',
+  'normal',
+  'pregnant_or_gravid',
+  'in_labor_or_spawning',
+  'postpartum_recovery',
+]);
+
 export const aquariumSpeciesCreateSchema = z.object({
   speciesCatalogKey: z.string().trim().min(1).max(160),
   quantity: z.number().int().positive().max(100000),
   entryDate: isoDateSchema,
   lastWaterChangeAt: isoDateTimeSchema.optional(),
+  lifeStage: lifeStageSchema.default('unknown'),
+  reproductiveState: reproductiveStateSchema.default('unknown'),
 });
 
 export const aquariumSpeciesUpdateSchema = z.object({
@@ -31,6 +43,25 @@ export const aquariumSpeciesUpdateSchema = z.object({
   lastWaterChangeAt: isoDateTimeSchema.optional(),
   version: versionSchema,
 }).refine(value => Object.keys(value).some(key => key !== 'version'), '至少修改一个字段');
+
+export const aquariumSpeciesBatchCreateSchema = z.object({
+  quantity: z.number().int().positive().max(100000),
+  entryDate: isoDateSchema,
+  lifeStage: lifeStageSchema.default('unknown'),
+  reproductiveState: reproductiveStateSchema.default('unknown'),
+});
+
+export const aquariumSpeciesBatchUpdateSchema = aquariumSpeciesBatchCreateSchema.partial().extend({
+  version: versionSchema,
+}).refine(value => Object.keys(value).some(key => key !== 'version'), '至少修改一个字段');
+
+export const aquariumSpeciesBatchSplitSchema = z.object({
+  quantity: z.number().int().positive().max(100000),
+  entryDate: isoDateSchema.optional(),
+  lifeStage: lifeStageSchema,
+  reproductiveState: reproductiveStateSchema,
+  sourceVersion: versionSchema,
+});
 
 export const aquariumEquipmentUpsertSchema = z.object({
   filterType: z.string().trim().max(80).optional(),
@@ -128,6 +159,9 @@ export type AquariumCreateInput = z.infer<typeof aquariumCreateSchema>;
 export type AquariumUpdateInput = z.infer<typeof aquariumUpdateSchema>;
 export type AquariumSpeciesCreateInput = z.infer<typeof aquariumSpeciesCreateSchema>;
 export type AquariumSpeciesUpdateInput = z.infer<typeof aquariumSpeciesUpdateSchema>;
+export type AquariumSpeciesBatchCreateInput = z.infer<typeof aquariumSpeciesBatchCreateSchema>;
+export type AquariumSpeciesBatchUpdateInput = z.infer<typeof aquariumSpeciesBatchUpdateSchema>;
+export type AquariumSpeciesBatchSplitInput = z.infer<typeof aquariumSpeciesBatchSplitSchema>;
 export type DiagnosisSaveInput = z.infer<typeof diagnosisSaveSchema>;
 export type MemorialCreateInput = z.infer<typeof memorialCreateSchema>;
 export type CareReminderCreateInput = z.infer<typeof careReminderCreateSchema>;

@@ -1,4 +1,4 @@
-import type { Aquarium } from '../../types';
+import type { Aquarium, OnboardingState } from '../../types';
 import type { DiscoveryDeckState } from '../../modules/recommendation/recommendation.schema';
 import { notifyDataRecovery } from '../diagnostics/ui-failure.service';
 
@@ -27,6 +27,7 @@ export type LocalAppState = {
   observationRecords: LocalEventRecord[];
   riskReminderState: Record<string, string>;
   discoveryState?: DiscoveryDeckState;
+  onboarding?: OnboardingState;
   updatedAt: string;
 };
 
@@ -75,6 +76,7 @@ const normalizeState = (value: Partial<LocalAppState> | null | undefined): Local
     observationRecords: Array.isArray(value?.observationRecords) ? value.observationRecords : fallback.observationRecords,
     riskReminderState: value?.riskReminderState && typeof value.riskReminderState === 'object' ? value.riskReminderState : fallback.riskReminderState,
     discoveryState: value?.discoveryState,
+    onboarding: value?.onboarding,
     updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : fallback.updatedAt,
   };
 };

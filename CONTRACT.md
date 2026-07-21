@@ -1,9 +1,9 @@
 # AquaGuide 三层数据契约
 
-> 版本：2.1.0
+> 版本：2.2.0
 > 状态：已确认，实施中
-> 生效日期：2026-07-16
-> SQL 来源：`supabase/migrations/202607160001_core_schema.sql`、`supabase/migrations/202607160002_localization.sql`
+> 生效日期：2026-07-22
+> SQL 来源：`supabase/migrations/202607160001_core_schema.sql`、`supabase/migrations/202607160002_localization.sql`、`supabase/migrations/202607220001_livestock_batches.sql`
 > TypeScript 来源：`src/types/database.ts`
 
 ## 1. 产品与架构边界
@@ -28,6 +28,33 @@ flowchart LR
 - AI 原始回复和巡检自由描述默认不持久化。
 - 数据库使用 `snake_case`；API、共享类型和前端统一使用 `camelCase`，转换只发生在 API 层。
 - 中文主数据继续作为确定性规则的稳定输入；本地化只改变展示文本，不改变规则结论。
+- 侧栏与页头的任务入口只能进入正式路由或可定位模块，不得由导航直接打开业务弹窗。
+- 缸内体态属于养护与诊断上下文，不得改变混养四态结论。
+
+### 1.1 任务式路由
+
+- `/search?q=`：统一搜索物种与养护指南。
+- `/identify`：拍照识别与手动物种确认。
+- `/settings`：语言与已上线设置。
+- `/welcome`：首次使用目标选择。
+
+深链接必须定位、高亮并聚焦目标；目标不存在时显示可见错误，不得静默失败。
+
+### 1.2 新手引导状态
+
+`OnboardingState` 保存在现有 `LocalAppState` 中；登录用户同步到 `profiles.preferences`，不新增独立存储键或数据表。仅在没有引导状态、鱼缸、收藏和记录时自动进入 `/welcome`。
+
+```ts
+type OnboardingGoal = 'build_tank' | 'browse_species';
+interface OnboardingState {
+  version: 1;
+  status: 'pending' | 'completed' | 'skipped';
+  goal?: OnboardingGoal;
+  viewedSpecies: boolean;
+  taskCardDismissed: boolean;
+  completedAt?: string;
+}
+```
 
 ### 2.1 语言与回退
 
@@ -260,15 +287,50 @@ type ApiErrorCode =
 | GET | `/aquariums/:id` | 路径参数 | `AquariumWithRelations` | 401/403/404 |
 | PATCH | `/aquariums/:id` | 可变字段、`version` | `AquariumWithRelations` | 400/401/404/409 |
 | DELETE | `/aquariums/:id` | `version` | `{ deleted: true }` | 401/404/409 |
-| POST | `/aquariums/:id/species` | 物种键、数量、日期、幂等键 | `AquariumSpeciesRecord` | 400/401/404/409 |
-| PATCH | `/aquariums/:id/species/:recordId` | 数量、日期、`version` | `AquariumSpeciesRecord` | 400/401/404/409 |
+| POST | `/aquariums/:id/species` | 物种键、数量、日期、初始体态、幂等键 | `AquariumSpeciesRecord` | 400/401/404/409 |
+| PATCH | `/aquariums/:id/species/:recordId` | 日期、`version`；数量仅允许单批次兼容更新 | `AquariumSpeciesRecord` | 400/401/404/409 |
 | DELETE | `/aquariums/:id/species/:recordId` | `version` | `{ deleted: true }` | 401/404/409 |
+| POST | `/aquariums/:id/species/:recordId/batches` | 数量、入缸日期、生长阶段、繁殖状态、幂等键 | `AquariumSpeciesBatchRecord` | 400/401/404/409 |
+| PATCH | `/aquariums/:id/species/:recordId/batches/:batchId` | 可变字段、`version` | `AquariumSpeciesBatchRecord` | 400/401/404/409 |
+| POST | `/aquariums/:id/species/:recordId/batches/:batchId/split` | 拆分数量、新体态、`sourceVersion`、幂等键 | `AquariumSpeciesBatchRecord[]` | 400/401/404/409 |
+| DELETE | `/aquariums/:id/species/:recordId/batches/:batchId` | `version` | `{ deleted: true, speciesRemoved: boolean }` | 401/404/409 |
 | PUT | `/aquariums/:id/equipment` | 设备字段、可选 `version` | `AquariumEquipmentRecord` | 400/401/404/409 |
 | POST | `/aquariums/:id/components` | 类型、名称、数量、幂等键 | `AquariumComponentRecord` | 400/401/404/409 |
 | PATCH | `/aquariums/:id/components/:componentId` | 可变字段、`version` | `AquariumComponentRecord` | 400/401/404/409 |
 | DELETE | `/aquariums/:id/components/:componentId` | `version` | `{ deleted: true }` | 401/404/409 |
 
 鱼缸直接添加生物仍需先通过共享确定性混养规则；后端必须复核最终写入请求，不能只相信前端结论。
+
+### 7.2.1 缸内物种批次
+
+`aquarium_species` 继续作为同缸同物种的汇总记录，`aquarium_species_batches` 记录同一物种内的数量、入缸日期和体态差异。
+
+```ts
+type LifeStage = 'unknown' | 'juvenile' | 'adult';
+type ReproductiveState =
+  | 'unknown'
+  | 'not_applicable'
+  | 'normal'
+  | 'pregnant_or_gravid'
+  | 'in_labor_or_spawning'
+  | 'postpartum_recovery';
+
+interface AquariumSpeciesBatchRecord extends SyncFields {
+  id: string;
+  aquariumSpeciesId: string;
+  quantity: number;
+  entryDate: string;
+  lifeStage: LifeStage;
+  reproductiveState: ReproductiveState;
+  stateUpdatedAt: string;
+}
+```
+
+- 旧 `aquarium_species` 每条回填一个“未知阶段 / 未知繁殖状态”默认批次，回填前后汇总数量必须相同。
+- 父记录 `quantity` 由未删除批次的数量之和派生，不允许多批次时直接覆盖。
+- 删除最后一个批次会软删除父物种记录；界面必须二次确认。
+- 怀孕/抱卵、生产/繁殖和产后恢复为用户确认的短期状态，AI 只能建议确认，不能自动写入。
+- 水草、硬景等不适用繁殖体态的内容使用 `not_applicable`。
 
 ### 7.3 巡检、收藏、纪念和养护
 

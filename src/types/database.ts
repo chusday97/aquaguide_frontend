@@ -10,6 +10,8 @@ export type WaterType = 'Freshwater' | 'Saltwater';
 export type ComponentType = 'substrate' | 'plant' | 'hardscape';
 export type CareEventType = 'water_change' | 'feeding' | 'observation' | 'checklist_completed';
 export type MigrationStatus = 'previewed' | 'committing' | 'completed' | 'failed';
+export type LifeStage = 'unknown' | 'juvenile' | 'adult';
+export type ReproductiveState = 'unknown' | 'not_applicable' | 'normal' | 'pregnant_or_gravid' | 'in_labor_or_spawning' | 'postpartum_recovery';
 
 export interface SyncFields {
   createdAt: IsoDateTime;
@@ -221,6 +223,17 @@ export interface AquariumSpeciesRecord extends SyncFields {
   quantity: number;
   entryDate: IsoDate;
   lastWaterChangeAt?: IsoDateTime;
+  batches?: AquariumSpeciesBatchRecord[];
+}
+
+export interface AquariumSpeciesBatchRecord extends SyncFields {
+  id: Uuid;
+  aquariumSpeciesId: Uuid;
+  quantity: number;
+  entryDate: IsoDate;
+  lifeStage: LifeStage;
+  reproductiveState: ReproductiveState;
+  stateUpdatedAt: IsoDateTime;
 }
 
 export interface AquariumEquipmentRecord extends SyncFields {
@@ -416,6 +429,7 @@ export interface Database {
       careArticleStepTranslations: TableDefinition<CareArticleStepTranslationRecord>;
       aquariums: TableDefinition<AquariumRecord>;
       aquariumSpecies: TableDefinition<AquariumSpeciesRecord>;
+      aquariumSpeciesBatches: TableDefinition<AquariumSpeciesBatchRecord>;
       aquariumEquipment: TableDefinition<AquariumEquipmentRecord>;
       aquariumComponents: TableDefinition<AquariumComponentRecord>;
       diagnosisRecords: TableDefinition<DiagnosisRecordRow>;
