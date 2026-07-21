@@ -141,6 +141,9 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
           method: 'POST',
           body: {
             sourceBatchId: removed[0].id,
+            targetEntryDate: increased[0].desired.entryDate.slice(0, 10),
+            targetLifeStage: increased[0].desired.lifeStage,
+            targetReproductiveState: increased[0].desired.reproductiveState,
             targetVersion: increased[0].current!.version,
             sourceVersion: removed[0].version,
           },

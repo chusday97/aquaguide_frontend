@@ -65,6 +65,9 @@ export const aquariumSpeciesBatchSplitSchema = z.object({
 
 export const aquariumSpeciesBatchMergeSchema = z.object({
   sourceBatchId: uuidSchema,
+  targetEntryDate: isoDateSchema,
+  targetLifeStage: lifeStageSchema,
+  targetReproductiveState: reproductiveStateSchema,
   targetVersion: versionSchema,
   sourceVersion: versionSchema,
 });

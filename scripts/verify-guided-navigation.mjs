@@ -108,9 +108,12 @@ try {
   assert.equal(stored.quantity, 3);
   assert.equal(stored.batches.length, 2);
   await phone.getByRole('button', { name: '调整体态' }).click();
-  await phone.getByRole('button', { name: '删除第 2 组' }).click();
-  await phone.getByRole('button', { name: '删除这一组' }).click();
+  await phone.getByLabel('繁殖状态').last().selectOption('normal');
+  await phone.getByRole('button', { name: '合并到上一组' }).click();
   await phone.getByRole('button', { name: '保存修改' }).click();
+  const mergedStored = await phone.evaluate(() => JSON.parse(localStorage.getItem('aquarium_app_state_v1')).aquariums[0].fishes[0]);
+  assert.equal(mergedStored.quantity, 3);
+  assert.equal(mergedStored.batches.length, 1, 'matching groups must merge in one edit session');
   await phone.getByRole('button', { name: '调整体态' }).click();
   await phone.getByRole('button', { name: '删除第 1 组' }).click();
   await phone.getByText('这是最后一组，确认后会将极火虾移出鱼缸。').waitFor();

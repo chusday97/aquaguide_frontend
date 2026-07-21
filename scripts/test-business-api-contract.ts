@@ -6,6 +6,7 @@ import {
   aquariumSpeciesCreateSchema,
   aquariumSpeciesBatchCreateSchema,
   aquariumSpeciesBatchSplitSchema,
+  aquariumSpeciesBatchMergeSchema,
   careReminderCreateSchema,
   diagnosisSaveSchema,
   profilePreferencesUpdateSchema,
@@ -19,6 +20,7 @@ assert.equal(aquariumSpeciesCreateSchema.safeParse({ speciesCatalogKey: 'sp_0001
 assert.equal(aquariumSpeciesBatchCreateSchema.safeParse({ quantity: 2, entryDate: '2026-07-16', lifeStage: 'juvenile', reproductiveState: 'normal' }).success, true);
 assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 1, lifeStage: 'adult', reproductiveState: 'pregnant_or_gravid', sourceVersion: 1 }).success, true);
 assert.equal(aquariumSpeciesBatchSplitSchema.safeParse({ quantity: 0, lifeStage: 'adult', reproductiveState: 'normal', sourceVersion: 1 }).success, false);
+assert.equal(aquariumSpeciesBatchMergeSchema.safeParse({ sourceBatchId: '00000000-0000-4000-8000-000000000001', targetEntryDate: '2026-07-16', targetLifeStage: 'adult', targetReproductiveState: 'normal', targetVersion: 1, sourceVersion: 1 }).success, true);
 assert.equal(careReminderCreateSchema.safeParse({ sourceCatalogKey: 'guide_water', title: '换水', reminderType: '换水', scheduledFor: '2026-07-17T08:00:00+08:00' }).success, true);
 assert.equal(diagnosisSaveSchema.safeParse({ diagnosisKey: 'daily', answers: {}, resultSummary: '正常', riskLevel: '低' }).success, true);
 assert.equal(profilePreferencesUpdateSchema.safeParse({ version: 1, onboarding: { version: 1, status: 'pending', goal: 'build_tank', viewedSpecies: false, taskCardDismissed: false } }).success, true);

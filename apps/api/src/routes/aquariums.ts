@@ -369,11 +369,13 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/merge', 
     expected_species_record_id: recordId,
     target_batch_id: targetBatchId,
     source_batch_id: parsed.data.sourceBatchId,
+    final_entry_date: parsed.data.targetEntryDate,
+    final_life_stage: parsed.data.targetLifeStage,
+    final_reproductive_state: parsed.data.targetReproductiveState,
     target_version: parsed.data.targetVersion,
     source_version: parsed.data.sourceVersion,
   });
   if (error?.message?.includes('BATCH_VERSION_CONFLICT')) throw new ApiError(409, 'VERSION_CONFLICT', '批次已更新，请刷新后再合并。');
-  if (error?.message?.includes('BATCH_STATE_MISMATCH')) throw new ApiError(400, 'VALIDATION_ERROR', '请先将两个批次调整为相同体态再合并。');
   if (error) throwDatabaseError(error, '批次没有合并成功，数量保持不变。');
   await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', targetBatchId, 200);
   return sendData(request, response, (data || []).map(item => camelize(item)));
