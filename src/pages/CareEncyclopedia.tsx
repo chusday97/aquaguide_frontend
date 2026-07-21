@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import posthog from 'posthog-js';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, Baby, Check, ChevronRight, Copy, Download, Droplets, Fish, Heart, HelpCircle, Loader2, Maximize2, Search, Settings, Stethoscope, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -1192,6 +1192,7 @@ const buildStepDiagnosisResult = ({
 export default function CareEncyclopedia() {
   const { t } = useTranslation();
   const isEn = i18n.language === 'en';
+  const navigate = useNavigate();
 
   const categoryChips = [
     { value: '全部', label: t('care.categories.all') },
@@ -1374,6 +1375,10 @@ export default function CareEncyclopedia() {
   const closeCareDetail = () => {
     setSelectedTopic(null);
     if (new URLSearchParams(location.search).has('topic')) {
+      if (new URLSearchParams(location.search).get('source') === 'search') {
+        navigate(-1);
+        return;
+      }
       navigateToRoute('/care');
       return;
     }

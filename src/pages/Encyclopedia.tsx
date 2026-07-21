@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import posthog from 'posthog-js';
 import type { PointerEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Fish, Aquarium } from '../types';
 import { fishData } from '../data/fishData';
@@ -480,6 +480,7 @@ export default function Encyclopedia() {
   };
   const { captureContext, navigateToRoute, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'browse' | 'compatibility'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(emptyActiveFilters);
@@ -491,6 +492,13 @@ export default function Encyclopedia() {
   const closeAtlasDetail = (restoreReturnContext = true) => {
     setSelectedFish(null);
     setSelectedGroup(null);
+    const params = new URLSearchParams(location.search);
+    if (params.has('species')) {
+      detailNavigationContextRef.current = null;
+      if (params.get('source') === 'search') navigate(-1);
+      else navigateToRoute('/encyclopedia');
+      return;
+    }
     const context = detailNavigationContextRef.current;
     detailNavigationContextRef.current = null;
     if (restoreReturnContext && context) void restoreContext(context);
@@ -500,6 +508,13 @@ export default function Encyclopedia() {
     detailNavigationContextRef.current = captureContext(sourceId);
     setSelectedFish(fish);
   };
+
+  useEffect(() => {
+    const speciesId = new URLSearchParams(location.search).get('species');
+    if (!speciesId || selectedFish?.id === speciesId) return;
+    const fish = fishData.find(item => item.id === speciesId);
+    if (fish) openSpeciesDetail(fish);
+  }, [location.search, selectedFish?.id]);
 
   const [ownedFishIds, setOwnedFishIds] = useState<Set<string>>(new Set());
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistIds());

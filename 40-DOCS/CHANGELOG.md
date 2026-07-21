@@ -4,6 +4,7 @@
 
 ### Added
 
+- `/search?q=` 物种/养护分组搜索与 `/settings` 正式页面；桌面侧栏和手机页头直达搜索、拍照识别和设置。
 - 任务式导航、新手引导和缸内物种批次的 2.2.0 数据契约；批次支持幼年/成年和怀孕、生产、产后恢复等短期状态。
 - `aquarium_species_batches` Supabase migration：旧物种记录无损回填、父级数量自动汇总和鱼缸所有者 RLS。
 
@@ -59,6 +60,8 @@
 - 320–430px 手机分页、手动养护推荐、水族册入口、缸内物种与养护计划浏览器回归脚本。
 
 ### Changed
+
+- 侧栏设置不再打开弹层；搜索结果使用可复制深链接打开具体物种或养护文章，关闭后返回原搜索词。
 
 - 修复 `getLifeType` 在英文模式下因分类字段 `Amphibians/Reptiles` 变更导致六角恐龙（`Ambystoma mexicanum`）错误归类为“淡水特色鱼”的问题，精准重建其两栖/爬宠（`Reptile / Amphibian`）分类。
 - 本地化物种角色标签（`getSpeciesRoleLabel` / `getSpeciesPositioning`），在英文模式下自动转换“观赏生物 / 鱼缸搭配”、“工具虾螺 / 除藻生物”等为“Ornamental Creature / Tank Mix”等标准英文标签。

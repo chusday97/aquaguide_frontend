@@ -62,6 +62,26 @@ const resources = {
         collapse: '收起侧边栏',
         expand: '展开侧边栏',
       },
+      searchPage: {
+        title: '搜索',
+        subtitle: '一次查找物种资料和可执行的养护指南。',
+        placeholder: '输入中文名、英文名、学名或养护问题',
+        shortPlaceholder: '搜物种或养护',
+        submit: '搜索',
+        emptyPrompt: '输入你想查的物种或鱼缸问题',
+        noResults: '暂时没有找到匹配内容',
+        tryPhoto: '尝试拍照识别',
+        species: '物种',
+        care: '养护指南',
+        openSpecies: '打开物种资料',
+        openCare: '打开操作指引',
+      },
+      settingsPage: {
+        title: '设置',
+        subtitle: '只展示当前真正可用的选项。',
+        onboardingTitle: '新手引导',
+        onboardingPending: '重新查看入口将在下一阶段接通。',
+      },
       visualResult: {
         status: {
           compatible: '可以混养',
@@ -786,6 +806,26 @@ const resources = {
         assistant: 'Aquarium care assistant',
         collapse: 'Collapse sidebar',
         expand: 'Expand sidebar',
+      },
+      searchPage: {
+        title: 'Search',
+        subtitle: 'Find species profiles and practical care guides in one place.',
+        placeholder: 'Search by name, scientific name, or aquarium issue',
+        shortPlaceholder: 'Species or care',
+        submit: 'Search',
+        emptyPrompt: 'Enter a species or aquarium issue to begin',
+        noResults: 'No matching content was found',
+        tryPhoto: 'Try photo identification',
+        species: 'Species',
+        care: 'Care guides',
+        openSpecies: 'Open species profile',
+        openCare: 'Open action guide',
+      },
+      settingsPage: {
+        title: 'Settings',
+        subtitle: 'Only settings that currently work are shown here.',
+        onboardingTitle: 'Getting started',
+        onboardingPending: 'The replay entry will be connected in the next implementation step.',
       },
       visualResult: {
         status: {

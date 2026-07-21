@@ -4,7 +4,7 @@
  */
 
 import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import {
@@ -20,6 +20,8 @@ import {
   Heart,
   Skull,
   Settings,
+  Search as SearchIcon,
+  Camera,
 } from 'lucide-react';
 import { ToastProvider } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
@@ -27,8 +29,6 @@ import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutMod
 import { DataRecoveryNotice, RouteErrorBoundary } from './components/common/RouteErrorBoundary';
 import { lazyWithRecovery } from './lib/lazyWithRecovery';
 import i18n from './i18n';
-import { LanguageSettingsPanel } from './components/settings/LanguageSettingsPanel';
-import { SettingsProvider, useSettings } from './components/settings/SettingsProvider';
 
 const loadAquarium = () => import('./pages/Aquarium');
 const loadEncyclopedia = () => import('./pages/Encyclopedia');
@@ -40,6 +40,8 @@ const loadLogin = () => import('./pages/Login');
 const loadAdminContent = () => import('./pages/AdminContent');
 const loadIdentify = () => import('./pages/Identify');
 const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
+const loadSearch = () => import('./pages/Search');
+const loadSettings = () => import('./pages/Settings');
 
 const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
 const Encyclopedia = lazyWithRecovery(loadEncyclopedia, 'encyclopedia');
@@ -51,6 +53,8 @@ const Login = lazyWithRecovery(loadLogin, 'login');
 const AdminContent = lazyWithRecovery(loadAdminContent, 'admin-content');
 const Identify = lazyWithRecovery(loadIdentify, 'identify');
 const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
+const SearchPage = lazyWithRecovery(loadSearch, 'search');
+const SettingsPage = lazyWithRecovery(loadSettings, 'settings');
 
 const preloadRoute = (path: string) => {
   const loader = path === '/aquarium'
@@ -59,6 +63,10 @@ const preloadRoute = (path: string) => {
       ? loadEncyclopedia
       : path === '/identify'
         ? loadIdentify
+      : path === '/search'
+        ? loadSearch
+      : path === '/settings'
+        ? loadSettings
       : path === '/care'
         ? loadCare
         : path === '/collection'
@@ -240,7 +248,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
   const location = useLocation();
   const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
   const { t } = useTranslation();
-  const { openSettings } = useSettings();
+  const [searchDraft, setSearchDraft] = useState('');
   const activePath = location.pathname === '/wishlist'
     ? '/collection'
     : location.pathname === '/care-favorites'
@@ -290,6 +298,24 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
         </button>
 
         <nav className="min-h-0 flex-1 px-3 pb-4">
+          <div className={cn('mb-4 grid gap-2', collapsed ? 'justify-items-center' : 'grid-cols-[minmax(0,1fr)_44px]')}>
+            {collapsed ? (
+              <button type="button" onClick={() => navigateToRoute('/search')} title={t('searchPage.title')} aria-label={t('searchPage.title')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-ink/55 shadow-sm hover:text-emerald-700"><SearchIcon className="h-5 w-5" /></button>
+            ) : (
+              <form
+                onSubmit={event => {
+                  event.preventDefault();
+                  const query = searchDraft.trim();
+                  navigateToRoute(query ? `/search?q=${encodeURIComponent(query)}` : '/search');
+                }}
+                className="flex min-w-0 items-center rounded-2xl bg-white px-3 shadow-sm"
+              >
+                <SearchIcon className="h-4 w-4 shrink-0 text-ink/35" />
+                <input value={searchDraft} onChange={event => setSearchDraft(event.target.value)} aria-label={t('searchPage.placeholder')} placeholder={t('searchPage.shortPlaceholder')} className="h-11 min-w-0 flex-1 bg-transparent px-2 text-xs font-bold text-ink outline-none placeholder:text-ink/30" />
+              </form>
+            )}
+            <button type="button" onClick={() => navigateToRoute('/identify')} title={t('identify.entry')} aria-label={t('identify.entry')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-ink/55 shadow-sm hover:text-emerald-700"><Camera className="h-5 w-5" /></button>
+          </div>
           <div className="grid gap-2">
             {navItems.map((item) => {
               const isActive = activePath === item.path;
@@ -364,7 +390,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
         <div className={cn('shrink-0 border-t border-ink/6 py-4', collapsed ? 'px-3' : 'px-5')}>
           <button
             type="button"
-            onClick={openSettings}
+            onClick={() => navigateToRoute('/settings')}
             title={collapsed ? t('common.settings') : undefined}
             aria-label={t('common.settings')}
             className={cn('flex min-h-11 w-full items-center gap-3 rounded-[16px] bg-white px-3 text-left text-ink/58 shadow-sm transition-colors hover:text-emerald-700', collapsed && 'justify-center px-0')}
@@ -406,11 +432,9 @@ export default function App() {
       <Router>
         <ToastProvider>
           <LayoutModeProvider>
-            <SettingsProvider>
-              <WorkspaceNavigationProvider>
-                <AppShell />
-              </WorkspaceNavigationProvider>
-            </SettingsProvider>
+            <WorkspaceNavigationProvider>
+              <AppShell />
+            </WorkspaceNavigationProvider>
           </LayoutModeProvider>
         </ToastProvider>
       </Router>
@@ -522,9 +546,7 @@ function AppShell() {
     );
   }
 
-  const settingsPanel = <LanguageSettingsPanel />;
-
-  if (isPhoneLayout) return <><MobileAppShell />{settingsPanel}</>;
+  if (isPhoneLayout) return <MobileAppShell />;
 
   return (
     <>
@@ -533,7 +555,6 @@ function AppShell() {
         onToggleCollapsed={toggleDesktopSidebar}
         style={desktopShellStyle}
       />
-      {settingsPanel}
     </>
   );
 }
@@ -562,6 +583,8 @@ function WorkspaceRoutes() {
           <Route path="/login" element={page(<Login />, 'login')} />
           <Route path="/encyclopedia" element={page(<Encyclopedia />, 'encyclopedia')} />
           <Route path="/identify" element={page(<Identify />, 'identify')} />
+          <Route path="/search" element={page(<SearchPage />, 'search')} />
+          <Route path="/settings" element={page(<SettingsPage />, 'settings')} />
           <Route path="/care" element={page(<CareEncyclopedia />, 'care')} />
           <Route path="/collection" element={page(<CollectionEntry />, 'collection')} />
           <Route path="/collection/wishlist" element={page(<Collection module="wishlist" />, 'collection-wishlist')} />
@@ -618,13 +641,20 @@ function DesktopAppShell({
 }
 
 function MobileAppShell() {
+  const { navigateToRoute } = useWorkspaceNavigation();
+  const { t } = useTranslation();
   return (
     <div
       className="aquaguide-app phone-shell-active flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink"
       data-layout-mode="phone"
     >
       <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl">
-        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))]">
+        <header className="flex shrink-0 items-center justify-end gap-1 border-b border-ink/5 bg-white/92 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] backdrop-blur-md">
+          <button type="button" onClick={() => navigateToRoute('/search')} aria-label={t('searchPage.title')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><SearchIcon className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateToRoute('/identify')} aria-label={t('identify.entry')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><Camera className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateToRoute('/settings')} aria-label={t('common.settings')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><Settings className="h-5 w-5" /></button>
+        </header>
+        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-3">
           <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
             <WorkspaceRoutes />
           </div>

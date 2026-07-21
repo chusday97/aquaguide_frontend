@@ -26,6 +26,8 @@
 - `src/pages/Aquarium.tsx`：我的鱼缸。
 - `src/pages/Encyclopedia.tsx`：图鉴与完整混养计算。
 - `src/pages/Identify.tsx`：拍照识别候选、手动兜底、物种确认、动态追问与可视化风险结果。
+- `src/pages/Search.tsx`：物种与养护指南的双语统一搜索，结果直达具体资料。
+- `src/pages/Settings.tsx`：正式设置路由，替代侧栏设置弹层。
 - `src/pages/CareEncyclopedia.tsx`：养护百科与共享养护详情。
 - `src/pages/CollectionHub.tsx`：水族册模块首页，只展示四张大模块卡与数量。
 - `src/pages/Collection.tsx`：四个独立水族册模块的列表、详情与空状态。
