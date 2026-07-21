@@ -2,6 +2,7 @@ begin;
 
 create or replace function public.split_aquarium_species_batch(
   source_batch_id uuid,
+  expected_species_record_id uuid,
   source_version integer,
   split_quantity integer,
   split_entry_date date,
@@ -17,7 +18,7 @@ declare
 begin
   if exists (
     select 1 from public.aquarium_species_batches
-    where id = new_batch_id and deleted_at is null
+    where id = new_batch_id and aquarium_species_id = expected_species_record_id and deleted_at is null
   ) then
     return query
       select * from public.aquarium_species_batches
@@ -31,6 +32,7 @@ begin
   select * into source_row
   from public.aquarium_species_batches
   where id = source_batch_id
+    and aquarium_species_id = expected_species_record_id
     and version = source_version
     and deleted_at is null
   for update;
@@ -63,7 +65,7 @@ begin
 end;
 $$;
 
-revoke all on function public.split_aquarium_species_batch(uuid, integer, integer, date, public.aquarium_life_stage, public.aquarium_reproductive_state, uuid) from public;
-grant execute on function public.split_aquarium_species_batch(uuid, integer, integer, date, public.aquarium_life_stage, public.aquarium_reproductive_state, uuid) to authenticated;
+revoke all on function public.split_aquarium_species_batch(uuid, uuid, integer, integer, date, public.aquarium_life_stage, public.aquarium_reproductive_state, uuid) from public;
+grant execute on function public.split_aquarium_species_batch(uuid, uuid, integer, integer, date, public.aquarium_life_stage, public.aquarium_reproductive_state, uuid) to authenticated;
 
 commit;

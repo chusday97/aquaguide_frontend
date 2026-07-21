@@ -27,10 +27,13 @@ export const onboardingPreferenceSchema = z.object({
   status: z.enum(['pending', 'completed', 'skipped']),
   goal: z.enum(['build_tank', 'browse_species']).optional(),
   viewedSpecies: z.boolean(),
-  aquariumConfigured: z.boolean().default(false),
+  aquariumConfigured: z.boolean().optional(),
   taskCardDismissed: z.boolean(),
   completedAt: z.string().datetime().optional(),
-});
+}).transform(value => ({
+  ...value,
+  aquariumConfigured: value.aquariumConfigured ?? value.status === 'completed',
+}));
 
 export const profilePreferencesUpdateSchema = z.object({
   locale: supportedLocaleSchema.optional(),

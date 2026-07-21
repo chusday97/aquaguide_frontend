@@ -70,7 +70,7 @@ type SpeciesDetailDialogProps = {
   onToggleWishlist: (fishId: string) => void;
   onGoCalculator?: () => void;
   onOpenTankSettings?: (panel: 'size' | 'parameters' | 'equipment') => void;
-  onRecordDeath?: (fish: Fish, input: { date: string; reason: string; batchId?: string }) => void | Promise<void>;
+  onRecordDeath?: (fish: Fish, input: { date: string; reason: string; batchId?: string; operationId: string }) => void | Promise<void>;
 };
 
 const getLocalDateValue = () => {
@@ -449,6 +449,7 @@ export function SpeciesDetailDialog({
   const ownedRecord = useMemo(() => aquariumContext?.fishes.find(item => item.fishId === fish?.id), [aquariumContext, fish?.id]);
   const deathBatches = useMemo(() => ownedRecord ? normalizeSpeciesBatches(ownedRecord) : [], [ownedRecord]);
   const [deathBatchId, setDeathBatchId] = useState('');
+  const [deathOperationId, setDeathOperationId] = useState('');
   const [deathError, setDeathError] = useState('');
   const [isRecordingDeath, setIsRecordingDeath] = useState(false);
   const deathReasonRef = useRef<HTMLTextAreaElement | null>(null);
@@ -469,6 +470,8 @@ export function SpeciesDetailDialog({
     setIsDeathFormOpen(false);
     setDeathDate(getLocalDateValue());
     setDeathReason('');
+    setDeathBatchId('');
+    setDeathOperationId('');
     setDeathError('');
     setIsRecordingDeath(false);
   }, [open, fish?.id]);
@@ -683,8 +686,10 @@ export function SpeciesDetailDialog({
     try {
       const selectedBatchId = deathBatchId || deathBatches[0]?.id;
       if (deathBatches.length > 0 && !selectedBatchId) throw new Error(t('livestock.selectMemorialBatch'));
-      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim(), batchId: selectedBatchId });
+      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim(), batchId: selectedBatchId, operationId: deathOperationId });
       setIsDeathFormOpen(false);
+      setDeathBatchId('');
+      setDeathOperationId('');
       setInlineFeedback(t('encyclopedia.freshwater') === '淡水' ? `已保存 ${fish.name} 的生命纪念。` : `Saved memorial for ${fish.name}.`);
     } catch (error) {
       setDeathError(error instanceof Error ? error.message : (t('encyclopedia.freshwater') === '淡水' ? '保存失败，请稍后重试。' : 'Save failed, please try again later.'));
@@ -761,7 +766,11 @@ export function SpeciesDetailDialog({
                     {[
                       { label: t('encyclopedia.compatibilityCalc'), icon: Calculator, active: inCalculator, action: handleOpenCalculator },
                       { label: inWishlist ? t('encyclopedia.inWishlistBtn') : t('encyclopedia.addToWishlistBtn'), icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
-                      onRecordDeath ? { label: t('encyclopedia.moreLabel'), icon: Skull, active: false, action: () => setIsDeathFormOpen(true) } : null,
+                      onRecordDeath ? { label: t('encyclopedia.moreLabel'), icon: Skull, active: false, action: () => {
+                        setDeathBatchId('');
+                        setDeathOperationId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+                        setIsDeathFormOpen(true);
+                      } } : null,
                     ].filter(Boolean).map(item => {
                       const actionItem = item as { label: string; icon: typeof Calculator; active: boolean; action: () => void };
                       const Icon = actionItem.icon;

@@ -28,6 +28,7 @@ export type LocalAppState = {
   riskReminderState: Record<string, string>;
   discoveryState?: DiscoveryDeckState;
   onboarding?: OnboardingState;
+  cloudMigrationConfirmed?: boolean;
   updatedAt: string;
 };
 
@@ -78,8 +79,9 @@ const normalizeState = (value: Partial<LocalAppState> | null | undefined): Local
     discoveryState: value?.discoveryState,
     onboarding: value?.onboarding ? {
       ...value.onboarding,
-      aquariumConfigured: Boolean(value.onboarding.aquariumConfigured),
+      aquariumConfigured: value.onboarding.aquariumConfigured ?? value.onboarding.status === 'completed',
     } : undefined,
+    cloudMigrationConfirmed: value?.cloudMigrationConfirmed === true,
     updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : fallback.updatedAt,
   };
 };

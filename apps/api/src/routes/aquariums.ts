@@ -336,6 +336,7 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/split', 
   const newId = deterministicUuid(`${userId}:${recordId}:split:${idempotency.key}`);
   const { data, error } = await client.rpc('split_aquarium_species_batch', {
     source_batch_id: batchId,
+    expected_species_record_id: recordId,
     source_version: parsed.data.sourceVersion,
     split_quantity: parsed.data.quantity,
     split_entry_date: parsed.data.entryDate ?? null,
@@ -385,7 +386,6 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/memorial
     target_species_record_id: recordId,
     target_batch_id: batchId,
     target_batch_version: parsed.data.batchVersion,
-    target_species_catalog_key: parsed.data.speciesCatalogKey,
     target_memorial_date: parsed.data.memorialDate,
     target_reason: parsed.data.reason ?? null,
     new_memorial_id: memorialId,

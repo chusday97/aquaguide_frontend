@@ -1,9 +1,11 @@
 import { Baby, GitBranch, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { AquariumFish, AquariumSpeciesBatch, Fish, LifeStage, ReproductiveState } from '../../types';
 import { getSpeciesDisplayImage, getSpeciesImageClass } from '../../lib/speciesVisual';
+import { useWorkspaceNavigation } from '../layout/WorkspaceNavigationProvider';
 import {
   deleteSpeciesBatch,
   normalizeSpeciesBatches,
@@ -25,15 +27,15 @@ const lifeStageOptions: LifeStage[] = ['unknown', 'juvenile', 'adult'];
 
 const reproductiveOptions: ReproductiveState[] = ['unknown', 'normal', 'pregnant_or_gravid', 'in_labor_or_spawning', 'postpartum_recovery'];
 
-const summarize = (record: AquariumFish, isEn: boolean) => {
+const summarize = (record: AquariumFish, t: TFunction) => {
   const summary = summarizeSpeciesBatches(record);
-  const parts = [isEn ? `${summary.total} total` : `共 ${summary.total} 条/只`];
-  if (summary.juvenile) parts.push(isEn ? `${summary.juvenile} juvenile` : `幼年 ${summary.juvenile}`);
-  if (summary.adult) parts.push(isEn ? `${summary.adult} adult` : `成年 ${summary.adult}`);
-  if (summary.pregnant) parts.push(isEn ? `${summary.pregnant} pregnant` : `怀孕 ${summary.pregnant}`);
-  if (summary.spawning) parts.push(isEn ? `${summary.spawning} spawning` : `生产 ${summary.spawning}`);
-  if (summary.recovery) parts.push(isEn ? `${summary.recovery} recovering` : `产后 ${summary.recovery}`);
-  if (summary.unknown === summary.total) parts.push(isEn ? 'stage not recorded' : '体态待记录');
+  const parts = [t('livestock.summaryTotal', { count: summary.total })];
+  if (summary.juvenile) parts.push(t('livestock.summaryJuvenile', { count: summary.juvenile }));
+  if (summary.adult) parts.push(t('livestock.summaryAdult', { count: summary.adult }));
+  if (summary.pregnant) parts.push(t('livestock.summaryPregnant', { count: summary.pregnant }));
+  if (summary.spawning) parts.push(t('livestock.summarySpawning', { count: summary.spawning }));
+  if (summary.recovery) parts.push(t('livestock.summaryRecovery', { count: summary.recovery }));
+  if (summary.unknown === summary.total) parts.push(t('livestock.summaryUnknown'));
   return parts.join(' · ');
 };
 
@@ -50,7 +52,12 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
+  const pendingHistoryDeltaRef = useRef<number | null>(null);
+  const restoringHistoryRef = useRef(false);
+  const allowHistoryNavigationRef = useRef(false);
   const [error, setError] = useState('');
+  const { navigateToRoute, registerNavigationGuard } = useWorkspaceNavigation();
 
   useEffect(() => setDraft(record), [record]);
   const batches = useMemo(() => normalizeSpeciesBatches(draft), [draft]);
@@ -72,7 +79,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       });
       setOpen(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : (isEn ? 'Changes were not saved.' : '体态没有保存成功。'));
+      setError(saveError instanceof Error ? saveError.message : t('livestock.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -89,7 +96,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       setSplitSource(null);
       setError('');
     } catch (splitError) {
-      setError(splitError instanceof Error ? splitError.message : (isEn ? 'This group could not be split.' : '这一组没有拆分成功。'));
+      setError(splitError instanceof Error ? splitError.message : t('livestock.splitFailed'));
     }
   };
 
@@ -116,7 +123,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       setPendingDelete(null);
       setOpen(false);
     } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : (isEn ? 'Species was not removed.' : '物种没有移出鱼缸。'));
+        setError(saveError instanceof Error ? saveError.message : t('livestock.removeFailed'));
     } finally {
       setIsDeleting(false);
     }
@@ -131,18 +138,78 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
     setOpen(false);
   };
 
+  useEffect(() => {
+    if (!open || !hasUnsavedChanges) return;
+    return registerNavigationGuard(path => {
+      setPendingNavigationPath(path);
+      setIsDiscardConfirmOpen(true);
+      return false;
+    });
+  }, [hasUnsavedChanges, open, registerNavigationGuard]);
+
+  useEffect(() => {
+    if (!open || !hasUnsavedChanges) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges, open]);
+
+  useEffect(() => {
+    if (!open || !hasUnsavedChanges) return;
+    const originIndex = Number(window.history.state?.idx);
+    const handlePopState = (event: PopStateEvent) => {
+      if (allowHistoryNavigationRef.current) {
+        allowHistoryNavigationRef.current = false;
+        return;
+      }
+      if (restoringHistoryRef.current) {
+        restoringHistoryRef.current = false;
+        return;
+      }
+      const targetIndex = Number(event.state?.idx);
+      if (!Number.isFinite(originIndex) || !Number.isFinite(targetIndex) || originIndex === targetIndex) return;
+      const delta = targetIndex - originIndex;
+      pendingHistoryDeltaRef.current = delta;
+      setPendingNavigationPath('__history__');
+      setIsDiscardConfirmOpen(true);
+      restoringHistoryRef.current = true;
+      window.history.go(-delta);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [hasUnsavedChanges, open]);
+
+  const discardAndContinue = () => {
+    const target = pendingNavigationPath;
+    const historyDelta = pendingHistoryDeltaRef.current;
+    setIsDiscardConfirmOpen(false);
+    setPendingNavigationPath(null);
+    pendingHistoryDeltaRef.current = null;
+    setDraft(record);
+    setOpen(false);
+    if (target === '__history__' && historyDelta) {
+      allowHistoryNavigationRef.current = true;
+      window.history.go(historyDelta);
+      return;
+    }
+    if (target) navigateToRoute(target);
+  };
+
   return (
     <>
       <article className="col-span-1 min-w-0 rounded-[18px] border border-emerald-100 bg-white p-3 shadow-sm lg:col-span-2">
         <div className="flex min-w-0 items-center gap-3">
-          <button type="button" onClick={onOpenDetail} className="flex h-20 w-24 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label={isEn ? `Open ${fish.name} profile` : `打开${fish.name}资料`}>
+          <button type="button" onClick={onOpenDetail} className="flex h-20 w-24 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label={t('livestock.openProfile', { name: fish.name })}>
             <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[88%] w-[88%] object-contain ${getSpeciesImageClass(fish)}`} />
           </button>
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-black text-ink">{fish.name}</h3>
-            <p className="mt-1 text-[11px] font-bold leading-5 text-ink/48">{summarize(record, isEn)}</p>
-            {observation && <p className="mt-1 line-clamp-2 text-[10px] font-semibold leading-4 text-amber-700">{isEn ? 'Observe: ' : '观察：'}{observation}</p>}
-            <button type="button" onClick={() => { setDraft(record); setOpen(true); }} className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-50 px-3 text-xs font-black text-emerald-800 hover:bg-emerald-100"><Pencil className="h-3.5 w-3.5" />{isEn ? 'Manage groups' : '调整体态'}</button>
+            <p className="mt-1 text-[11px] font-bold leading-5 text-ink/48">{summarize(record, t)}</p>
+            {observation && <p className="mt-1 line-clamp-2 text-[10px] font-semibold leading-4 text-amber-700">{t('livestock.observePrefix')}{observation}</p>}
+            <button type="button" onClick={() => { setDraft(record); setOpen(true); }} className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-50 px-3 text-xs font-black text-emerald-800 hover:bg-emerald-100"><Pencil className="h-3.5 w-3.5" />{t('livestock.manageGroups')}</button>
           </div>
         </div>
       </article>
@@ -193,23 +260,23 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
           </div>
           <DialogFooter className="border-t border-border bg-white px-5 py-4">
             <button type="button" onClick={requestClose} disabled={isSaving} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black text-ink/60 disabled:opacity-50">{t('livestock.cancel')}</button>
-            <button type="button" onClick={() => void save()} disabled={isSaving} className="min-h-11 rounded-2xl bg-emerald-700 px-5 text-sm font-black text-white disabled:opacity-60">{isSaving ? (isEn ? 'Saving…' : '保存中…') : (isEn ? 'Save changes' : '保存修改')}</button>
+            <button type="button" onClick={() => void save()} disabled={isSaving} className="min-h-11 rounded-2xl bg-emerald-700 px-5 text-sm font-black text-white disabled:opacity-60">{isSaving ? t('livestock.saving') : t('livestock.saveChanges')}</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={Boolean(pendingDelete)} onOpenChange={next => { if (!next && !isDeleting) setPendingDelete(null); }}>
         <DialogContent className="max-w-md rounded-[26px]">
-          <DialogHeader><DialogTitle>{isEn ? 'Delete this group?' : '删除这一组？'}</DialogTitle><DialogDescription>{batches.length === 1 ? (isEn ? `This is the last group. ${fish.name} will be removed from the tank.` : `这是最后一组，确认后会将${fish.name}移出鱼缸。`) : (isEn ? `This removes ${pendingDelete?.quantity ?? 0} from this tank record.` : `将删除这 ${pendingDelete?.quantity ?? 0} 条/只的批次记录。`)}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{t('livestock.deleteTitle')}</DialogTitle><DialogDescription>{batches.length === 1 ? t('livestock.deleteLastDescription', { name: fish.name }) : t('livestock.deleteDescription', { count: pendingDelete?.quantity ?? 0 })}</DialogDescription></DialogHeader>
           {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{error}</p>}
-          <DialogFooter><button type="button" onClick={() => setPendingDelete(null)} disabled={isDeleting} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black disabled:opacity-50">{isEn ? 'Keep' : '保留'}</button><button type="button" onClick={() => void confirmDelete()} disabled={isDeleting} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white disabled:opacity-60">{isDeleting ? (isEn ? 'Removing…' : '移除中…') : (isEn ? 'Delete group' : '删除这一组')}</button></DialogFooter>
+          <DialogFooter><button type="button" onClick={() => setPendingDelete(null)} disabled={isDeleting} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black disabled:opacity-50">{t('livestock.keep')}</button><button type="button" onClick={() => void confirmDelete()} disabled={isDeleting} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white disabled:opacity-60">{isDeleting ? t('livestock.removing') : t('livestock.deleteGroup')}</button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDiscardConfirmOpen} onOpenChange={setIsDiscardConfirmOpen}>
+      <Dialog open={isDiscardConfirmOpen} onOpenChange={next => { setIsDiscardConfirmOpen(next); if (!next) setPendingNavigationPath(null); }}>
         <DialogContent className="max-w-md rounded-[26px]">
           <DialogHeader><DialogTitle>{t('livestock.discardTitle')}</DialogTitle><DialogDescription>{t('livestock.discardDescription')}</DialogDescription></DialogHeader>
-          <DialogFooter><button type="button" onClick={() => setIsDiscardConfirmOpen(false)} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black">{t('livestock.continueEditing')}</button><button type="button" onClick={() => { setIsDiscardConfirmOpen(false); setDraft(record); setOpen(false); }} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white">{t('livestock.discard')}</button></DialogFooter>
+          <DialogFooter><button type="button" onClick={() => setIsDiscardConfirmOpen(false)} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black">{t('livestock.continueEditing')}</button><button type="button" onClick={discardAndContinue} className="min-h-11 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white">{t('livestock.discard')}</button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>

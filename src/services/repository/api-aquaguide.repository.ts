@@ -1,6 +1,7 @@
 import type { DiagnosisRecord } from '../../modules/diagnosis/diagnosis.types';
 import type { Aquarium, AquariumFish, AquariumSpeciesBatch, DeceasedRecord } from '../../types';
 import type { CareReminderRecord } from '../care/care-activity.service';
+import { decrementSpeciesBatch } from '../aquarium/species-batches.service';
 import { apiRequest, createIdempotencyKey } from '../api/api-client';
 import type {
   AquaGuideRepository,
@@ -133,7 +134,7 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
     if (added.length === 1 && removed.length === 0 && reduced.length === 1) {
       const splitQuantity = reduced[0].current!.quantity - reduced[0].desired.quantity;
       if (splitQuantity === added[0].quantity) {
-        await apiRequest(`/aquariums/${aquariumId}/species/${current.id}/batches/${reduced[0].current!.id}/split`, {
+        const splitResult = await apiRequest<ApiAquariumSpeciesBatch[]>(`/aquariums/${aquariumId}/species/${current.id}/batches/${reduced[0].current!.id}/split`, {
           method: 'POST',
           body: {
             quantity: added[0].quantity,
@@ -144,7 +145,10 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
           },
           idempotencyKey: createIdempotencyKey('aquarium-species-batch-split'),
         });
-        return;
+        const created = splitResult.find(batch => !currentById.has(batch.id));
+        if (!created) throw new Error('批次已拆分，但没有返回新批次。');
+        const remappedDesired = desired.map(batch => batch.id === added[0].id ? { ...batch, id: created.id } : batch);
+        return this.syncSpeciesBatches(aquariumId, { ...current, batches: splitResult }, remappedDesired);
       }
     }
     const retained = new Set<string>();
@@ -384,12 +388,19 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
       {
         method: 'POST',
         body: { speciesCatalogKey: input.speciesCatalogKey, memorialDate: input.date, reason: input.reason, batchVersion: batch.version },
-        idempotencyKey: createIdempotencyKey('livestock-memorial'),
+        idempotencyKey: `livestock-memorial:${input.operationId}`,
       },
     );
-    const refreshed = (await this.getAquariums()).find(item => item.id === input.aquariumId);
-    if (!refreshed) throw new Error('生命纪念已保存，但暂时无法读取最新鱼缸。');
-    return { record: { id: raw.id, fishId: raw.speciesCatalogKey, date: raw.memorialDate, reason: raw.reason }, aquarium: refreshed };
+    const aquarium = toLegacyAquarium(current);
+    const fish = aquarium.fishes.find(item => item.id === input.aquariumFishId)!;
+    const nextFish = decrementSpeciesBatch(fish, input.batchId);
+    const updatedAquarium = {
+      ...aquarium,
+      fishes: nextFish
+        ? aquarium.fishes.map(item => item.id === fish.id ? nextFish : item)
+        : aquarium.fishes.filter(item => item.id !== fish.id),
+    };
+    return { record: { id: raw.id, fishId: raw.speciesCatalogKey, date: raw.memorialDate, reason: raw.reason }, aquarium: updatedAquarium };
   }
 
   private rememberReminder(record: ApiReminder): CareReminderRecord {

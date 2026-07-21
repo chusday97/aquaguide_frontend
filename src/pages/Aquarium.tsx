@@ -992,6 +992,7 @@ export default function AquariumManager() {
           ? await getAquaGuideRepository('cloud').getAquariums()
           : loadAppStateFromStorage().aquariums;
         if (!active || repositoryAquariums.length === 0) return;
+        if (resolvedMode === 'cloud') patchLocalAppState({ cloudMigrationConfirmed: true });
         const normalized = normalizeAquariumPlants(repositoryAquariums);
         setAquariums(normalized);
         setActiveId(current => normalized.some(item => item.id === current) ? current : normalized[0].id);
@@ -7228,10 +7229,11 @@ export default function AquariumManager() {
             batchId,
             aquariumId: activeAquarium.id,
             aquariumFishId: selectedAqFish.aqFish.id,
+            operationId: input.operationId,
           })).then(result => {
             setAquariums(current => current.map(item => item.id === result.aquarium.id ? result.aquarium : item));
             setDeceasedRecords(current => [...current, result.record]);
-            if ((selectedAqFish.aqFish.quantity || 1) <= 1) {
+            if (!result.aquarium.fishes.some(item => item.id === selectedAqFish.aqFish.id)) {
               closeAquariumSpeciesDetail();
             }
           });

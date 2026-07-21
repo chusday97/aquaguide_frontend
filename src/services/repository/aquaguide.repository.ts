@@ -17,6 +17,7 @@ export type LivestockMemorialSaveInput = MemorialSaveInput & {
   aquariumId: string;
   aquariumFishId: string;
   batchId: string;
+  operationId: string;
 };
 
 export type CareReminderMutation =

@@ -20,11 +20,15 @@ Object.defineProperty(globalThis, 'window', { value: fakeWindow, configurable: t
 Object.defineProperty(globalThis, 'localStorage', { value: localStorage, configurable: true });
 
 const { LocalAquaGuideRepository } = await import('../src/services/repository/local-aquaguide.repository');
+const { selectRepositoryMode } = await import('../src/services/repository/repository-mode');
 const repository = new LocalAquaGuideRepository();
 
 const aquarium = await repository.saveAquarium({ id: 'local-tank', name: '本地测试缸', fishes: [], waterType: 'Freshwater' });
 assert.equal(aquarium.id, 'local-tank');
 assert.equal((await repository.getAquariums()).length, 1);
+const stateWithLocalTank = JSON.parse(localStorage.getItem('aquarium_app_state_v1') || '{}');
+assert.equal(selectRepositoryMode(true, stateWithLocalTank), 'local', 'login must not bypass local migration confirmation');
+assert.equal(selectRepositoryMode(true, { ...stateWithLocalTank, cloudMigrationConfirmed: true }), 'cloud');
 
 await repository.updateFavorite({ type: 'species', catalogKey: 'sp_0001', favorite: true });
 assert.deepEqual(JSON.parse(localStorage.getItem('wishlistFishIds') || '[]'), ['sp_0001']);
@@ -56,7 +60,7 @@ const stocked = await repository.saveAquarium({
     batches: [{ id: 'local-batch-1', quantity: 2, entryDate: '2026-07-16T00:00:00.000Z', lifeStage: 'adult', reproductiveState: 'normal', stateUpdatedAt: '2026-07-16T00:00:00.000Z' }],
   }],
 });
-const memorialUpdate = await repository.saveLivestockMemorial({ aquariumId: stocked.id, aquariumFishId: 'local-stock-1', batchId: 'local-batch-1', speciesCatalogKey: 'sp_0001', date: '2026-07-17', reason: '批次复盘' });
+const memorialUpdate = await repository.saveLivestockMemorial({ aquariumId: stocked.id, aquariumFishId: 'local-stock-1', batchId: 'local-batch-1', speciesCatalogKey: 'sp_0001', date: '2026-07-17', reason: '批次复盘', operationId: 'local-op-1' });
 assert.equal(memorialUpdate.aquarium.fishes[0].quantity, 1, 'memorial and batch decrement must commit together');
 
 const reminder = await repository.updateCareReminder({
@@ -95,10 +99,13 @@ assert.match(aquariumApiSource, /rpc\('split_aquarium_species_batch'/);
 assert.doesNotMatch(aquariumApiSource, /原数量已尝试恢复/);
 assert.match(atomicSplitMigration, /for update/);
 assert.match(atomicSplitMigration, /new_batch_id/);
+assert.match(atomicSplitMigration, /aquarium_species_id = expected_species_record_id/);
 assert.match(atomicSplitMigration, /BATCH_VERSION_CONFLICT/);
 assert.match(aquariumApiSource, /rpc\('record_livestock_memorial'/);
 assert.match(atomicMemorialMigration, /for update/);
 assert.match(atomicMemorialMigration, /insert into public\.memorial_records/);
+assert.match(atomicMemorialMigration, /species_record\.species_catalog_key/);
+assert.doesNotMatch(atomicMemorialMigration, /target_species_catalog_key/);
 assert.match(aquariumPageSource, /getCurrentAquaGuideRepository/);
 assert.match(aquariumPageSource, /subscribeToRepositoryMode/);
 
