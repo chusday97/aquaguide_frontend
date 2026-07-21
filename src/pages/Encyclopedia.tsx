@@ -529,7 +529,7 @@ export default function Encyclopedia() {
   useEffect(() => {
     const mode = new URLSearchParams(location.search).get('mode');
     if (mode !== 'compatibility' && mode !== 'browse') return;
-    const target = mode === 'compatibility' ? 'calculator-sticky-target' : 'atlas-toolbar';
+    const target = mode === 'compatibility' ? 'compatibility-calculator' : 'atlas-toolbar';
     window.requestAnimationFrame(() => void navigateToSection(target, { updateHash: false }));
   }, [location.search, navigateToSection, viewMode]);
 
@@ -2029,6 +2029,7 @@ export default function Encyclopedia() {
       )}
       </div>
       ) : (
+        <div id="compatibility-calculator" className="scroll-mt-6">
         <CompatibilityRiskCalculator
           speciesIds={calculatorSpeciesIds}
           onSpeciesIdsChange={setCalculatorSpeciesIds}
@@ -2050,6 +2051,7 @@ export default function Encyclopedia() {
             void navigateToSection('atlas-toolbar', { updateHash: false });
           }}
         />
+        </div>
       )}
         </div>
       </div>

@@ -68,6 +68,11 @@ try {
   await desktop.keyboard.press('Escape');
   await desktop.waitForURL('**/search?q=*');
   assert.equal(new URL(desktop.url()).searchParams.get('q'), '极火虾');
+  assert.equal(await desktop.evaluate(() => document.activeElement?.id), 'search-species-sp_0001', 'closing a search result must restore source-card focus');
+  const pageSearch = desktop.getByPlaceholder('输入中文名、英文名、学名或养护问题');
+  await pageSearch.fill('Fire Shrimp');
+  await pageSearch.press('Enter');
+  await desktop.locator('#search-species-sp_0001').waitFor();
   await desktop.getByRole('button', { name: '拍照识别' }).first().click();
   await desktop.waitForURL('**/identify');
   await desktop.goBack();
@@ -127,6 +132,10 @@ try {
   await narrowEnglish.getByRole('button', { name: 'Manage groups' }).click();
   assert.ok(await narrowEnglish.getByRole('heading', { name: /^Manage / }).isVisible());
   assert.ok(await narrowEnglish.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '600px English desktop must not overflow');
+  await narrowEnglish.goto(`${baseUrl}/search?q=${encodeURIComponent('极火虾')}`, { waitUntil: 'networkidle' });
+  await narrowEnglish.locator('#search-species-sp_0001').waitFor();
+  await narrowEnglish.goto(`${baseUrl}/encyclopedia?mode=compatibility`, { waitUntil: 'networkidle' });
+  await narrowEnglish.waitForFunction(() => document.activeElement?.id === 'compatibility-calculator');
 
   console.log('guided navigation UI verified: onboarding, direct routes, livestock groups, mobile and narrow English desktop');
 } finally {
