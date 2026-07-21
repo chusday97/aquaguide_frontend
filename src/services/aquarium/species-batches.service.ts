@@ -53,7 +53,14 @@ export const updateSpeciesBatch = (
 ) => withNormalizedSpeciesBatches({
   ...record,
   batches: normalizeSpeciesBatches(record).map(batch => batch.id === batchId
-    ? createSpeciesBatch({ ...batch, ...patch, id: batch.id, stateUpdatedAt: new Date().toISOString() })
+    ? createSpeciesBatch({
+        ...batch,
+        ...patch,
+        id: batch.id,
+        stateUpdatedAt: patch.lifeStage !== undefined || patch.reproductiveState !== undefined
+          ? new Date().toISOString()
+          : batch.stateUpdatedAt,
+      })
     : batch),
 });
 
