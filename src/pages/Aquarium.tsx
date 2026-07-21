@@ -4511,14 +4511,14 @@ export default function AquariumManager() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[14px] font-black text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-              缸内物种
+              {t('aquarium.tankContentsTitle')}
             </div>
             <div className="mt-0.5 text-[10px] font-bold text-ink/45">
               {hasStockedAnimals
-                ? `${stockedSpeciesCount} 种 · 共 ${totalStockedQuantity} 只/条`
+                ? t('aquarium.tankContentsCount', { species: stockedSpeciesCount, quantity: totalStockedQuantity })
                 : hasEnvironmentContent
-                  ? '暂无鱼虾螺，已配置环境内容'
-                  : '当前还没有配置鱼缸内容'}
+                  ? t('aquarium.tankContentsEnvironmentOnly')
+                  : t('aquarium.tankContentsEmpty')}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -4532,7 +4532,7 @@ export default function AquariumManager() {
               </div>
             )}
             <span className="rounded-full bg-white/80 px-2.5 py-1 text-[12px] font-black tabular-nums text-ink shadow-sm">
-              已配置 {activeConfiguredSettingCount} 项
+              {t('aquarium.tankContentsConfigured', { count: activeConfiguredSettingCount })}
             </span>
             <ChevronRight className={`h-4 w-4 text-ink/45 transition-transform ${isTankArchiveExpanded ? 'rotate-90' : ''}`} />
           </div>
@@ -4544,7 +4544,7 @@ export default function AquariumManager() {
           <div className="hidden items-center justify-between gap-3">
             <button
               type="button"
-              aria-label="回到鱼缸画面"
+              aria-label={isEn ? 'Back to aquarium view' : '回到鱼缸画面'}
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white/85 text-ink/55 shadow-sm transition-colors hover:text-ink"
             >
@@ -4553,14 +4553,14 @@ export default function AquariumManager() {
             <div className="min-w-0 text-center">
               <div className="flex items-center justify-center gap-1.5 text-[20px] font-black leading-none text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-                缸内物种
+                {t('aquarium.tankContentsTitle')}
               </div>
               <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
             </div>
             <div className="shrink-0 text-right">
               <div className="text-[11px] font-bold text-ink/45">{isEn ? 'Configurations' : '配置项'}</div>
               <div className="mt-1 rounded-full bg-white/80 px-2.5 py-1 text-[13px] font-black tabular-nums text-ink shadow-sm">
-                {activeConfiguredSettingCount} 项
+                {t('aquarium.tankContentsConfigured', { count: activeConfiguredSettingCount })}
               </div>
             </div>
           </div>
@@ -4573,13 +4573,13 @@ export default function AquariumManager() {
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-sky-600">
                 <Plus className="h-6 w-6" />
               </div>
-              <div className="text-sm font-black text-ink">{isEn ? 'No tank contents configured yet' : '当前还没有配置鱼缸内容'}</div>
+              <div className="text-sm font-black text-ink">{t('aquarium.tankContentsEmpty')}</div>
               <p className="mx-auto mt-1 max-w-[260px] text-[11px] font-medium leading-relaxed text-ink/50">
-                可以先完善配置、添加生物，或套用搭建方案快速起步。
+                {t('aquarium.tankContentsEmptyHint')}
               </p>
               <div className="mt-4 flex justify-center">
                 <Button type="button" variant="outline" onClick={() => setIsAddFishOpen(true)} className="h-9 rounded-full text-xs font-black">
-                  添加生物
+                  {t('aquarium.addLivestock')}
                 </Button>
               </div>
             </div>
@@ -4587,9 +4587,9 @@ export default function AquariumManager() {
             <div className="relative grid grid-cols-1 gap-3 rounded-[16px] bg-[#FBFAF6] px-1 py-2 sm:grid-cols-2 lg:grid-cols-5">
               {!hasStockedAnimals && hasEnvironmentContent && tankArchiveCategory === '全部' && (
                 <div className="col-span-full rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
-                  <div className="text-[12px] font-black text-sky-800">{isEn ? 'No livestock yet, environment configured' : '暂无鱼虾螺，已配置环境内容'}</div>
+                  <div className="text-[12px] font-black text-sky-800">{t('aquarium.tankContentsEnvironmentOnly')}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/55">
-                    你已配置水草、底砂、造景或设备，可以继续添加适合的生物。
+                    {t('aquarium.tankContentsEnvironmentHint')}
                   </p>
                 </div>
               )}
