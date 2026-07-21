@@ -117,6 +117,7 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
   private speciesVersions = new Map<string, number>();
   private reminderVersions = new Map<string, number>();
   private contentIds = new Map<string, string>();
+  private livestockMemorialAttempts = new Map<string, { aquarium: ApiAquarium; batchVersion: number }>();
 
   private rememberAquarium(record: ApiAquarium) {
     this.aquariumVersions.set(record.id, record.version);
@@ -401,17 +402,25 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
   }
 
   async saveLivestockMemorial(input: LivestockMemorialSaveInput) {
-    const current = await apiRequest<ApiAquarium>(`/aquariums/${input.aquariumId}`);
-    const batch = current.species.find(item => item.id === input.aquariumFishId)?.batches.find(item => item.id === input.batchId);
-    if (!batch) throw new Error('没有找到需要更新的缸内物种批次。');
+    let attempt = this.livestockMemorialAttempts.get(input.operationId);
+    if (!attempt) {
+      const aquarium = await apiRequest<ApiAquarium>(`/aquariums/${input.aquariumId}`);
+      const species = aquarium.species.find(item => item.id === input.aquariumFishId && item.speciesCatalogKey === input.speciesCatalogKey);
+      const batch = species?.batches.find(item => item.id === input.batchId);
+      if (!batch) throw new Error('没有找到需要更新的缸内物种批次。');
+      attempt = { aquarium, batchVersion: batch.version };
+      this.livestockMemorialAttempts.set(input.operationId, attempt);
+    }
     const raw = await apiRequest<{ id: string; speciesCatalogKey: string; memorialDate: string; reason?: string }>(
       `/aquariums/${input.aquariumId}/species/${input.aquariumFishId}/batches/${input.batchId}/memorial`,
       {
         method: 'POST',
-        body: { speciesCatalogKey: input.speciesCatalogKey, memorialDate: input.date, reason: input.reason, batchVersion: batch.version },
+        body: { speciesCatalogKey: input.speciesCatalogKey, memorialDate: input.date, reason: input.reason, batchVersion: attempt.batchVersion },
         idempotencyKey: `livestock-memorial:${input.operationId}`,
       },
     );
+    this.livestockMemorialAttempts.delete(input.operationId);
+    const current = attempt.aquarium;
     const aquarium = toLegacyAquarium(current);
     const fish = aquarium.fishes.find(item => item.id === input.aquariumFishId)!;
     const nextFish = decrementSpeciesBatch(fish, input.batchId);

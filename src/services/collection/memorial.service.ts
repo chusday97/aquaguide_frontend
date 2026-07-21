@@ -54,6 +54,7 @@ export const recordSpeciesMemorialAndDecrementBatch = (input: MemorialRecordInpu
   const aquarium = current.aquariums.find(item => item.id === input.aquariumId);
   const aquariumFish = aquarium?.fishes.find(item => item.id === input.aquariumFishId);
   if (!aquarium || !aquariumFish) throw new Error('没有找到需要更新的缸内物种。');
+  if (aquariumFish.fishId !== input.fishId) throw new Error('所选物种与缸内记录不一致。');
   if (!normalizeSpeciesBatches(aquariumFish).some(batch => batch.id === input.batchId)) throw new Error('请选择记录减少数量的批次。');
 
   const nextFish = decrementSpeciesBatch(aquariumFish, input.batchId);

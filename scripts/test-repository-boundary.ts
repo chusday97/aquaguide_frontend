@@ -65,6 +65,10 @@ const stocked = await repository.saveAquarium({
 });
 const memorialUpdate = await repository.saveLivestockMemorial({ aquariumId: stocked.id, aquariumFishId: 'local-stock-1', batchId: 'local-batch-1', speciesCatalogKey: 'sp_0001', date: '2026-07-17', reason: '批次复盘', operationId: 'local-op-1' });
 assert.equal(memorialUpdate.aquarium.fishes[0].quantity, 1, 'memorial and batch decrement must commit together');
+await assert.rejects(
+  repository.saveLivestockMemorial({ aquariumId: stocked.id, aquariumFishId: 'local-stock-1', batchId: 'local-batch-1', speciesCatalogKey: 'sp_wrong', date: '2026-07-17', reason: '错误物种', operationId: 'local-op-wrong' }),
+  /物种与缸内记录不一致/,
+);
 
 const reminder = await repository.updateCareReminder({
   action: 'upsert',
@@ -97,6 +101,8 @@ assert.match(apiRepositorySource, /apiRequest/);
 assert.match(apiClientSource, /Bearer/);
 assert.match(apiClientSource, /Idempotency-Key/);
 assert.match(apiRepositorySource, /syncSpeciesBatches/);
+assert.match(apiRepositorySource, /livestockMemorialAttempts/);
+assert.match(apiRepositorySource, /this\.livestockMemorialAttempts\.get\(input\.operationId\)/);
 assert.match(apiRepositorySource, /aquarium-species-batch-update/);
 assert.match(apiRepositorySource, /aquarium-species-batch-split/);
 assert.match(aquariumApiSource, /rpc\('split_aquarium_species_batch'/);
