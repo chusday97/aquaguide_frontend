@@ -70,6 +70,12 @@ await assert.rejects(
   /物种与缸内记录不一致/,
 );
 
+const { patchLocalAppState } = await import('../src/services/storage/local-app-state');
+patchLocalAppState({ currentAquariumId: stocked.id }, { debounce: true });
+await repository.saveAquarium({ ...memorialUpdate.aquarium, name: '立即保存优先' });
+await new Promise(resolve => setTimeout(resolve, 750));
+assert.equal((await repository.getAquariums())[0].name, '立即保存优先', 'a queued stale snapshot must not overwrite a later immediate save');
+
 const reminder = await repository.updateCareReminder({
   action: 'upsert',
   record: {

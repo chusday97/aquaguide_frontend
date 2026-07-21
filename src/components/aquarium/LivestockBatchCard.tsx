@@ -57,13 +57,16 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   const pendingHistoryDeltaRef = useRef<number | null>(null);
   const restoringHistoryRef = useRef(false);
   const allowHistoryNavigationRef = useRef(false);
-  const allowRouteNavigationRef = useRef(false);
+  const navigationGuardCleanupRef = useRef<(() => void) | null>(null);
   const [error, setError] = useState('');
   const { navigateToRoute, registerNavigationGuard } = useWorkspaceNavigation();
 
   useEffect(() => setDraft(record), [record]);
   const batches = useMemo(() => normalizeSpeciesBatches(draft), [draft]);
   const observation = getSpeciesBatchObservation(record, isEn);
+  const messageFor = (caught: unknown, fallbackKey: string) => (
+    isEn ? t(fallbackKey) : (caught instanceof Error ? caught.message : t(fallbackKey))
+  );
 
   const update = (batchId: string, patch: Partial<Pick<AquariumSpeciesBatch, 'quantity' | 'entryDate' | 'lifeStage' | 'reproductiveState'>>) => {
     setDraft(current => updateSpeciesBatch(current, batchId, patch));
@@ -81,7 +84,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       });
       setOpen(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t('livestock.saveFailed'));
+      setError(messageFor(saveError, 'livestock.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -98,7 +101,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       setSplitSource(null);
       setError('');
     } catch (splitError) {
-      setError(splitError instanceof Error ? splitError.message : t('livestock.splitFailed'));
+      setError(messageFor(splitError, 'livestock.splitFailed'));
     }
   };
 
@@ -113,7 +116,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
         setDraft(next);
         setPendingDelete(null);
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : t('livestock.deleteFailed'));
+        setError(messageFor(saveError, 'livestock.deleteFailed'));
       } finally {
         setIsDeleting(false);
       }
@@ -125,7 +128,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       setPendingDelete(null);
       setOpen(false);
     } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : t('livestock.removeFailed'));
+      setError(messageFor(saveError, 'livestock.removeFailed'));
     } finally {
       setIsDeleting(false);
     }
@@ -143,15 +146,16 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
 
   useEffect(() => {
     if (!open || !hasUnsavedChanges) return;
-    return registerNavigationGuard(path => {
-      if (allowRouteNavigationRef.current) {
-        allowRouteNavigationRef.current = false;
-        return true;
-      }
+    const unregister = registerNavigationGuard(path => {
       setPendingNavigationPath(path);
       setIsDiscardConfirmOpen(true);
       return false;
     });
+    navigationGuardCleanupRef.current = unregister;
+    return () => {
+      unregister();
+      if (navigationGuardCleanupRef.current === unregister) navigationGuardCleanupRef.current = null;
+    };
   }, [hasUnsavedChanges, open, registerNavigationGuard]);
 
   useEffect(() => {
@@ -192,6 +196,8 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
   const discardAndContinue = () => {
     const target = pendingNavigationPath;
     const historyDelta = pendingHistoryDeltaRef.current;
+    navigationGuardCleanupRef.current?.();
+    navigationGuardCleanupRef.current = null;
     setIsDiscardConfirmOpen(false);
     setPendingNavigationPath(null);
     pendingHistoryDeltaRef.current = null;
@@ -203,7 +209,6 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
       return;
     }
     if (target) {
-      allowRouteNavigationRef.current = true;
       navigateToRoute(target);
     }
   };
@@ -254,7 +259,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="text-xs font-black text-ink/55">{t('livestock.quantity')}<input type="number" min={1} value={batch.quantity} onChange={event => update(batch.id, { quantity: Math.max(1, Number(event.target.value) || 1) })} className="mt-1 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink" /></label>
-                    <label className="text-xs font-black text-ink/55">{t('livestock.entryDate')}<input type="date" value={batch.entryDate.slice(0, 10)} onChange={event => update(batch.id, { entryDate: new Date(`${event.target.value}T00:00:00`).toISOString() })} className="mt-1 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink" /></label>
+                    <label className="text-xs font-black text-ink/55">{t('livestock.entryDate')}<input type="date" required value={batch.entryDate.slice(0, 10)} onChange={event => { if (event.target.value) update(batch.id, { entryDate: new Date(`${event.target.value}T00:00:00`).toISOString() }); }} className="mt-1 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink" /></label>
                     <label className="text-xs font-black text-ink/55">{t('livestock.lifeStageLabel')}<select value={batch.lifeStage} onChange={event => update(batch.id, { lifeStage: event.target.value as LifeStage })} className="mt-1 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink">{lifeStageOptions.map(option => <option key={option} value={option}>{t(`livestock.lifeStage.${option}`)}</option>)}</select></label>
                     {reproductiveApplicable && <label className="text-xs font-black text-ink/55">{t('livestock.reproductiveStateLabel')}<select value={batch.reproductiveState === 'not_applicable' ? 'unknown' : batch.reproductiveState} onChange={event => update(batch.id, { reproductiveState: event.target.value as ReproductiveState })} className="mt-1 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-ink">{reproductiveOptions.map(option => <option key={option} value={option}>{t(`livestock.reproductiveState.${option}`)}</option>)}</select></label>}
                   </div>

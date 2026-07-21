@@ -128,6 +128,9 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
   };
 
   if (!options.debounce) {
+    if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+    pendingTimer = null;
+    pendingState = null;
     write();
     return normalized;
   }

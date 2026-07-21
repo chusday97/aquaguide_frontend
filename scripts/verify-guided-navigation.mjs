@@ -10,7 +10,13 @@ const baseState = ({ withTank = false } = {}) => ({
   aquariums: withTank ? [{
     id: 'tank-1',
     name: '测试鱼缸',
-    fishes: [{ fishId: 'sp_0001', quantity: 4, entryDate: '2026-07-20T00:00:00.000Z' }],
+    fishes: [{
+      id: 'stock-1',
+      fishId: 'sp_0001',
+      quantity: 4,
+      entryDate: '2026-07-20T00:00:00.000Z',
+      batches: [{ id: 'batch-1', quantity: 4, entryDate: '2026-07-20T00:00:00.000Z', lifeStage: 'unknown', reproductiveState: 'unknown', stateUpdatedAt: '2026-07-20T00:00:00.000Z' }],
+    }],
     lastWaterChangeDate: '2026-07-20T00:00:00.000Z',
     dimensions: { length: '60', width: '40', height: '40' },
     waterType: 'Freshwater',
@@ -42,7 +48,7 @@ const seed = async (page, state, locale = 'zh-CN') => {
 try {
   const fresh = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: 'zh-CN', isMobile: true, hasTouch: true });
   fresh.setDefaultTimeout(8_000);
-  await fresh.goto(`${baseUrl}/aquarium`, { waitUntil: 'networkidle' });
+  await fresh.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
   await fresh.waitForURL('**/welcome');
   await fresh.getByRole('button', { name: '开始' }).first().click();
   await fresh.waitForURL('**/aquarium?action=create&source=onboarding');
@@ -56,7 +62,7 @@ try {
   await seed(desktop, baseState({ withTank: true }));
   const desktopErrors = [];
   desktop.on('pageerror', error => desktopErrors.push(error.message));
-  await desktop.goto(`${baseUrl}/aquarium`, { waitUntil: 'networkidle' });
+  await desktop.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
   const sidebarSearch = desktop.getByLabel('输入中文名、英文名、学名或养护问题').first();
   await sidebarSearch.fill('极火虾');
   await sidebarSearch.press('Enter');
@@ -68,6 +74,7 @@ try {
   await desktop.keyboard.press('Escape');
   await desktop.waitForURL('**/search?q=*');
   assert.equal(new URL(desktop.url()).searchParams.get('q'), '极火虾');
+  await desktop.waitForFunction(() => document.activeElement?.id === 'search-species-sp_0001');
   assert.equal(await desktop.evaluate(() => document.activeElement?.id), 'search-species-sp_0001', 'closing a search result must restore source-card focus');
   const pageSearch = desktop.getByPlaceholder('输入中文名、英文名、学名或养护问题');
   await pageSearch.fill('Fire Shrimp');
@@ -92,7 +99,7 @@ try {
   await seed(phone, baseState({ withTank: true }));
   const phoneErrors = [];
   phone.on('pageerror', error => phoneErrors.push(error.message));
-  await phone.goto(`${baseUrl}/aquarium`, { waitUntil: 'networkidle' });
+  await phone.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
   await phone.getByText('缸内物种', { exact: true }).last().click();
   await phone.getByRole('button', { name: '调整体态' }).click();
   await phone.getByLabel('数量').fill('3');
@@ -103,6 +110,7 @@ try {
   await phone.getByLabel('繁殖状态').last().selectOption('pregnant_or_gravid');
   await phone.getByRole('button', { name: '确认拆分' }).click();
   await phone.getByRole('button', { name: '保存修改' }).click();
+  await phone.getByRole('button', { name: '保存修改' }).waitFor({ state: 'hidden' });
   await phone.getByText(/共 3 条\/只 · 成年 3 · 怀孕 1/).waitFor();
   const stored = await phone.evaluate(() => JSON.parse(localStorage.getItem('aquarium_app_state_v1')).aquariums[0].fishes[0]);
   assert.equal(stored.quantity, 3);
@@ -111,6 +119,7 @@ try {
   await phone.getByLabel('繁殖状态').last().selectOption('normal');
   await phone.getByRole('button', { name: '合并到上一组' }).click();
   await phone.getByRole('button', { name: '保存修改' }).click();
+  await phone.getByRole('button', { name: '保存修改' }).waitFor({ state: 'hidden' });
   const mergedStored = await phone.evaluate(() => JSON.parse(localStorage.getItem('aquarium_app_state_v1')).aquariums[0].fishes[0]);
   assert.equal(mergedStored.quantity, 3);
   assert.equal(mergedStored.batches.length, 1, 'matching groups must merge in one edit session');
@@ -128,7 +137,7 @@ try {
   const narrowEnglish = await browser.newPage({ viewport: { width: 600, height: 900 }, locale: 'en-US' });
   narrowEnglish.setDefaultTimeout(8_000);
   await seed(narrowEnglish, baseState({ withTank: true }), 'en');
-  await narrowEnglish.goto(`${baseUrl}/settings`, { waitUntil: 'networkidle' });
+  await narrowEnglish.goto(`${baseUrl}/settings`, { waitUntil: 'domcontentloaded' });
   await narrowEnglish.getByRole('button', { name: 'My Aquarium' }).click();
   await narrowEnglish.waitForURL('**/aquarium');
   assert.ok(await narrowEnglish.locator('.desktop-sidebar').isVisible(), '600px desktop must keep the desktop sidebar');
@@ -146,11 +155,11 @@ try {
   await narrowEnglish.getByRole('heading', { name: 'Discard changes?' }).waitFor();
   await narrowEnglish.getByRole('button', { name: 'Discard changes' }).click();
   await narrowEnglish.getByRole('heading', { name: /^Manage / }).waitFor({ state: 'hidden' });
-  await narrowEnglish.getByRole('button', { name: 'Settings' }).last().click();
+  await narrowEnglish.getByRole('button', { name: 'Settings', exact: true }).click();
   await narrowEnglish.waitForURL('**/settings');
-  await narrowEnglish.goto(`${baseUrl}/search?q=${encodeURIComponent('极火虾')}`, { waitUntil: 'networkidle' });
+  await narrowEnglish.goto(`${baseUrl}/search?q=${encodeURIComponent('极火虾')}`, { waitUntil: 'domcontentloaded' });
   await narrowEnglish.locator('#search-species-sp_0001').waitFor();
-  await narrowEnglish.goto(`${baseUrl}/encyclopedia?mode=compatibility`, { waitUntil: 'networkidle' });
+  await narrowEnglish.goto(`${baseUrl}/encyclopedia?mode=compatibility`, { waitUntil: 'domcontentloaded' });
   await narrowEnglish.waitForFunction(() => document.activeElement?.id === 'compatibility-calculator');
 
   console.log('guided navigation UI verified: onboarding, direct routes, livestock groups, mobile and narrow English desktop');
