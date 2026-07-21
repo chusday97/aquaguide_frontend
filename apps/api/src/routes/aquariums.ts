@@ -332,32 +332,20 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/split', 
     return sendData(request, response, (data || []).map(item => camelize(item)));
   }
 
-  const { data: source, error: sourceError } = await client.from('aquarium_species_batches').select('*').eq('id', batchId).eq('aquarium_species_id', recordId).eq('version', parsed.data.sourceVersion).is('deleted_at', null).maybeSingle();
-  if (sourceError) throwDatabaseError(sourceError, '暂时无法读取待拆分批次。');
-  if (!source) await throwMissingOrVersionConflict(client, 'aquarium_species_batches', batchId);
-  if (parsed.data.quantity >= source.quantity) throw new ApiError(400, 'VALIDATION_ERROR', '拆分数量必须小于原批次数量。');
-
-  const { data: reduced, error: reduceError } = await client.from('aquarium_species_batches').update({ quantity: source.quantity - parsed.data.quantity }).eq('id', batchId).eq('version', parsed.data.sourceVersion).select('*').maybeSingle();
-  if (reduceError) throwDatabaseError(reduceError, '原批次数量没有更新成功。');
-  if (!reduced) throw new ApiError(409, 'VERSION_CONFLICT', '这个批次已更新，请刷新后再拆分。');
-
   const newId = deterministicUuid(`${userId}:${recordId}:split:${idempotency.key}`);
-  const { error: insertError } = await client.from('aquarium_species_batches').insert({
-    id: newId,
-    aquarium_species_id: recordId,
-    quantity: parsed.data.quantity,
-    entry_date: parsed.data.entryDate ?? source.entry_date,
-    life_stage: parsed.data.lifeStage,
-    reproductive_state: parsed.data.reproductiveState,
-    state_updated_at: new Date().toISOString(),
+  const { data, error } = await client.rpc('split_aquarium_species_batch', {
+    source_batch_id: batchId,
+    source_version: parsed.data.sourceVersion,
+    split_quantity: parsed.data.quantity,
+    split_entry_date: parsed.data.entryDate ?? null,
+    split_life_stage: parsed.data.lifeStage,
+    split_reproductive_state: parsed.data.reproductiveState,
+    new_batch_id: newId,
   });
-  if (insertError) {
-    await client.from('aquarium_species_batches').update({ quantity: source.quantity }).eq('id', batchId).eq('version', reduced.version);
-    throwDatabaseError(insertError, '新批次没有保存成功，原数量已尝试恢复。');
-  }
+  if (error?.message?.includes('BATCH_VERSION_CONFLICT')) throw new ApiError(409, 'VERSION_CONFLICT', '这个批次已更新，请刷新后再拆分。');
+  if (error?.message?.includes('INVALID_SPLIT_QUANTITY')) throw new ApiError(400, 'VALIDATION_ERROR', '拆分数量必须小于原批次数量。');
+  if (error) throwDatabaseError(error, '批次没有拆分成功，数量保持不变。');
   await finishIdempotentWrite(request, idempotency, 'aquarium_species_batch', newId, 201);
-  const { data, error } = await client.from('aquarium_species_batches').select('*').eq('aquarium_species_id', recordId).is('deleted_at', null).order('created_at');
-  if (error) throwDatabaseError(error, '批次已拆分，但暂时无法读取最新列表。');
   return sendData(request, response, (data || []).map(item => camelize(item)), 201);
 }));
 

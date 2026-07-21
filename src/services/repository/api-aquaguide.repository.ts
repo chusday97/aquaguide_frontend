@@ -124,6 +124,28 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
 
   private async syncSpeciesBatches(aquariumId: string, current: ApiAquariumSpecies, desired: AquariumSpeciesBatch[]) {
     const currentById = new Map((current.batches || []).map(batch => [batch.id, batch]));
+    const added = desired.filter(batch => !currentById.has(batch.id));
+    const removed = (current.batches || []).filter(batch => !desired.some(item => item.id === batch.id));
+    const reduced = desired
+      .map(batch => ({ desired: batch, current: currentById.get(batch.id) }))
+      .filter(item => item.current && item.desired.quantity < item.current.quantity);
+    if (added.length === 1 && removed.length === 0 && reduced.length === 1) {
+      const splitQuantity = reduced[0].current!.quantity - reduced[0].desired.quantity;
+      if (splitQuantity === added[0].quantity) {
+        await apiRequest(`/aquariums/${aquariumId}/species/${current.id}/batches/${reduced[0].current!.id}/split`, {
+          method: 'POST',
+          body: {
+            quantity: added[0].quantity,
+            entryDate: added[0].entryDate.slice(0, 10),
+            lifeStage: added[0].lifeStage,
+            reproductiveState: added[0].reproductiveState,
+            sourceVersion: reduced[0].current!.version,
+          },
+          idempotencyKey: createIdempotencyKey('aquarium-species-batch-split'),
+        });
+        return;
+      }
+    }
     const retained = new Set<string>();
     for (const batch of desired) {
       const existing = currentById.get(batch.id);

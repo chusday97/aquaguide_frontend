@@ -57,11 +57,19 @@ assert.equal(reminder?.sourceTopicId, 'guide_water');
 
 const apiRepositorySource = readFileSync(resolve(import.meta.dirname, '../src/services/repository/api-aquaguide.repository.ts'), 'utf8');
 const apiClientSource = readFileSync(resolve(import.meta.dirname, '../src/services/api/api-client.ts'), 'utf8');
+const aquariumApiSource = readFileSync(resolve(import.meta.dirname, '../apps/api/src/routes/aquariums.ts'), 'utf8');
+const atomicSplitMigration = readFileSync(resolve(import.meta.dirname, '../supabase/migrations/202607220002_atomic_livestock_batch_split.sql'), 'utf8');
 assert.doesNotMatch(apiRepositorySource, /supabase\.from\(/);
 assert.match(apiRepositorySource, /apiRequest/);
 assert.match(apiClientSource, /Bearer/);
 assert.match(apiClientSource, /Idempotency-Key/);
 assert.match(apiRepositorySource, /syncSpeciesBatches/);
 assert.match(apiRepositorySource, /aquarium-species-batch-update/);
+assert.match(apiRepositorySource, /aquarium-species-batch-split/);
+assert.match(aquariumApiSource, /rpc\('split_aquarium_species_batch'/);
+assert.doesNotMatch(aquariumApiSource, /原数量已尝试恢复/);
+assert.match(atomicSplitMigration, /for update/);
+assert.match(atomicSplitMigration, /new_batch_id/);
+assert.match(atomicSplitMigration, /BATCH_VERSION_CONFLICT/);
 
 console.log('repository boundary verified: local compatibility and cloud API-only access');

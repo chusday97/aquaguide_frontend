@@ -305,6 +305,7 @@ type ApiErrorCode =
 ### 7.2.1 缸内物种批次
 
 `aquarium_species` 继续作为同缸同物种的汇总记录，`aquarium_species_batches` 记录同一物种内的数量、入缸日期和体态差异。
+批次拆分必须调用数据库函数 `split_aquarium_species_batch`，在同一事务内减少来源批次数量并创建新批次；任一步失败时总数量保持不变，同一幂等键重放返回同一拆分结果。
 
 ```ts
 type LifeStage = 'unknown' | 'juvenile' | 'adult';
