@@ -1,5 +1,5 @@
 import type { DiagnosisRecord } from '../../modules/diagnosis/diagnosis.types';
-import type { Aquarium, AquariumFish, DeceasedRecord } from '../../types';
+import type { Aquarium, AquariumFish, AquariumSpeciesBatch, DeceasedRecord } from '../../types';
 import type { CareReminderRecord } from '../care/care-activity.service';
 import { apiRequest, createIdempotencyKey } from '../api/api-client';
 import type {
@@ -16,7 +16,10 @@ type ApiAquariumSpecies = {
   entryDate: string;
   lastWaterChangeAt?: string;
   version: number;
+  batches: ApiAquariumSpeciesBatch[];
 };
+
+type ApiAquariumSpeciesBatch = AquariumSpeciesBatch & { version: number };
 
 type ApiAquarium = {
   id: string;
@@ -77,6 +80,14 @@ const toLegacyAquarium = (record: ApiAquarium): Aquarium => {
       quantity: item.quantity,
       entryDate: item.entryDate,
       lastWaterChangeDate: item.lastWaterChangeAt || record.lastWaterChangeAt || item.entryDate,
+      batches: (item.batches || []).map(batch => ({
+        id: batch.id,
+        quantity: batch.quantity,
+        entryDate: batch.entryDate,
+        lifeStage: batch.lifeStage,
+        reproductiveState: batch.reproductiveState,
+        stateUpdatedAt: batch.stateUpdatedAt,
+      })),
     })),
     lastWaterChangeDate: record.lastWaterChangeAt,
     lastWaterStoredDate: record.lastWaterStoredAt,
@@ -109,6 +120,55 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
     this.aquariumVersions.set(record.id, record.version);
     for (const item of record.species || []) this.speciesVersions.set(item.id, item.version);
     return toLegacyAquarium(record);
+  }
+
+  private async syncSpeciesBatches(aquariumId: string, current: ApiAquariumSpecies, desired: AquariumSpeciesBatch[]) {
+    const currentById = new Map((current.batches || []).map(batch => [batch.id, batch]));
+    const retained = new Set<string>();
+    for (const batch of desired) {
+      const existing = currentById.get(batch.id);
+      if (existing) {
+        retained.add(existing.id);
+        if (
+          existing.quantity !== batch.quantity
+          || existing.entryDate.slice(0, 10) !== batch.entryDate.slice(0, 10)
+          || existing.lifeStage !== batch.lifeStage
+          || existing.reproductiveState !== batch.reproductiveState
+        ) {
+          await apiRequest(`/aquariums/${aquariumId}/species/${current.id}/batches/${existing.id}`, {
+            method: 'PATCH',
+            body: {
+              quantity: batch.quantity,
+              entryDate: batch.entryDate.slice(0, 10),
+              lifeStage: batch.lifeStage,
+              reproductiveState: batch.reproductiveState,
+              version: existing.version,
+            },
+            idempotencyKey: createIdempotencyKey('aquarium-species-batch-update'),
+          });
+        }
+        continue;
+      }
+      const created = await apiRequest<ApiAquariumSpeciesBatch>(`/aquariums/${aquariumId}/species/${current.id}/batches`, {
+        method: 'POST',
+        body: {
+          quantity: batch.quantity,
+          entryDate: batch.entryDate.slice(0, 10),
+          lifeStage: batch.lifeStage,
+          reproductiveState: batch.reproductiveState,
+        },
+        idempotencyKey: createIdempotencyKey('aquarium-species-batch'),
+      });
+      retained.add(created.id);
+    }
+    for (const existing of current.batches || []) {
+      if (!retained.has(existing.id)) {
+        await apiRequest(`/aquariums/${aquariumId}/species/${current.id}/batches/${existing.id}?version=${existing.version}`, {
+          method: 'DELETE',
+          idempotencyKey: createIdempotencyKey('aquarium-species-batch-delete'),
+        });
+      }
+    }
   }
 
   async getAquariums() {
@@ -146,11 +206,12 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
       const current = currentById.get(fish.id) || currentByCatalogKey.get(fish.fishId);
       if (current) {
         retained.add(current.id);
-        if (current.quantity !== fish.quantity || current.entryDate !== fish.entryDate || current.lastWaterChangeAt !== fish.lastWaterChangeDate) {
+        const usesBatches = Boolean(fish.batches?.length);
+        if ((!usesBatches && current.quantity !== fish.quantity) || current.entryDate !== fish.entryDate || current.lastWaterChangeAt !== fish.lastWaterChangeDate) {
           const updated = await apiRequest<ApiAquariumSpecies>(`/aquariums/${saved.id}/species/${current.id}`, {
             method: 'PATCH',
             body: {
-              quantity: fish.quantity,
+              ...(!usesBatches ? { quantity: fish.quantity } : {}),
               entryDate: fish.entryDate.slice(0, 10),
               lastWaterChangeAt: fish.lastWaterChangeDate,
               version: current.version,
@@ -159,19 +220,36 @@ export class ApiAquaGuideRepository implements AquaGuideRepository {
           });
           this.speciesVersions.set(updated.id, updated.version);
         }
+        if (usesBatches) await this.syncSpeciesBatches(saved.id, current, fish.batches!);
       } else {
+        const desiredBatches = fish.batches || [];
+        const initialBatch = desiredBatches[0];
         const created = await apiRequest<ApiAquariumSpecies>(`/aquariums/${saved.id}/species`, {
           method: 'POST',
           body: {
             speciesCatalogKey: fish.fishId,
-            quantity: fish.quantity,
-            entryDate: fish.entryDate.slice(0, 10),
+            quantity: initialBatch?.quantity ?? fish.quantity,
+            entryDate: (initialBatch?.entryDate ?? fish.entryDate).slice(0, 10),
             lastWaterChangeAt: fish.lastWaterChangeDate,
+            lifeStage: initialBatch?.lifeStage,
+            reproductiveState: initialBatch?.reproductiveState,
           },
           idempotencyKey: createIdempotencyKey('aquarium-species'),
         });
         retained.add(created.id);
         this.speciesVersions.set(created.id, created.version);
+        for (const batch of desiredBatches.slice(1)) {
+          await apiRequest(`/aquariums/${saved.id}/species/${created.id}/batches`, {
+            method: 'POST',
+            body: {
+              quantity: batch.quantity,
+              entryDate: batch.entryDate.slice(0, 10),
+              lifeStage: batch.lifeStage,
+              reproductiveState: batch.reproductiveState,
+            },
+            idempotencyKey: createIdempotencyKey('aquarium-species-batch'),
+          });
+        }
       }
     }
 

@@ -61,5 +61,7 @@ assert.doesNotMatch(apiRepositorySource, /supabase\.from\(/);
 assert.match(apiRepositorySource, /apiRequest/);
 assert.match(apiClientSource, /Bearer/);
 assert.match(apiClientSource, /Idempotency-Key/);
+assert.match(apiRepositorySource, /syncSpeciesBatches/);
+assert.match(apiRepositorySource, /aquarium-species-batch-update/);
 
 console.log('repository boundary verified: local compatibility and cloud API-only access');
