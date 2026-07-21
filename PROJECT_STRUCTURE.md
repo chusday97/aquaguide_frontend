@@ -20,7 +20,6 @@
 
 - `src/App.tsx`：设备级应用壳、导航与路由。
 - `src/i18n/`：i18next 初始化、浏览器语言检测和本地偏好保存。
-- `src/components/settings/`：共享设置状态与桌面/手机语言选择面板。
 - `src/components/visual-results/`：混养、物种适配、巡检与养护自查共用的视觉结果卡、展示模型和规则适配器。
 - `src/components/layout/LayoutModeProvider.tsx`：真实设备布局判定。
 - `src/pages/Aquarium.tsx`：我的鱼缸。
