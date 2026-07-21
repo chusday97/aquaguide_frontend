@@ -5,8 +5,8 @@ create or replace function public.merge_aquarium_species_batches(
   target_batch_id uuid,
   source_batch_id uuid,
   final_entry_date date,
-  final_life_stage text,
-  final_reproductive_state text,
+  final_life_stage public.aquarium_life_stage,
+  final_reproductive_state public.aquarium_reproductive_state,
   target_version integer,
   source_version integer
 )
@@ -51,7 +51,7 @@ begin
 end;
 $$;
 
-revoke all on function public.merge_aquarium_species_batches(uuid, uuid, uuid, date, text, text, integer, integer) from public;
-grant execute on function public.merge_aquarium_species_batches(uuid, uuid, uuid, date, text, text, integer, integer) to authenticated;
+revoke all on function public.merge_aquarium_species_batches(uuid, uuid, uuid, date, public.aquarium_life_stage, public.aquarium_reproductive_state, integer, integer) from public;
+grant execute on function public.merge_aquarium_species_batches(uuid, uuid, uuid, date, public.aquarium_life_stage, public.aquarium_reproductive_state, integer, integer) to authenticated;
 
 commit;

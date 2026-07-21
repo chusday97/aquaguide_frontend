@@ -126,6 +126,8 @@ assert.match(apiRepositorySource, /aquarium-species-batch-merge/);
 assert.match(aquariumApiSource, /rpc\('merge_aquarium_species_batches'/);
 assert.match(atomicMergeMigration, /for update/);
 assert.match(atomicMergeMigration, /final_life_stage/);
+assert.match(atomicMergeMigration, /final_life_stage public\.aquarium_life_stage/);
+assert.match(atomicMergeMigration, /final_reproductive_state public\.aquarium_reproductive_state/);
 assert.match(apiRepositorySource, /targetLifeStage: increased\[0\]\.desired\.lifeStage/);
 assert.match(aquariumPageSource, /getCurrentAquaGuideRepository/);
 assert.match(aquariumPageSource, /subscribeToRepositoryMode/);

@@ -29,6 +29,7 @@ import {
   userClientFor,
 } from '../data-utils';
 import { ApiError, asyncRoute, sendData } from '../http';
+import { resolveLivestockMemorialReplay } from '../livestock-memorial-replay';
 
 type DbRow = Record<string, any>;
 
@@ -405,11 +406,16 @@ aquariumsRouter.post('/aquariums/:id/species/:recordId/batches/:batchId/memorial
   const idempotency = await beginIdempotentWrite(request);
   const client = userClientFor(request);
   const userId = authenticatedRequest(request).authUser.id;
-  await getOwnedSpeciesRecord(client, aquariumId, recordId);
-  if (idempotency.replay?.resourceId) {
-    const { data } = await client.from('memorial_records').select('*').eq('id', idempotency.replay.resourceId).maybeSingle();
-    if (data) return sendData(request, response, camelize(data));
-  }
+  const replay = await resolveLivestockMemorialReplay({
+    resourceId: idempotency.replay?.resourceId,
+    loadReplay: async (resourceId) => {
+      const { data, error } = await client.from('memorial_records').select('*').eq('id', resourceId).maybeSingle();
+      if (error) throwDatabaseError(error, '已保存的生命纪念暂时无法读取。');
+      return data;
+    },
+    assertOwnedSpecies: async () => { await getOwnedSpeciesRecord(client, aquariumId, recordId); },
+  });
+  if (replay) return sendData(request, response, camelize(replay), idempotency.replay?.responseStatus || 201);
   const memorialId = deterministicUuid(`${userId}:${recordId}:memorial:${idempotency.key}`);
   const { data, error } = await client.rpc('record_livestock_memorial', {
     target_aquarium_id: aquariumId,

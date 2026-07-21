@@ -49,6 +49,7 @@
     "test:species-batches": "node --import tsx scripts/test-species-batches.ts",
     "test:guided-navigation-ui": "node scripts/verify-guided-navigation.mjs",
     "test:repository-boundary": "node --import tsx scripts/test-repository-boundary.ts",
+    "test:livestock-memorial-replay": "node --import tsx scripts/test-livestock-memorial-replay.ts",
     "test:admin-content-contract": "node --import tsx scripts/test-admin-content-contract.ts",
     "content:import": "node --import tsx scripts/content-import/import-catalog.ts",
     "test:admin-content-ui": "node scripts/verify-admin-content.mjs",
