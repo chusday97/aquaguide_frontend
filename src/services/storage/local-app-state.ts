@@ -76,7 +76,10 @@ const normalizeState = (value: Partial<LocalAppState> | null | undefined): Local
     observationRecords: Array.isArray(value?.observationRecords) ? value.observationRecords : fallback.observationRecords,
     riskReminderState: value?.riskReminderState && typeof value.riskReminderState === 'object' ? value.riskReminderState : fallback.riskReminderState,
     discoveryState: value?.discoveryState,
-    onboarding: value?.onboarding,
+    onboarding: value?.onboarding ? {
+      ...value.onboarding,
+      aquariumConfigured: Boolean(value.onboarding.aquariumConfigured),
+    } : undefined,
     updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : fallback.updatedAt,
   };
 };

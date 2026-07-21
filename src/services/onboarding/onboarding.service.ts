@@ -3,12 +3,14 @@ import { onboardingPreferenceSchema } from '../../../packages/contracts/src/inde
 import { supabase } from '../../lib/supabaseClient';
 import { apiRequest, AquaGuideApiError, createIdempotencyKey } from '../api/api-client';
 import { getCareFavorites } from '../favorites/favorites.service';
+import { getCareReminders, getCompletedCareOperations, getSavedCareChecklists } from '../care/care-activity.service';
 import { loadAppStateFromStorage, patchLocalAppState } from '../storage/local-app-state';
 
 const createState = (patch: Partial<OnboardingState> = {}): OnboardingState => ({
   version: 1,
   status: 'pending',
   viewedSpecies: false,
+  aquariumConfigured: false,
   taskCardDismissed: false,
   ...patch,
 });
@@ -79,16 +81,26 @@ export const hydrateOnboardingFromProfile = async () => {
   }
 };
 
+export const subscribeToOnboardingAuth = (listener: () => void) => {
+  if (!supabase) return () => undefined;
+  const { data } = supabase.auth.onAuthStateChange(() => listener());
+  return () => data.subscription.unsubscribe();
+};
+
 export const shouldStartOnboarding = () => {
   const state = loadAppStateFromStorage();
   if (state.onboarding) return false;
   return state.aquariums.length === 0
     && state.wishlist.length === 0
+    && state.compatibilityRecords.length === 0
     && Object.keys(getCareFavorites()).length === 0
     && state.diagnosisRecords.length === 0
     && state.deceasedRecords.length === 0
     && state.feedingRecords.length === 0
-    && state.observationRecords.length === 0;
+    && state.observationRecords.length === 0
+    && getCareReminders().length === 0
+    && getCompletedCareOperations().length === 0
+    && getSavedCareChecklists().length === 0;
 };
 
 export const getOnboardingState = () => loadAppStateFromStorage().onboarding;
@@ -101,6 +113,7 @@ export const restartOnboarding = () => {
   const current = getOnboardingState();
   return persistOnboarding(createState({
       viewedSpecies: current?.viewedSpecies ?? false,
+      aquariumConfigured: current?.aquariumConfigured ?? false,
       taskCardDismissed: false,
     }));
 };
@@ -109,6 +122,12 @@ export const markSpeciesViewed = () => {
   const current = getOnboardingState();
   if (!current || current.viewedSpecies) return current;
   return persistOnboarding({ ...current, viewedSpecies: true });
+};
+
+export const markAquariumConfigured = () => {
+  const current = getOnboardingState();
+  if (!current || current.aquariumConfigured) return current;
+  return persistOnboarding({ ...current, aquariumConfigured: true });
 };
 
 export const dismissOnboardingTaskCard = () => {
@@ -127,7 +146,7 @@ export interface OnboardingTaskProgress {
 
 export const getOnboardingTaskProgress = (): OnboardingTaskProgress => {
   const state = loadAppStateFromStorage();
-  const aquariumReady = state.aquariums.length > 0;
+  const aquariumReady = state.onboarding?.aquariumConfigured ?? false;
   const speciesViewed = state.onboarding?.viewedSpecies ?? false;
   const speciesChosen = state.wishlist.length > 0 || state.aquariums.some(aquarium => aquarium.fishes.some(fish => fish.quantity > 0));
   const dailyCheckDone = state.diagnosisRecords.some(record => {

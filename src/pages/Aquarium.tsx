@@ -72,6 +72,7 @@ import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { OnboardingTaskCard } from '../components/onboarding/OnboardingTaskCard';
+import { markAquariumConfigured } from '../services/onboarding/onboarding.service';
 import { LivestockBatchCard } from '../components/aquarium/LivestockBatchCard';
 import { VisualResultCard } from '../components/visual-results/VisualResultCard';
 import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
@@ -7039,6 +7040,7 @@ export default function AquariumManager() {
             <Button onClick={() => {
               const updated = aquariums.map(a => a.id === activeId ? { ...a, ...settingsForm } : a);
               saveAquariums(updated);
+              markAquariumConfigured();
               setIsSettingsOpen(false);
             }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">{isEn ? 'Save Settings' : '保存设置'}</Button>
           </DialogFooter>

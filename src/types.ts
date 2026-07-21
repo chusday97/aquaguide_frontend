@@ -69,6 +69,7 @@ export interface OnboardingState {
   status: 'pending' | 'completed' | 'skipped';
   goal?: OnboardingGoal;
   viewedSpecies: boolean;
+  aquariumConfigured: boolean;
   taskCardDismissed: boolean;
   completedAt?: string;
 }

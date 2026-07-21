@@ -7,7 +7,7 @@ import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { hydrateOnboardingFromProfile, ONBOARDING_SYNC_FAILED_EVENT, shouldStartOnboarding } from './services/onboarding/onboarding.service';
+import { hydrateOnboardingFromProfile, ONBOARDING_SYNC_FAILED_EVENT, shouldStartOnboarding, subscribeToOnboardingAuth } from './services/onboarding/onboarding.service';
 import {
   Activity,
   BookHeart,
@@ -470,8 +470,14 @@ function AppShell() {
     void hydrateOnboardingFromProfile().finally(() => {
       if (active) setPreferencesReady(true);
     });
+    const unsubscribeAuth = subscribeToOnboardingAuth(() => {
+      void hydrateOnboardingFromProfile().finally(() => {
+        if (active) setPreferencesReady(true);
+      });
+    });
     return () => {
       active = false;
+      unsubscribeAuth();
       window.removeEventListener(ONBOARDING_SYNC_FAILED_EVENT, handleSyncFailure);
     };
   }, [showToast, t]);
