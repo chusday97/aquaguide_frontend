@@ -43,6 +43,19 @@ const assertNoHorizontalOverflow = async page => {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
 };
 
+const assertControlInsideViewport = async (locator, label) => {
+  await locator.scrollIntoViewIfNeeded();
+  const box = await locator.boundingBox();
+  assert.ok(box, `${label} must be visible`);
+  const viewportWidth = await locator.evaluate(() => window.innerWidth);
+  assert.ok(box.x >= 0 && box.x + box.width <= viewportWidth + 0.5, `${label} must stay inside the viewport`);
+  assert.equal(await locator.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return Boolean(hit && (hit === element || element.contains(hit)));
+  }), true, `${label} center must hit the intended control`);
+};
+
 try {
   for (const width of [1440, 1000, 600]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, locale: 'en-US' });
@@ -52,24 +65,37 @@ try {
     assert.deepEqual(await page.locator('.aquarium-zone-header').allTextContents().then(items => items.map(item => item.replace(/\s+/g, ' ').trim()).map(item => item.match(/Observe|Manage|Learn & Maintain/)?.[0])), ['Observe', 'Manage', 'Learn & Maintain']);
     assert.equal(await page.locator('.aquarium-recommend:visible').count(), 0, 'duplicate next-action panel must stay hidden');
     assert.equal(await page.locator('.aquarium-advanced-tests').getAttribute('open'), null, 'advanced tests must be collapsed by default');
+    assert.equal(await page.locator('.aquarium-workspace-zone > .aquarium-zone-header h2').count(), 3, 'task zones must use semantic headings');
+    assert.deepEqual(await page.locator('.aquarium-workspace-zone').evaluateAll(nodes => nodes.map(node => node.classList.contains('aquarium-observe-zone') ? 'observe' : node.classList.contains('aquarium-manage-zone') ? 'manage' : 'learn')), ['observe', 'manage', 'learn']);
+    if (width === 600) {
+      const newAquarium = page.getByRole('button', { name: 'New Aquarium' });
+      await assertControlInsideViewport(newAquarium, '600px New Aquarium');
+      await assertControlInsideViewport(page.getByRole('button', { name: 'Browse Care Guides' }), '600px Browse Care Guides');
+      await newAquarium.click();
+      await page.getByText(/Created new aquarium/).waitFor();
+    }
     await assertNoHorizontalOverflow(page);
     await page.close();
   }
 
-  const phone = await browser.newPage({
-    viewport: { width: 390, height: 844 },
-    locale: 'en-US',
-    hasTouch: true,
-    isMobile: true,
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
-  });
-  await seed(phone);
-  await phone.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
-  await phone.getByRole('heading', { name: 'Tank Basics' }).waitFor();
-  const zonePositions = await phone.locator('.aquarium-zone-header').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().top));
-  assert.ok(zonePositions[0] < zonePositions[1] && zonePositions[1] < zonePositions[2], 'phone task zones must keep Observe → Manage → Learn order');
-  assert.equal(await phone.getByText('Advanced Water Tests (Optional)', { exact: true }).count(), 1);
-  await assertNoHorizontalOverflow(phone);
+  for (const width of [320, 375, 390, 430]) {
+    const phone = await browser.newPage({
+      viewport: { width, height: 844 },
+      locale: 'en-US',
+      hasTouch: true,
+      isMobile: true,
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
+    });
+    await seed(phone);
+    await phone.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
+    await phone.getByRole('heading', { name: 'Tank Basics' }).waitFor();
+    const zonePositions = await phone.locator('.aquarium-zone-header').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().top));
+    assert.ok(zonePositions[0] < zonePositions[1] && zonePositions[1] < zonePositions[2], 'phone task zones must keep Observe → Manage → Learn order');
+    await assertControlInsideViewport(phone.getByText('View all 4 steps', { exact: true }), `${width}px onboarding details`);
+    assert.equal(await phone.getByText('Advanced Water Tests (Optional)', { exact: true }).count(), 1);
+    await assertNoHorizontalOverflow(phone);
+    await phone.close();
+  }
 
   console.log('aquarium homepage C verified: guided zones, optional advanced tests, and responsive English layout');
 } finally {

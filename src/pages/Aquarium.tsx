@@ -108,15 +108,63 @@ import { appendSpeciesBatch, createSpeciesBatch, getSpeciesBatchContextLabel, wi
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
-function AquariumZoneHeader({ index, title, subtitle, className }: { index: number; title: string; subtitle: string; className: string }) {
+function AquariumZoneHeader({ index, title, subtitle, titleId }: { index: number; title: string; subtitle: string; titleId: string }) {
   return (
-    <header className={`aquarium-zone-header ${className}`}>
+    <header className="aquarium-zone-header">
       <span className="aquarium-zone-index" aria-hidden="true">{index}</span>
       <span className="min-w-0">
-        <span className="block text-[14px] font-black leading-tight text-ink">{title}</span>
+        <h2 id={titleId} className="block text-[14px] font-black leading-tight text-ink">{title}</h2>
         <span className="mt-0.5 block text-[10px] font-bold leading-4 text-ink/45">{subtitle}</span>
       </span>
     </header>
+  );
+}
+
+function AquariumWorkspace({
+  observeTitle,
+  observeSubtitle,
+  manageTitle,
+  manageSubtitle,
+  learnTitle,
+  learnSubtitle,
+  tank,
+  status,
+  archive,
+  actions,
+  discovery,
+  basics,
+  advanced,
+}: {
+  observeTitle: string;
+  observeSubtitle: string;
+  manageTitle: string;
+  manageSubtitle: string;
+  learnTitle: string;
+  learnSubtitle: string;
+  tank: ReactNode;
+  status: ReactNode;
+  archive: ReactNode;
+  actions: ReactNode;
+  discovery: ReactNode;
+  basics: ReactNode;
+  advanced: ReactNode;
+}) {
+  return (
+    <>
+      <section className="aquarium-workspace-zone aquarium-observe-zone" aria-labelledby="aquarium-observe-title">
+        <AquariumZoneHeader index={1} title={observeTitle} subtitle={observeSubtitle} titleId="aquarium-observe-title" />
+        <div className="aquarium-zone-grid aquarium-observe-grid">{tank}{status}</div>
+      </section>
+      <section className="aquarium-workspace-zone aquarium-manage-zone" aria-labelledby="aquarium-manage-title">
+        <AquariumZoneHeader index={2} title={manageTitle} subtitle={manageSubtitle} titleId="aquarium-manage-title" />
+        <div className="aquarium-zone-grid aquarium-manage-grid">{archive}{actions}</div>
+      </section>
+      <section className="aquarium-workspace-zone aquarium-learn-zone" aria-labelledby="aquarium-learn-title">
+        <AquariumZoneHeader index={3} title={learnTitle} subtitle={learnSubtitle} titleId="aquarium-learn-title" />
+        <div className="aquarium-zone-grid aquarium-learn-grid">{discovery}{basics}</div>
+        {advanced}
+      </section>
+    </>
   );
 }
 
@@ -4274,27 +4322,14 @@ export default function AquariumManager() {
 
       <OnboardingTaskCard />
 
-      <AquariumZoneHeader
-        index={1}
-        title={t('aquarium.zoneObserve')}
-        subtitle={t('aquarium.zoneObserveHint')}
-        className="aquarium-zone-observe"
-      />
-
-      <AquariumZoneHeader
-        index={2}
-        title={t('aquarium.zoneManage')}
-        subtitle={t('aquarium.zoneManageHint')}
-        className="aquarium-zone-manage"
-      />
-
-      <AquariumZoneHeader
-        index={3}
-        title={t('aquarium.zoneLearn')}
-        subtitle={t('aquarium.zoneLearnHint')}
-        className="aquarium-zone-learn"
-      />
-
+      <AquariumWorkspace
+        observeTitle={t('aquarium.zoneObserve')}
+        observeSubtitle={t('aquarium.zoneObserveHint')}
+        manageTitle={t('aquarium.zoneManage')}
+        manageSubtitle={t('aquarium.zoneManageHint')}
+        learnTitle={t('aquarium.zoneLearn')}
+        learnSubtitle={t('aquarium.zoneLearnHint')}
+        status={(
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
           action={dailyActionViewModel}
@@ -4323,7 +4358,8 @@ export default function AquariumManager() {
           onBrowseCare={() => navigateToRoute('/care')}
         />
       </div>
-
+        )}
+        discovery={(
       <section id="aquarium-discovery" className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
@@ -4422,38 +4458,16 @@ export default function AquariumManager() {
           </div>
         )}
       </section>
-
+        )}
+        actions={(
       <section id="aquarium-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
         </div>
       </section>
-
-      {recommendedActionCandidates.length > 0 && (
-      <section id="next-actions" className="aquarium-recommend order-[5] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
-        <SectionHeader title="下一步行动" subtitle={tankActionMessage || nextStepMessage} />
-        <div className="mt-3">
-          <div className="grid grid-cols-1 gap-2">
-            {recommendedActionCandidates.map(action => (
-              <ActionCenterCard
-                key={action.id}
-                title={action.title}
-                status={action.status}
-                description={action.description}
-                actionText={action.actionText}
-                icon={action.icon}
-                onAction={action.onAction}
-                tone={action.tone}
-                size="tool"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Visual Tank Placeholder */}
+        )}
+        tank={(
       <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[6] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
         {shouldLoadThreeAquarium ? (
           <Suspense
@@ -4559,8 +4573,8 @@ export default function AquariumManager() {
           </div>
         )}
       </div>
-
-      {/* Tank Species Archive */}
+        )}
+        archive={(
       <section id="aquarium-records" className="aquarium-archive order-[7] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
@@ -4739,7 +4753,8 @@ export default function AquariumManager() {
           </>
         )}
       </section>
-
+        )}
+        basics={(
       <section className="aquarium-basics min-w-0 rounded-[20px] border border-white/80 bg-white/68 p-4 shadow-sm" aria-labelledby="aquarium-basics-title">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
@@ -4804,13 +4819,16 @@ export default function AquariumManager() {
           ))}
         </div>
       </section>
-
+        )}
+        advanced={(
       <details className="aquarium-advanced-tests min-w-0 rounded-[18px] border border-dashed border-emerald-900/15 bg-white/45 px-4 py-3 text-ink">
         <summary className="cursor-pointer select-none text-[11px] font-black text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
           {t('aquarium.advancedTests')}
         </summary>
         <p className="mt-2 max-w-[72ch] text-[10px] font-bold leading-5 text-ink/52">{t('aquarium.advancedTestsHint')}</p>
       </details>
+        )}
+      />
 
       <Dialog open={Boolean(pendingReminderReschedule)} onOpenChange={(open) => !open && setPendingReminderReschedule(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-border bg-white p-5">
