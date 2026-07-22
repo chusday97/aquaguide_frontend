@@ -85,6 +85,7 @@
 - `scripts/test-species-diagnosis.ts`：单条新鱼、全缸急促呼吸、最多三问和中英文一致性规则断言。
 - `scripts/test-species-batches.ts`：旧鱼缸批次回填、体态更新、拆分、追加和最后一组移除断言。
 - `scripts/verify-guided-navigation.mjs`：首次引导、侧栏直达、手机体态批次和 600px 英文桌面浏览器验收。
+- `scripts/verify-aquarium-home-c.mjs`：首页 C 三段任务层级、可选进阶参数、重复行动隐藏及 390–1440px 英文无溢出验收。
 - `scripts/verify-species-identification.mjs`：真实手机降级流程、紧急追问、英文桌面、600–1440px 溢出和图鉴入口验收。
 - `scripts/verify-core-experience.mjs`：设备布局、水族册、自适应详情、Mini、每日检查与 AI 建缸助手浏览器验收。
 - `scripts/verify-mobile-care-experience.mjs`：320–430px 图鉴分页、手动养护推荐、水族册入口、缸内物种、3D 全屏列表与养护计划浏览器验收。

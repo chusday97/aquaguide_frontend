@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project_id": "PRJ-aquaguide",
-  "updated_at": "2026-07-22T04:10:00+08:00",
+  "updated_at": "2026-07-22T22:40:00+08:00",
   "evidence_items": [
     {"id":"EVD-20260715-001","type":"commit","locator":"917b80a","date":"2026-07-15","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"今日行动、水族册独立地址与生命纪念回流"},
     {"id":"EVD-20260715-002","type":"test","locator":"npm run lint; npm run build; 1280/390 browser regression","date":"2026-07-15","version":"917b80a","accessible":true,"sensitive":false,"notes":"类型、构建和直达行为验证"},
@@ -21,7 +21,10 @@
     {"id":"EVD-20260718-016","type":"review","locator":"independent Evaluator final verdict in current Codex task","date":"2026-07-18","version":"f1c535e","accessible":false,"sensitive":false,"notes":"旧关键词追问和重复公开逻辑已清零；判定达到可交付本地预览，生产仍受真实视觉、Supabase和最新浏览器证据限制"},
     {"id":"EVD-20260722-017","type":"commit","locator":"5c3032d–394cd83","date":"2026-07-22","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"任务式路由、首次引导、体态批次、Repository、原子 RPC 与独立审查修复"},
     {"id":"EVD-20260722-018","type":"test","locator":"lint; check:api; build; repository/business/batch/memorial/path/localization/action tests; verify-guided-navigation.mjs","date":"2026-07-22","version":"394cd83","accessible":true,"sensitive":false,"notes":"类型、构建、规则、数据边界及 390/600px Chromium 任务路径证据"},
-    {"id":"EVD-20260722-019","type":"review","locator":"independent Critic repair loop and independent Evaluator PASS in current Codex task","date":"2026-07-22","version":"394cd83","accessible":false,"sensitive":false,"notes":"六维审查与最终用户路径裁决通过；生产仍受真实 Supabase 和全站翻译门禁"}
+    {"id":"EVD-20260722-019","type":"review","locator":"independent Critic repair loop and independent Evaluator PASS in current Codex task","date":"2026-07-22","version":"394cd83","accessible":false,"sensitive":false,"notes":"六维审查与最终用户路径裁决通过；生产仍受真实 Supabase 和全站翻译门禁"},
+    {"id":"EVD-20260722-020","type":"commit","locator":"d3c396a; b5e499c; 7b9f10a","date":"2026-07-22","version":"codex/aquaguide-ux-refactor","accessible":true,"sensitive":false,"notes":"首页 C 三段工作台、窄屏修复、语义顺序与物种预览"},
+    {"id":"EVD-20260722-021","type":"test","locator":"lint; build; test:aquarium-home-c before final two small fixes; layout-mode; localization-ui; product-actions","date":"2026-07-22","version":"7b9f10a","accessible":true,"sensitive":false,"notes":"类型构建、设备策略、双语、按钮语义及首轮增强浏览器证据；最后两处小改缺最新浏览器补跑"},
+    {"id":"EVD-20260722-022","type":"review","locator":"independent Critic review and static final recheck in current Codex task","date":"2026-07-22","version":"7b9f10a","accessible":false,"sensitive":false,"notes":"发现600/320内部裁切、DOM顺序和Manage留白，修复后静态复验通过；最终运行证据仍需补跑"}
   ],
   "claims": [
     {"id":"CLM-20260715-001","text":"今日行动只展示一个确定性优先任务，水族册四模块可通过独立地址直达。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260715-001","EVD-20260715-002"],"contradicting_evidence_ids":[],"scope":"本地分支当前版本","career_material_allowed":true,"reviewed_at":"2026-07-15T14:20:00+08:00"},
@@ -31,6 +34,7 @@
     {"id":"CLM-20260716-005","text":"AquaGuide 已建立中英文语言设置、内容翻译与审核数据边界、中文安全回退和桌面/真实手机回归；英文业务内容仍需审核后才能正式发布。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260716-009","EVD-20260716-010"],"contradicting_evidence_ids":[],"scope":"国际化基础设施与应用壳，不代表英文内容已全部发布","career_material_allowed":true,"reviewed_at":"2026-07-16T18:30:00+08:00"},
     {"id":"CLM-20260716-006","text":"混养、Mini、物种适配、每日巡检和养护自查已共用只读视觉解释层，优先展示对象关系和唯一下一步，完整规则默认折叠。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260716-011","EVD-20260716-012"],"contradicting_evidence_ids":[],"scope":"本地分支的确定性结果页，不代表真实用户理解度数据","career_material_allowed":true,"reviewed_at":"2026-07-16T22:10:00+08:00"},
     {"id":"CLM-20260718-007","text":"AquaGuide已形成物种图片候选、用户确认、物种与鱼缸上下文、确定性动态追问和可视化风险排序的可交付本地预览；真实视觉准确率、Supabase和最终浏览器历史运行仍待外部验证。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260718-013","EVD-20260718-014","EVD-20260718-015","EVD-20260718-016"],"contradicting_evidence_ids":[],"scope":"本地分支的代码、规则、API和已运行主流程；不含真实视觉准确率或最终Back/Forward实测","career_material_allowed":true,"reviewed_at":"2026-07-18T23:55:00+08:00"},
-    {"id":"CLM-20260722-008","text":"AquaGuide 的侧栏与手机任务可直达正式路由，新用户可从建缸或浏览物种开始，缸内同一物种可按体态批次安全拆分、合并和记录纪念；代码与本地预览已通过独立审查。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260722-017","EVD-20260722-018","EVD-20260722-019"],"contradicting_evidence_ids":[],"scope":"本地分支与本地预览；不代表真实 Supabase 或全站英文已发布","career_material_allowed":true,"reviewed_at":"2026-07-22T04:10:00+08:00"}
+    {"id":"CLM-20260722-008","text":"AquaGuide 的侧栏与手机任务可直达正式路由，新用户可从建缸或浏览物种开始，缸内同一物种可按体态批次安全拆分、合并和记录纪念；代码与本地预览已通过独立审查。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260722-017","EVD-20260722-018","EVD-20260722-019"],"contradicting_evidence_ids":[],"scope":"本地分支与本地预览；不代表真实 Supabase 或全站英文已发布","career_material_allowed":true,"reviewed_at":"2026-07-22T04:10:00+08:00"},
+    {"id":"CLM-20260722-009","text":"AquaGuide 鱼缸首页已按观察、管理、学习与养护重组，并将专业水质检测下沉为可选信息；独立审查推动补齐窄屏控件边界、命中与DOM顺序测试。","evidence_level":"verified","supporting_evidence_ids":["EVD-20260722-020","EVD-20260722-021","EVD-20260722-022"],"contradicting_evidence_ids":[],"scope":"本地代码、构建及首轮浏览器证据；最后两处小改后的浏览器补跑仍缺失","career_material_allowed":true,"reviewed_at":"2026-07-22T22:40:00+08:00"}
   ]
 }
