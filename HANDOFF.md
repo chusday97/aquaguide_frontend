@@ -17,7 +17,7 @@
 
 ## 正在做什么
 
-- 当前步骤：首页实现与两轮修复已提交 `d3c396a`、`b5e499c`、`7b9f10a`；lint/build 通过，同一 Critic 静态复验通过；最新 `test:aquarium-home-c` 与最终截图必须在浏览器审批恢复后补跑。
+- 当前步骤：首页实现、两轮修复与补充场景已提交 `d3c396a`、`b5e499c`、`7b9f10a`、`dd12821`；lint/build 通过，同一 Critic 静态复验通过；最新 `test:aquarium-home-c` 与最终截图必须在浏览器审批恢复后补跑。
 - 已开始但未完成的工作：真实 Supabase migration/RLS、登录偏好同步和真实视觉准确率依赖外部环境；Antigravity 全局翻译暂停。
 - 涉及文件/模块：`src/App.tsx`、`src/pages/{Search,Settings,Welcome,Aquarium}.tsx`、`src/services/onboarding/`、`src/services/aquarium/species-batches.service.ts`、`apps/api/src/routes/{aquariums,profile}.ts`、`supabase/migrations/202607220001_livestock_batches.sql`。
 - 工作区未提交状态及归属：实现提交已拆分；审查前需以 `git status --short` 再确认工作区。
