@@ -7442,11 +7442,11 @@ export default function AquariumManager() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Temperament' : '性情'}</span>
-                    <span className="text-ink font-bold">{selectedAqFish.fish.temperament === 'Peaceful' ? '温和' : selectedAqFish.fish.temperament === 'Aggressive' ? '凶猛' : '领地意识强'}</span>
+                    <span className="text-ink font-bold">{selectedAqFish.fish.temperament === 'Peaceful' ? (isEn ? 'Peaceful' : '温和') : selectedAqFish.fish.temperament === 'Aggressive' ? (isEn ? 'Aggressive' : '凶猛') : (isEn ? 'Territorial' : '领地意识强')}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Size' : '体型'}</span>
-                    <span className="text-ink font-bold">{selectedAqFish.fish.size === 'Small' ? '小型' : selectedAqFish.fish.size === 'Medium' ? '中型' : '大型'}</span>
+                    <span className="text-ink font-bold">{selectedAqFish.fish.size === 'Small' ? (isEn ? 'Small' : '小型') : selectedAqFish.fish.size === 'Medium' ? (isEn ? 'Medium' : '中型') : (isEn ? 'Large' : '大型')}</span>
                   </div>
                 </div>
 

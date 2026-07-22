@@ -109,10 +109,10 @@ const getExistingLivestock = (aquarium?: Aquarium | null) => (
     })
 );
 
-const getDifficultyLabel = (difficulty: Fish['difficulty']) => {
-  if (difficulty === 'Easy') return '极易';
-  if (difficulty === 'Medium') return '中等';
-  return '困难';
+const getDifficultyLabel = (difficulty: Fish['difficulty'], isEn = false) => {
+  if (difficulty === 'Easy') return isEn ? 'Beginner' : '极易';
+  if (difficulty === 'Medium') return isEn ? 'Intermediate' : '中等';
+  return isEn ? 'Expert' : '困难';
 };
 
 const getDifficultyBadgeClass = (difficulty: Fish['difficulty']) => {
@@ -121,8 +121,8 @@ const getDifficultyBadgeClass = (difficulty: Fish['difficulty']) => {
   return 'bg-red-50 text-red-600 border-red-200';
 };
 
-const getTemperamentLabel = (temperament: Fish['temperament']) => (
-  temperament === 'Peaceful' ? '温和' : temperament === 'Aggressive' ? '凶猛' : '领地意识强'
+const getTemperamentLabel = (temperament: Fish['temperament'], isEn = false) => (
+  temperament === 'Peaceful' ? (isEn ? 'Peaceful' : '温和') : temperament === 'Aggressive' ? (isEn ? 'Aggressive' : '凶猛') : (isEn ? 'Territorial' : '领地意识强')
 );
 
 const getFishTemperatureTheme = (tempString: string) => {
@@ -152,11 +152,11 @@ const getFitCurrentClass = (status: FitStatus) => {
   return 'text-emerald-700';
 };
 
-const getFitStatusLabel = (status: FitStatus) => {
-  if (status === 'ok') return '匹配';
-  if (status === 'warning') return '需调整';
-  if (status === 'danger') return '风险';
-  return '信息不足';
+const getFitStatusLabel = (status: FitStatus, isEn = false) => {
+  if (status === 'ok') return isEn ? 'Fit' : '匹配';
+  if (status === 'warning') return isEn ? 'Adjust' : '需调整';
+  if (status === 'danger') return isEn ? 'Risk' : '风险';
+  return isEn ? 'Limited Data' : '信息不足';
 };
 
 const getAssessmentTone = (status: FitAssessmentStatus) => {

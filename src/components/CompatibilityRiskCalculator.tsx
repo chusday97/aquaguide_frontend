@@ -873,10 +873,10 @@ export function CompatibilityRiskCalculator({
                     <span className="min-w-0">
                       <span className="block truncate text-[12px] font-black text-ink">{fish.name}</span>
                       <span className="block truncate text-[10px] font-medium text-ink/45">
-                        {taxonomy.temperatureBand} · {taxonomy.size} · {fish.housingMode || '混养待评估'}
+                        {taxonomy.temperatureBand} · {taxonomy.size} · {fish.housingMode || (isEn ? 'Observe' : '混养待评估')}
                       </span>
                     </span>
-                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">加入</span>
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">{isEn ? 'Add' : '加入'}</span>
                   </button>
                 );
               })}
@@ -886,8 +886,8 @@ export function CompatibilityRiskCalculator({
           <div className="mt-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
-                <div className="text-[12px] font-black text-ink">推荐候选</div>
-                <div className="mt-0.5 text-[10px] font-bold text-ink/42">根据当前鱼缸和缸内生物筛选，点卡片加入计算。</div>
+                <div className="text-[12px] font-black text-ink">{isEn ? 'Recommended Candidates' : '推荐候选'}</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/42">{isEn ? 'Filtered for your tank. Tap card to calculate.' : '根据当前鱼缸和缸内生物筛选，点卡片加入计算。'}</div>
               </div>
             </div>
             <div className="relative -mx-3 min-w-0 max-w-[calc(100vw-32px)] overflow-hidden">
@@ -901,7 +901,7 @@ export function CompatibilityRiskCalculator({
                     type="button"
                     onClick={() => addSpecies(fish)}
                     className="grid w-[82px] shrink-0 snap-start gap-1 rounded-[14px] border border-transparent bg-transparent p-1 text-left transition-colors hover:border-emerald-100 hover:bg-emerald-50/40"
-                    aria-label={`加入${fish.name}到混养计算`}
+                    aria-label={isEn ? `Add ${fish.name} to calculation` : `加入${fish.name}到混养计算`}
                   >
                     <span className={`flex h-[58px] w-full items-center justify-center overflow-visible rounded-[13px] ${getSpeciesImageSurfaceClass(fish)}`}>
                       <img
@@ -914,7 +914,7 @@ export function CompatibilityRiskCalculator({
                     <span className="min-w-0">
                       <span className="block truncate text-[11px] font-black text-ink">{fish.name}</span>
                       <span className="mt-0.5 block truncate text-[9px] font-bold text-ink/42">
-                        {taxonomy.size} · {fish.housingMode || '可评估'}
+                        {taxonomy.size} · {fish.housingMode || (isEn ? 'Assessable' : '可评估')}
                       </span>
                     </span>
                   </button>

@@ -741,7 +741,7 @@ const resources = {
         adviceSpaceSuitable: '空间基本满足最低建议。',
         adviceSpaceWarning: '当前鱼缸为空也暂无混养冲突，但该生物需要至少 {{min}}L 水体，当前约 {{current}}L。',
         adviceDifficultyEasy: '适合作为入门选择。',
-        adviceDifficultyMedium: '需要稳定水质 and 观察，但不是当前鱼缸不匹配项。',
+        adviceDifficultyMedium: '需要稳定水质与观察，但不是当前鱼缸不匹配项。',
         adviceDifficultyHard: '养护难度较高，建议先确认经验和设备。',
         adviceFilterNoTank: '先选择鱼缸后再确认过滤设备。',
         adviceHeaterNoTank: '先选择鱼缸后再确认加热设备。',
@@ -875,7 +875,7 @@ const resources = {
           why2Title: '为什么要少量混水',
           why2Desc: '少量多次混水，可以让新鱼逐步适应 pH、硬度和气味变化。',
           why3Title: '为什么不能倒袋水',
-          why3Desc: '袋水里可能有排泄物、药物残留 and 运输污染物，不适合进入主缸。',
+          why3Desc: '袋水里可能有排泄物、药物残留及运输污染物，不适合进入主缸。',
           why4Title: '入缸后观察 3-7 天',
           why4Desc: '观察白点、烂鳍、拒食、夹鳍和异常躲藏。稳定后再考虑混养。',
         }
@@ -1761,8 +1761,9 @@ void i18n.use(initReactI18next).init({
 applyLocalization(initialLocale);
 
 export const setLocale = async (locale: SupportedLocale) => {
-  await i18n.changeLanguage(locale);
-  document.documentElement.lang = locale;
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale;
+  }
   applyLocalization(locale);
   try {
     window.localStorage.setItem(STORAGE_KEY, locale);
@@ -1771,6 +1772,8 @@ export const setLocale = async (locale: SupportedLocale) => {
   }
 };
 
-document.documentElement.lang = i18n.language === 'zh-CN' ? 'zh-CN' : 'en';
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = i18n.language === 'zh-CN' ? 'zh-CN' : 'en';
+}
 
 export default i18n;
