@@ -108,6 +108,18 @@ import { appendSpeciesBatch, createSpeciesBatch, getSpeciesBatchContextLabel, wi
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
+function AquariumZoneHeader({ index, title, subtitle, className }: { index: number; title: string; subtitle: string; className: string }) {
+  return (
+    <header className={`aquarium-zone-header ${className}`}>
+      <span className="aquarium-zone-index" aria-hidden="true">{index}</span>
+      <span className="min-w-0">
+        <span className="block text-[14px] font-black leading-tight text-ink">{title}</span>
+        <span className="mt-0.5 block text-[10px] font-bold leading-4 text-ink/45">{subtitle}</span>
+      </span>
+    </header>
+  );
+}
+
 const substrateOptions = [
   { value: '无', label: '裸缸', labelEn: 'Bare Bottom', hint: '方便清洁', hintEn: 'Easy to clean' },
   { value: '河沙', label: '河沙', labelEn: 'River Sand', hint: '自然浅色', hintEn: 'Natural light color' },
@@ -4262,6 +4274,27 @@ export default function AquariumManager() {
 
       <OnboardingTaskCard />
 
+      <AquariumZoneHeader
+        index={1}
+        title={t('aquarium.zoneObserve')}
+        subtitle={t('aquarium.zoneObserveHint')}
+        className="aquarium-zone-observe"
+      />
+
+      <AquariumZoneHeader
+        index={2}
+        title={t('aquarium.zoneManage')}
+        subtitle={t('aquarium.zoneManageHint')}
+        className="aquarium-zone-manage"
+      />
+
+      <AquariumZoneHeader
+        index={3}
+        title={t('aquarium.zoneLearn')}
+        subtitle={t('aquarium.zoneLearnHint')}
+        className="aquarium-zone-learn"
+      />
+
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
           action={dailyActionViewModel}
@@ -4706,6 +4739,78 @@ export default function AquariumManager() {
           </>
         )}
       </section>
+
+      <section className="aquarium-basics min-w-0 rounded-[20px] border border-white/80 bg-white/68 p-4 shadow-sm" aria-labelledby="aquarium-basics-title">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="aquarium-basics-title" className="text-[14px] font-black text-ink">{t('aquarium.tankBasics')}</h2>
+            <p className="mt-0.5 text-[10px] font-bold leading-4 text-ink/45">{t('aquarium.tankBasicsHint')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAquariumSettings()}
+            className="shrink-0 rounded-full bg-emerald-50 px-3 py-2 text-[10px] font-black text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            {t('aquarium.editBasics')}
+          </button>
+        </div>
+        <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
+          {[
+            {
+              label: t('aquarium.tankBasicsWater'),
+              value: `${tankVolumeLiters || '—'}L · ${activeAquarium.waterType === 'Saltwater' ? t('aquarium.saltwater') : t('aquarium.freshwater')}`,
+              meta: t('aquarium.userEntered'),
+              icon: <Droplets className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsEquipment'),
+              value: activeAquarium.equipment?.filter && activeAquarium.equipment.filter !== '无'
+                ? t('aquarium.filterReady')
+                : t('aquarium.filterMissing'),
+              meta: activeAquarium.equipment?.heater
+                ? t('aquarium.heaterReady')
+                : activeAquarium.equipment?.oxygen
+                  ? t('aquarium.aerationReady')
+                  : t('aquarium.optionalEquipment'),
+              icon: <Settings className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsLivestock'),
+              value: hasStockedAnimals
+                ? t('aquarium.tankContentsCount', { species: stockedSpeciesCount, quantity: totalStockedQuantity })
+                : t('aquarium.noLivestock'),
+              meta: t('aquarium.userEntered'),
+              icon: <BookOpen className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsObservation'),
+              value: todayDailyCheckRecord
+                ? dailyActionViewModel.level === 'urgent' || dailyActionViewModel.level === 'needs_attention'
+                  ? t('aquarium.needsAttention')
+                  : t('aquarium.checkedToday')
+                : t('aquarium.notCheckedToday'),
+              meta: todayDailyCheckRecord ? t('aquarium.checkedToday') : t('aquarium.unknown'),
+              icon: <Activity className="h-4 w-4" />,
+            },
+          ].map(item => (
+            <div key={item.label} className="grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-2 rounded-[15px] bg-[#F8F7F2] p-2.5">
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[12px] bg-white text-emerald-700 shadow-sm">{item.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-ink/38">{item.label}</span>
+                <span className="mt-0.5 block break-words text-[11px] font-black leading-4 text-ink">{item.value}</span>
+                <span className="mt-0.5 block break-words text-[9px] font-bold leading-4 text-ink/42">{item.meta}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <details className="aquarium-advanced-tests min-w-0 rounded-[18px] border border-dashed border-emerald-900/15 bg-white/45 px-4 py-3 text-ink">
+        <summary className="cursor-pointer select-none text-[11px] font-black text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+          {t('aquarium.advancedTests')}
+        </summary>
+        <p className="mt-2 max-w-[72ch] text-[10px] font-bold leading-5 text-ink/52">{t('aquarium.advancedTestsHint')}</p>
+      </details>
 
       <Dialog open={Boolean(pendingReminderReschedule)} onOpenChange={(open) => !open && setPendingReminderReschedule(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-border bg-white p-5">

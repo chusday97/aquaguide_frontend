@@ -1,4 +1,5 @@
 import { AlertTriangle, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { TagPill, type TagPillTone } from './TagPill';
 
@@ -116,32 +117,33 @@ export function StatusSummaryCard({
   onDeleteCarePlan,
   onBrowseCare,
 }: StatusSummaryCardProps) {
+  const { t } = useTranslation();
   const Icon = action.level === 'normal' ? CheckCircle2 : AlertTriangle;
   const hasPrimaryAction = Boolean(action.task.primaryLabel);
   const careItems = showCarePlan ? carePlan.visibleItems : carePlan.visibleItems.slice(0, 1);
   const careSummary = carePlan.overdueCount > 0
-    ? `${carePlan.overdueCount} 项逾期`
+    ? t('aquarium.carePlanOverdueCount', { count: carePlan.overdueCount })
     : carePlan.dueCount > 0
-      ? `${carePlan.dueCount} 项今天处理`
+      ? t('aquarium.carePlanDueCount', { count: carePlan.dueCount })
       : carePlan.activeCount > 0
-        ? `${carePlan.activeCount} 项计划中`
-        : '还没有养护计划';
+        ? t('aquarium.carePlanActiveCount', { count: carePlan.activeCount })
+        : t('aquarium.carePlanEmpty');
   const careStatusStyle = {
     overdue: 'bg-red-50 text-red-700',
     today: 'bg-amber-50 text-amber-800',
     upcoming: 'bg-sky-50 text-sky-700',
   } as const;
   const careStatusLabel = {
-    overdue: '已逾期',
-    today: '今天',
-    upcoming: '即将到期',
+    overdue: t('aquarium.carePlanOverdue'),
+    today: t('aquarium.carePlanToday'),
+    upcoming: t('aquarium.carePlanUpcoming'),
   } as const;
 
   return (
     <section className={`flex min-h-[220px] flex-col rounded-[20px] border p-4 shadow-sm ${levelStyles[action.level]}`} data-daily-action={action.task.actionType}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[13px] font-black text-ink">今日行动</div>
+          <div className="text-[13px] font-black text-ink">{t('aquarium.todayAction')}</div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <TagPill tone={levelTone[action.level]}>{action.label}</TagPill>
             <span className="text-[10px] font-black text-ink/38">{action.sourceLabel}</span>
@@ -162,7 +164,7 @@ export function StatusSummaryCard({
           onClick={onToggleWhy}
           className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[11px] font-black text-ink/52 transition-colors hover:bg-white hover:text-emerald-800"
         >
-          为什么
+          {t('aquarium.why')}
           <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showWhy ? 'rotate-180' : ''}`} />
         </button>
 
@@ -202,21 +204,23 @@ export function StatusSummaryCard({
               <CalendarDays className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[13px] font-black text-ink">养护计划</span>
+              <span className="block text-[13px] font-black text-ink">{t('aquarium.carePlan')}</span>
               <span className="block truncate text-[10px] font-bold text-ink/45">{careSummary}</span>
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-black text-ink/42">
-            {carePlan.activeCount > 1 && `${showCarePlan ? '收起' : `还有 ${carePlan.activeCount - 1} 项`}`}
+            {carePlan.activeCount > 1 && (showCarePlan
+              ? t('aquarium.collapse')
+              : t('aquarium.carePlanMore', { count: carePlan.activeCount - 1 }))}
             <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showCarePlan ? 'rotate-180' : ''}`} />
           </span>
         </button>
 
         {carePlan.activeCount === 0 ? (
           <div className="mt-2 flex items-center justify-between gap-3 rounded-[13px] bg-bg/75 px-3 py-2.5">
-            <span className="text-[10px] font-bold leading-5 text-ink/48">可以从操作指南设置观察或维护日期。</span>
+            <span className="text-[10px] font-bold leading-5 text-ink/48">{t('aquarium.carePlanEmptyHint')}</span>
             <button type="button" onClick={onBrowseCare} className="h-8 shrink-0 rounded-full bg-white px-3 text-[10px] font-black text-emerald-700 shadow-sm">
-              去养护百科
+              {t('aquarium.browseCare')}
             </button>
           </div>
         ) : (
@@ -235,16 +239,16 @@ export function StatusSummaryCard({
                 {showCarePlan && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <button type="button" onClick={() => onOpenCarePlan(item.id)} className="h-8 rounded-full bg-emerald-700 px-3 text-[10px] font-black text-white">
-                      查看指引
+                      {t('aquarium.viewGuide')}
                     </button>
                     <button type="button" onClick={() => onCompleteCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full bg-emerald-50 px-2.5 text-[10px] font-black text-emerald-700">
-                      <Check className="h-3 w-3" />完成
+                      <Check className="h-3 w-3" />{t('aquarium.complete')}
                     </button>
                     <button type="button" onClick={() => onRescheduleCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-[10px] font-black text-ink/48 hover:bg-bg">
-                      <Clock3 className="h-3 w-3" />改期
+                      <Clock3 className="h-3 w-3" />{t('aquarium.reschedule')}
                     </button>
                     <button type="button" onClick={() => onDeleteCarePlan(item.id)} className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-[10px] font-black text-red-500 hover:bg-red-50">
-                      <Trash2 className="h-3 w-3" />删除
+                      <Trash2 className="h-3 w-3" />{t('aquarium.delete')}
                     </button>
                   </div>
                 )}

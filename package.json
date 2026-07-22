@@ -48,6 +48,7 @@
     "test:business-api-contract": "node --import tsx scripts/test-business-api-contract.ts",
     "test:species-batches": "node --import tsx scripts/test-species-batches.ts",
     "test:guided-navigation-ui": "node scripts/verify-guided-navigation.mjs",
+    "test:aquarium-home-c": "node scripts/verify-aquarium-home-c.mjs",
     "test:repository-boundary": "node --import tsx scripts/test-repository-boundary.ts",
     "test:livestock-memorial-replay": "node --import tsx scripts/test-livestock-memorial-replay.ts",
     "test:admin-content-contract": "node --import tsx scripts/test-admin-content-contract.ts",

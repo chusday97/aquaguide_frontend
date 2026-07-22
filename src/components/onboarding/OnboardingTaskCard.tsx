@@ -40,7 +40,7 @@ export function OnboardingTaskCard() {
   if (!onboarding || onboarding.taskCardDismissed) return null;
 
   return (
-    <section className="order-[1] min-w-0 rounded-[26px] border border-emerald-100 bg-gradient-to-r from-emerald-950 to-emerald-800 p-4 text-white shadow-[0_18px_44px_rgba(18,79,61,0.16)] md:order-none md:p-5" aria-labelledby="onboarding-task-title">
+    <section className="aquarium-onboarding order-[1] min-w-0 rounded-[22px] border border-emerald-100 bg-gradient-to-r from-emerald-950 to-emerald-800 p-4 text-white shadow-[0_18px_44px_rgba(18,79,61,0.16)] md:order-none" aria-labelledby="onboarding-task-title">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">{progress.completedCount} / 4</div>
@@ -49,19 +49,29 @@ export function OnboardingTaskCard() {
         </div>
         <button type="button" onClick={dismissOnboardingTaskCard} aria-label={t('onboarding.dismiss')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"><X className="h-4 w-4" /></button>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {tasks.map(task => (
-          <div key={task.label} className={`flex min-w-0 items-center gap-2 rounded-2xl px-3 py-2.5 ${task.done ? 'bg-emerald-400/15 text-emerald-50' : 'bg-white/8 text-white/64'}`}>
-            {task.done ? <Check className="h-4 w-4 shrink-0 text-emerald-300" /> : <Circle className="h-4 w-4 shrink-0" />}
-            <span className="min-w-0 text-xs font-black leading-5">{task.label}</span>
-          </div>
-        ))}
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/12" aria-hidden="true">
+        <div className="h-full rounded-full bg-emerald-300 transition-[width] duration-200" style={{ width: `${progress.completedCount * 25}%` }} />
       </div>
-      {nextTask && (
-        <button type="button" onClick={() => navigateToRoute(nextTask.route)} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-emerald-900 shadow-sm hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-          {nextTask.label}<ChevronRight className="h-4 w-4" />
-        </button>
-      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {nextTask && (
+          <button type="button" onClick={() => navigateToRoute(nextTask.route)} className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-emerald-900 shadow-sm hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <span className="min-w-0 break-words text-left">{nextTask.label}</span><ChevronRight className="h-4 w-4 shrink-0" />
+          </button>
+        )}
+        <details className="min-w-0 flex-1">
+          <summary className="ml-auto w-fit cursor-pointer select-none rounded-full px-3 py-2 text-[11px] font-black text-white/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            {t('onboarding.showSteps')}
+          </summary>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {tasks.map(task => (
+              <div key={task.label} className={`flex min-w-0 items-center gap-2 rounded-2xl px-3 py-2.5 ${task.done ? 'bg-emerald-400/15 text-emerald-50' : 'bg-white/8 text-white/64'}`}>
+                {task.done ? <Check className="h-4 w-4 shrink-0 text-emerald-300" /> : <Circle className="h-4 w-4 shrink-0" />}
+                <span className="min-w-0 text-xs font-black leading-5">{task.label}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
     </section>
   );
 }

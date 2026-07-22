@@ -804,6 +804,171 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* Aquarium homepage C: guided workspace. Mobile stays a single task-led column. */
+.aquarium-zone-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.aquarium-zone-index {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #1b4d3e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 7px 16px rgba(27, 77, 62, 0.14);
+}
+
+.aquarium-onboarding { order: 1; }
+.aquarium-zone-observe { order: 2; }
+.aquarium-tank { order: 3; }
+.aquarium-status { order: 4; }
+.aquarium-zone-manage { order: 5; }
+.aquarium-archive { order: 6; }
+.aquarium-actions { order: 7; }
+.aquarium-recommend { order: 8; display: none; }
+.aquarium-zone-learn { order: 9; }
+.aquarium-discovery { order: 10; }
+.aquarium-basics { order: 11; }
+.aquarium-advanced-tests { order: 12; }
+
+@media (min-width: 768px) {
+  .aquarium-desktop-layout {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "header"
+      "onboarding"
+      "observe-label"
+      "tank"
+      "status"
+      "manage-label"
+      "archive"
+      "actions"
+      "learn-label"
+      "discovery"
+      "basics"
+      "advanced";
+    gap: 12px;
+    align-items: stretch;
+    min-height: calc(100dvh - 48px);
+    overflow: visible;
+  }
+
+  .aquarium-desktop-header { grid-area: header; }
+  .aquarium-onboarding { grid-area: onboarding; padding: 14px 16px; }
+  .aquarium-zone-observe { grid-area: observe-label; }
+  .aquarium-tank { grid-area: tank; height: min(48dvh, 460px) !important; min-height: 320px !important; }
+  .aquarium-status { grid-area: status; }
+  .aquarium-zone-manage { grid-area: manage-label; }
+  .aquarium-archive { grid-area: archive; }
+  .aquarium-actions { grid-area: actions; }
+  .aquarium-recommend { grid-area: recommend; display: none; }
+  .aquarium-zone-learn { grid-area: learn-label; }
+  .aquarium-discovery { grid-area: discovery; }
+  .aquarium-basics { grid-area: basics; }
+  .aquarium-advanced-tests { grid-area: advanced; }
+
+  .aquarium-status,
+  .aquarium-actions,
+  .aquarium-discovery,
+  .aquarium-basics {
+    min-width: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .aquarium-status > section {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .aquarium-onboarding > div:first-child {
+    align-items: center;
+  }
+
+  .aquarium-onboarding > div:nth-child(2) {
+    margin-top: 10px;
+  }
+
+  .aquarium-onboarding > button {
+    margin-top: 10px;
+  }
+
+  .aquarium-actions .desktop-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .aquarium-actions .desktop-card-grid > button {
+    min-width: 0;
+    min-height: 76px;
+    height: auto;
+  }
+
+  .aquarium-discovery [role="button"] {
+    min-height: 176px;
+  }
+
+  .aquarium-discovery img {
+    max-height: 150px;
+  }
+}
+
+@media (min-width: 1050px) {
+  .aquarium-desktop-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    grid-template-areas:
+      "header header"
+      "onboarding onboarding"
+      "observe-label observe-label"
+      "tank status"
+      "manage-label manage-label"
+      "archive actions"
+      "learn-label learn-label"
+      "discovery basics"
+      "advanced advanced";
+    gap: 14px;
+  }
+
+  .aquarium-tank {
+    height: min(52dvh, 500px) !important;
+    min-height: 390px !important;
+  }
+
+  .aquarium-status > section {
+    min-height: 390px;
+  }
+
+  .aquarium-archive,
+  .aquarium-actions,
+  .aquarium-discovery,
+  .aquarium-basics {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 767px) {
+  .aquarium-zone-header {
+    margin-top: 4px;
+  }
+
+  .aquarium-basics > div:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .app-scrollbar-hidden {
   scrollbar-width: none;
   -ms-overflow-style: none;
