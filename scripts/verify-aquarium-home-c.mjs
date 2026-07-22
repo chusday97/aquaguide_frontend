@@ -4,13 +4,27 @@ import { chromium } from 'playwright';
 const baseUrl = process.env.PREVIEW_URL || 'http://localhost:3000';
 const browser = await chromium.launch({ headless: true });
 
-const state = {
+const createState = (speciesCount = 0) => ({
   version: 1,
   currentAquariumId: 'tank-c',
   aquariums: [{
     id: 'tank-c',
     name: 'Beginner Community Aquarium',
-    fishes: [],
+    fishes: Array.from({ length: speciesCount }, (_, index) => ({
+      id: `stock-${index + 1}`,
+      fishId: `sp_${String(index + 1).padStart(4, '0')}`,
+      quantity: index + 1,
+      entryDate: '2026-07-20T00:00:00.000Z',
+      lastWaterChangeDate: '2026-07-20T00:00:00.000Z',
+      batches: [{
+        id: `batch-${index + 1}`,
+        quantity: index + 1,
+        entryDate: '2026-07-20T00:00:00.000Z',
+        lifeStage: index % 2 === 0 ? 'juvenile' : 'adult',
+        reproductiveState: 'normal',
+        stateUpdatedAt: '2026-07-20T00:00:00.000Z',
+      }],
+    })),
     lastWaterChangeDate: '2026-07-20T00:00:00.000Z',
     dimensions: { length: '60', width: '40', height: '40' },
     waterType: 'Freshwater',
@@ -30,9 +44,9 @@ const state = {
   riskReminderState: {},
   onboarding: { version: 1, status: 'completed', viewedSpecies: true, aquariumConfigured: true, taskCardDismissed: false },
   updatedAt: new Date().toISOString(),
-};
+});
 
-const seed = async page => {
+const seed = async (page, state = createState()) => {
   await page.addInitScript(saved => {
     localStorage.setItem('aquarium_app_state_v1', JSON.stringify(saved));
     localStorage.setItem('aquaguide_locale', 'en');
@@ -91,6 +105,26 @@ try {
     await assertNoHorizontalOverflow(page);
     await page.close();
   }
+
+  for (const speciesCount of [1, 2, 4]) {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: 'en-US' });
+    await seed(page, createState(speciesCount));
+    await page.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tank Basics' }).waitFor();
+    assert.equal(await page.locator('.aquarium-archive-preview img').count(), speciesCount, `${speciesCount}-species preview must show every seeded species`);
+    const archive = page.locator('.aquarium-archive');
+    await archive.locator('button[aria-expanded="false"]').click();
+    await archive.locator('#aquarium-records-content').waitFor();
+    assert.equal(await archive.locator('.aquarium-archive-preview').count(), 0, 'compact preview must leave the DOM when full livestock content opens');
+    await page.close();
+  }
+
+  const emptyDesktop = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: 'en-US' });
+  await seed(emptyDesktop);
+  await emptyDesktop.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
+  await emptyDesktop.getByRole('button', { name: 'Add Livestock' }).click();
+  await emptyDesktop.getByRole('dialog').waitFor();
+  await emptyDesktop.close();
 
   for (const width of [320, 375, 390, 430]) {
     const phone = await browser.newPage({
