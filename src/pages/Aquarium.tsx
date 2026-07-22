@@ -4613,6 +4613,34 @@ export default function AquariumManager() {
           </div>
         </button>
 
+        {!isTankArchiveExpanded && (
+          <div className="aquarium-archive-preview border-t border-white/70 bg-[#F4F2EC] p-3">
+            {ownedArchivePreviewItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {ownedArchivePreviewItems.map(item => (
+                  <div key={`preview-${item.id}`} className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)] items-center gap-2 rounded-[14px] bg-white/80 p-2">
+                    <span className={`flex h-[42px] w-[42px] items-center justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(item.fish)}`}>
+                      <img src={getSpeciesDisplayImage(item.fish)} alt="" className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] font-black text-ink">{item.name}</span>
+                      <span className="mt-0.5 block text-[9px] font-bold text-ink/45">{isEn ? `${item.quantity} in tank` : `缸内 ${item.quantity} 只/条`}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[150px] flex-col items-center justify-center rounded-[16px] border border-dashed border-ink/10 bg-white/65 px-4 text-center">
+                <BookOpen className="h-6 w-6 text-emerald-700" />
+                <p className="mt-2 max-w-[28ch] text-[10px] font-bold leading-5 text-ink/48">{t('aquarium.tankContentsEmptyHint')}</p>
+                <button type="button" onClick={() => setIsAddFishOpen(true)} className="mt-3 min-h-10 rounded-full bg-emerald-700 px-4 text-[11px] font-black text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+                  {t('aquarium.addLivestock')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {isTankArchiveExpanded && (
           <>
         <div className="relative border-b border-[#E6E2D8] bg-[#E9E8E2] px-3 pb-2">

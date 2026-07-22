@@ -828,7 +828,7 @@ body::-webkit-scrollbar {
   box-shadow: 0 7px 16px rgba(27, 77, 62, 0.14);
 }
 
-.aquarium-onboarding { order: 1; }
+.aquarium-onboarding { order: initial; }
 .aquarium-zone-observe { order: 2; }
 .aquarium-tank { order: 3; }
 .aquarium-status { order: 4; }
@@ -1023,13 +1023,23 @@ body::-webkit-scrollbar {
   align-items: start;
 }
 
+.aquarium-archive-preview {
+  display: none;
+}
+
 .aquarium-workspace-zone .aquarium-tank,
 .aquarium-workspace-zone .aquarium-status,
 .aquarium-workspace-zone .aquarium-archive,
 .aquarium-workspace-zone .aquarium-actions,
 .aquarium-workspace-zone .aquarium-discovery,
 .aquarium-workspace-zone .aquarium-basics {
+  grid-area: auto;
   order: initial;
+}
+
+.aquarium-workspace-zone .aquarium-status > section {
+  height: auto;
+  min-height: 0;
 }
 
 @media (min-width: 768px) {
@@ -1054,6 +1064,10 @@ body::-webkit-scrollbar {
 }
 
 @media (min-width: 1050px) {
+  .aquarium-archive-preview {
+    display: block;
+  }
+
   .aquarium-observe-grid,
   .aquarium-manage-grid {
     grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);

@@ -67,6 +67,20 @@ try {
     assert.equal(await page.locator('.aquarium-advanced-tests').getAttribute('open'), null, 'advanced tests must be collapsed by default');
     assert.equal(await page.locator('.aquarium-workspace-zone > .aquarium-zone-header h2').count(), 3, 'task zones must use semantic headings');
     assert.deepEqual(await page.locator('.aquarium-workspace-zone').evaluateAll(nodes => nodes.map(node => node.classList.contains('aquarium-observe-zone') ? 'observe' : node.classList.contains('aquarium-manage-zone') ? 'manage' : 'learn')), ['observe', 'manage', 'learn']);
+    if (width === 1440) {
+      const [tankBox, statusBox, archiveBox, actionsBox, discoveryBox, basicsBox] = await Promise.all([
+        page.locator('.aquarium-tank').boundingBox(),
+        page.locator('.aquarium-status').boundingBox(),
+        page.locator('.aquarium-archive').boundingBox(),
+        page.locator('.aquarium-actions').boundingBox(),
+        page.locator('.aquarium-discovery').boundingBox(),
+        page.locator('.aquarium-basics').boundingBox(),
+      ]);
+      assert.ok(tankBox && statusBox && tankBox.x < statusBox.x, 'Observe must place tank before today action');
+      assert.ok(archiveBox && actionsBox && archiveBox.x < actionsBox.x, 'Manage must place livestock before quick actions');
+      assert.ok(discoveryBox && basicsBox && discoveryBox.x < basicsBox.x, 'Learn must place discovery before tank basics');
+      assert.ok(archiveBox.height > 190 && archiveBox.height < actionsBox.height + 40, 'desktop livestock module must use its column with a compact preview');
+    }
     if (width === 600) {
       const newAquarium = page.getByRole('button', { name: 'New Aquarium' });
       await assertControlInsideViewport(newAquarium, '600px New Aquarium');
@@ -89,6 +103,9 @@ try {
     await seed(phone);
     await phone.goto(`${baseUrl}/aquarium`, { waitUntil: 'domcontentloaded' });
     await phone.getByRole('heading', { name: 'Tank Basics' }).waitFor();
+    const onboardingBox = await phone.locator('.aquarium-onboarding').boundingBox();
+    const observeBox = await phone.locator('.aquarium-observe-zone').boundingBox();
+    assert.ok(onboardingBox && observeBox && onboardingBox.y + onboardingBox.height < observeBox.y, 'onboarding must stay before Observe on phone');
     const zonePositions = await phone.locator('.aquarium-zone-header').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().top));
     assert.ok(zonePositions[0] < zonePositions[1] && zonePositions[1] < zonePositions[2], 'phone task zones must keep Observe → Manage → Learn order');
     await assertControlInsideViewport(phone.getByText('View all 4 steps', { exact: true }), `${width}px onboarding details`);
