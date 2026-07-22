@@ -542,7 +542,7 @@ const buildCareCard = (topic: CareTopic): CareCard => {
       action: item.action,
     })),
     suitableFor,
-    source: '来自 AquaGuide',
+    source: i18n.language === 'en' ? 'From AquaGuide' : '来自 AquaGuide',
   };
 };
 
@@ -591,8 +591,11 @@ const copyPlainText = async (text: string) => {
 const getCareImage = (topic: CareTopic, isEn = false) => {
   if (!topic.imageUrl) return '';
   let url = topic.imageUrl.startsWith('/') ? topic.imageUrl : `/${topic.imageUrl}`;
-  if (isEn && url.includes('pregnant_fish_breeder_box')) {
-    return '/assets/qa/pregnant_fish_breeder_box.png';
+  if (isEn) {
+    if (url.includes('pregnant_fish_breeder_box')) {
+      return '/assets/qa/pregnant_fish_breeder_box.png';
+    }
+    return url.replace(/_chinese(?:_realistic_fish)?/g, '');
   }
   return url;
 };
@@ -1521,7 +1524,7 @@ export default function CareEncyclopedia() {
         : '按问题浏览常用养护方法。';
 
   const openPreview = (topic: CareTopic) => {
-    const image = getCareImage(topic);
+    const image = getCareImage(topic, isEn);
     if (!image) return;
     setPreviewImages([{ src: image, title: topic.title }]);
     setPreviewIndex(0);
