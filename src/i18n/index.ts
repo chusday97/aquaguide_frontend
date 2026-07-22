@@ -1761,6 +1761,7 @@ void i18n.use(initReactI18next).init({
 applyLocalization(initialLocale);
 
 export const setLocale = async (locale: SupportedLocale) => {
+  await i18n.changeLanguage(locale);
   if (typeof document !== 'undefined') {
     document.documentElement.lang = locale;
   }
