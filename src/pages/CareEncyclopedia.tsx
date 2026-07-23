@@ -177,11 +177,46 @@ const cleanCareSentence = (value: string) => (
     .trim()
 );
 
-const shortActionLabel = (value: string) => {
+const shortActionLabel = (value: string, isEn = false) => {
   const text = stripStepPrefix(value);
   const matched = actionPatterns.find(([pattern]) => pattern.test(text));
-  if (matched) return matched[1];
-  return text.slice(0, 6) || '查看';
+  if (matched) {
+    if (isEn) {
+      const enMap: Record<string, string> = {
+        '打氧': 'Aeration',
+        '停喂': 'Pause Feed',
+        '少量换水': 'Water Change',
+        '检查过滤器': 'Check Filter',
+        '看水温': 'Check Temp',
+        '先隔离': 'Isolate First',
+        '捞出死鱼': 'Remove Dead Fish',
+        '慢过水': 'Slow Acclimate',
+        '清残饵': 'Clean Waste',
+        '观察状态': 'Observe Fish',
+        '当前阶段不建议': 'Caution',
+        '看水面': 'Check Surface',
+        '别乱下药': 'Avoid Meds',
+      };
+      return enMap[matched[1]] || matched[1];
+    }
+    return matched[1];
+  }
+  if (isEn) {
+    // English action label without ugly slicing like "Dechlo" or "Measur"
+    if (/dechlorinat|chlorin/i.test(text)) return 'Dechlorinate';
+    if (/measure|temp/i.test(text)) return 'Measure Temp';
+    if (/siphon|vacuum|gravel|20%|30%/i.test(text)) return 'Water Change';
+    if (/add new|drip|small hose/i.test(text)) return 'Add Water';
+    if (/oxygen|air|aerat/i.test(text)) return 'Increase Oxygen';
+    if (/feed|food|starve|pause/i.test(text)) return 'Pause Feed';
+    if (/isolate|quarantine/i.test(text)) return 'Isolate';
+    if (/filter|pump/i.test(text)) return 'Check Filter';
+
+    const words = text.split(' ');
+    if (words.length > 3) return words.slice(0, 3).join(' ');
+    return text.length > 20 ? `${text.slice(0, 18)}...` : text;
+  }
+  return text.slice(0, 8) || '查看';
 };
 
 const getActionChips = (topic: CareTopic, limit = 3) => {
@@ -191,13 +226,23 @@ const getActionChips = (topic: CareTopic, limit = 3) => {
   return Array.from(new Set(source.map(shortActionLabel).filter(Boolean))).slice(0, limit);
 };
 
-const splitActionText = (value: string) => {
+const splitActionText = (value: string, isEn = false) => {
   const cleaned = cleanCareSentence(value);
   const parts = cleaned.split(/[：:]/);
-  if (parts.length > 1 && parts[0].length <= 10) {
-    return { title: parts[0].trim(), description: parts.slice(1).join('：').trim() };
+  if (parts.length > 1 && parts[0].length <= 25) {
+    const rawTitle = parts[0].trim();
+    let title = rawTitle;
+    if (isEn) {
+      if (/脱氯|除氯/i.test(rawTitle)) title = 'Dechlorinate';
+      else if (/测水温|温差|温度/i.test(rawTitle)) title = 'Measure Temp';
+      else if (/换水|吸便|抽水/i.test(rawTitle)) title = 'Water Change';
+      else if (/加水|进水/i.test(rawTitle)) title = 'Add Water';
+      else if (/打氧|增氧/i.test(rawTitle)) title = 'Aeration';
+      else title = shortActionLabel(rawTitle, true);
+    }
+    return { title, description: parts.slice(1).join(': ').trim() };
   }
-  const title = shortActionLabel(cleaned);
+  const title = shortActionLabel(cleaned, isEn);
   return {
     title,
     description: cleaned === title ? '' : cleaned,
@@ -225,7 +270,7 @@ const getProcedureSteps = (topic: CareTopic): ProcedureStep[] => {
     ];
   }
   return topic.firstSteps.slice(0, 4).map(item => {
-    const action = splitActionText(item);
+    const action = splitActionText(item, isEn);
     return {
       title: action.title,
       description: action.description || cleanCareSentence(item),
@@ -275,7 +320,7 @@ const getProcedureDetails = (topic: CareTopic): ProcedureDetail[] => {
   }
   return [
     ...topic.diagnoseWhen.map(item => ({ title: '后续观察', description: cleanCareSentence(item) })),
-    ...(topic.nextStep ? [{ title: '下一步', description: cleanCareSentence(topic.nextStep) }] : []),
+    ...(topic.nextStep ? [{ title: isEn ? 'Next Step' : '下一步', description: cleanCareSentence(topic.nextStep) }] : []),
   ].filter((item, index, list) => item.description && list.findIndex(other => other.description === item.description) === index);
 };
 
@@ -385,7 +430,7 @@ const buildWarningSigns = (topic: CareTopic): CareGuideView['warningSigns'] => {
 
 const buildCareGuide = (topic: CareTopic): CareGuideView => {
   const todayActions = topic.firstSteps.slice(0, 4).map(item => {
-    const action = splitActionText(item);
+    const action = splitActionText(item, isEn);
     return {
       title: action.title,
       description: action.description || cleanCareSentence(item),
@@ -394,9 +439,9 @@ const buildCareGuide = (topic: CareTopic): CareGuideView => {
   const maintenanceTips = isNewFishAcclimationTopic(topic)
     ? [{ title: '入缸后观察', description: getProcedureObservation(topic) }]
     : [
-      ...topic.observe.map(item => ({ title: '观察重点', description: cleanCareSentence(item) })),
-      ...topic.diagnoseWhen.map(item => ({ title: '后续判断', description: cleanCareSentence(item) })),
-      ...(topic.nextStep ? [{ title: '下一步', description: cleanCareSentence(topic.nextStep) }] : []),
+      ...topic.observe.map(item => ({ title: isEn ? 'Key Observations' : '观察重点', description: cleanCareSentence(item) })),
+      ...topic.diagnoseWhen.map(item => ({ title: isEn ? 'Follow-up Assessment' : '后续判断', description: cleanCareSentence(item) })),
+      ...(topic.nextStep ? [{ title: isEn ? 'Next Step' : '下一步', description: cleanCareSentence(topic.nextStep) }] : []),
     ]
       .filter(item => item.description)
       .filter((item, index, list) => list.findIndex(other => other.description === item.description) === index);
@@ -2782,7 +2827,7 @@ export function CareArticleDetail({
                       <div key={`${item.title}-${item.description}`} className="grid grid-cols-[26px_1fr] gap-2 rounded-[14px] bg-bg/70 p-2.5">
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-[11px] font-black text-white">{index + 1}</span>
                         <span className="min-w-0">
-                          <span className="block text-[12px] font-black text-ink">{item.title}</span>
+                          <span className="block text-[12px] font-black text-ink break-words leading-tight">{item.title}</span>
                           <span className="mt-0.5 line-clamp-2 block text-[10px] font-medium leading-relaxed text-ink/55">{item.description}</span>
                         </span>
                       </div>
@@ -2869,7 +2914,7 @@ export function CareArticleDetail({
                   />
                 )) : careGuide.maintenanceTips.slice(0, 4).map((item, index) => (
                   <div key={`${item.title}-${item.description}`} className="rounded-[15px] bg-white px-3 py-3 shadow-sm">
-                    <div className="text-[12px] font-black text-ink">{index + 1}. {item.title}</div>
+                    <div className="text-[12px] font-black text-ink break-words leading-tight">{index + 1}. {item.title}</div>
                     <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/62">{item.description}</p>
                   </div>
                 ))}
@@ -2906,7 +2951,7 @@ export function CareArticleDetail({
               <div className="mt-3 grid gap-2">
                 {procedureDetails.map(item => (
                   <div key={`${item.title}-${item.description}`} className="rounded-[14px] bg-bg px-3 py-2.5">
-                    <div className="text-[12px] font-black text-ink/76">{item.title}</div>
+                    <div className="text-[12px] font-black text-ink/76 break-words leading-tight">{item.title}</div>
                     <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{item.description}</p>
                   </div>
                 ))}
