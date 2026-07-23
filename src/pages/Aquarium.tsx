@@ -8,93 +8,6 @@ import i18n from '../i18n';
 import { getLocalizedAquariumName, englishTranslations } from '../i18n/localizeData';
 import { autoTranslations } from '../i18n/localizeDataAuto';
 
-const getSpeciesNameLocalized = (species: any, isEn = false): string => {
-  if (!species) return '';
-  if (!isEn) return species.name || '';
-  if (species.scientificName) return species.scientificName;
-  const id = species.id || '';
-  if (autoTranslations[id]?.name) return autoTranslations[id].name;
-  if (englishTranslations[id]?.name) return englishTranslations[id].name;
-  return species.name || '';
-};
-
-const getSubstrateLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'None' : '无';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '河沙': 'River Sand',
-    '溪流砂': 'Stream Sand',
-    '化妆砂': 'Cosmetic Sand',
-    '水草泥': 'Aqua Soil',
-    '黑金沙': 'Black Quartz Sand',
-    '陶粒': 'Ceramsite Substrate',
-    '碎石': 'Gravel Pebbles',
-    '鹅卵石': 'Smooth Cobblestone',
-    '珊瑚砂': 'Coral Sand',
-    '无': 'None',
-  };
-  return map[val] || val;
-};
-
-const getFilterLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'None' : '无';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '瀑布过滤': 'Hang-on-Back Filter',
-    '桶滤': 'Canister Filter',
-    '上滤': 'Top Filter',
-    '海绵过滤': 'Sponge Filter',
-    '无': 'None',
-  };
-  return map[val] || val;
-};
-
-const getLightLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'None' : '无';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '普通灯': 'Standard LED Light',
-    '水草灯': 'Planted Spectrum Light',
-    '海水灯': 'Reef Coral Light',
-    '无': 'None',
-  };
-  return map[val] || val;
-};
-
-const getTemperamentLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'Peaceful' : '温和';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '温和': 'Peaceful',
-    '有领地意识': 'Territorial',
-    '具攻击性': 'Aggressive',
-    '谨慎': 'Cautious',
-  };
-  return map[val] || val;
-};
-
-const getHousingModeLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'Compatible' : '适合混养';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '适合混养': 'Compatible',
-    '谨慎混养': 'Caution Mix',
-    '建议单养': 'Single Specimen',
-  };
-  return map[val] || val;
-};
-
-const getCareLevelLocalized = (val: string | undefined, isEn = false): string => {
-  if (!val) return isEn ? 'Easy' : '简单';
-  if (!isEn) return val;
-  const map: Record<string, string> = {
-    '简单': 'Easy',
-    '中等': 'Moderate',
-    '困难': 'Advanced',
-  };
-  return map[val] || val;
-};
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -196,6 +109,94 @@ import {
 import { appendSpeciesBatch, createSpeciesBatch, getSpeciesBatchContextLabel, withNormalizedSpeciesBatches } from '../services/aquarium/species-batches.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
+
+
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
+
+const getSubstrateLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '河沙': 'River Sand',
+    '溪流砂': 'Stream Sand',
+    '化妆砂': 'Cosmetic Sand',
+    '水草泥': 'Aqua Soil',
+    '黑金沙': 'Black Quartz Sand',
+    '陶粒': 'Ceramsite Substrate',
+    '碎石': 'Gravel Pebbles',
+    '鹅卵石': 'Smooth Cobblestone',
+    '珊瑚砂': 'Coral Sand',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getFilterLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '瀑布过滤': 'Hang-on-Back Filter',
+    '桶滤': 'Canister Filter',
+    '上滤': 'Top Filter',
+    '海绵过滤': 'Sponge Filter',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getLightLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '普通灯': 'Standard LED Light',
+    '水草灯': 'Planted Spectrum Light',
+    '海水灯': 'Reef Coral Light',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getTemperamentLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Peaceful' : '温和';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '温和': 'Peaceful',
+    '有领地意识': 'Territorial',
+    '具攻击性': 'Aggressive',
+    '谨慎': 'Cautious',
+  };
+  return map[val] || val;
+};
+
+const getHousingModeLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Compatible' : '适合混养';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '适合混养': 'Compatible',
+    '谨慎混养': 'Caution Mix',
+    '建议单养': 'Single Specimen',
+  };
+  return map[val] || val;
+};
+
+const getCareLevelLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Easy' : '简单';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '简单': 'Easy',
+    '中等': 'Moderate',
+    '困难': 'Advanced',
+  };
+  return map[val] || val;
+};
 
 function AquariumZoneHeader({ index, title, subtitle, titleId }: { index: number; title: string; subtitle: string; titleId: string }) {
   return (

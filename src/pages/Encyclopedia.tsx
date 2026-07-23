@@ -73,6 +73,131 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const FilterBottomSheet = lazy(() => import('../components/common/FilterBottomSheet').then(module => ({ default: module.FilterBottomSheet })));
 
+
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
+
+const getSubstrateLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '河沙': 'River Sand',
+    '溪流砂': 'Stream Sand',
+    '化妆砂': 'Cosmetic Sand',
+    '水草泥': 'Aqua Soil',
+    '黑金沙': 'Black Quartz Sand',
+    '陶粒': 'Ceramsite Substrate',
+    '碎石': 'Gravel Pebbles',
+    '鹅卵石': 'Smooth Cobblestone',
+    '珊瑚砂': 'Coral Sand',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getFilterLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '瀑布过滤': 'Hang-on-Back Filter',
+    '桶滤': 'Canister Filter',
+    '上滤': 'Top Filter',
+    '海绵过滤': 'Sponge Filter',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getLightLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '普通灯': 'Standard LED Light',
+    '水草灯': 'Planted Spectrum Light',
+    '海水灯': 'Reef Coral Light',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getTemperamentLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Peaceful' : '温和';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '温和': 'Peaceful',
+    '有领地意识': 'Territorial',
+    '具攻击性': 'Aggressive',
+    '谨慎': 'Cautious',
+  };
+  return map[val] || val;
+};
+
+const getHousingModeLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Compatible' : '适合混养';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '适合混养': 'Compatible',
+    '谨慎混养': 'Caution Mix',
+    '建议单养': 'Single Specimen',
+  };
+  return map[val] || val;
+};
+
+const getCareLevelLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Easy' : '简单';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '简单': 'Easy',
+    '中等': 'Moderate',
+    '困难': 'Advanced',
+  };
+  return map[val] || val;
+};
+
+
+const getDifficultyLabelLocalized = (id: string, isEn = false): string => {
+  if (!isEn) {
+    const map: Record<string, string> = { Easy: '新手适宜', Medium: '进阶挑战', Hard: '骨灰级玩家' };
+    return map[id] || id;
+  }
+  const map: Record<string, string> = { Easy: 'Beginner Friendly', Medium: 'Intermediate Challenge', Hard: 'Expert Level' };
+  return map[id] || id;
+};
+
+const getTemperatureBandLocalized = (id: string, isEn = false): string => {
+  if (!isEn) {
+    const map: Record<string, string> = { Coldwater: '冷水', Tropical: '热带', BroadRange: '广温' };
+    return map[id] || id;
+  }
+  const map: Record<string, string> = { Coldwater: 'Coldwater', Tropical: 'Tropical', BroadRange: 'Broad Tolerance' };
+  return map[id] || id;
+};
+
+const getSizeFilterLocalized = (id: string, isEn = false): string => {
+  if (!isEn) {
+    const map: Record<string, string> = { Small: '小型', Medium: '中型', Large: '大型' };
+    return map[id] || id;
+  }
+  const map: Record<string, string> = { Small: 'Small Size', Medium: 'Medium Size', Large: 'Large Size' };
+  return map[id] || id;
+};
+
+const getTemperamentFilterLocalized = (id: string, isEn = false): string => {
+  if (!isEn) {
+    const map: Record<string, string> = { Peaceful: '温和', Territorial: '领地', Aggressive: '凶猛' };
+    return map[id] || id;
+  }
+  const map: Record<string, string> = { Peaceful: 'Peaceful', Territorial: 'Territorial', Aggressive: 'Aggressive' };
+  return map[id] || id;
+};
+
 const difficulties = [
   { id: 'Easy', label: '新手适宜' },
   { id: 'Medium', label: '进阶挑战' },
@@ -1381,7 +1506,7 @@ export default function Encyclopedia() {
               viewMode === item.id ? 'bg-accent text-white shadow-sm' : 'text-ink/55 hover:text-ink'
             }`}
           >
-            {item.label}
+            {isEn ? getDifficultyLabelLocalized(item.id, true) : item.label}
             {item.id === 'compatibility' && calculatorSpeciesIds.length > 0 && (
               <span className={`ml-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] transition-all ${
                 calculatorPulse
@@ -1472,7 +1597,7 @@ export default function Encyclopedia() {
                     }`}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="text-[14px] font-black">{item.label}</span>
+                      <span className="text-[14px] font-black">{isEn ? getDifficultyLabelLocalized(item.id, true) : item.label}</span>
                       {item.id === 'compatibility' && calculatorSpeciesIds.length > 0 && (
                         <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
                           isActive ? 'bg-white/22 text-white' : 'bg-emerald-100 text-emerald-700'
@@ -2320,12 +2445,12 @@ export default function Encyclopedia() {
 
                   <section className="grid grid-cols-3 gap-2">
                     {selectedFit.items
-                      .filter(item => ['温度', '缸体大小', '性情 / 混养'].includes(item.label))
+                      .filter(item => ['温度', '缸体大小', '性情 / 混养'].includes(isEn ? getDifficultyLabelLocalized(item.id, true) : item.label))
                       .slice(0, 3)
                       .map(item => (
-                        <div key={item.label} className="rounded-[14px] border border-border bg-bg/45 p-2">
+                        <div key={isEn ? getDifficultyLabelLocalized(item.id, true) : item.label} className="rounded-[14px] border border-border bg-bg/45 p-2">
                           <div className="text-[11px] font-black text-ink">
-                            {item.label === '缸体大小' ? t('encyclopedia.spaceLabel') : (item.label === '温度' ? t('encyclopedia.tempLabelBasic') : t('encyclopedia.temperamentMixing'))}
+                            {isEn ? getDifficultyLabelLocalized(item.id, true) : item.label === '缸体大小' ? t('encyclopedia.spaceLabel') : (isEn ? getDifficultyLabelLocalized(item.id, true) : item.label === '温度' ? t('encyclopedia.tempLabelBasic') : t('encyclopedia.temperamentMixing'))}
                           </div>
                           {item.status !== 'ok' && (
                             <div className="mt-1 line-clamp-2 text-[9px] font-medium leading-snug text-ink/48">
@@ -2419,8 +2544,8 @@ export default function Encyclopedia() {
                       {selectedFit.risks.length > 0 && (
                         <div className="grid gap-1.5">
                           {selectedFit.risks.slice(0, 3).map(item => (
-                            <div key={item.label} className="rounded-[12px] border border-amber-100 bg-amber-50/60 p-2">
-                              <div className="text-[11px] font-black text-ink">{item.label}</div>
+                            <div key={isEn ? getDifficultyLabelLocalized(item.id, true) : item.label} className="rounded-[12px] border border-amber-100 bg-amber-50/60 p-2">
+                              <div className="text-[11px] font-black text-ink">{isEn ? getDifficultyLabelLocalized(item.id, true) : item.label}</div>
                               <p className="mt-0.5 text-[10px] font-medium leading-relaxed text-ink/60">{item.advice}</p>
                             </div>
                           ))}
