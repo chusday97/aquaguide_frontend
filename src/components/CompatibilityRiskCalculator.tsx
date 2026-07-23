@@ -4,7 +4,96 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fishData } from '../data/fishData';
 import i18n from '../i18n';
-import { getLocalizedAquariumName } from '../i18n/localizeData';
+import { getLocalizedAquariumName, englishTranslations } from '../i18n/localizeData';
+import { autoTranslations } from '../i18n/localizeDataAuto';
+
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
+
+const getSubstrateLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '河沙': 'River Sand',
+    '溪流砂': 'Stream Sand',
+    '化妆砂': 'Cosmetic Sand',
+    '水草泥': 'Aqua Soil',
+    '黑金沙': 'Black Quartz Sand',
+    '陶粒': 'Ceramsite Substrate',
+    '碎石': 'Gravel Pebbles',
+    '鹅卵石': 'Smooth Cobblestone',
+    '珊瑚砂': 'Coral Sand',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getFilterLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '瀑布过滤': 'Hang-on-Back Filter',
+    '桶滤': 'Canister Filter',
+    '上滤': 'Top Filter',
+    '海绵过滤': 'Sponge Filter',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getLightLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '普通灯': 'Standard LED Light',
+    '水草灯': 'Planted Spectrum Light',
+    '海水灯': 'Reef Coral Light',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getTemperamentLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Peaceful' : '温和';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '温和': 'Peaceful',
+    '有领地意识': 'Territorial',
+    '具攻击性': 'Aggressive',
+    '谨慎': 'Cautious',
+  };
+  return map[val] || val;
+};
+
+const getHousingModeLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Compatible' : '适合混养';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '适合混养': 'Compatible',
+    '谨慎混养': 'Caution Mix',
+    '建议单养': 'Single Specimen',
+  };
+  return map[val] || val;
+};
+
+const getCareLevelLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Easy' : '简单';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '简单': 'Easy',
+    '中等': 'Moderate',
+    '困难': 'Advanced',
+  };
+  return map[val] || val;
+};
+
 import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
@@ -873,7 +962,7 @@ export function CompatibilityRiskCalculator({
                       <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-9 max-w-10 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-[12px] font-black text-ink">{fish.name}</span>
+                      <span className="block truncate text-[12px] font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span>
                       <span className="block truncate text-[10px] font-medium text-ink/45">
                         {taxonomy.temperatureBand} · {taxonomy.size} · {fish.housingMode || (isEn ? 'Observe' : '混养待评估')}
                       </span>
@@ -914,7 +1003,7 @@ export function CompatibilityRiskCalculator({
                       />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-[11px] font-black text-ink">{fish.name}</span>
+                      <span className="block truncate text-[11px] font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span>
                       <span className="mt-0.5 block truncate text-[9px] font-bold text-ink/42">
                         {taxonomy.size} · {fish.housingMode || (isEn ? 'Assessable' : '可评估')}
                       </span>
@@ -977,7 +1066,7 @@ export function CompatibilityRiskCalculator({
                     <div className="flex h-9 w-10 shrink-0 items-center justify-center overflow-visible">
                       <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-8 max-w-10 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                     </div>
-                    <div className="truncate text-[11px] font-black text-ink/72">{fish.name}</div>
+                    <div className="truncate text-[11px] font-black text-ink/72">{getSpeciesNameLocalized(fish, isEn)}</div>
                   </div>
                 ))}
               </div>
@@ -1043,7 +1132,7 @@ export function CompatibilityRiskCalculator({
                           <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-red-50">
                             <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                           </span>
-                          <span className="max-w-[92px] truncate text-[11px] font-black text-ink">{fish.name}</span>
+                          <span className="max-w-[92px] truncate text-[11px] font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span>
                           <button
                             type="button"
                             aria-label={`从混养计算移除${fish.name}`}
@@ -1109,7 +1198,7 @@ export function CompatibilityRiskCalculator({
                             <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                           </span>
                           <span className="grid min-w-0">
-                            <span className="max-w-[108px] truncate text-[11px] font-black text-ink">{fish.name}</span>
+                            <span className="max-w-[108px] truncate text-[11px] font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span>
                             <span className="text-[9px] font-bold text-ink/45">{alreadyAdded ? '已加入' : `x${quantity}`}</span>
                           </span>
                           {!alreadyAdded && (
@@ -1131,7 +1220,7 @@ export function CompatibilityRiskCalculator({
                           <span className="flex h-8 w-8 items-center justify-center overflow-visible rounded-full bg-bg">
                             <img src={getDisplayImage(fish)} alt={fish.name} className={`max-h-7 max-w-8 object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                           </span>
-                          <span className="max-w-[108px] truncate text-[11px] font-black text-ink/62">{fish.name}</span>
+                          <span className="max-w-[108px] truncate text-[11px] font-black text-ink/62">{getSpeciesNameLocalized(fish, isEn)}</span>
                         </div>
                       ))}
                     </div>

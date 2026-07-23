@@ -12,6 +12,17 @@ import { englishTranslations } from '../i18n/localizeData';
 import { autoTranslations } from '../i18n/localizeDataAuto';
 import { careTranslations } from '../i18n/localizeCareDataAuto';
 
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
+
+
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 const originalValue = (record: object, key: string) => String((record as Record<string, unknown>)[key] ?? '');
 
@@ -118,8 +129,8 @@ export default function SearchPage() {
           <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {speciesResults.map(fish => (
               <button key={fish.id} id={`search-species-${fish.id}`} type="button" onClick={() => openSearchResult(`/encyclopedia?species=${encodeURIComponent(fish.id)}&source=search`, `search-species-${fish.id}`)} className="flex min-w-0 items-center gap-3 rounded-[22px] border border-white/80 bg-white p-3 text-left shadow-sm hover:border-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[18px] bg-emerald-50"><ResilientImage src={getSpeciesVisualSources(fish).thumbnail} alt={fish.name} className="h-full w-full object-contain p-2" /></span>
-                <span className="min-w-0"><span className="block truncate text-sm font-black text-ink">{fish.name}</span><span className="mt-1 block truncate text-xs font-semibold italic text-ink/42">{fish.scientificName}</span><span className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-emerald-700"><Fish className="h-3.5 w-3.5" />{t('searchPage.openSpecies')}</span></span>
+                <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[18px] bg-emerald-50"><ResilientImage src={getSpeciesVisualSources(fish).thumbnail} alt={getSpeciesNameLocalized(fish, isEn)} className="h-full w-full object-contain p-2" /></span>
+                <span className="min-w-0"><span className="block truncate text-sm font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span><span className="mt-1 block truncate text-xs font-semibold italic text-ink/42">{fish.scientificName}</span><span className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-emerald-700"><Fish className="h-3.5 w-3.5" />{t('searchPage.openSpecies')}</span></span>
               </button>
             ))}
           </div>

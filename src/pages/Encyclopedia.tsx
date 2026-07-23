@@ -1844,7 +1844,7 @@ export default function Encyclopedia() {
                     src={getSpeciesVisualSources(fish).thumbnail}
                     srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`}
                     sizes="(max-width: 430px) 46vw, 220px"
-                    alt={fish.name} 
+                    alt={getSpeciesNameLocalized(fish, isEn)} 
                     data-species-image
                     loading="lazy"
                     decoding="async"
@@ -1855,7 +1855,7 @@ export default function Encyclopedia() {
               <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                 <div className="min-w-0">
                   <h2 className="font-serif text-[16px] italic leading-tight text-ink font-bold whitespace-normal break-words [overflow-wrap:anywhere]">
-                    {fish.name}
+                    {getSpeciesNameLocalized(fish, isEn)}
                   </h2>
                   <p className="mt-0.5 line-clamp-1 text-[12px] font-bold leading-snug text-ink/54">{getSpeciesRole(fish)}</p>
                 </div>
@@ -2230,7 +2230,7 @@ export default function Encyclopedia() {
         }}
         onRecordDeath={(fish, input) => {
           recordSpeciesMemorial({ fishId: fish.id, ...input });
-          setDetailFeedback(`已记录 ${fish.name} 为逝去的生物。`);
+          setDetailFeedback(`已记录 ${getSpeciesNameLocalized(fish, isEn)} 为逝去的生物。`);
         }}
       />
 

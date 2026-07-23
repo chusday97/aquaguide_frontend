@@ -1,3 +1,15 @@
+import { englishTranslations } from '../../i18n/localizeData';
+import { autoTranslations } from '../../i18n/localizeDataAuto';
+
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
 import { Baby, GitBranch, GitMerge, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -227,7 +239,7 @@ export function LivestockBatchCard({ fish, record, reproductiveApplicable, onOpe
             <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[88%] w-[88%] object-contain ${getSpeciesImageClass(fish)}`} />
           </button>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-black text-ink">{fish.name}</h3>
+            <h3 className="truncate text-sm font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</h3>
             <p className="mt-1 text-[11px] font-bold leading-5 text-ink/48">{summarize(record, t)}</p>
             {observation && <p className="mt-1 line-clamp-2 text-[10px] font-semibold leading-4 text-amber-700">{t('livestock.observePrefix')}{observation}</p>}
             <button type="button" onClick={() => { setDraft(record); setOpen(true); }} className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-50 px-3 text-xs font-black text-emerald-800 hover:bg-emerald-100"><Pencil className="h-3.5 w-3.5" />{t('livestock.manageGroups')}</button>
