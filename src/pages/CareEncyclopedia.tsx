@@ -588,6 +588,25 @@ const copyPlainText = async (text: string) => {
   }
 };
 
+
+const getRecommendationReasonLocalized = (reason: string, isEn = false) => {
+  if (!isEn) return reason;
+  const map: Record<string, string> = {
+    '当前鱼缸最近新增了生物，优先确认过水和入缸观察。': 'Recent livestock added to tank. Prioritize acclimation & initial observation.',
+    '当前鱼缸像新缸状态，先看白浊和开缸稳定问题。': 'Tank appears newly established. Check bacterial bloom & cycling stability.',
+    '已记录怀孕、生产或产后恢复状态，优先查看对应观察与护理。': 'Active pregnancy or birth logged. Check breeding & fry care.',
+    '当前鱼缸有繁殖或鱼苗相关生物，建议提前看护理节奏。': 'Breeding or fry species present. Review care routine in advance.',
+    '当前鱼缸设备信息不完整，建议先确认过滤和维护方式。': 'Equipment info incomplete. Verify filtration & maintenance routine.',
+    '当前暂无换水记录，建议建立稳定换水流程。': 'No water change history logged. Establish a regular water change routine.',
+    '作为日常兜底，水质异常排查最常用。': 'Most common daily checklist for water quality troubleshooting.',
+    '还没有当前鱼缸数据，先推荐通用水质排查。': 'No tank data yet. Recommended general water quality check.',
+    '新鱼、新虾入缸前后都适合快速复查。': 'Quick checklist for before and after adding new fish or shrimp.',
+    '基础养护高频内容，适合建立固定流程。': 'Essential high-frequency maintenance guide.',
+    '日常喂食和残饵管理会影响水质稳定。': 'Daily feeding and waste management affect water stability.',
+  };
+  return map[reason] || reason;
+};
+
 const getCareImage = (topic: CareTopic, isEn = false) => {
   if (!topic.imageUrl) return '';
   let url = topic.imageUrl.startsWith('/') ? topic.imageUrl : `/${topic.imageUrl}`;
@@ -916,6 +935,17 @@ const stepDiagnosisIssues: Array<{ id: StepDiagnosisIssue; label: string; descri
   { id: 'plantProblem', label: '水草黄叶 / 烂叶', description: '排查光照、肥力和适应期' },
 ];
 
+const stepDiagnosisIssuesEn: typeof stepDiagnosisIssues = [
+  { id: 'gasping', label: 'Gasping / Rapid Breathing', description: 'Check oxygen, parameters & stress' },
+  { id: 'refusal', label: 'Refusing Food', description: 'Check transport stress, feeding pressure' },
+  { id: 'hiding', label: 'Hiding / Inactive', description: 'Check aggression, temp fluctuations' },
+  { id: 'aggression', label: 'Chasing / Aggression', description: 'Check territory, stocking & cover' },
+  { id: 'death', label: 'Livestock Death', description: 'Check acute toxicity & organic spikes' },
+  { id: 'cloudy', label: 'Cloudy / Smelly Water', description: 'Check filter, residue & bio-cycle' },
+  { id: 'shrimpDeath', label: 'Shrimp Mortality', description: 'Check parameter shifts & molting' },
+  { id: 'plantProblem', label: 'Melting / Yellow Leaves', description: 'Check lighting, nutrients & adaptation' },
+];
+
 const stepDiagnosisQuestions: Array<{
   id: keyof StepDiagnosisAnswers;
   question: string;
@@ -1051,27 +1081,45 @@ const buildStepDiagnosisResult = ({
   answers: StepDiagnosisAnswers;
   issueType: StepDiagnosisIssue;
 }): StepDiagnosisResult => {
+  const isEn = i18n.language === 'en';
   const volumeLiters = getTankVolumeLiters(aquarium);
   const hasShrimp = livestock.some(({ fish }) => /虾|shrimp|neocaridina|caridina/i.test(`${fish.name} ${fish.scientificName}`));
   const hasBetta = livestock.some(({ fish }) => /斗鱼|betta/i.test(`${fish.name} ${fish.scientificName}`));
-  const livestockText = livestock.map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`).join('、') || '暂无活体生物';
+  const livestockText = isEn
+    ? (livestock.map(({ aqFish, fish }) => `${fish.scientificName || fish.name} x${aqFish.quantity || 1}`).join(', ') || 'No livestock')
+    : (livestock.map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`).join('、') || '暂无活体生物');
+  
+  const questionList = isEn ? stepDiagnosisQuestionsEn : stepDiagnosisQuestions;
+  const labelMap = isEn ? answerLabelMapEn : answerLabelMap;
+
   const evidence = [
-    ...(aquarium ? [`当前鱼缸：${aquarium.name}`, `当前水体：约 ${volumeLiters}L · ${aquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${aquarium.targetTemperature || 25}°C`] : ['未选择鱼缸']),
-    `当前活体：${livestockText}`,
-    ...stepDiagnosisQuestions
+    ...(aquarium 
+      ? [
+          isEn ? `Active Tank: ${aquarium.name}` : `当前鱼缸：${aquarium.name}`, 
+          isEn 
+            ? `Water volume: ~${volumeLiters}L · ${aquarium.waterType === 'Saltwater' ? 'Saltwater' : 'Freshwater'} · ${aquarium.targetTemperature || 25}°C`
+            : `当前水体：约 ${volumeLiters}L · ${aquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${aquarium.targetTemperature || 25}°C`
+        ] 
+      : [isEn ? 'No aquarium selected' : '未选择鱼缸']),
+    isEn ? `Current Livestock: ${livestockText}` : `当前活体：${livestockText}`,
+    ...questionList
       .filter(question => answers[question.id])
-      .map(question => `${question.question.replace(/[？?]$/, '')}：${answerLabelMap[answers[question.id] as StepDiagnosisAnswerValue]}`),
+      .map(question => {
+        const qText = question.question.replace(/[？?]$/, '');
+        const aText = labelMap[answers[question.id] as StepDiagnosisAnswerValue];
+        return `${qText}: ${aText}`;
+      }),
   ];
 
   if (!aquarium) {
     return {
       riskLevel: 'unknown',
-      riskLabel: '信息不足',
-      conclusion: '请先选择一个鱼缸，再进行诊断。',
-      causes: ['缺少鱼缸数据'],
-      todayActions: ['先创建或选择当前鱼缸'],
-      avoidActions: ['不要在没有鱼缸数据时判断鱼只状态'],
-      observeItems: ['补充鱼缸容量、水温、过滤和活体记录'],
+      riskLabel: isEn ? 'Insufficient Info' : '信息不足',
+      conclusion: isEn ? 'Please select a tank first to perform diagnosis.' : '请先选择一个鱼缸，再进行诊断。',
+      causes: [isEn ? 'Missing aquarium data' : '缺少鱼缸数据'],
+      todayActions: [isEn ? 'Create or select an active aquarium first' : '先创建或选择当前鱼缸'],
+      avoidActions: [isEn ? 'Do not judge fish condition without tank data' : '不要在没有鱼缸数据时判断鱼只状态'],
+      observeItems: [isEn ? 'Complete tank volume, temperature, filter and livestock records' : '补充鱼缸容量、水温、过滤和活体记录'],
       evidence,
     };
   }
@@ -1079,12 +1127,22 @@ const buildStepDiagnosisResult = ({
   if (livestock.length === 0 && issueType !== 'cloudy' && issueType !== 'plantProblem') {
     return {
       riskLevel: 'unknown',
-      riskLabel: '信息不足',
-      conclusion: '当前鱼缸暂无活体生物，无法诊断鱼只状态。你可以先添加生物，或只查看水质/设备排查建议。',
-      causes: ['当前鱼缸没有真实活体记录'],
-      todayActions: ['先确认鱼缸过滤、温度和水体是否稳定', '如果只是水浑或设备异常，可以继续按水质方向排查'],
-      avoidActions: ['不要套用不存在生物的疾病建议', '不要在没有活体记录时判断鱼病'],
-      observeItems: ['过滤是否正常出水', '水体是否浑浊或有异味', '温度是否稳定'],
+      riskLabel: isEn ? 'Insufficient Info' : '信息不足',
+      conclusion: isEn ? 'No livestock in the current tank to diagnose fish condition. Add livestock first or proceed with water/equipment checks.' : '当前鱼缸暂无活体生物，无法诊断鱼只状态。你可以先添加生物，或只查看水质/设备排查建议。',
+      causes: [isEn ? 'No live records in the current tank' : '当前鱼缸没有真实活体记录'],
+      todayActions: [
+        isEn ? 'Verify filter, temperature, and water stability first' : '先确认鱼缸过滤、温度和水体是否稳定', 
+        isEn ? 'If it is just cloudy water or equipment issues, continue checking water quality' : '如果只是水浑或设备异常，可以继续按水质方向排查'
+      ],
+      avoidActions: [
+        isEn ? 'Do not apply fish disease advice to empty tanks' : '不要套用不存在生物的疾病建议', 
+        isEn ? 'Do not diagnose fish disease without live records' : '不要在没有活体记录时判断鱼病'
+      ],
+      observeItems: [
+        isEn ? 'Is the filter outputting water normally?' : '过滤是否正常出水', 
+        isEn ? 'Is the water cloudy or smelly?' : '水体是否浑浊或有异味', 
+        isEn ? 'Is the temperature stable?' : '温度是否稳定'
+      ],
       evidence,
     };
   }
@@ -1092,20 +1150,30 @@ const buildStepDiagnosisResult = ({
   if (issueType === 'shrimpDeath' && !hasShrimp) {
     return {
       riskLevel: 'unknown',
-      riskLabel: '信息不足',
-      conclusion: '当前鱼缸没有虾类记录，无法生成虾类死亡诊断。',
-      causes: ['当前活体中没有虾类'],
-      todayActions: ['先确认是否选错鱼缸', '如果实际有虾，请先把虾类添加到当前鱼缸记录'],
-      avoidActions: ['不要套用虾类蜕壳或铜药风险判断到没有虾的鱼缸'],
-      observeItems: ['当前真实活体是否完整记录', '水体是否有异味或浑浊'],
+      riskLabel: isEn ? 'Insufficient Info' : '信息不足',
+      conclusion: isEn ? 'No shrimp records in the current tank, cannot generate shrimp death diagnosis.' : '当前鱼缸没有虾类记录，无法生成虾类死亡诊断。',
+      causes: [isEn ? 'No shrimp in current livestock' : '当前活体中没有虾类'],
+      todayActions: [
+        isEn ? 'Confirm if the correct tank was selected' : '先确认是否选错鱼缸', 
+        isEn ? 'If you have shrimp, add them to the tank record first' : '如果实际有虾，请先把虾类添加到当前鱼缸记录'
+      ],
+      avoidActions: [
+        isEn ? 'Do not apply shrimp molting or copper risk judgments to tanks without shrimp' : '不要套用虾类蜕壳或铜药风险判断到没有虾的鱼缸'
+      ],
+      observeItems: [
+        isEn ? 'Are current live records complete?' : '当前真实活体是否完整记录', 
+        isEn ? 'Is the water smelly or cloudy?' : '水体是否有异味或浑浊'
+      ],
       evidence,
     };
   }
 
   const causes: string[] = [];
   const actions: string[] = [];
-  const avoid: string[] = ['不要继续新增生物', '不要盲目下药'];
-  const observe: string[] = ['是否持续浮头', '是否拒食', '是否躲藏', '水体是否变浑或有异味'];
+  const avoid: string[] = isEn ? ['Do not continue adding new livestock', 'Do not add medication blindly'] : ['不要继续新增生物', '不要盲目下药'];
+  const observe: string[] = isEn 
+    ? ['Whether gasping persists', 'Whether refusing food', 'Whether hiding', 'Whether water becomes cloudy or smelly']
+    : ['是否持续浮头', '是否拒食', '是否躲藏', '水体是否变浑或有异味'];
   let riskLevel: StepDiagnosisResult['riskLevel'] = 'low';
   const liftRisk = (next: StepDiagnosisResult['riskLevel']) => {
     if (riskWeight[next] > riskWeight[riskLevel]) riskLevel = next;
@@ -1113,87 +1181,109 @@ const buildStepDiagnosisResult = ({
 
   if (answers.gasping === 'frequent') {
     liftRisk('high');
-    causes.push('疑似缺氧、水质刺激或过滤出水异常');
-    actions.push('立即增加打氧或水面扰动', '检查过滤器是否正常出水', '暂停喂食 12-24 小时');
+    causes.push(isEn ? 'Suspected oxygen depletion, water parameter stress, or filter issue' : '疑似缺氧、水质刺激或过滤出水异常');
+    actions.push(
+      isEn ? 'Increase aeration or surface disturbance immediately' : '立即增加打氧或水面扰动', 
+      isEn ? 'Check if filter is running normally' : '检查过滤器是否正常出水', 
+      isEn ? 'Stop feeding for 12-24 hours' : '暂停喂食 12-24 小时'
+    );
   } else if (answers.gasping === 'occasional') {
     liftRisk('medium');
-    causes.push('可能存在轻微缺氧或短期应激');
-    actions.push('增加水面扰动或短时打氧', '检查过滤器是否正常出水');
+    causes.push(isEn ? 'Possible mild oxygen depletion or temporary stress' : '可能存在轻微缺氧或短期应激');
+    actions.push(
+      isEn ? 'Increase surface agitation or turn on air pump temporarily' : '增加水面扰动或短时打氧', 
+      isEn ? 'Check if filter is running normally' : '检查过滤器是否正常出水'
+    );
   }
 
   if (answers.cloudyWater === 'obvious') {
     liftRisk('medium');
-    causes.push('可能存在水质恶化或有机物污染');
-    actions.push('捞出明显残饵或腐败物', '少量换水 20%-30%');
-    avoid.push('不要同时大量下药和清洗滤材');
-    observe.push('是否出现异味加重或死亡个体');
+    causes.push(isEn ? 'Possible water quality deterioration or organic pollution' : '可能存在水质恶化或有机物污染');
+    actions.push(
+      isEn ? 'Remove visible uneaten food or debris' : '捞出明显残饵或腐败物', 
+      isEn ? 'Perform a 20%-30% partial water change' : '少量换水 20%-30%'
+    );
+    avoid.push(isEn ? 'Do not add heavy medication and clean filter media at the same time' : '不要同时大量下药和清洗滤材');
+    observe.push(isEn ? 'Monitor for worsening odor or mortalities' : '是否出现异味加重或死亡个体');
   } else if (answers.cloudyWater === 'mild') {
     liftRisk('medium');
-    causes.push('可能是残饵、投喂或硝化波动造成的轻微水质变化');
-    actions.push('减少本次投喂量', '清理可见残饵');
+    causes.push(isEn ? 'Mild water changes from uneaten food, feeding or bacteria fluctuations' : '可能是残饵、投喂或硝化波动造成的轻微水质变化');
+    actions.push(
+      isEn ? 'Reduce current feeding portions' : '减少本次投喂量', 
+      isEn ? 'Clean visible uneaten food' : '清理可见残饵'
+    );
   }
 
   if (answers.recentWaterChange === 'large') {
     liftRisk('medium');
-    causes.push('可能存在大比例换水后的水温或水质刺激');
-    actions.push('保持水温稳定，先观察 2-4 小时');
-    avoid.push('不要马上再次大比例换水');
+    causes.push(isEn ? 'Possible temperature or water parameter shock after large water change' : '可能存在大比例换水后的水温或水质刺激');
+    actions.push(isEn ? 'Keep temp stable and observe for 2-4 hours' : '保持水温稳定，先观察 2-4 小时');
+    avoid.push(isEn ? 'Do not perform another large water change immediately' : '不要马上再次大比例换水');
   } else if (answers.recentWaterChange === 'small') {
-    causes.push('近期少量换水通常不是主要风险，但仍需确认温差');
+    causes.push(isEn ? 'Recent small water changes are low risk, check temp differences' : '近期少量换水通常不是主要风险，但仍需确认温差');
   }
 
   if (answers.recentNewLivestock === 'yes') {
     liftRisk('medium');
-    causes.push('可能存在新生物入缸应激或混养压力');
-    actions.push('减少打扰，弱光观察 24 小时');
-    observe.push('新加入个体是否被追咬或拒食');
+    causes.push(isEn ? 'Possible stress from new arrivals or compatibility pressure' : '可能存在新生物入缸应激或混养压力');
+    actions.push(isEn ? 'Reduce disturbance, observe under dim light for 24 hours' : '减少打扰，弱光观察 24 小时');
+    observe.push(isEn ? 'Check if new additions are chased or refusing food' : '新加入个体是否被追咬或拒食');
   }
 
   if (answers.abnormalBehavior === 'obvious') {
     liftRisk('high');
-    causes.push('已经出现明显拒食、躲藏或死亡，需要提高处理优先级');
-    actions.push('记录异常个体，必要时隔离观察');
-    observe.push('是否出现死亡个体');
+    causes.push(isEn ? 'Evident refusal of food, hiding or death. Increase processing priority' : '已经出现明显拒食、躲藏或死亡，需要提高处理优先级');
+    actions.push(isEn ? 'Record abnormal individuals, isolate if necessary' : '记录异常个体，必要时隔离观察');
+    observe.push(isEn ? 'Check for dead individuals' : '是否出现死亡个体');
   } else if (answers.abnormalBehavior === 'mild') {
     liftRisk('medium');
-    causes.push('有轻微行为异常，需要继续观察是否扩大到多条生物');
+    causes.push(isEn ? 'Mild behavioral abnormalities, monitor to see if it spreads' : '有轻微行为异常，需要继续观察是否扩大到多条生物');
   }
 
   if (issueType === 'aggression' || hasBetta) {
-    causes.push(hasBetta ? '当前鱼缸存在斗鱼，需额外关注领地压力' : '可能存在领地或空间竞争');
-    actions.push('增加水草、沉木或石缝作为躲避区');
-    avoid.push('不要频繁追捞所有生物');
+    causes.push(hasBetta 
+      ? (isEn ? 'Betta present in current tank, monitor territorial pressure' : '当前鱼缸存在斗鱼，需额外关注领地压力') 
+      : (isEn ? 'Possible territorial or space competition' : '可能存在领地或空间竞争'));
+    actions.push(isEn ? 'Add plants, driftwood, or rocks for hiding spots' : '增加水草、沉木或石缝作为躲避区');
+    avoid.push(isEn ? 'Do not chase and net livestock repeatedly' : '不要频繁追捞所有生物');
   }
 
   if (hasShrimp && ['shrimpDeath', 'cloudy'].includes(issueType)) {
-    causes.push('当前鱼缸有虾类，虾对水质波动和药物更敏感');
-    avoid.push('不要使用含铜药物或不明除藻剂');
-    observe.push('是否出现连续死亡或蜕壳失败');
+    causes.push(isEn ? 'Shrimp present, they are highly sensitive to parameter shifts and copper' : '当前鱼缸有虾类，虾对水质波动和药物更敏感');
+    avoid.push(isEn ? 'Do not use copper-based medication or algicides' : '不要使用含铜药物或不明除藻剂');
+    observe.push(isEn ? 'Monitor for continuous deaths or failed molts' : '是否出现连续死亡或蜕壳失败');
   }
 
   const unknownCount = Object.values(answers).filter(value => value === 'unknown').length;
   if (unknownCount >= 3) {
     liftRisk('unknown');
-    causes.push('当前回答中不确定信息较多');
-    actions.push('先观察 2-4 小时，并补充水质、换水和喂食信息');
+    causes.push(isEn ? 'High amount of unsure answers in current session' : '当前回答中不确定信息较多');
+    actions.push(isEn ? 'Observe for 2-4 hours, verify water change, feeding, and water stats' : '先观察 2-4 小时，并补充水质、换水和喂食信息');
   }
 
   const resolvedRiskLevel = riskLevel as StepDiagnosisResult['riskLevel'];
-  const riskLabel = resolvedRiskLevel === 'high' ? '高风险' : resolvedRiskLevel === 'medium' ? '中风险' : resolvedRiskLevel === 'unknown' ? '信息不足' : '低风险';
+  const riskLabel = resolvedRiskLevel === 'high' 
+    ? (isEn ? 'High Risk' : '高风险') 
+    : resolvedRiskLevel === 'medium' 
+      ? (isEn ? 'Medium Risk' : '中风险') 
+      : resolvedRiskLevel === 'unknown' 
+        ? (isEn ? 'Insufficient Info' : '信息不足') 
+        : (isEn ? 'Low Risk' : '低风险');
+  
   const conclusion = resolvedRiskLevel === 'high'
-    ? '初步判断：存在较明显风险，优先处理供氧、过滤和水质。'
+    ? (isEn ? 'Conclusion: Significant risk detected. Prioritize oxygenation, filtration, and water parameters.' : '初步判断：存在较明显风险，优先处理供氧、过滤和水质。')
     : resolvedRiskLevel === 'medium'
-      ? '初步判断：可能存在轻微缺氧、水质波动或短期应激。'
+      ? (isEn ? 'Conclusion: Possible mild oxygen depletion, parameter swing, or short-term stress.' : '初步判断：可能存在轻微缺氧、水质波动或短期应激。')
       : resolvedRiskLevel === 'unknown'
-        ? '当前信息不足，建议先补充观察和水质信息。'
-        : '初步判断：暂未发现明显高风险，先轻量观察。';
+        ? (isEn ? 'Insufficient data. Recommended to check temperature, water quality first.' : '当前信息不足，建议先补充观察和水质信息。')
+        : (isEn ? 'Conclusion: No significant high risk detected. Keep observing.' : '初步判断：暂未发现明显高风险，先轻量观察。');
 
   return {
     riskLevel: resolvedRiskLevel,
     riskLabel,
     conclusion,
-    causes: Array.from(new Set(causes.length > 0 ? causes : ['信息不足或轻微环境波动'])).slice(0, 5),
-    todayActions: Array.from(new Set(actions.length > 0 ? actions : ['保持环境稳定', '观察 24 小时', '检查过滤和水温'])).slice(0, 5),
+    causes: Array.from(new Set(causes.length > 0 ? causes : [isEn ? 'Mild environmental fluctuation or info insufficient' : '信息不足或轻微环境波动'])).slice(0, 5),
+    todayActions: Array.from(new Set(actions.length > 0 ? actions : [isEn ? 'Keep environment stable' : '保持环境稳定', isEn ? 'Observe for 24 hours' : '观察 24 小时', isEn ? 'Check filtration and temperature' : '检查过滤和水温'])).slice(0, 5),
     avoidActions: Array.from(new Set(avoid)).slice(0, 5),
     observeItems: Array.from(new Set(observe)).slice(0, 5),
     evidence: Array.from(new Set(evidence)).slice(0, 8),
@@ -1305,8 +1395,10 @@ export default function CareEncyclopedia() {
   ), [appStateSnapshot]);
   const aquariumVolumeLiters = getTankVolumeLiters(activeAquarium);
   const aquariumSummary = activeAquarium
-    ? `${aquariumVolumeLiters || '未设'}L · ${activeAquarium.targetTemperature || 25}°C · ${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · 已有 ${(activeAquarium.fishes || []).length} 种生物`
-    : '还没有当前鱼缸数据，先显示通用养护推荐';
+    ? (isEn
+        ? `${aquariumVolumeLiters || 'Unset'}L · ${activeAquarium.targetTemperature || 25}°C · ${activeAquarium.waterType === 'Saltwater' ? 'Saltwater' : 'Freshwater'} · ${(activeAquarium.fishes || []).length} species stocked`
+        : `${aquariumVolumeLiters || '未设'}L · ${activeAquarium.targetTemperature || 25}°C · ${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · 已有 ${(activeAquarium.fishes || []).length} 种生物`)
+    : (isEn ? 'No tank data loaded. Showing general care recommendations.' : '还没有当前鱼缸数据，先显示通用养护推荐');
   const careRecommendations = useMemo(() => getCareRecommendations(activeAquarium, careTopicsData), [activeAquarium]);
 
   useEffect(() => {
@@ -1502,26 +1594,40 @@ export default function CareEncyclopedia() {
       .slice(0, 3);
   }, [favorites]);
 
-  const currentCareScopeLabel = careViewMode === 'favorites'
-    ? '我的收藏'
-    : activeCategory === '全部'
-      ? '全部问题'
-      : activeCategory;
+  const currentCareScopeLabel = isEn
+    ? (careViewMode === 'favorites' ? 'My Favorites' : activeCategory === '全部' ? 'All Topics' : translateTopicTag(activeCategory, true))
+    : (careViewMode === 'favorites' ? '我的收藏' : activeCategory === '全部' ? '全部问题' : activeCategory);
   const favoriteCount = Object.keys(favorites).length;
-  const careListTitle = searchTerm.trim()
-    ? `搜索结果：“${searchTerm.trim()}” · 共 ${filteredTopics.length} 篇`
-    : careViewMode === 'favorites'
-      ? `我的收藏 · 共 ${filteredTopics.length} 篇`
-      : activeCategory !== '全部'
-        ? `${activeCategory} · 共 ${filteredTopics.length} 篇`
-        : '养护知识';
-  const careListSubtitle = searchTerm.trim()
-    ? '已按标题、简介、分类和关键词筛选。'
-    : careViewMode === 'favorites'
-      ? '这里收纳你常用的养护文章。'
-      : activeCategory !== '全部'
-        ? `当前分类：${activeCategory}`
-        : '按问题浏览常用养护方法。';
+  const careListTitle = isEn
+    ? (searchTerm.trim()
+        ? `Search: "${searchTerm.trim()}" (${filteredTopics.length} items)`
+        : careViewMode === 'favorites'
+          ? `My Favorites (${filteredTopics.length} items)`
+          : activeCategory !== '全部'
+            ? `${translateTopicTag(activeCategory, true)} (${filteredTopics.length} items)`
+            : 'Care Knowledge')
+    : (searchTerm.trim()
+        ? `搜索结果：“${searchTerm.trim()}” · 共 ${filteredTopics.length} 篇`
+        : careViewMode === 'favorites'
+          ? `我的收藏 · 共 ${filteredTopics.length} 篇`
+          : activeCategory !== '全部'
+            ? `${activeCategory} · 共 ${filteredTopics.length} 篇`
+            : '养护知识');
+  const careListSubtitle = isEn
+    ? (searchTerm.trim()
+        ? 'Filtered by title, summary, category, and keywords.'
+        : careViewMode === 'favorites'
+          ? 'Saved articles for quick reference.'
+          : activeCategory !== '全部'
+            ? `Current category: ${translateTopicTag(activeCategory, true)}`
+            : 'Browse care guides by topic.')
+    : (searchTerm.trim()
+        ? '已按标题、简介、分类和关键词筛选。'
+        : careViewMode === 'favorites'
+          ? '这里收纳你常用的养护文章。'
+          : activeCategory !== '全部'
+            ? `当前分类：${activeCategory}`
+            : '按问题浏览常用养护方法。');
 
   const openPreview = (topic: CareTopic) => {
     const image = getCareImage(topic, isEn);
@@ -1647,7 +1753,7 @@ export default function CareEncyclopedia() {
                     <CareImage topic={topic} className="h-full w-full" />
                   </span>
                   <span className="min-w-0 py-1 text-left">
-                    <span className="block text-[10px] font-black text-emerald-700">{reason}</span>
+                    <span className="block text-[10px] font-black text-emerald-700">{getRecommendationReasonLocalized(reason, isEn)}</span>
                     <span className="mt-1 line-clamp-2 block text-[15px] font-black leading-tight text-ink md:text-[17px]">{getDisplayTitle(topic)}</span>
                     <span className="mt-1 line-clamp-2 block text-[11px] font-medium leading-relaxed text-ink/58 md:text-[12px]">{topic.summary}</span>
                     <span className="mt-1.5 inline-flex items-center text-[11px] font-black text-emerald-700">
@@ -2170,11 +2276,14 @@ function StepDiagnosisPanel({ topic, onReturnToGuide }: { topic: CareTopic; onRe
 
   const targetAquarium = aquariums.find(item => item.id === diagnosisState.targetAquariumId) || aquariums[0] || null;
   const currentLivestock = useMemo(() => getCurrentLivestock(targetAquarium), [targetAquarium]);
-  const diagnosisQuestions = useMemo(() => getStepDiagnosisQuestions(diagnosisState.issueType), [diagnosisState.issueType]);
+  const diagnosisQuestions = useMemo(() => getStepDiagnosisQuestions(diagnosisState.issueType, isEn), [diagnosisState.issueType, isEn]);
   const answeredCount = diagnosisQuestions.filter(question => diagnosisState.answers[question.id]).length;
   const isResultStep = diagnosisState.currentStep === 2 && Boolean(diagnosisState.result);
   const isReady = diagnosisQuestions.length > 0 && answeredCount === diagnosisQuestions.length;
-  const issueMeta = stepDiagnosisIssues.find(item => item.id === diagnosisState.issueType) || stepDiagnosisIssues[0];
+  
+  const issuesList = isEn ? stepDiagnosisIssuesEn : stepDiagnosisIssues;
+  const issueMeta = issuesList.find(item => item.id === diagnosisState.issueType) || issuesList[0];
+  
   const visualResultModel = useMemo(() => {
     if (!diagnosisState.result) return null;
     const result = diagnosisState.result;
@@ -2193,15 +2302,17 @@ function StepDiagnosisPanel({ topic, onReturnToGuide }: { topic: CareTopic; onRe
       matchedRules: [],
       matchedArticles: [],
     };
+    
+    const labelMap = isEn ? answerLabelMapEn : answerLabelMap;
     return buildDiagnosisVisualResult({
       result: output,
-      answers: Object.fromEntries(Object.entries(diagnosisState.answers).map(([key, value]) => [key, value ? answerLabelMap[value] : ''])),
+      answers: Object.fromEntries(Object.entries(diagnosisState.answers).map(([key, value]) => [key, value ? labelMap[value] : ''])),
       aquariumName: targetAquarium?.name || (isEn ? 'Active Tank' : '当前鱼缸'),
       livestock: currentLivestock.map(item => item.fish),
       primaryActionLabel: isEn ? 'Back to Guide' : '返回操作指引',
       primaryActionType: 'section',
     });
-  }, [currentLivestock, diagnosisState.answers, diagnosisState.result, targetAquarium?.name]);
+  }, [currentLivestock, diagnosisState.answers, diagnosisState.result, targetAquarium?.name, isEn]);
 
   const updateAnswer = (key: keyof StepDiagnosisAnswers, value: StepDiagnosisAnswerValue) => {
     setDiagnosisState(prev => ({
@@ -2257,7 +2368,7 @@ function StepDiagnosisPanel({ topic, onReturnToGuide }: { topic: CareTopic; onRe
           <div className="rounded-[18px] bg-white p-3 shadow-sm">
             <div className="text-[12px] font-black text-ink">{isEn ? 'What do you mainly observe?' : '你主要看到了什么？'}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {stepDiagnosisIssues.map(issue => {
+              {issuesList.map(issue => {
                 const selected = diagnosisState.issueType === issue.id;
                 return (
                   <button
@@ -2349,6 +2460,22 @@ function StepDiagnosisPanel({ topic, onReturnToGuide }: { topic: CareTopic; onRe
   );
 }
 
+const translateTopicTag = (tag: string, isEn = false) => {
+  if (!isEn) return tag;
+  const map: Record<string, string> = {
+    '新鱼入缸': 'New Stock',
+    '水质异常': 'Water Quality',
+    '鱼只异常': 'Fish Abnormalities',
+    '鱼苗养护': 'Fry Care',
+    '设备维护': 'Equipment',
+    '混养冲突': 'Compatibility',
+    '草缸配置': 'Planted Tank',
+    '日常养护': 'Routine Care',
+    '繁殖护理': 'Breeding Care',
+  };
+  return map[tag] || tag;
+};
+
 export function CareArticleDetail({
   topic,
   scrollRef,
@@ -2420,20 +2547,20 @@ export function CareArticleDetail({
           : (isEn ? 'Set Reminder' : '设置提醒');
   const secondaryLabel: string | null = meta.guideType === 'procedure'
     ? isNewFishAcclimationTopic(topic)
-      ? '设置 3 天观察提醒'
+      ? (isEn ? 'Set 3-Day Observe Reminder' : '设置 3 天观察提醒')
       : isWaterChangeGuide
-        ? '设置下次换水提醒'
+        ? (isEn ? 'Set Next Water Change' : '设置下次换水提醒')
         : null
     : meta.guideType === 'careChecklist'
-      ? isFryGuide ? '设置开口喂食提醒' : '设置阶段护理提醒'
+      ? isFryGuide ? (isEn ? 'Set First Feed Reminder' : '设置开口喂食提醒') : (isEn ? 'Set Phase Care Reminder' : '设置阶段护理提醒')
       : null;
 
   const getScheduledFor = (label = '') => {
     const scheduled = new Date();
-    const hourMatch = label.match(/(\d+)\s*小时/);
-    const dayMatch = label.match(/(\d+)\s*天后/);
+    const hourMatch = label.match(/(\d+)\s*(?:小时|hour)/i);
+    const dayMatch = label.match(/(\d+)\s*(?:天后|day)/i);
     if (hourMatch) scheduled.setHours(scheduled.getHours() + Number(hourMatch[1]));
-    else if (/明天/.test(label)) scheduled.setDate(scheduled.getDate() + 1);
+    else if (/明天|tomorrow/i.test(label)) scheduled.setDate(scheduled.getDate() + 1);
     else scheduled.setDate(scheduled.getDate() + Number(dayMatch?.[1] || 1));
     return scheduled.toISOString();
   };
@@ -2448,9 +2575,9 @@ export function CareArticleDetail({
         aquariumId: activeAquarium?.id,
         label,
       });
-      setCtaFeedback(successMessage || '提醒已设置');
+      setCtaFeedback(successMessage || (isEn ? 'Reminder scheduled' : '提醒已设置'));
     } catch (error) {
-      setCtaFeedback(error instanceof Error ? error.message : '提醒保存失败');
+      setCtaFeedback(error instanceof Error ? error.message : (isEn ? 'Failed to save reminder' : '提醒保存失败'));
     }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
@@ -2458,34 +2585,44 @@ export function CareArticleDetail({
   const openReminderSheet = (kind: 'newFish' | 'waterChange' | 'stage' | 'fry' | 'general') => {
     const config = {
       newFish: {
-        title: '设置新鱼观察提醒',
-        options: ['24 小时后检查状态', '3 天后确认是否稳定', '7 天后结束隔离观察'],
+        title: isEn ? 'Set New Fish Observe Reminder' : '设置新鱼观察提醒',
+        options: isEn 
+          ? ['Check condition after 24h', 'Confirm stability after 3 days', 'End quarantine after 7 days']
+          : ['24 小时后检查状态', '3 天后确认是否稳定', '7 天后结束隔离观察'],
         storageType: 'new_fish_observation',
-        successMessage: '新鱼观察提醒已设置',
+        successMessage: isEn ? 'New fish reminder scheduled' : '新鱼观察提醒已设置',
       },
       waterChange: {
-        title: '设置下次换水提醒',
-        options: ['3 天后提醒复查水质', '7 天后提醒小换水', '14 天后提醒例行换水'],
+        title: isEn ? 'Set Next Water Change Reminder' : '设置下次换水提醒',
+        options: isEn
+          ? ['Remind to check water after 3 days', 'Remind small water change after 7 days', 'Remind routine water change after 14 days']
+          : ['3 天后提醒复查水质', '7 天后提醒小换水', '14 天后提醒例行换水'],
         storageType: 'water_change',
-        successMessage: '下次换水提醒已设置',
+        successMessage: isEn ? 'Water change reminder scheduled' : '下次换水提醒已设置',
       },
       stage: {
-        title: '设置阶段护理提醒',
-        options: ['明天提醒复查状态', '3 天后提醒观察变化', '7 天后提醒进入下一阶段'],
+        title: isEn ? 'Set Phase Care Reminder' : '设置阶段护理提醒',
+        options: isEn
+          ? ['Remind to check state tomorrow', 'Remind to observe after 3 days', 'Remind next phase after 7 days']
+          : ['明天提醒复查状态', '3 天后提醒观察变化', '7 天后提醒进入下一阶段'],
         storageType: 'stage_care',
-        successMessage: '阶段护理提醒已设置',
+        successMessage: isEn ? 'Phase care reminder scheduled' : '阶段护理提醒已设置',
       },
       fry: {
-        title: '设置开口喂食提醒',
-        options: ['12 小时后观察卵黄囊', '24 小时后少量试喂', '3 天后复查鱼苗状态'],
+        title: isEn ? 'Set First Feed Reminder' : '设置开口喂食提醒',
+        options: isEn
+          ? ['Check yolk sac after 12h', 'Try small feeding after 24h', 'Check fry status after 3 days']
+          : ['12 小时后观察卵黄囊', '24 小时后少量试喂', '3 天后复查鱼苗状态'],
         storageType: 'fry_feeding',
-        successMessage: '开口喂食提醒已设置',
+        successMessage: isEn ? 'First feed reminder scheduled' : '开口喂食提醒已设置',
       },
       general: {
-        title: '设置养护提醒',
-        options: ['明天提醒复查', '3 天后提醒观察', '7 天后提醒复盘'],
+        title: isEn ? 'Set Care Reminder' : '设置养护提醒',
+        options: isEn
+          ? ['Remind to review tomorrow', 'Remind to observe after 3 days', 'Remind to review after 7 days']
+          : ['明天提醒复查', '3 天后提醒观察', '7 天后提醒复盘'],
         storageType: 'care',
-        successMessage: '养护提醒已设置',
+        successMessage: isEn ? 'Care reminder scheduled' : '养护提醒已设置',
       },
     }[kind];
     setReminderSheet(config);
@@ -2507,9 +2644,13 @@ export function CareArticleDetail({
     try {
       setCompletedCareOperations(next);
       setIsOperationCompleted(true);
-      setCtaFeedback(label.includes('换水') ? '已记录本次换水' : '已标记完成');
+      setCtaFeedback(
+        label.includes('换水') || label.toLowerCase().includes('water')
+          ? (isEn ? 'Water change logged' : '已记录本次换水') 
+          : (isEn ? 'Marked completed' : '已标记完成')
+      );
     } catch (error) {
-      setCtaFeedback(error instanceof Error ? error.message : '操作记录保存失败');
+      setCtaFeedback(error instanceof Error ? error.message : (isEn ? 'Failed to save operation record' : '操作记录保存失败'));
     }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
@@ -2528,9 +2669,9 @@ export function CareArticleDetail({
     try {
       setSavedCareChecklists(next);
       setIsChecklistSaved(true);
-      setCtaFeedback('护理清单已保存');
+      setCtaFeedback(isEn ? 'Care checklist saved' : '护理清单已保存');
     } catch (error) {
-      setCtaFeedback(error instanceof Error ? error.message : '护理清单保存失败');
+      setCtaFeedback(error instanceof Error ? error.message : (isEn ? 'Failed to save care checklist' : '护理清单保存失败'));
     }
     window.setTimeout(() => setCtaFeedback(''), 1800);
   };
@@ -2554,7 +2695,7 @@ export function CareArticleDetail({
     }
     if (meta.guideType === 'knowledge' && relatedTopics.length > 0) {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-      setCtaFeedback('相关内容在下方');
+      setCtaFeedback(isEn ? 'Related content below' : '相关内容在下方');
       window.setTimeout(() => setCtaFeedback(''), 1800);
       return;
     }
@@ -2564,10 +2705,16 @@ export function CareArticleDetail({
   const handlePrimaryCta = (source: HTMLElement) => {
     if (meta.guideType === 'procedure') {
       if (isNewFishAcclimationTopic(topic)) {
-        markOperationCompleted('已完成过水');
+        markOperationCompleted(isEn ? 'Acclimation completed' : '已完成过水');
         return;
       }
-      markOperationCompleted(isWaterChangeGuide ? '已完成换水' : isFilterGuide ? '已完成清洗' : '已完成操作');
+      markOperationCompleted(
+        isWaterChangeGuide 
+          ? (isEn ? 'Water change completed' : '已完成换水') 
+          : isFilterGuide 
+            ? (isEn ? 'Cleaning completed' : '已完成清洗') 
+            : (isEn ? 'Operation completed' : '已完成操作')
+      );
       return;
     }
     if (meta.guideType === 'careChecklist') {
@@ -2583,7 +2730,7 @@ export function CareArticleDetail({
     }
     if (meta.guideType === 'knowledge') {
       if (!favorite) onToggleFavorite(source);
-      setCtaFeedback(favorite ? '这篇指南已收录到水族册' : '已收录到水族册');
+      setCtaFeedback(favorite ? (isEn ? 'Saved to library' : '这篇指南已收录到水族册') : (isEn ? 'Saved to library' : '已收录到水族册'));
       return;
     }
     openReminderSheet('general');
@@ -2594,14 +2741,14 @@ export function CareArticleDetail({
       <div ref={scrollRef} className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="mx-auto max-w-[850px] p-4 pb-8 pt-7">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] md:items-stretch">
-            <button type="button" onClick={onPreview} data-care-detail-hero className="block min-w-0" aria-label={`查看${topic.title}大图`}>
+            <button type="button" onClick={onPreview} data-care-detail-hero className="block min-w-0" aria-label={isEn ? `View large image of ${topic.title}` : `查看${topic.title}大图`}>
               <CareImage topic={topic} className="h-[270px] w-full rounded-[20px] md:h-full md:min-h-[430px]" showPreviewHint />
             </button>
 
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-1.5">
                 {meta.topicTags.map(tag => (
-                  <span key={tag} className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/50">{tag}</span>
+                  <span key={tag} className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/50">{translateTopicTag(tag, isEn)}</span>
                 ))}
                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${urgencyTagClassMap[meta.urgencyTag]}`}>
                   {getUrgencyTagLabel(meta.urgencyTag, isEn)}
@@ -2624,12 +2771,12 @@ export function CareArticleDetail({
                 <div className="text-[12px] font-black text-emerald-800">{t('aquarium.keyConclusion')}</div>
                 <p className="mt-1 text-[14px] font-black leading-relaxed text-ink">{careGuide.summary}</p>
                 <p className="mt-2 text-[12px] font-medium leading-relaxed text-emerald-900/62">
-                  适用场景：{careGuide.suitableFor}
+                  {isEn ? 'Suitable for: ' : '适用场景：'}{careGuide.suitableFor}
                 </p>
               </section>
               {meta.guideType === 'procedure' && procedureSteps.length > 0 && (
                 <section className="mt-3 rounded-[18px] border border-border bg-white p-3 shadow-sm">
-                  <div className="text-[12px] font-black text-ink">现在按顺序做</div>
+                  <div className="text-[12px] font-black text-ink">{isEn ? 'Follow Steps Sequentially' : '现在按顺序做'}</div>
                   <div className="mt-2 grid gap-2">
                     {procedureSteps.slice(0, 3).map((item, index) => (
                       <div key={`${item.title}-${item.description}`} className="grid grid-cols-[26px_1fr] gap-2 rounded-[14px] bg-bg/70 p-2.5">
@@ -2654,9 +2801,9 @@ export function CareArticleDetail({
               />
             ) : (
               <section className="mt-4 rounded-[20px] border border-emerald-100 bg-[#F8FCF8] p-4">
-                <div className="text-[15px] font-black text-ink">准备开始问题自查</div>
+                <div className="text-[15px] font-black text-ink">{isEn ? 'Prepare for Self-Check' : '准备开始问题自查'}</div>
                 <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/55">
-                  系统会根据“{getDisplayTitle(topic)}”追问 2–4 个相关问题，再给出处理建议。
+                  {isEn ? `System will ask 2–4 questions based on "${getDisplayTitle(topic)}" before providing action recommendations.` : `系统会根据“${getDisplayTitle(topic)}”追问 2–4 个相关问题，再给出处理建议。`}
                 </p>
               </section>
             )
@@ -2687,7 +2834,7 @@ export function CareArticleDetail({
               )}
 
               <div className="mt-3 rounded-[16px] border border-sky-100 bg-sky-50/65 px-3 py-3">
-                <div className="text-[12px] font-black text-sky-800">入缸后观察</div>
+                <div className="text-[12px] font-black text-sky-800">{isEn ? 'Observe After Release' : '入缸后观察'}</div>
                 <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/62">{getProcedureObservation(topic)}</p>
               </div>
             </section>
@@ -2730,11 +2877,11 @@ export function CareArticleDetail({
 
               {careGuide.avoidActions.length > 0 && meta.guideType !== 'knowledge' && (
                 <div className="mt-3 rounded-[16px] bg-yellow-50 px-3 py-3">
-                  <div className="text-[12px] font-black text-yellow-800">操作提醒</div>
+                  <div className="text-[12px] font-black text-yellow-800">{isEn ? 'Operation Reminders' : '操作提醒'}</div>
                   <div className="mt-2 grid gap-1.5">
                     {careGuide.avoidActions.slice(0, 3).map(item => (
                       <div key={item.title} className="text-[11px] font-medium leading-relaxed text-yellow-900/78">
-                        <span className="font-black">{item.title}：</span>{item.reason}
+                        <span className="font-black">{item.title}{isEn ? ': ' : '：'}</span>{item.reason}
                       </div>
                     ))}
                   </div>
@@ -2750,9 +2897,9 @@ export function CareArticleDetail({
               className="flex w-full items-center justify-between gap-3 text-left"
               aria-expanded={isDetailExpanded}
             >
-              <span className="text-[13px] font-black text-ink">详细说明与判断依据</span>
+              <span className="text-[13px] font-black text-ink">{isEn ? 'Detailed Description & Analysis' : '详细说明与判断依据'}</span>
               <span className="rounded-full bg-bg px-2.5 py-1 text-[10px] font-black text-ink/50">
-                {isDetailExpanded ? '收起' : '展开'}
+                {isDetailExpanded ? (isEn ? 'Collapse' : '收起') : (isEn ? 'Expand' : '展开')}
               </span>
             </button>
             {isDetailExpanded && (
@@ -2769,7 +2916,7 @@ export function CareArticleDetail({
 
           {relatedTopics.length > 0 && (
             <section className="mt-3 rounded-[18px] border border-border bg-white p-3">
-              <div className="mb-2 text-[12px] font-black text-ink">{meta.guideType === 'procedure' || meta.guideType === 'diagnosis' ? '下一步可以看' : '你可能还需要'}</div>
+              <div className="mb-2 text-[12px] font-black text-ink">{meta.guideType === 'procedure' || meta.guideType === 'diagnosis' ? (isEn ? 'Next Steps' : '下一步可以看') : (isEn ? 'You May Also Need' : '你可能还需要')}</div>
               <div className="grid gap-1.5">
                 {relatedTopics.map(item => (
                   <button
@@ -2780,7 +2927,7 @@ export function CareArticleDetail({
                   >
                     <span className="min-w-0">
                       <span className="line-clamp-1 block text-[12px] font-black text-ink/76">{getDisplayTitle(item)}</span>
-                      <span className="mt-0.5 line-clamp-1 block text-[10px] font-medium text-ink/45">{item.summary || '查看这个问题的处理方法。'}</span>
+                      <span className="mt-0.5 line-clamp-1 block text-[10px] font-medium text-ink/45">{item.summary || (isEn ? 'View action guide for this issue.' : '查看这个问题的处理方法。')}</span>
                     </span>
                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ink/35" />
                   </button>
@@ -2814,13 +2961,13 @@ export function CareArticleDetail({
           {ctaFeedback && (
             <div className="flex items-center justify-center gap-2 rounded-[18px] bg-emerald-50 px-3 py-1.5 text-center text-[11px] font-black text-emerald-700 md:col-span-2">
               <span>{ctaFeedback}</span>
-              {ctaFeedback.includes('水族册') && onOpenCollection && (
+              {(ctaFeedback.includes('水族册') || ctaFeedback.includes('collection') || ctaFeedback.toLowerCase().includes('saved')) && onOpenCollection && (
                 <button
                   type="button"
                   onClick={onOpenCollection}
                   className="shrink-0 rounded-full bg-white px-2.5 py-1 text-emerald-800 shadow-sm ring-1 ring-emerald-100"
                 >
-                  去水族册查看
+                  {isEn ? 'Go to Collection' : '去水族册查看'}
                 </button>
               )}
             </div>
@@ -2834,9 +2981,9 @@ export function CareArticleDetail({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[17px] font-black text-ink">{reminderSheet.title}</div>
-                <div className="mt-1 text-[11px] font-bold text-ink/45">选择一个提醒节点，确认后会保存到本地养护提醒。</div>
+                <div className="mt-1 text-[11px] font-bold text-ink/45">{isEn ? 'Select a reminder node, which will be saved to local care reminders upon confirmation.' : '选择一个提醒节点，确认后会保存到本地养护提醒。'}</div>
               </div>
-              <button type="button" onClick={() => setReminderSheet(null)} className="rounded-full bg-bg px-2 py-1 text-[11px] font-black text-ink/45">关闭</button>
+              <button type="button" onClick={() => setReminderSheet(null)} className="rounded-full bg-bg px-2 py-1 text-[11px] font-black text-ink/45">{isEn ? 'Close' : '关闭'}</button>
             </div>
             <div className="mt-3 grid gap-2">
               {reminderSheet.options.map(option => (
@@ -2853,7 +3000,7 @@ export function CareArticleDetail({
               ))}
             </div>
             <Button type="button" onClick={confirmReminder} className="mt-4 h-11 w-full rounded-full bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800">
-              确认设置
+              {isEn ? 'Confirm Settings' : '确认设置'}
             </Button>
           </div>
         </div>
