@@ -35,7 +35,7 @@ export function SelectableOptionCard({
     >
       {visual && <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white">{visual}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-black leading-tight">{label}</span>
+        <span className="block text-[12px] font-black leading-snug break-words hyphens-auto">{label}</span>
         {description && <span className="mt-0.5 block line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/48">{description}</span>}
       </span>
       <Marker className={`h-4 w-4 shrink-0 ${selected ? 'text-emerald-600' : mode === 'multi' ? 'text-ink/20' : 'text-ink/16'}`} />
