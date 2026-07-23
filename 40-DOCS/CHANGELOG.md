@@ -10,7 +10,7 @@
 
 - **鱼缸首页全量英文本地化与图片鲁棒加载修复**：全面本地化 `Aquarium.tsx` 内底砂、造景、水草、设备、建缸模板、风险提示 Modal、换水日历、日常观察及 AI 建缸助手等 970 余处硬编码中文与标签；将 HTML `<img>` 标签升级为包含加载占位与异常自动重试机制的 `ResilientImage`，消除了图片缺失与掉图问题，确保在英文模式下全站按钮、弹窗与图片均保持 100% 纯净对应的英文呈现。
 - **养护百科全量汉化与中英双语切换修复**：全面本地化 `CareEncyclopedia.tsx` 内硬编码的中文规则、步骤、判断依据、卡片标签及自查诊断结论引擎；修复英文视角下 `shortActionLabel` 误将英文单词截断为 `Dechlo`、`Measur`、`Add ne` 的 Bug，补全步骤标题中漏译的 `后续判断` 等中文标签；补充生成 5 张英文养护图的 480w / 960w 高清 WebP 响应式图片；优化全站按钮与卡片标签在移动端的 CSS 文字换行控制 (`break-words hyphens-auto leading-snug`)，防止英文长词溢出或裁切。
-- **全站动态数据字段（物种名/底砂/过滤/灯光/性情）全量英译**：深入排查并修正了组件直接渲染 JavaScript 动态对象属性（`fish.name`、`activeAquarium.substrate`、`equipment.filter`、`equipment.light`、`fish.temperament`、`fish.housingMode`）导致英文视角下依然打印中文的隐蔽问题；新增 `getSpeciesNameLocalized`、`getSubstrateLocalized`、`getFilterLocalized`、`getLightLocalized`、`getTemperamentLocalized` 等动态转换函数，全面覆盖了 `Aquarium.tsx`、`Encyclopedia.tsx`、`CompatibilityRiskCalculator.tsx`、`LivestockBatchCard.tsx`、`Home.tsx` 及 `Search.tsx` 等页面中物种列表、活体卡片、鱼缸设备预览与混养拟合的中文字符串输出，真正实现了全站 100% 纯净英文界面。
+- **图鉴页面崩溃修复与全量筛选词条英译**：修正了 `Encyclopedia.tsx` 页面因函数作用域置顶顺序缺失导致 `ReferenceError: getSpeciesNameLocalized is not defined` 引起的页面打不开问题；补全了难度（`Beginner Friendly` / `Intermediate Challenge` / `Expert Level`）、水温区间（`Coldwater` / `Tropical` / `Broad Tolerance`）、体型（`Small Size` / `Medium Size` / `Large Size`）及性情（`Peaceful` / `Territorial` / `Aggressive`）等筛选抽屉词条的英文映射，恢复了图鉴页面的正常渲染与全量英文呈现。
 - **养护卡片与长图图片汉化/英文版图全量对齐**：使用 `generate_image` 为过水、水质恶化、鱼苗照料、安全换水、死鱼处理等 5 张核心养护说明图片分别生成了对应的高清纯英文版图（去中文字符、純英文字體），并在切换语言时自动替换图例与图片预览，确保分享卡片和步骤配图在英文状态下实现 100% 全量纯英文显示。
 - **六角恐龙 (*Ambystoma mexicanum*) 极值分类修正**：修正 `species.service.ts` 中的大类正则映射，将六角恐龙由误分类 of “淡水特色鱼”修正为正确的“两栖 / 爬行类”。
 
