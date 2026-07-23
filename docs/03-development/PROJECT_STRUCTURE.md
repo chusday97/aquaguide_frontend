@@ -4,12 +4,20 @@
 
 ```text
 aquaguide_frontend/
+├── apps/
+│   ├── api/              Express TypeScript 业务 API
+│   └── web/              Web workspace 入口；源码暂保留根目录
+├── packages/
+│   ├── contracts/        API DTO、错误和校验契约
+│   └── domain-rules/     跨端确定性规则边界
+├── supabase/
+│   └── migrations/       表、索引、RLS、触发器与 Storage
 ├── docs/
 │   ├── 01-definition/     产品定位、用户故事、竞品与现状
 │   ├── 02-design/         信息架构、交互、设计、数据与 AI
 │   ├── 03-development/    架构、结构、运行、QA 与日志入口
 │   └── 04-planning/       产品卡点和路线图
-├── server/                Express AI BFF
+├── server/                可复用的旧 AI 路由与静态预览宿主
 ├── scripts/               契约、规则、审计与核心路径脚本
 ├── src/
 │   ├── components/        导航、详情表面、任务流程与 3D
@@ -32,7 +40,11 @@ aquaguide_frontend/
 | 我的鱼缸 | `/aquarium` | 鱼缸、维护、巡检与缸内生物 |
 | 图鉴 | `/encyclopedia` | 物种发现、种草与 Mini 混养 |
 | 养护百科 | `/care` | 问题搜索、建议和文章 |
-| 我的水族册 | `/collection` | 种草、收藏、纪念与成就 |
+| 我的水族册首页 | `/collection` | 四个模块入口与数量摘要 |
+| 种草图鉴 | `/collection/wishlist` | 收藏物种列表与详情 |
+| 养护收藏 | `/collection/care` | 收藏文章列表与详情 |
+| 生命纪念 | `/collection/memorial` | 离缸记录与复盘 |
+| 成就勋章 | `/collection/achievements` | 自动追溯进度与下一步 |
 | 3D 实验 | `/3d-demo` | 内部 3D 验证，不进入正式导航 |
 
 ## 2. 领域模块
@@ -40,17 +52,19 @@ aquaguide_frontend/
 | 领域 | 主要职责 | 事实来源 |
 |---|---|---|
 | 鱼缸状态 | 当前鱼缸、参数、生物与记录 | `appStateService` 与相关类型 |
+| Repository | 游客本地兼容与登录云端 API 访问 | `src/services/repository` |
 | 物种 | 检索、展示图、饲养资料 | `species.service` 与静态数据 |
 | 混养 | 物种组合与鱼缸环境判断 | 统一混养规则引擎 |
 | 诊断 | 每日巡检、本地定级与记录 | diagnosis 服务与类型 |
 | 收藏 | 种草和养护收藏 | favorites 服务与兼容键 |
 | 水族册 | 聚合收藏、纪念与成就 | collection / achievement 服务 |
-| AI | 任务契约、客户端与 BFF | `src/lib`、`server/`、`CONTRACT.md` |
+| API | 业务路由、鉴权、错误与 Supabase 访问 | `apps/api`、`packages/contracts` |
+| AI | 任务契约、客户端与兼容 BFF | `src/lib`、`server/`、`CONTRACT.md` |
 | 3D | 场景、交互与纹理 | `ThreeAquarium` 及素材解析服务 |
 
 ## 3. 依赖方向
 
-推荐方向为：页面/组件 → 共享业务动作 → 服务层 → 存储或规则引擎。组件不应直接新增 localStorage 写入。AI 输出必须回到契约过滤层，不能绕过本地规则直接写入业务结论。
+目标方向为：页面/组件 → Repository → Express API → Supabase。`LocalAquaGuideRepository` 继续兼容现有存储键，`ApiAquaGuideRepository` 只能调用 `/api/v1`；业务 API 已覆盖鱼缸、缸内生物、设备、环境配置、巡检、收藏、纪念与养护记录。AI 输出必须回到契约过滤层，不能绕过确定性规则写入结论。
 
 ## 4. 文档维护
 
@@ -58,4 +72,3 @@ aquaguide_frontend/
 - 数据类型与 AI 契约变化时，先更新 `CONTRACT.md` 与类型定义，再更新设计文档。
 - 产品状态变化时更新 `docs/01-definition/CURRENT_PRODUCT_STATUS.md` 和 `PROGRESS.md`。
 - 功能完成后在 `40-DOCS/CHANGELOG.md` 的 `[Unreleased]` 下登记。
-

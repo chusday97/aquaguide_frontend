@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Loader2, Search
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fishData } from '../data/fishData';
+import i18n from '../i18n';
+import { getLocalizedAquariumName } from '../i18n/localizeData';
 import type { Aquarium, Fish } from '../types';
 import { getCareTaxonomyPath, getLifeType } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
@@ -10,6 +12,8 @@ import { getAquariumVolumeLiters, getCurrentLivestockForAquarium } from '../lib/
 import { evaluateTankCompatibility, getTankCompatibilityAddPolicy, type TankCompatibilityResult, type TankCompatibilityStatus } from '../lib/tankCompatibilityEngine';
 import { evaluateCompatibilityDecision, type CompatibilityItem } from '../modules/knowledge/compatibilityKnowledge';
 import type { CompatibilityDecision } from '../modules/knowledge/knowledge.types';
+import { VisualResultCard } from './visual-results/VisualResultCard';
+import { buildCompatibilityVisualResult } from './visual-results/visual-result.adapters';
 
 const getDisplayImage = getSpeciesDisplayImage;
 
@@ -54,15 +58,15 @@ const getCompatibilityWaterType = (fish: Fish) => {
 const getRiskMeta = (level: CompatibilityRiskLevel) => {
   switch (level) {
     case 'not_recommended':
-      return { label: '不建议加入', tone: 'border-red-200 bg-red-50 text-red-600', iconTone: 'bg-red-500 text-white' };
+      return { label: i18n.language === 'en' ? 'Avoid' : '不建议加入', tone: 'border-red-200 bg-red-50 text-red-600', iconTone: 'bg-red-500 text-white' };
     case 'caution':
-      return { label: '谨慎尝试', tone: 'border-amber-200 bg-amber-50 text-amber-700', iconTone: 'bg-amber-500 text-white' };
+      return { label: i18n.language === 'en' ? 'Caution' : '谨慎尝试', tone: 'border-amber-200 bg-amber-50 text-amber-700', iconTone: 'bg-amber-500 text-white' };
     case 'insufficient_data':
-      return { label: '信息不足', tone: 'border-sky-200 bg-sky-50 text-sky-700', iconTone: 'bg-sky-500 text-white' };
+      return { label: i18n.language === 'en' ? 'Info Needed' : '信息不足', tone: 'border-sky-200 bg-sky-50 text-sky-700', iconTone: 'bg-sky-500 text-white' };
     case 'compatible':
-      return { label: '适合', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', iconTone: 'bg-emerald-500 text-white' };
+      return { label: i18n.language === 'en' ? 'Compatible' : '适合', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', iconTone: 'bg-emerald-500 text-white' };
     default:
-      return { label: '待添加', tone: 'border-border bg-white text-ink/55', iconTone: 'bg-bg text-ink/45' };
+      return { label: i18n.language === 'en' ? 'Pending' : '待添加', tone: 'border-border bg-white text-ink/55', iconTone: 'bg-bg text-ink/45' };
   }
 };
 
@@ -112,7 +116,7 @@ const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | nul
 
   return {
     level,
-    reasons: level === 'compatible' ? ['当前组合未发现明显水质、体型或性情冲突。'] : reasons.slice(0, 5),
+    reasons: level === 'compatible' ? [(i18n.language === 'en' ? 'No water quality, size or temperament conflicts found.' : '当前组合未发现明显水质、体型或性情冲突。')] : reasons.slice(0, 5),
     nextSteps: ruleResult.suggestions,
     ruleResult,
     decision,
@@ -121,48 +125,53 @@ const calculateRisk = (items: SelectedCompatibilityItem[], tank?: Aquarium | nul
 
 const getRiskConclusion = (level: CompatibilityRiskLevel, species: Fish[], reasons: string[]) => {
   if (species.length < 2) return '';
-  if (level === 'not_recommended') return '当前条件下不建议加入，先移除阻断风险。';
-  if (level === 'insufficient_data') return '信息不足，暂时无法可靠判断。';
-  if (level === 'caution') return '可以尝试，但需要调整环境并观察。';
-  return '可以尝试混养，入缸后继续观察。';
+  const isEn = i18n.language === 'en';
+    if (level === 'not_recommended') return isEn ? 'Not recommended under current conditions; remove risks first.' : '当前条件下不建议加入，先移除阻断风险。';
+  if (level === 'insufficient_data') return isEn ? 'Insufficient data; cannot provide a reliable evaluation.' : '信息不足，暂时无法可靠判断。';
+  if (level === 'caution') return isEn ? 'Can attempt, but environment adjustments and close observation needed.' : '可以尝试，但需要调整环境并观察。';
+  return isEn ? 'Compatible for co-habitation; keep observing after stocking.' : '可以尝试混养，入缸后继续观察。';
 };
 
 const getResultNextAction = (level: CompatibilityRiskLevel) => {
-  if (level === 'not_recommended') return '先移除下方红色对象，再重新计算组合。';
-  if (level === 'insufficient_data') return '先补充缺失信息，再决定是否加入。';
-  if (level === 'caution') return '只保留下方勾选对象，添加前确认提醒。';
-  if (level === 'compatible') return '可添加下方勾选的新生物到当前鱼缸。';
-  return '先选择至少 2 种生物。';
+  const isEn = i18n.language === 'en';
+    if (level === 'not_recommended') return isEn ? 'Remove red-flagged species below and recalculate.' : '先移除下方红色对象，再重新计算组合。';
+  if (level === 'insufficient_data') return isEn ? 'Fill in missing details before deciding to add.' : '先补充缺失信息，再决定是否加入。';
+  if (level === 'caution') return isEn ? 'Keep only checked species; review warnings before adding.' : '只保留下方勾选对象，添加前确认提醒。';
+  if (level === 'compatible') return isEn ? 'Checked species are compatible to be added to this tank.' : '可添加下方勾选的新生物到当前鱼缸。';
+  return isEn ? 'Select at least 2 species first.' : '先选择至少 2 种生物。';
 };
 
 const getDecisionStepTitle = (level: CompatibilityRiskLevel) => {
-  if (level === 'not_recommended') return '先处理阻断对象';
-  if (level === 'insufficient_data') return '先补充判断信息';
-  if (level === 'caution') return '确认后少量加入';
-  if (level === 'compatible') return '确认加入对象';
-  return '先选择生物';
+  const isEn = i18n.language === 'en';
+    if (level === 'not_recommended') return isEn ? 'Handle Red Flags First' : '先处理阻断对象';
+  if (level === 'insufficient_data') return isEn ? 'Fill in Details First' : '先补充判断信息';
+  if (level === 'caution') return isEn ? 'Confirm and Add Slowly' : '确认后少量加入';
+  if (level === 'compatible') return isEn ? 'Confirm Add Species' : '确认加入对象';
+  return isEn ? 'Select Species First' : '先选择生物';
 };
 
 const getPrimaryResultButtonLabel = (level: CompatibilityRiskLevel) => {
-  if (level === 'compatible') return '添加选中的新生物';
-  if (level === 'not_recommended') return '重新选择组合';
-  if (level === 'insufficient_data') return '补充鱼缸信息';
-  if (level === 'caution') return '确认风险后添加';
-  return '继续选择';
+  const isEn = i18n.language === 'en';
+    if (level === 'compatible') return isEn ? 'Add Selected Species' : '添加选中的新生物';
+  if (level === 'not_recommended') return isEn ? 'Reselect Stocking Mix' : '重新选择组合';
+  if (level === 'insufficient_data') return isEn ? 'Update Tank Details' : '补充鱼缸信息';
+  if (level === 'caution') return isEn ? 'Acknowledge & Add' : '确认风险后添加';
+  return isEn ? 'Continue Selecting' : '继续选择';
 };
 
 const getConflictTags = (species: Fish[], reasons: string[]) => {
   if (species.length < 2) return [];
   const tags = new Set<string>();
-  if (species.some(item => item.housingMode === '建议单养')) tags.add('建议单养');
-  if (new Set(species.map(getCompatibilityWaterType)).size > 1) tags.add('水体不兼容');
+  const isEn = i18n.language === 'en';
+  if (species.some(item => item.housingMode === '建议单养')) tags.add(isEn ? 'Single Species Recommended' : '建议单养');
+  if (new Set(species.map(getCompatibilityWaterType)).size > 1) tags.add(isEn ? 'Incompatible Water Type' : '水体不兼容');
   reasons.forEach(reason => {
-    if (reason.includes('水温')) tags.add('水温');
+    if (reason.includes('水温')) tags.add(isEn ? 'Water Temp' : '水温');
     if (reason.includes('pH')) tags.add('pH');
-    if (reason.includes('体型') || reason.includes('大型') || reason.includes('小型')) tags.add('体型');
-    if (reason.includes('性情') || reason.includes('攻击') || reason.includes('领地')) tags.add('性情');
-    if (reason.includes('吞食') || reason.includes('捕食')) tags.add('捕食风险');
-    if (reason.includes('空间') || reason.includes('躲避')) tags.add('空间需求');
+    if (reason.includes('体型') || reason.includes('大型') || reason.includes('小型')) tags.add(isEn ? 'Size' : '体型');
+    if (reason.includes('性情') || reason.includes('攻击') || reason.includes('领地')) tags.add(isEn ? 'Temperament' : '性情');
+    if (reason.includes('吞食') || reason.includes('捕食')) tags.add(isEn ? 'Predation Risk' : '捕食风险');
+    if (reason.includes('空间') || reason.includes('躲避')) tags.add(isEn ? 'Space Demand' : '空间需求');
   });
   return Array.from(tags).slice(0, 6);
 };
@@ -496,10 +505,13 @@ const getCommonPreviewSpecies = () => (
     .filter((fish): fish is Fish => Boolean(fish))
 );
 
-const getAquariumLabel = (aquarium?: Aquarium | null) => {
-  if (!aquarium) return '未选择鱼缸';
+const getAquariumLabel = (aquarium?: Aquarium | null, isEn = false) => {
+  if (!aquarium) return isEn ? 'No Tank Selected' : '未选择鱼缸';
   const volume = getAquariumVolumeLiters(aquarium);
-  return `${aquarium.name || '我的鱼缸'} · ${volume ? `${volume}L` : '容量待补充'} · ${aquarium.waterType === 'Saltwater' ? '海水' : '淡水'}`;
+  const name = getLocalizedAquariumName(aquarium.name, isEn);
+  const typeLabel = aquarium.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水');
+  const capLabel = volume ? `${volume}L` : (isEn ? 'Pending Capacity' : '容量待补充');
+  return `${name} · ${capLabel} · ${typeLabel}`;
 };
 
 export function CompatibilityRiskCalculator({
@@ -513,12 +525,12 @@ export function CompatibilityRiskCalculator({
   aquariums = [],
   activeAquariumId = '',
 }: CompatibilityRiskCalculatorProps = {}) {
+  const isEn = i18n.language === 'en';
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSpeciesIds, setInternalSpeciesIds] = useState<string[]>([]);
   const [resultFeedback, setResultFeedback] = useState('');
   const [activeModal, setActiveModal] = useState<ResultModal>(null);
   const [selectedAquariumId, setSelectedAquariumId] = useState(activeAquariumId || aquariums[0]?.id || '');
-  const [showRuleDetails, setShowRuleDetails] = useState(false);
   const activeSpeciesIds = speciesIds ?? internalSpeciesIds;
   const [selectedQuantitiesById, setSelectedQuantitiesById] = useState<Record<string, number>>({});
   const [selectedAddableSpeciesIds, setSelectedAddableSpeciesIds] = useState<string[]>([]);
@@ -564,6 +576,17 @@ export function CompatibilityRiskCalculator({
   const conflictTags = getConflictTags(selectedSpecies, result.reasons);
   const mainConflicts = useMemo(() => getMainConflicts(result, selectedSpecies), [result, selectedSpecies]);
   const actionHints = useMemo(() => getActionHints(result, selectedSpecies), [result, selectedSpecies]);
+  const visualResultModel = useMemo(() => {
+    if (!result.decision) return null;
+    return {
+      ...buildCompatibilityVisualResult({
+        decision: result.decision,
+        species: selectedSpecies,
+        primaryActionLabel: getPrimaryResultButtonLabel(result.level),
+      }),
+      currentAction: getResultNextAction(result.level),
+    };
+  }, [result.decision, result.level, selectedSpecies]);
   const speciesActionGroups = useMemo(
     () => getSpeciesActionGroups(result, selectedSpecies, currentQuantityBySpeciesId),
     [currentQuantityBySpeciesId, result, selectedSpecies]
@@ -591,20 +614,6 @@ export function CompatibilityRiskCalculator({
   useEffect(() => {
     setAddedSpeciesIds(prev => prev.filter(id => activeSpeciesIds.includes(id)));
   }, [activeSpeciesIds]);
-  const ruleEvidence = useMemo(() => {
-    const ruleResult = result.ruleResult;
-    if (!ruleResult) return null;
-    return {
-      passed: ruleResult.passedRules.slice(0, 3),
-      risks: [...ruleResult.blockingRules, ...ruleResult.warningRules].slice(0, 3),
-      missing: ruleResult.missingData.slice(0, 3),
-    };
-  }, [result.ruleResult]);
-  const ruleEvidenceSummary = ruleEvidence ? [
-    ruleEvidence.risks.length > 0 ? `${ruleEvidence.risks.length} 项风险` : '',
-    ruleEvidence.missing.length > 0 ? `${ruleEvidence.missing.length} 项缺失` : '',
-    ruleEvidence.passed.length > 0 ? `${ruleEvidence.passed.length} 项通过` : '',
-  ].filter(Boolean).join(' · ') : '';
   const commonPreviewSpecies = useMemo(() => {
     if (selectedAquarium) {
       const ownedIds = new Set(currentLivestock.map(item => item.species?.id).filter(Boolean));
@@ -690,8 +699,8 @@ export function CompatibilityRiskCalculator({
       return next;
     });
     setResultFeedback(livestockIds.length > 0
-      ? `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`
-      : '当前鱼缸暂无可导入的活体生物。');
+      ? (isEn ? `Imported ${livestockIds.length} species from ${getAquariumLabel(selectedAquarium, isEn)}.` : `已导入 ${getAquariumLabel(selectedAquarium)} 的 ${livestockIds.length} 种活体。`)
+      : (isEn ? 'No species available to import from active tank.' : '当前鱼缸暂无可导入的活体生物。'));
   };
   const performAddToAquarium = async () => {
     if (isAddingToAquarium) return;
@@ -750,10 +759,6 @@ export function CompatibilityRiskCalculator({
     }
     if (resultAddPolicy === 'allow') void performAddToAquarium();
   };
-  const handleSecondaryResultAction = () => {
-    if (result.level !== 'caution') return;
-    setActiveModal('conflictDetail');
-  };
   const clearSelectedSpecies = () => {
     updateSpeciesIds([]);
     setSelectedQuantitiesById({});
@@ -781,12 +786,6 @@ export function CompatibilityRiskCalculator({
           {statusLabel}
         </span>
         </div>
-        {selectedCount >= 2 && (
-          <div className="mt-3 rounded-[14px] bg-white/75 px-3 py-2">
-            <div className="text-[10px] font-black opacity-60">结论 · 当前已选 {selectedCount} 种</div>
-            <p className="mt-1 text-[14px] font-black leading-snug text-ink">{riskConclusion}</p>
-          </div>
-        )}
       </div>
 
       <div className="grid gap-3 p-3 pb-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)] lg:items-start">
@@ -810,13 +809,13 @@ export function CompatibilityRiskCalculator({
                   className="min-w-0 flex-1 bg-transparent text-[12px] font-black outline-none"
                 >
                   {aquariums.map(aquarium => (
-                    <option key={aquarium.id} value={aquarium.id}>{getAquariumLabel(aquarium)}</option>
+                    <option key={aquarium.id} value={aquarium.id}>{getAquariumLabel(aquarium, isEn)}</option>
                   ))}
                 </select>
                 <ChevronDown className="h-3.5 w-3.5 text-ink/35" />
               </label>
             ) : (
-              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/58">{getAquariumLabel(selectedAquarium)}</div>
+              <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/58">{getAquariumLabel(selectedAquarium, isEn)}</div>
             )}
             {currentLivestock.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -874,10 +873,10 @@ export function CompatibilityRiskCalculator({
                     <span className="min-w-0">
                       <span className="block truncate text-[12px] font-black text-ink">{fish.name}</span>
                       <span className="block truncate text-[10px] font-medium text-ink/45">
-                        {taxonomy.temperatureBand} · {taxonomy.size} · {fish.housingMode || '混养待评估'}
+                        {taxonomy.temperatureBand} · {taxonomy.size} · {fish.housingMode || (isEn ? 'Observe' : '混养待评估')}
                       </span>
                     </span>
-                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">加入</span>
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">{isEn ? 'Add' : '加入'}</span>
                   </button>
                 );
               })}
@@ -887,8 +886,8 @@ export function CompatibilityRiskCalculator({
           <div className="mt-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
-                <div className="text-[12px] font-black text-ink">推荐候选</div>
-                <div className="mt-0.5 text-[10px] font-bold text-ink/42">根据当前鱼缸和缸内生物筛选，点卡片加入计算。</div>
+                <div className="text-[12px] font-black text-ink">{isEn ? 'Recommended Candidates' : '推荐候选'}</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/42">{isEn ? 'Filtered for your tank. Tap card to calculate.' : '根据当前鱼缸和缸内生物筛选，点卡片加入计算。'}</div>
               </div>
             </div>
             <div className="relative -mx-3 min-w-0 max-w-[calc(100vw-32px)] overflow-hidden">
@@ -902,7 +901,7 @@ export function CompatibilityRiskCalculator({
                     type="button"
                     onClick={() => addSpecies(fish)}
                     className="grid w-[82px] shrink-0 snap-start gap-1 rounded-[14px] border border-transparent bg-transparent p-1 text-left transition-colors hover:border-emerald-100 hover:bg-emerald-50/40"
-                    aria-label={`加入${fish.name}到混养计算`}
+                    aria-label={isEn ? `Add ${fish.name} to calculation` : `加入${fish.name}到混养计算`}
                   >
                     <span className={`flex h-[58px] w-full items-center justify-center overflow-visible rounded-[13px] ${getSpeciesImageSurfaceClass(fish)}`}>
                       <img
@@ -915,7 +914,7 @@ export function CompatibilityRiskCalculator({
                     <span className="min-w-0">
                       <span className="block truncate text-[11px] font-black text-ink">{fish.name}</span>
                       <span className="mt-0.5 block truncate text-[9px] font-bold text-ink/42">
-                        {taxonomy.size} · {fish.housingMode || '可评估'}
+                        {taxonomy.size} · {fish.housingMode || (isEn ? 'Assessable' : '可评估')}
                       </span>
                     </span>
                   </button>
@@ -992,19 +991,14 @@ export function CompatibilityRiskCalculator({
             <div className="text-[11px] font-bold text-ink/45">添加 2 种以上生物后显示风险结果。</div>
           ) : (
             <>
-              <div className="mb-3 rounded-[14px] bg-white/82 px-3 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-black opacity-60">系统结论</div>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-black ${meta.tone}`}>
-                    {meta.label}
-                  </span>
-                </div>
-                <p className="mt-2 text-[15px] font-black leading-snug text-ink">{riskConclusion}</p>
-                <div className="mt-3 rounded-[12px] bg-bg/80 px-3 py-2">
-                  <div className="text-[10px] font-black text-ink/45">下一步</div>
-                  <p className="mt-0.5 text-[12px] font-black leading-relaxed text-ink/72">{getResultNextAction(result.level)}</p>
-                </div>
-              </div>
+              {visualResultModel && (
+                <VisualResultCard
+                  model={visualResultModel}
+                  onPrimaryAction={handlePrimaryResultAction}
+                  actionPending={isAddingToAquarium}
+                  className="mb-3"
+                />
+              )}
 
               {resultFeedback && (
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
@@ -1015,7 +1009,7 @@ export function CompatibilityRiskCalculator({
                       onClick={onViewAquarium}
                       className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-emerald-800 shadow-sm"
                     >
-                      查看我的鱼缸
+                      {isEn ? 'View My Aquarium' : '查看我的鱼缸'}
                     </button>
                   )}
                 </div>
@@ -1149,89 +1143,6 @@ export function CompatibilityRiskCalculator({
                 )}
               </div>
 
-              {ruleEvidence && (
-                <div className="mb-3 overflow-hidden rounded-[14px] border border-white/70 bg-white/45 backdrop-blur">
-                  <button
-                    type="button"
-                    onClick={() => setShowRuleDetails(prev => !prev)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
-                  >
-                    <span>
-                      <span className="block text-[11px] font-black text-ink/55">具体判定依据</span>
-                      <span className="block text-[9px] font-bold text-ink/35">{ruleEvidenceSummary || '半透明折叠显示，AI 仅负责解释'}</span>
-                    </span>
-                    <ChevronDown className={`h-4 w-4 text-ink/35 transition-transform ${showRuleDetails ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {showRuleDetails && (
-                    <div className="grid gap-2 border-t border-white/70 px-3 pb-3 pt-2">
-                      {ruleEvidence.risks.length > 0 && (
-                        <div className="rounded-[12px] border border-amber-100 bg-amber-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-amber-700">风险 / 阻断规则</div>
-                          <div className="mt-1 space-y-1">
-                            {ruleEvidence.risks.map(rule => (
-                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {ruleEvidence.missing.length > 0 && (
-                        <div className="rounded-[12px] border border-sky-100 bg-sky-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-sky-700">缺失信息</div>
-                          <div className="mt-1 space-y-1">
-                            {ruleEvidence.missing.map(rule => (
-                              <p key={`${rule.code}-${rule.title}`} className="line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{rule.evidence || rule.title}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {ruleEvidence.passed.length > 0 && (
-                        <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/60 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-emerald-700">已通过规则</div>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {ruleEvidence.passed.map(rule => (
-                              <span key={`${rule.code}-${rule.title}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{rule.title}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {(mainConflicts.length > 0 ? mainConflicts : []).map(conflict => (
-                        <div key={conflict.key} className="rounded-[12px] border border-border/70 bg-white/75 px-2.5 py-2">
-                          <div className="text-[11px] font-black text-ink">{conflict.pair}</div>
-                          <p className="mt-1 line-clamp-2 text-[10px] font-medium leading-relaxed text-ink/62">{conflict.reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-3 grid gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrimaryResultAction}
-                  disabled={isAddingToAquarium}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
-                    result.level === 'not_recommended'
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : result.level === 'caution' || result.level === 'insufficient_data'
-                        ? 'bg-amber-600 text-white hover:bg-amber-700'
-                        : 'bg-emerald-700 text-white hover:bg-emerald-800'
-                  } disabled:bg-ink/20 disabled:text-ink/40`}
-                >
-                  {isAddingToAquarium && <Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" />}
-                  {getPrimaryResultButtonLabel(result.level)}
-                </button>
-                {result.level === 'caution' && (
-                  <button
-                    type="button"
-                    onClick={handleSecondaryResultAction}
-                    className="justify-self-center rounded-full bg-white/45 px-3 py-1.5 text-center text-[10px] font-black text-ink/45 transition-colors hover:bg-white hover:text-ink/70"
-                  >
-                    查看完整混养提醒
-                  </button>
-                )}
-              </div>
             </>
           )}
         </section>

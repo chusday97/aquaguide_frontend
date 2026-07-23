@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import i18n from '../i18n';
 import {
   BookHeart,
   BookOpenCheck,
@@ -17,14 +18,16 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AdaptiveDetailContent } from '../components/common/AdaptiveDetailContent';
+import { ResilientImage } from '../components/common/ResilientImage';
 import type { PreviewImage } from '../components/common/ImagePreviewModal';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
 import { useToast } from '../components/common/ToastProvider';
 import { useWorkspaceNavigation } from '../components/layout/WorkspaceNavigationProvider';
 import { careTopicsData, type CareTopic } from '../data/careTopicsData';
 import { fishData } from '../data/fishData';
-import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
-import type { AchievementId, CollectionTab, MemorialItem } from '../modules/collection/collection.types';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass, getSpeciesVisualSources } from '../lib/speciesVisual';
+import { getCareVisualSources } from '../lib/careVisual';
+import type { AchievementId, CollectionModule, MemorialItem } from '../modules/collection/collection.types';
 import { getCollectionSnapshot, subscribeToCollection } from '../services/collection/collection.service';
 import { setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
 import { getCareFavorites, getSpeciesFavoriteIds, setSpeciesFavoriteIds, toggleCareFavorite } from '../services/favorites/favorites.service';
@@ -36,12 +39,7 @@ import { CareArticleDetail } from './CareEncyclopedia';
 const ImagePreviewModal = lazy(() => import('../components/common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const PAGE_SIZE = 20;
 
-const tabConfig: Array<{ id: CollectionTab; label: string; shortLabel: string; icon: typeof Heart }> = [
-  { id: 'wishlist', label: '种草图鉴', shortLabel: '种草', icon: Heart },
-  { id: 'care', label: '养护收藏', shortLabel: '养护', icon: BookOpenCheck },
-  { id: 'memorial', label: '生命纪念', shortLabel: '纪念', icon: Skull },
-  { id: 'achievements', label: '成就勋章', shortLabel: '勋章', icon: Medal },
-];
+// tabConfig is defined dynamically inside the component to support i18n
 
 const achievementIcons: Record<AchievementId, typeof Medal> = {
   first_aquarium: Waves,
@@ -54,21 +52,23 @@ const achievementIcons: Record<AchievementId, typeof Medal> = {
   life_reflection: Medal,
 };
 
-const normalizeTab = (value: string | null): CollectionTab => (
-  tabConfig.some(item => item.id === value) ? value as CollectionTab : 'wishlist'
-);
-
 const formatMemorialDate = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('zh-CN');
 };
 
-export default function Collection() {
+export default function Collection({ module }: { module: CollectionModule }) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { captureContext, restoreContext } = useWorkspaceNavigation();
-  const activeTab = normalizeTab(searchParams.get('tab'));
+  const isEn = i18n.language === 'en';
+  const tabConfig = useMemo(() => [
+    { id: 'wishlist' as CollectionModule, label: isEn ? 'Species Wishlist' : '种草图鉴', shortLabel: isEn ? 'Wishlist' : '种草', icon: Heart },
+    { id: 'care' as CollectionModule, label: isEn ? 'Care Collection' : '养护收藏', shortLabel: isEn ? 'Care' : '养护', icon: BookOpenCheck },
+    { id: 'memorial' as CollectionModule, label: isEn ? 'Life Memorial' : '生命纪念', shortLabel: isEn ? 'Memorial' : '纪念', icon: Skull },
+    { id: 'achievements' as CollectionModule, label: isEn ? 'Achievements & Badges' : '成就勋章', shortLabel: isEn ? 'Badges' : '勋章', icon: Medal },
+  ], [isEn]);
+  const activeTab = module;
   const [snapshot, setSnapshot] = useState(() => getCollectionSnapshot());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedFish, setSelectedFish] = useState<Fish | null>(null);
@@ -89,7 +89,7 @@ export default function Collection() {
     const newlyUnlocked = next.achievements.find(item => item.unlocked && !previousUnlockedRef.current.has(item.id));
     previousUnlockedRef.current = new Set(next.achievements.filter(item => item.unlocked).map(item => item.id));
     setSnapshot(next);
-    if (newlyUnlocked) showToast(`解锁勋章：${newlyUnlocked.title}`);
+    if (newlyUnlocked) showToast(isEn ? `Unlocked Badge: ${newlyUnlocked.title}` : `解锁勋章：${newlyUnlocked.title}`);
   }), [showToast]);
 
   useEffect(() => {
@@ -110,7 +110,6 @@ export default function Collection() {
   ), [snapshot.appState]);
   const ownedIds = useMemo(() => new Set(snapshot.appState.aquariums.flatMap(item => item.fishes.map(record => record.fishId))), [snapshot.appState.aquariums]);
 
-  const switchTab = (tab: CollectionTab) => setSearchParams({ tab });
   const openFromCard = (sourceId: string) => {
     returnContextRef.current = captureContext(sourceId);
     detailFinalFocusRef.current = document.getElementById(sourceId);
@@ -125,22 +124,22 @@ export default function Collection() {
     if (!pendingFishRemoval) return;
     setSpeciesFavoriteIds(snapshot.wishlistIds.filter(id => id !== pendingFishRemoval.id));
     if (getSpeciesFavoriteIds().includes(pendingFishRemoval.id)) {
-      showToast('移除失败，请检查浏览器存储权限', 'error');
+      showToast(isEn ? 'Failed to remove, check storage permissions' : '移除失败，请检查浏览器存储权限', 'error');
       return;
     }
     setPendingFishRemoval(null);
-    showToast('已从种草图鉴移除');
+    showToast(isEn ? 'Removed from species wishlist' : '已从种草图鉴移除');
   };
 
   const removeCareFavorite = () => {
     if (!pendingCareRemoval) return;
     toggleCareFavorite({ id: pendingCareRemoval.id, title: pendingCareRemoval.title, favoritedAt: new Date().toISOString() });
     if (getCareFavorites()[pendingCareRemoval.id]) {
-      showToast('移除失败，请检查浏览器存储权限', 'error');
+      showToast(isEn ? 'Failed to remove, check storage permissions' : '移除失败，请检查浏览器存储权限', 'error');
       return;
     }
     setPendingCareRemoval(null);
-    showToast('已从养护收藏移除');
+    showToast(isEn ? 'Removed from care collection' : '已从养护收藏移除');
   };
 
   const openCarePreview = (topic: CareTopic) => {
@@ -154,10 +153,10 @@ export default function Collection() {
     try {
       if (navigator.share) await navigator.share({ title: topic.title, text });
       else await navigator.clipboard.writeText(text);
-      showToast(navigator.share ? '已打开分享' : '已复制分享内容');
+      showToast(i18n.language === 'en' ? (navigator.share ? 'Share panel opened' : 'Share content copied to clipboard') : (navigator.share ? '已打开分享' : '已复制分享内容'));
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
-      showToast('分享失败，请稍后重试', 'error');
+      showToast(i18n.language === 'en' ? 'Share failed, please try again later' : '分享失败，请稍后重试', 'error');
     }
   };
 
@@ -181,44 +180,19 @@ export default function Collection() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-black text-emerald-800 shadow-sm">
-              <BookHeart className="h-3.5 w-3.5" /> 自然水族册
+              <BookHeart className="h-3.5 w-3.5" /> {i18n.language === 'en' ? 'My Aquaria' : '自然水族册'}
             </div>
-            <h1 className="text-[24px] font-black tracking-tight text-ink">我的水族册</h1>
-            <p className="mt-1 text-[12px] font-bold text-ink/45">种草 · 养护 · 纪念 · 勋章</p>
-            <p className="mt-1 text-[12px] font-bold text-ink/48">把想养的、学会的和认真守护过的，都放在这里。</p>
+            <h1 className="text-[24px] font-black tracking-tight text-ink">{tabConfig.find(item => item.id === activeTab)?.label}</h1>
+            <button type="button" onClick={() => navigate('/collection')} className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 hover:underline">
+              {i18n.language === 'en' ? 'Back to Collection' : '返回水族册首页'}
+            </button>
           </div>
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-emerald-800 text-white shadow-[0_14px_30px_rgba(6,78,59,0.2)]">
             <BookHeart className="h-6 w-6" />
           </div>
         </div>
-        <div className="collection-summary-grid mt-5 grid gap-2" aria-label="水族册数量摘要">
-          {tabConfig.map(item => (
-            <div key={item.id} className="rounded-[16px] bg-white/75 px-2 py-2.5 text-center shadow-sm">
-              <div className="text-[16px] font-black text-ink">{snapshot.counts[item.id]}</div>
-              <div className="mt-0.5 truncate text-[9px] font-black text-ink/38">{item.label}</div>
-            </div>
-          ))}
-        </div>
+        <div className="mt-5 inline-flex rounded-full bg-white/75 px-3 py-1.5 text-[11px] font-black text-ink/55 shadow-sm">{i18n.language === 'en' ? `Total ${snapshot.counts[activeTab]} item(s)` : `共 ${snapshot.counts[activeTab]} 项`}</div>
       </header>
-
-      <nav className="collection-tab-grid sticky top-0 z-20 grid gap-1 rounded-[18px] border border-white/80 bg-white/92 p-1.5 shadow-sm backdrop-blur" aria-label="水族册分类">
-        {tabConfig.map(item => {
-          const Icon = item.icon;
-          const active = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={active ? 'page' : undefined}
-              onClick={() => switchTab(item.id)}
-              className={`flex min-w-0 items-center justify-center gap-1 rounded-[13px] px-1 py-2.5 text-[10px] font-black transition-colors duration-200 ${active ? 'bg-emerald-700 text-white shadow-sm' : 'text-ink/48 hover:bg-emerald-50 hover:text-emerald-800'}`}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{item.shortLabel}</span>
-            </button>
-          );
-        })}
-      </nav>
 
       {activeTab === 'wishlist' && (wishlistFishes.length ? (
         <section className="collection-wishlist-grid grid gap-3">
@@ -226,30 +200,30 @@ export default function Collection() {
             <article key={fish.id} id={`collection-wishlist-${fish.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-wishlist-${fish.id}`); setSelectedFish(fish); }} className="group text-left">
                 <span className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-[16px] bg-bg ${getSpeciesImageSurfaceClass(fish)}`}>
-                  <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain transition-transform duration-200 group-hover:scale-[1.03] ${getSpeciesImageClass(fish)}`} loading="lazy" decoding="async" />
+                  <ResilientImage src={getSpeciesVisualSources(fish).thumbnail} srcSet={`${getSpeciesVisualSources(fish).thumbnail} 256w, ${getSpeciesVisualSources(fish).detail} 768w`} sizes="(max-width: 430px) 46vw, 220px" alt={fish.name} className={`h-full w-full object-contain p-[7%] transition-transform duration-200 group-hover:scale-[1.03] ${getSpeciesImageClass(fish)}`} loading="lazy" decoding="async" />
                 </span>
                 <span className="mt-3 flex items-start justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block truncate text-[15px] font-black text-ink">{fish.name}</span>
-                    <span className="mt-1 block truncate text-[10px] font-bold text-ink/42">{fish.category} · {fish.difficulty === 'Easy' ? '新手适宜' : fish.difficulty === 'Medium' ? '进阶' : '高难度'}</span>
+                    <span className="mt-1 block truncate text-[10px] font-bold text-ink/42">{fish.category} · {fish.difficulty === 'Easy' ? (i18n.language === 'en' ? 'Beginner' : '新手适宜') : fish.difficulty === 'Medium' ? (i18n.language === 'en' ? 'Intermediate' : '进阶') : (i18n.language === 'en' ? 'Expert' : '高难度')}</span>
                   </span>
                   <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-ink/25" />
                 </span>
               </button>
               <button type="button" onClick={() => setPendingFishRemoval(fish)} className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-rose-100 bg-rose-50 text-[11px] font-black text-rose-600">
-                <HeartOff className="mr-1.5 h-3.5 w-3.5" />移除种草
+                <HeartOff className="mr-1.5 h-3.5 w-3.5" />{i18n.language === 'en' ? 'Remove Saved' : '移除种草'}
               </button>
             </article>
           ))}
         </section>
-      ) : renderEmpty(Heart, '还没有种草生物', '在图鉴中收藏想进一步了解的生物，它会出现在这里。', { label: '浏览图鉴', route: '/encyclopedia' }))}
+      ) : renderEmpty(Heart, i18n.language === 'en' ? 'No Saved Species Yet' : '还没有种草生物', i18n.language === 'en' ? 'Add species you like to your favorites in the Encyclopedia, and they will show up here.' : '在图鉴中收藏想进一步了解的生物，它会出现在这里。', { label: i18n.language === 'en' ? 'Browse Encyclopedia' : '浏览图鉴', route: '/encyclopedia' }))}
 
       {activeTab === 'care' && (careTopics.length ? (
         <section className="collection-care-grid grid gap-3">
           {careTopics.slice(0, visibleCount).map(topic => (
             <article key={topic.id} id={`collection-care-${topic.id}`} tabIndex={-1} className="flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white p-3 shadow-sm">
               <button type="button" onClick={() => { openFromCard(`collection-care-${topic.id}`); setSelectedTopic(topic); }} className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 text-left">
-                <img src={topic.imageUrl} alt="" className="h-[86px] w-[86px] rounded-[15px] bg-bg object-cover" loading="lazy" decoding="async" />
+                <div className="h-[86px] w-[86px] overflow-hidden rounded-[15px] bg-bg"><ResilientImage src={getCareVisualSources(topic.imageUrl).thumbnail} srcSet={`${getCareVisualSources(topic.imageUrl).thumbnail} 480w, ${getCareVisualSources(topic.imageUrl).detail} 960w`} sizes="86px" alt={topic.title} className="h-full w-full object-cover" loading="lazy" decoding="async" /></div>
                 <span className="min-w-0">
                   <span className="flex items-start justify-between gap-2">
                     <span className="line-clamp-2 text-[14px] font-black leading-tight text-ink">{topic.title}</span>
@@ -259,12 +233,12 @@ export default function Collection() {
                 </span>
               </button>
               <button type="button" onClick={() => setPendingCareRemoval(topic)} className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-rose-100 bg-rose-50 text-[11px] font-black text-rose-600">
-                <HeartOff className="mr-1.5 h-3.5 w-3.5" />移除收藏
+                <HeartOff className="mr-1.5 h-3.5 w-3.5" />{i18n.language === 'en' ? 'Remove Saved' : '移除收藏'}
               </button>
             </article>
           ))}
         </section>
-      ) : renderEmpty(BookOpenCheck, '还没有养护收藏', '把常用的处理步骤收藏起来，出现问题时可以更快找到。', { label: '查养护百科', route: '/care' }))}
+      ) : renderEmpty(BookOpenCheck, i18n.language === 'en' ? 'No Saved Care Guides' : '还没有养护收藏', i18n.language === 'en' ? 'Save frequently used care guidelines from the Care Guide page, and they will appear here.' : '把常用的处理步骤收藏起来，出现问题时可以更快找到。', { label: i18n.language === 'en' ? 'Search Care Guide' : '查养护百科', route: '/care' }))}
 
       {activeTab === 'memorial' && (snapshot.memorials.length ? (
         <section className="collection-memorial-grid grid gap-3">
@@ -279,19 +253,19 @@ export default function Collection() {
                 className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] border border-white/80 bg-white p-3 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-100 grayscale">
-                  {fish ? <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[84%] w-[84%] object-contain opacity-75 ${getSpeciesImageClass(fish)}`} loading="lazy" /> : <Skull className="h-5 w-5 text-ink/30" />}
+                  {fish ? <ResilientImage src={getSpeciesVisualSources(fish).thumbnail} alt={fish.name} className={`h-full w-full object-contain p-[8%] opacity-75 ${getSpeciesImageClass(fish)}`} loading="lazy" /> : <Skull className="h-5 w-5 text-ink/30" />}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-black text-ink">{fish?.name || '未匹配生物'}</span>
+                  <span className="block truncate text-[14px] font-black text-ink">{fish?.name || (i18n.language === 'en' ? 'Unrecognized Species' : '未匹配生物')}</span>
                   <span className="mt-1 block text-[11px] font-bold text-ink/42">{formatMemorialDate(record.date)}</span>
-                  <span className="mt-1 block truncate text-[10px] font-medium text-ink/38">{record.reason || '尚未填写复盘原因'}</span>
+                  <span className="mt-1 block truncate text-[10px] font-medium text-ink/38">{record.reason || (i18n.language === 'en' ? 'No reflection reason provided' : '尚未填写复盘原因')}</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-ink/25" />
               </button>
             );
           })}
         </section>
-      ) : renderEmpty(Skull, '还没有生命纪念', '在物种详情中记录离缸或死亡后，这里会保留时间与复盘信息。', { label: '返回我的鱼缸', route: '/aquarium' }))}
+      ) : renderEmpty(Skull, i18n.language === 'en' ? 'No Memorials Logged' : '还没有生命纪念', i18n.language === 'en' ? 'When you log a livestock death or removal from its details page, its timeline and reflection info will be preserved here.' : '在物种详情中记录离缸或死亡后，这里会保留时间与复盘信息。', { label: i18n.language === 'en' ? 'Back to Aquarium' : '返回我的鱼缸', route: '/aquarium' }))}
 
       {activeTab === 'achievements' && (
         <section className="grid gap-3">
@@ -299,8 +273,8 @@ export default function Collection() {
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-700 text-white"><Medal className="h-5 w-5" /></div>
               <div>
-                <h2 className="text-[15px] font-black text-ink">勋章会自动解锁，无需领取</h2>
-                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">系统根据已有鱼缸、巡检、换水、收藏和复盘记录计算。完成记录后，这里会自动更新。</p>
+                <h2 className="text-[15px] font-black text-ink">{i18n.language === 'en' ? 'Badges unlock automatically' : '勋章会自动解锁，无需领取'}</h2>
+                <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">{i18n.language === 'en' ? 'Calculated based on your active tank setups, logs, saves, and memorials. Badges update automatically.' : '系统根据已有鱼缸、巡检、换水、收藏和复盘记录计算。完成记录后，这里会自动更新。'}</p>
               </div>
             </div>
           </div>
@@ -317,18 +291,18 @@ export default function Collection() {
                       {achievement.unlocked && <Check className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-emerald-700 p-1 text-white" />}
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${status === 'unlocked' ? 'border-amber-300 bg-amber-100 text-amber-900' : status === 'in_progress' ? 'border-emerald-200 bg-white text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>{status === 'unlocked' ? '已解锁' : status === 'in_progress' ? '进行中' : '未开始'}</span>
+                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${status === 'unlocked' ? 'border-amber-300 bg-amber-100 text-amber-900' : status === 'in_progress' ? 'border-emerald-200 bg-white text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>{status === 'unlocked' ? (i18n.language === 'en' ? 'Unlocked' : '已解锁') : status === 'in_progress' ? (i18n.language === 'en' ? 'In Progress' : '进行中') : (i18n.language === 'en' ? 'Not Started' : '未开始')}</span>
                   </div>
                   <h2 className="mt-3 text-[16px] font-black text-ink">{achievement.title}</h2>
-                  <p className="mt-1 text-[11px] font-bold leading-[18px] text-ink/48">{achievement.unlocked ? `已完成：${achievement.description}` : `目标：${achievement.description}`}</p>
+                  <p className="mt-1 text-[11px] font-bold leading-[18px] text-ink/48">{achievement.unlocked ? (i18n.language === 'en' ? `Completed: ${achievement.description}` : `已完成：${achievement.description}`) : (i18n.language === 'en' ? `Target: ${achievement.description}` : `目标：${achievement.description}`)}</p>
                   <div className="mt-4 rounded-[14px] bg-white/80 p-3">
-                    <div className="flex items-center justify-between gap-3 text-[11px] font-black text-ink/58"><span>当前 {achievement.current}</span><span>目标 {achievement.target}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-[11px] font-black text-ink/58"><span>{i18n.language === 'en' ? 'Current' : '当前'} {achievement.current}</span><span>{i18n.language === 'en' ? 'Target' : '目标'} {achievement.target}</span></div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${status === 'unlocked' ? 'bg-amber-400' : 'bg-emerald-700'}`} style={{ width: `${progress}%` }} /></div>
-                    <p className="mt-2 text-[11px] font-black text-ink/62">{achievement.unlocked ? '目标已完成' : `还差 ${remaining}`}</p>
+                    <p className="mt-2 text-[11px] font-black text-ink/62">{achievement.unlocked ? (i18n.language === 'en' ? 'Goal Completed' : '目标已完成') : (i18n.language === 'en' ? `${remaining} remaining` : `还差 ${remaining}`)}</p>
                   </div>
                   {achievement.nextAction && (
                     <button type="button" onClick={() => navigate(achievement.nextAction!.route)} className="mt-auto h-10 w-full rounded-full bg-emerald-800 px-3 text-[11px] font-black text-white hover:bg-emerald-900">
-                      下一步：{achievement.nextAction.label}
+                      {i18n.language === 'en' ? 'Next step: ' : '下一步：'}{achievement.nextAction.label}
                     </button>
                   )}
                 </article>
@@ -397,7 +371,7 @@ export default function Collection() {
               <div className="app-scrollbar-hidden flex-1 overflow-y-auto p-5 pt-16 md:p-8 md:pt-16">
                 <div className="mx-auto max-w-[520px]">
                   <div className="flex h-36 items-center justify-center rounded-[24px] bg-slate-100 grayscale">
-                    {fish ? <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`h-[80%] w-[80%] object-contain opacity-75 ${getSpeciesImageClass(fish)}`} /> : <Skull className="h-10 w-10 text-ink/25" />}
+                    {fish ? <ResilientImage src={getSpeciesVisualSources(fish).detail} alt={fish.name} className={`h-full w-full object-contain p-[10%] opacity-75 ${getSpeciesImageClass(fish)}`} /> : <Skull className="h-10 w-10 text-ink/25" />}
                   </div>
                   <DialogHeader className="mt-5 text-left">
                     <DialogTitle className="text-[22px] font-black">{fish?.name || '生命纪念'}</DialogTitle>
@@ -407,6 +381,15 @@ export default function Collection() {
                     <div className="text-[11px] font-black text-ink/40">复盘记录</div>
                     <p className="mt-2 text-[14px] font-bold leading-6 text-ink/68">{selectedMemorial.reason || '这条记录还没有填写原因。后续新增生命纪念时，可以补充观察到的情况，帮助回顾养护过程。'}</p>
                   </section>
+                  {fish && (
+                    <Button
+                      type="button"
+                      onClick={() => navigate(`/aquarium?action=add-species&species=${encodeURIComponent(fish.id)}`)}
+                      className="mt-4 h-11 w-full rounded-full bg-emerald-800 text-[12px] font-black text-white hover:bg-emerald-900"
+                    >
+                      再次加入
+                    </Button>
+                  )}
                 </div>
               </div>
             );

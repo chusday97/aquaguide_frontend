@@ -1,13 +1,12 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, Box, Calculator, CheckCircle2, ChevronRight, Flame, FlaskConical, Heart, HeartOff, Info, Plus, Share2, Skull, SlidersHorizontal, Thermometer, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { captureProductEvent } from '@/src/services/analytics/product-analytics.service';
 import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Aquarium, Fish } from '../types';
 import { fishData } from '../data/fishData';
-import { getCareTaxonomyPath, getLifeType, getToolFunctions } from '../modules/species/species.service';
+import { getCareTaxonomyPath, getLifeType, getSpeciesRoleLabel, getToolFunctions } from '../modules/species/species.service';
 import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
-import { generateRiskExplanation, type RiskExplanationData } from '../lib/aiClient';
 import { evaluateTankCompatibility, type TankCompatibilityResult } from '../lib/tankCompatibilityEngine';
 import { buildSpeciesKnowledgeProfile } from '../modules/knowledge/speciesKnowledge';
 import { evaluateCompatibilityDecision } from '../modules/knowledge/compatibilityKnowledge';
@@ -15,6 +14,11 @@ import { buildSpeciesCarePresentation } from '../modules/knowledge/speciesCarePr
 import type { PairCompatibilityResult } from '../modules/knowledge/knowledge.types';
 import type { PreviewImage } from './common/ImagePreviewModal';
 import { AdaptiveDetailContent } from './common/AdaptiveDetailContent';
+import { VisualResultCard } from './visual-results/VisualResultCard';
+import { getVisualEmphasis, mapFitStatus } from './visual-results/visual-result.adapters';
+import type { VisualResultViewModel } from './visual-results/visual-result.types';
+import { markSpeciesViewed } from '../services/onboarding/onboarding.service';
+import { normalizeSpeciesBatches } from '../services/aquarium/species-batches.service';
 
 const ImagePreviewModal = lazy(() => import('./common/ImagePreviewModal').then(module => ({ default: module.ImagePreviewModal })));
 const Interactive3DFishWrapper = lazy(() => import('./Interactive3DFishWrapper'));
@@ -66,7 +70,7 @@ type SpeciesDetailDialogProps = {
   onToggleWishlist: (fishId: string) => void;
   onGoCalculator?: () => void;
   onOpenTankSettings?: (panel: 'size' | 'parameters' | 'equipment') => void;
-  onRecordDeath?: (fish: Fish, input: { date: string; reason: string }) => void | Promise<void>;
+  onRecordDeath?: (fish: Fish, input: { date: string; reason: string; batchId?: string; operationId: string }) => void | Promise<void>;
 };
 
 const getLocalDateValue = () => {
@@ -105,10 +109,10 @@ const getExistingLivestock = (aquarium?: Aquarium | null) => (
     })
 );
 
-const getDifficultyLabel = (difficulty: Fish['difficulty']) => {
-  if (difficulty === 'Easy') return '极易';
-  if (difficulty === 'Medium') return '中等';
-  return '困难';
+const getDifficultyLabel = (difficulty: Fish['difficulty'], isEn = false) => {
+  if (difficulty === 'Easy') return isEn ? 'Beginner' : '极易';
+  if (difficulty === 'Medium') return isEn ? 'Intermediate' : '中等';
+  return isEn ? 'Expert' : '困难';
 };
 
 const getDifficultyBadgeClass = (difficulty: Fish['difficulty']) => {
@@ -117,8 +121,8 @@ const getDifficultyBadgeClass = (difficulty: Fish['difficulty']) => {
   return 'bg-red-50 text-red-600 border-red-200';
 };
 
-const getTemperamentLabel = (temperament: Fish['temperament']) => (
-  temperament === 'Peaceful' ? '温和' : temperament === 'Aggressive' ? '凶猛' : '领地意识强'
+const getTemperamentLabel = (temperament: Fish['temperament'], isEn = false) => (
+  temperament === 'Peaceful' ? (isEn ? 'Peaceful' : '温和') : temperament === 'Aggressive' ? (isEn ? 'Aggressive' : '凶猛') : (isEn ? 'Territorial' : '领地意识强')
 );
 
 const getFishTemperatureTheme = (tempString: string) => {
@@ -132,13 +136,6 @@ const getFitStatusClass = (status: FitStatus) => {
   if (status === 'warning') return 'border-amber-100 bg-amber-50 text-amber-700';
   if (status === 'danger') return 'border-red-100 bg-red-50 text-red-600';
   return 'border-sky-100 bg-sky-50 text-sky-700';
-};
-
-const getPairStatusPresentation = (status: PairCompatibilityResult['status']) => {
-  if (status === 'compatible') return { label: '适合', className: 'border-emerald-100 bg-emerald-50 text-emerald-700' };
-  if (status === 'caution') return { label: '谨慎', className: 'border-amber-100 bg-amber-50 text-amber-700' };
-  if (status === 'not_recommended') return { label: '不建议', className: 'border-red-100 bg-red-50 text-red-600' };
-  return { label: '信息不足', className: 'border-sky-100 bg-sky-50 text-sky-700' };
 };
 
 const getCareSourceClass = (status: ReturnType<typeof buildSpeciesCarePresentation>['sourceStatus']) => {
@@ -155,11 +152,11 @@ const getFitCurrentClass = (status: FitStatus) => {
   return 'text-emerald-700';
 };
 
-const getFitStatusLabel = (status: FitStatus) => {
-  if (status === 'ok') return '匹配';
-  if (status === 'warning') return '需调整';
-  if (status === 'danger') return '风险';
-  return '信息不足';
+const getFitStatusLabel = (status: FitStatus, isEn = false) => {
+  if (status === 'ok') return isEn ? 'Fit' : '匹配';
+  if (status === 'warning') return isEn ? 'Adjust' : '需调整';
+  if (status === 'danger') return isEn ? 'Risk' : '风险';
+  return isEn ? 'Limited Data' : '信息不足';
 };
 
 const getAssessmentTone = (status: FitAssessmentStatus) => {
@@ -190,14 +187,15 @@ const mapCompatibilityStatusToDetailStatus = (
 const getCompatibilityTitle = (
   status: FitAssessmentStatus,
   options: { isEmptyTank: boolean },
+  t: any,
 ) => {
-  if (status === 'alreadyInTank') return '已在当前鱼缸中';
-  if (status === 'suitable') return options.isEmptyTank ? '适合建立新缸' : '适合当前鱼缸';
-  if (status === 'needConfirmation') return '基础条件匹配，建议补充确认';
-  if (status === 'caution') return '可以尝试，但需要谨慎';
-  if (status === 'conflictRisk') return '混养需谨慎';
-  if (status === 'unsuitable') return '不建议加入当前鱼缸';
-  return '先完善鱼缸设置';
+  if (status === 'alreadyInTank') return t('encyclopedia.fitStatusInTank');
+  if (status === 'suitable') return options.isEmptyTank ? t('encyclopedia.fitStatusNewTank') : t('encyclopedia.fitStatusSuitable');
+  if (status === 'needConfirmation') return t('encyclopedia.fitStatusMatchConfirm');
+  if (status === 'caution') return t('encyclopedia.fitStatusTryCaution');
+  if (status === 'conflictRisk') return t('encyclopedia.fitStatusCautionMix');
+  if (status === 'unsuitable') return t('encyclopedia.fitStatusUnsuitable');
+  return t('encyclopedia.fitStatusSetupNeeded');
 };
 
 const toRuleFitStatus = (status: FitStatus): RuleFitStatus => {
@@ -207,17 +205,8 @@ const toRuleFitStatus = (status: FitStatus): RuleFitStatus => {
   return 'unknown';
 };
 
-const getSpeciesRole = (fish: Fish) => {
-  const tools = getToolFunctions(fish);
-  const taxonomy = getCareTaxonomyPath(fish);
-  if (getSecondaryCareType(fish) === '水母') return '观赏生物 / 特殊缸体';
-  if (getSecondaryCareType(fish) === '海葵') return '观赏生物 / 海水特殊养护';
-  if (taxonomy.waterType.includes('水草') || fish.category.includes('水草')) return '水草造景 / 环境植物';
-  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
-  if (tools.includes('除藻')) return getLifeType(fish) === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
-  if (tools.includes('清残饵')) return '底层生物 / 清残饵';
-  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  return getLifeType(fish) === 'invertebrate' ? '工具生物 / 生态搭配' : '观赏生物 / 鱼缸搭配';
+const getSpeciesRole = (fish: Fish, isEn = false) => {
+  return getSpeciesRoleLabel(fish, isEn);
 };
 
 const getSexIdentificationGuide = (fish: Fish) => {
@@ -231,7 +220,7 @@ const getSecondaryCareType = (fish: Fish) => {
   return '';
 };
 
-const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): SpeciesFitAssessment => {
+const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefined, t: any): SpeciesFitAssessment => {
   const tempRange = parseRange(fish.waterTemperature);
   const phRange = parseRange(fish.phLevel);
   const tankLiters = getTankVolumeLiters(aquarium);
@@ -252,34 +241,36 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
     {
       type: 'water_type',
       label: '水体类型',
-      current: aquarium ? aquarium.waterType === 'Saltwater' ? '海水' : '淡水' : '未设置',
-      requirement: isSaltwaterSpecies ? '海水' : '淡水',
+      current: aquarium ? (aquarium.waterType === 'Saltwater' ? t('encyclopedia.saltwater_label') : t('encyclopedia.freshwater_label')) : t('encyclopedia.noTankSelected'),
+      requirement: isSaltwaterSpecies ? t('encyclopedia.saltwater_label') : t('encyclopedia.freshwater_label'),
       status: !aquarium ? 'info' : waterTypeMismatch ? 'danger' : 'ok',
       advice: !aquarium
-        ? '先选择或创建鱼缸后再判断水体类型。'
+        ? t('encyclopedia.adviceWaterTypeNoTank')
         : waterTypeMismatch
-          ? '当前鱼缸水体类型与该物种需求不一致，不建议直接加入。'
-          : '水体类型匹配。',
+          ? t('encyclopedia.adviceWaterTypeMismatch')
+          : t('encyclopedia.waterTypeMatch'),
     },
     {
       type: 'temperature',
       label: '温度',
-      current: currentTemperature ? `${currentTemperature}℃` : '未设置',
+      current: currentTemperature ? `${currentTemperature}℃` : t('encyclopedia.noTankSelected'),
       requirement: fish.waterTemperature,
       status: !aquarium || !currentTemperature || !tempRange
         ? 'info'
         : currentTemperature >= tempRange.min && currentTemperature <= tempRange.max ? 'ok' : 'warning',
       advice: !aquarium || !currentTemperature
-        ? '先在鱼缸设置中补充目标温度。'
-        : currentTemperature >= (tempRange?.min || 0) && currentTemperature <= (tempRange?.max || 99) ? '当前温度在需求范围内。' : `建议调整到 ${fish.waterTemperature} 并保持稳定。`,
+        ? t('encyclopedia.adviceTempNoTank')
+        : currentTemperature >= (tempRange?.min || 0) && currentTemperature <= (tempRange?.max || 99)
+          ? t('encyclopedia.tempMatch')
+          : t('encyclopedia.tempWarning', { range: fish.waterTemperature, current: currentTemperature }),
     },
     {
       type: 'water_parameter',
       label: '水质参数',
-      current: 'pH / 硬度未填写',
-      requirement: phRange ? fish.phLevel : '资料不足',
+      current: phRange ? t('encyclopedia.phMatch') : t('encyclopedia.fitInsufficient'),
+      requirement: phRange ? fish.phLevel : t('encyclopedia.fitInsufficient'),
       status: 'info',
-      advice: phRange ? '当前未记录 pH / 硬度，建议补充确认；这不是混养冲突。' : '该物种缺少明确 pH 范围，可先按稳定水质管理。',
+      advice: phRange ? t('encyclopedia.phMatch') : t('encyclopedia.phWarning', { range: fish.phLevel, current: 'pH' }),
     },
   ];
 
@@ -287,10 +278,14 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
     {
       type: 'space',
       label: '缸体大小',
-      current: tankLiters ? `约 ${tankLiters}L` : '未设置',
+      current: tankLiters ? `~${tankLiters}L` : t('encyclopedia.noTankSelected'),
       requirement: fish.tankSize,
       status: !tankLiters || !minLiters ? 'info' : tankLiters >= minLiters ? 'ok' : tankLiters < minLiters * 0.65 ? 'danger' : 'warning',
-      advice: !tankLiters || !minLiters ? '先完善鱼缸尺寸，才能判断空间是否足够。' : tankLiters >= minLiters ? '空间基本满足最低建议。' : `当前鱼缸为空也暂无混养冲突，但该生物需要至少 ${minLiters}L 水体，当前约 ${tankLiters}L。`,
+      advice: !tankLiters || !minLiters
+        ? t('encyclopedia.adviceSpaceNoTank')
+        : tankLiters >= minLiters
+          ? t('encyclopedia.adviceSpaceSuitable')
+          : t('encyclopedia.adviceSpaceWarning', { min: minLiters, current: tankLiters }),
     },
   ];
 
@@ -298,48 +293,48 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
     {
       type: 'care_difficulty',
       label: '养护难度',
-      current: '新手参考',
-      requirement: getDifficultyLabel(fish.difficulty),
+      current: t('encyclopedia.difficultyCategory'),
+      requirement: fish.difficulty === 'Easy' ? t('encyclopedia.difficultyEasyShort') : fish.difficulty === 'Medium' ? t('encyclopedia.difficultyMediumShort') : t('encyclopedia.difficultyHardShort'),
       status: fish.difficulty === 'Hard' ? 'warning' : 'ok',
-      advice: fish.difficulty === 'Easy' ? '适合作为入门选择。' : fish.difficulty === 'Medium' ? '需要稳定水质和观察，但不是当前鱼缸不匹配项。' : '养护难度较高，建议先确认经验和设备。',
+      advice: fish.difficulty === 'Easy' ? t('encyclopedia.adviceEasy') : fish.difficulty === 'Medium' ? t('encyclopedia.adviceMedium') : t('encyclopedia.adviceHard'),
     },
     {
       type: 'filter',
       label: '过滤',
-      current: aquarium?.equipment?.filter || '未设置',
-      requirement: specialCareType === '水母' ? '专用水母缸 / 柔和循环水流' : '稳定过滤',
+      current: aquarium?.equipment?.filter || t('encyclopedia.noTankSelected'),
+      requirement: specialCareType === '水母' ? (t('encyclopedia.freshwater') === '淡水' ? '专用水母缸 / 柔和循环水流' : 'Specialized Jellyfish Tank') : (t('encyclopedia.freshwater') === '淡水' ? '稳定过滤' : 'Stable Filtration'),
       status: !aquarium ? 'info' : specialCareType === '水母' ? 'warning' : hasFilter ? 'ok' : 'info',
       advice: !aquarium
-        ? '先选择鱼缸后再确认过滤设备。'
+        ? t('encyclopedia.adviceFilterNoTank')
         : specialCareType === '水母'
-          ? '水母需要专用缸体，并避免普通过滤产生强吸力。'
+          ? (t('encyclopedia.freshwater') === '淡水' ? '水母需要专用缸体，并避免普通过滤产生强吸力。' : 'Jellyfish require specialized tanks to avoid strong suction from standard filters.')
           : hasFilter
-            ? '已记录过滤设备。'
-            : '当前未确认过滤设备，建议补充过滤配置。',
+            ? (t('encyclopedia.freshwater') === '淡水' ? '已记录过滤设备。' : 'Filter recorded.')
+            : (t('encyclopedia.freshwater') === '淡水' ? '当前未确认过滤设备，建议补充过滤配置。' : 'No filter confirmed yet. Adding filtration is recommended.'),
     },
     {
       type: 'heater',
       label: '加热',
-      current: aquarium ? aquarium.equipment?.heater ? '已配置加热棒' : '未配置加热棒' : '未设置',
-      requirement: needsHeater ? '建议稳定加热' : '通常不强制加热',
+      current: aquarium ? (aquarium.equipment?.heater ? t('encyclopedia.heaterYes') : t('encyclopedia.heaterNo')) : t('encyclopedia.noTankSelected'),
+      requirement: needsHeater ? t('encyclopedia.heaterYes') : t('encyclopedia.heaterNo'),
       status: !aquarium ? 'info' : heaterMissing ? 'warning' : 'ok',
       advice: !aquarium
-        ? '先选择鱼缸后再确认加热设备。'
+        ? t('encyclopedia.adviceHeaterNoTank')
         : heaterMissing
-          ? '该物种建议稳定加热，当前鱼缸未配置加热棒。'
+          ? t('encyclopedia.adviceHeaterWarning')
           : needsHeater
-            ? '已配置加热棒，建议同时使用温度计观察波动。'
-            : '当前物种通常不强制配置加热棒。',
+            ? (t('encyclopedia.freshwater') === '淡水' ? '已配置加热棒，建议同时使用温度计观察波动。' : 'Heater configured. Thermometer is recommended to monitor temp fluctuations.')
+            : (t('encyclopedia.freshwater') === '淡水' ? '当前物种通常不强制配置加热棒。' : 'Heater not strictly required for this species.'),
     },
   ];
 
   const compatibilityFit: FitDimension[] = isEmptyTank ? [] : [{
     type: alreadyInTank ? 'livestock_status' : 'compatibility',
     label: '混养',
-    current: alreadyInTank ? '已在鱼缸中' : `已有 ${existingLivestock.length} 种活体`,
-    requirement: fish.housingMode || '需观察',
+    current: alreadyInTank ? t('encyclopedia.inTankAlready') : t('encyclopedia.livestockCount', { count: existingLivestock.length }),
+    requirement: fish.housingMode ? translateTag(fish.housingMode, t) : t('encyclopedia.fitCaution'),
     status: alreadyInTank ? 'ok' : fish.housingMode === '建议单养' ? 'danger' : fish.housingMode === '谨慎混养' ? 'warning' : 'ok',
-    advice: alreadyInTank ? '该生物已在当前鱼缸中，本次详情用于查看现有条件是否匹配。' : fish.housingReason || '建议加入混养计算后再确认组合风险。',
+    advice: alreadyInTank ? t('encyclopedia.adviceLivestockInTank') : fish.housingReason || t('encyclopedia.adviceHousingDefault'),
   }];
   const items = [...environmentFit, ...spaceFit, ...equipmentFit, ...compatibilityFit];
   const compatibilityResult = evaluateTankCompatibility({
@@ -356,10 +351,10 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
   const infoCount = items.filter(item => item.status === 'info').length;
   const status = mapCompatibilityStatusToDetailStatus(compatibilityResult, { aquarium, alreadyInTank });
   const firstIssue = items.find(item => item.status === 'danger') || items.find(item => item.status === 'warning') || items.find(item => item.status === 'info');
-  const title = getCompatibilityTitle(status, { isEmptyTank });
+  const title = getCompatibilityTitle(status, { isEmptyTank }, t);
   const conclusion = status === 'alreadyInTank'
-    ? '该生物已在当前鱼缸中，本页用于查看现有条件和后续观察重点。'
-    : compatibilityResult.summary || firstIssue?.advice || '当前结果由系统规则计算。';
+    ? t('encyclopedia.adviceAlreadyInTankPage')
+    : compatibilityResult.summary || firstIssue?.advice || t('encyclopedia.fitPending');
   const ruleResult = compatibilityResult;
 
   return {
@@ -381,19 +376,33 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium?: Aquarium | null): Specie
   };
 };
 
-const buildRiskAuditContext = (ruleAssessment: SpeciesFitAssessment) => {
-  const compatibility = ruleAssessment.compatibilityResult;
-  return {
-    finalStatus: compatibility.status,
-    title: ruleAssessment.title,
-    conclusion: compatibility.summary,
-    ruleResult: compatibility,
-    passedRules: compatibility.passedRules,
-    warningRules: [...compatibility.warningRules, ...compatibility.blockingRules],
-    missingData: compatibility.missingData,
-    knownRules: ['水体类型', '温度区间', 'pH 区间', '缸体水量', '捕食/攻击风险', '生物负荷', '群游数量'],
-    instruction: '仅解释这些系统规则结果，不重新判断风险等级，不新增输入中不存在的信息。statusRestatement 必须保持与 finalStatus 一致。',
-  };
+const roleLabelKeys: Record<string, string> = {
+  '观赏生物 / 特殊缸体': 'roleSpecialTank',
+  '观赏生物 / 海水特殊养护': 'roleMarineCare',
+  '水草造景 / 环境植物': 'rolePlantedEnvironment',
+  '造景素材 / 环境配置': 'roleSceneryConfig',
+  '工具虾螺 / 除藻生物': 'roleAlgaeCrew',
+  '工具生物 / 除藻辅助': 'roleAlgaeHelper',
+  '底层生物 / 清残饵': 'roleBottomCrew',
+  '水陆生物 / 独立规划': 'roleAmphibianIndy',
+  '观赏主角 / 建议单养': 'roleSingleMain',
+  '小型观赏鱼 / 群游搭配': 'roleSmallSchooling',
+  '工具生物 / 生态搭配': 'roleEcoInvertebrate',
+  '观赏无脊椎 / 生态搭配': 'roleEcoInvertebrate2',
+  '观赏生物 / 鱼缸搭配': 'roleGeneralLivestock',
+};
+
+const translateTag = (tag: string, t: any) => {
+  if (tag === '适合混养') return t('encyclopedia.compatible');
+  if (tag === '谨慎混养') return t('encyclopedia.cautionMix');
+  if (tag === '建议单养' || tag === '单独饲养') return t('encyclopedia.singleSpecimen');
+  if (tag === '主题生物' || tag === '观赏主角') return t('encyclopedia.roleSingleMain');
+  return tag;
+};
+
+const getLocalizedSpeciesRole = (fish: Fish, t: any) => {
+  const role = getSpeciesRole(fish);
+  return roleLabelKeys[role] ? t('encyclopedia.' + roleLabelKeys[role]) : role;
 };
 
 export function SpeciesDetailDialog({
@@ -415,31 +424,43 @@ export function SpeciesDetailDialog({
   onOpenTankSettings,
   onRecordDeath,
 }: SpeciesDetailDialogProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const translateLabel = (label: string) => {
+    if (label === '水体类型') return t('encyclopedia.waterType');
+    if (label === '温度') return t('encyclopedia.tempLabelBasic');
+    if (label === '水质参数') return t('encyclopedia.phRangeLabel');
+    if (label === '空间' || label === '缸体大小') return t('encyclopedia.spaceLabel');
+    if (label === '过滤') return t('encyclopedia.filterLabel');
+    if (label === '加热') return t('encyclopedia.heaterLabel');
+    if (label === '养护难度') return t('encyclopedia.difficultyLabel');
+    if (label === '混养') return t('encyclopedia.temperamentMixing');
+    return label;
+  };
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [aiExplanation, setAiExplanation] = useState<RiskExplanationData | null>(null);
-  const [aiExplanationLoading, setAiExplanationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'environment' | 'compatibility' | 'care'>('environment');
   const [activeMetric, setActiveMetric] = useState<FitDimension | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState('');
   const [isDeathFormOpen, setIsDeathFormOpen] = useState(false);
   const [deathDate, setDeathDate] = useState(getLocalDateValue);
   const [deathReason, setDeathReason] = useState('');
+  const ownedRecord = useMemo(() => aquariumContext?.fishes.find(item => item.fishId === fish?.id), [aquariumContext, fish?.id]);
+  const deathBatches = useMemo(() => ownedRecord ? normalizeSpeciesBatches(ownedRecord) : [], [ownedRecord]);
+  const [deathBatchId, setDeathBatchId] = useState('');
+  const [deathOperationId, setDeathOperationId] = useState('');
   const [deathError, setDeathError] = useState('');
   const [isRecordingDeath, setIsRecordingDeath] = useState(false);
   const deathReasonRef = useRef<HTMLTextAreaElement | null>(null);
-  const selectedFit = useMemo(() => fish ? getSpeciesFitAssessment(fish, aquariumContext) : null, [fish, aquariumContext]);
+  const selectedFit = useMemo(() => fish ? getSpeciesFitAssessment(fish, aquariumContext, t) : null, [fish, aquariumContext, t]);
   const displayFit = selectedFit;
   const selectedTaxonomy = fish ? getCareTaxonomyPath(fish) : null;
   const resolvedImageSrc = fish ? (imageSrc || getSpeciesDisplayImage(fish)) : '';
 
   useEffect(() => {
-    if (!open || !fish) return;
-    captureProductEvent('species_detail_viewed', { species_id: fish.id, source });
-    setAiExplanation(null);
-    setAiExplanationLoading(false);
-  }, [open, fish?.id]);
+    if (open && fish) markSpeciesViewed();
+  }, [fish, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -449,6 +470,8 @@ export function SpeciesDetailDialog({
     setIsDeathFormOpen(false);
     setDeathDate(getLocalDateValue());
     setDeathReason('');
+    setDeathBatchId('');
+    setDeathOperationId('');
     setDeathError('');
     setIsRecordingDeath(false);
   }, [open, fish?.id]);
@@ -457,17 +480,6 @@ export function SpeciesDetailDialog({
     if (!isDeathFormOpen) return;
     window.requestAnimationFrame(() => deathReasonRef.current?.focus());
   }, [isDeathFormOpen]);
-
-  const handleAiExplain = async () => {
-    if (!fish || !selectedFit || aiExplanationLoading) return;
-    setAiExplanationLoading(true);
-    try {
-      const result = await generateRiskExplanation(buildRiskAuditContext(selectedFit));
-      setAiExplanation(result);
-    } finally {
-      setAiExplanationLoading(false);
-    }
-  };
 
   const openPreview = () => {
     if (!fish) return;
@@ -495,12 +507,6 @@ export function SpeciesDetailDialog({
     ].filter(Boolean) as Array<FitDimension & { icon: typeof Waves }>;
   }, [displayFit]);
 
-  const metricSummary = useMemo(() => {
-    const matched = metricCards.filter(item => item.status === 'ok').length;
-    const pending = metricCards.filter(item => item.status === 'info').length;
-    const adjust = metricCards.filter(item => item.status === 'warning' || item.status === 'danger').length;
-    return { matched, pending, adjust, total: metricCards.length || 1 };
-  }, [metricCards]);
   const sexIdentificationGuide = useMemo(() => fish ? getSexIdentificationGuide(fish) : null, [fish]);
   const carePresentation = useMemo(() => fish ? buildSpeciesCarePresentation(fish) : null, [fish]);
   const compatibilityPairs = useMemo(() => {
@@ -519,12 +525,103 @@ export function SpeciesDetailDialog({
   }, [fish, aquariumContext]);
 
   const mainActionLabel = useMemo(() => {
-    if (!displayFit || !aquariumContext) return '去设置鱼缸';
-    if (owned || displayFit.alreadyInTank || displayFit.status === 'alreadyInTank') return '检查混养';
-    if (displayFit.status === 'suitable') return '加入当前鱼缸';
-    if (displayFit.status === 'unsuitable' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return '查看混养风险';
-    return '完善鱼缸设置';
-  }, [aquariumContext, displayFit, owned]);
+    if (!displayFit || !aquariumContext) return t('encyclopedia.btnGoSetTank');
+    if (owned || displayFit.alreadyInTank || displayFit.status === 'alreadyInTank') return t('encyclopedia.checkDetails');
+    if (displayFit.status === 'suitable') return t('encyclopedia.btnJoinTank');
+    if (displayFit.status === 'unsuitable' || displayFit.status === 'conflictRisk' || displayFit.status === 'caution') return t('encyclopedia.viewRiskAndAdd');
+    return t('encyclopedia.btnCompleteSetup');
+  }, [aquariumContext, displayFit, owned, t]);
+  const fitVisualModel = useMemo<VisualResultViewModel | null>(() => {
+    if (!fish || !displayFit) return null;
+    const status = mapFitStatus(displayFit.status);
+    const conclusion = aquariumContext ? displayFit.conclusion : t('encyclopedia.conclusionNoTank');
+    return {
+      status,
+      title: aquariumContext ? t('encyclopedia.titleSpeciesFit') : t('encyclopedia.titleNoTankSelected'),
+      conclusion,
+      emphasis: getVisualEmphasis(conclusion),
+      subjects: [
+        {
+          id: fish.id,
+          name: fish.name,
+          image: getSpeciesDisplayImage(fish),
+          role: 'focus',
+          status,
+          shortReason: conclusion,
+          badgeLabel: aquariumContext ? t('encyclopedia.preCheckLabel') : t('encyclopedia.currentSpec'),
+          emphasis: getVisualEmphasis(conclusion),
+        },
+        ...(aquariumContext ? metricCards.map(metric => ({
+          id: `fit-${metric.type}`,
+          name: translateLabel(metric.label),
+          role: 'affected' as const,
+          status: mapFitStatus(metric.status),
+          shortReason: metric.advice || `${translateLabel(metric.label)}：${metric.current || t('encyclopedia.noTankSelected')}`,
+          badgeLabel: metric.status === 'ok' ? t('encyclopedia.fitStatusOkLabel') : metric.status === 'info' ? t('encyclopedia.fitStatusInfoLabel') : t('encyclopedia.fitStatusWarningLabel'),
+          emphasis: getVisualEmphasis(metric.advice),
+        })) : []),
+      ],
+      currentAction: aquariumContext
+        ? displayFit.risks[0]?.advice || displayFit.confirmations[0]?.advice || t('encyclopedia.adviceHousingDefault')
+        : t('encyclopedia.actionNoTank'),
+      primaryAction: {
+        label: mainActionLabel,
+        actionType: displayFit.status === 'suitable' && !owned ? 'mutation' : 'section',
+      },
+      detailSections: [
+        { id: 'risks', title: t('encyclopedia.fitStatusWarningLabel'), items: displayFit.risks.map(item => item.advice) },
+        { id: 'confirmations', title: t('encyclopedia.fitAdjustable'), items: displayFit.confirmations.map(item => item.advice) },
+        { id: 'matched', title: t('encyclopedia.fitStatusOkLabel'), items: metricCards.filter(item => item.status === 'ok').map(item => `${translateLabel(item.label)}：${item.current}`) },
+      ].filter(section => section.items.length > 0),
+    };
+  }, [aquariumContext, displayFit, fish, mainActionLabel, metricCards, owned, t]);
+  const compatibilityVisualModel = useMemo<VisualResultViewModel | null>(() => {
+    if (!fish) return null;
+    const statusRank = { compatible: 0, caution: 1, insufficient_data: 2, not_recommended: 3 } as const;
+    const status = compatibilityPairs.reduce<PairCompatibilityResult['status']>((current, pair) => (
+      statusRank[pair.status] > statusRank[current] ? pair.status : current
+    ), 'compatible');
+    const primaryPair = [...compatibilityPairs].sort((a, b) => statusRank[b.status] - statusRank[a.status])[0];
+    const conclusion = primaryPair?.primaryReason?.evidence || primaryPair?.rawResult.summary || t('encyclopedia.conclusionNoPairs');
+    return {
+      status,
+      title: t('encyclopedia.compatibilityCalc'),
+      conclusion,
+      emphasis: getVisualEmphasis(conclusion),
+      subjects: [{
+        id: fish.id,
+        name: fish.name,
+        image: getSpeciesDisplayImage(fish),
+        role: 'focus',
+        status,
+        shortReason: conclusion,
+        badgeLabel: t('encyclopedia.currentSpec'),
+      }, ...compatibilityPairs.map(pair => {
+        const other = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
+        const reason = pair.primaryReason?.evidence || pair.rawResult.summary;
+        return {
+          id: other.id,
+          name: other.name,
+          image: getSpeciesDisplayImage(other),
+          role: 'related' as const,
+          status: pair.status,
+          shortReason: reason,
+          badgeLabel: pair.primaryReason?.title || (pair.status === 'compatible' ? t('encyclopedia.housingBehaviorMatch') : pair.status === 'caution' ? t('encyclopedia.fitCaution') : pair.status === 'not_recommended' ? t('encyclopedia.fitNotRecommended') : t('encyclopedia.fitInsufficient')),
+          emphasis: getVisualEmphasis(reason),
+        };
+      })],
+      currentAction: primaryPair?.actions[0] || t('encyclopedia.actionNoPairs'),
+      primaryAction: { label: t('encyclopedia.compatibilityCalc'), actionType: 'route' },
+      detailSections: compatibilityPairs.map(pair => {
+        const other = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
+        return {
+          id: pair.pairId,
+          title: t('encyclopedia.withSpecies', { name: other.name }),
+          items: [pair.primaryReason?.evidence, ...pair.secondaryReasons.map(item => item.evidence)].filter((item): item is string => Boolean(item)),
+        };
+      }).filter(section => section.items.length > 0),
+    };
+  }, [compatibilityPairs, fish, t]);
 
   const getMetricSettingsPanel = (metric: FitDimension) => {
     if (metric.type === 'space') return 'size' as const;
@@ -534,13 +631,13 @@ export function SpeciesDetailDialog({
   };
 
   const getMetricActionLabel = (metric: FitDimension) => {
-    if (metric.status === 'ok') return '我知道了';
-    if (metric.type === 'filter') return '配置过滤';
-    if (metric.type === 'heater') return '配置加热';
-    if (metric.type === 'temperature') return '设置目标温度';
-    if (metric.type === 'space') return '完善鱼缸尺寸';
-    if (metric.type === 'water_type') return '调整水体类型';
-    return '完善鱼缸信息';
+    if (metric.status === 'ok') return t('encyclopedia.dismiss');
+    if (metric.type === 'filter') return t('encyclopedia.btnCompleteEnvDetail');
+    if (metric.type === 'heater') return t('encyclopedia.btnCompleteEnvDetail');
+    if (metric.type === 'temperature') return t('encyclopedia.actionCompleteTemp');
+    if (metric.type === 'space') return t('encyclopedia.actionCompleteSize');
+    if (metric.type === 'water_type') return t('encyclopedia.actionCompleteWaterType');
+    return t('encyclopedia.actionCompleteInfo');
   };
 
   const handleMainAction = () => {
@@ -580,18 +677,22 @@ export function SpeciesDetailDialog({
   const handleRecordDeath = async () => {
     if (!fish || !onRecordDeath || isRecordingDeath) return;
     if (!deathDate || !deathReason.trim()) {
-      setDeathError('请填写日期和原因后再保存。');
+      setDeathError(t('encyclopedia.freshwater') === '淡水' ? '请填写日期和原因后再保存。' : 'Please enter date and reason.');
       deathReasonRef.current?.focus();
       return;
     }
     setIsRecordingDeath(true);
     setDeathError('');
     try {
-      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim() });
+      const selectedBatchId = deathBatchId || deathBatches[0]?.id;
+      if (deathBatches.length > 0 && !selectedBatchId) throw new Error(t('livestock.selectMemorialBatch'));
+      await onRecordDeath(fish, { date: deathDate, reason: deathReason.trim(), batchId: selectedBatchId, operationId: deathOperationId });
       setIsDeathFormOpen(false);
-      setInlineFeedback(`已保存 ${fish.name} 的生命纪念。`);
+      setDeathBatchId('');
+      setDeathOperationId('');
+      setInlineFeedback(t('encyclopedia.freshwater') === '淡水' ? `已保存 ${fish.name} 的生命纪念。` : `Saved memorial for ${fish.name}.`);
     } catch (error) {
-      setDeathError(error instanceof Error ? error.message : '保存失败，请稍后重试。');
+      setDeathError(error instanceof Error ? error.message : (t('encyclopedia.freshwater') === '淡水' ? '保存失败，请稍后重试。' : 'Save failed, please try again later.'));
     } finally {
       setIsRecordingDeath(false);
     }
@@ -601,13 +702,13 @@ export function SpeciesDetailDialog({
     if (!fish) return;
     try {
       if (navigator.share) {
-        await navigator.share({ title: fish.name, text: `${fish.name} - AquaGuide 鱼种适配参考` });
+        await navigator.share({ title: fish.name, text: `${fish.name}${t('encyclopedia.shareTextSuffix')}` });
       } else {
-        await navigator.clipboard?.writeText(`${fish.name} - AquaGuide 鱼种适配参考`);
+        await navigator.clipboard?.writeText(`${fish.name}${t('encyclopedia.shareTextSuffix')}`);
       }
-      setInlineFeedback('已复制分享信息');
+      setInlineFeedback(t('encyclopedia.freshwater') === '淡水' ? '已复制分享信息' : 'Share info copied');
     } catch {
-      setInlineFeedback('暂时无法分享，可稍后再试');
+      setInlineFeedback(t('encyclopedia.freshwater') === '淡水' ? '暂时无法分享，可稍后再试' : 'Sharing unavailable now, try again later.');
     }
   };
 
@@ -618,10 +719,10 @@ export function SpeciesDetailDialog({
           {fish && displayFit && (
             <div className="flex min-h-0 flex-1 flex-col bg-white">
               <div className="modalHeader flex items-center justify-between border-b border-border bg-white px-4 py-3">
-                <button type="button" onClick={() => onOpenChange(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/60 hover:text-accent" aria-label="返回">
+                <button type="button" onClick={() => onOpenChange(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/60 hover:text-accent" aria-label={t('encyclopedia.dismiss')}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <button type="button" onClick={handleShare} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/60 hover:text-accent" aria-label="分享">
+                <button type="button" onClick={handleShare} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/60 hover:text-accent" aria-label={t('encyclopedia.shareTextSuffix').trim()}>
                   <Share2 className="h-5 w-5" />
                 </button>
               </div>
@@ -631,14 +732,14 @@ export function SpeciesDetailDialog({
                   <div className="rounded-[20px] border border-border bg-white p-3 shadow-sm">
                     <div className="grid grid-cols-[128px_1fr] gap-3">
                       {fish.id === 'sp_0260' ? (
-                        <Suspense fallback={<div className="flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 bg-slate-50 text-[10px] text-slate-400">3D 加载中...</div>}>
+                        <Suspense fallback={<div className="flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 bg-slate-50 text-[10px] text-slate-400">{t('encyclopedia.freshwater') === '淡水' ? '3D 加载中...' : 'Loading 3D...'}</div>}>
                           <Interactive3DFishWrapper
                             imageUrl={resolvedImageSrc}
                             className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-0 shadow-sm overflow-hidden`}
                           />
                         </Suspense>
                       ) : (
-                        <button type="button" onClick={openPreview} data-species-detail-hero className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-2 shadow-sm`} aria-label={`放大查看${fish.name}图片`}>
+                        <button type="button" onClick={openPreview} data-species-detail-hero className={`flex aspect-[1.18] min-h-[112px] items-center justify-center rounded-[16px] border border-border/70 ${getSpeciesImageSurfaceClass(fish)} p-2 shadow-sm`} aria-label={t('encyclopedia.freshwater') === '淡水' ? `放大查看${fish.name}图片` : `Enlarge image of ${fish.name}`}>
                           <img src={resolvedImageSrc} alt={fish.name} className={`h-[88%] w-[88%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
                         </button>
                       )}
@@ -648,24 +749,28 @@ export function SpeciesDetailDialog({
                             <DialogTitle className="font-serif text-[22px] italic font-bold leading-tight text-ink">{fish.name}</DialogTitle>
                             <DialogDescription className="mt-1 text-[12px] font-medium leading-tight text-ink/55">{fish.scientificName}</DialogDescription>
                           </div>
-                          <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${getDifficultyBadgeClass(fish.difficulty)}`}>{getDifficultyLabel(fish.difficulty)}</span>
+                          <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${getDifficultyBadgeClass(fish.difficulty)}`}>{fish.difficulty === 'Easy' ? t('encyclopedia.difficultyEasyShort') : fish.difficulty === 'Medium' ? t('encyclopedia.difficultyMediumShort') : t('encyclopedia.difficultyHardShort')}</span>
                         </div>
                         <div className="mt-3 flex max-h-[58px] flex-wrap gap-1.5 overflow-hidden">
                           {[selectedTaxonomy?.variety, fish.housingMode, ...getToolFunctions(fish)].filter(Boolean).slice(0, 3).map(tag => {
-                            const displayTag = tag === '主题生物' ? '观赏主角' : tag === '单独饲养' ? '建议单养' : tag;
+                            const displayTag = translateTag(tag, t);
                             return <span key={tag} className="rounded-full border border-border bg-white px-2 py-1 text-[10px] font-bold text-ink/60">{displayTag}</span>;
                           })}
                         </div>
-                        <p className="mt-3 line-clamp-1 text-[12px] font-bold leading-relaxed text-ink/62">{getSpeciesRole(fish)}</p>
+                        <p className="mt-3 line-clamp-1 text-[12px] font-bold leading-relaxed text-ink/62">{getLocalizedSpeciesRole(fish, t)}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-3 gap-2 rounded-[18px] border border-border bg-white p-2 shadow-sm">
                     {[
-                      { label: '检查混养', icon: Calculator, active: inCalculator, action: handleOpenCalculator },
-                      { label: inWishlist ? '已种草' : '加入种草', icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
-                      onRecordDeath ? { label: '更多操作', icon: Skull, active: false, action: () => setIsDeathFormOpen(true) } : null,
+                      { label: t('encyclopedia.compatibilityCalc'), icon: Calculator, active: inCalculator, action: handleOpenCalculator },
+                      { label: inWishlist ? t('encyclopedia.inWishlistBtn') : t('encyclopedia.addToWishlistBtn'), icon: inWishlist ? Heart : HeartOff, active: inWishlist, action: () => onToggleWishlist(fish.id) },
+                      onRecordDeath ? { label: t('encyclopedia.moreLabel'), icon: Skull, active: false, action: () => {
+                        setDeathBatchId('');
+                        setDeathOperationId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+                        setIsDeathFormOpen(true);
+                      } } : null,
                     ].filter(Boolean).map(item => {
                       const actionItem = item as { label: string; icon: typeof Calculator; active: boolean; action: () => void };
                       const Icon = actionItem.icon;
@@ -688,9 +793,9 @@ export function SpeciesDetailDialog({
 
                   <div className="mt-4 grid grid-cols-3 border-b border-border">
                     {[
-                      { id: 'environment', label: '环境适配' },
-                      { id: 'compatibility', label: '混养关系' },
-                      { id: 'care', label: '喂养养护' },
+                      { id: 'environment', label: t('encyclopedia.tankEnvironment') },
+                      { id: 'compatibility', label: t('encyclopedia.compatibilityCheck') },
+                      { id: 'care', label: t('encyclopedia.feedingCare') },
                     ].map(tab => (
                       <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`relative h-11 text-[14px] font-black transition-colors ${activeTab === tab.id ? 'text-accent' : 'text-ink/45'}`}>
                         {tab.label}
@@ -701,171 +806,29 @@ export function SpeciesDetailDialog({
 
                   {activeTab === 'environment' && (
                     <div className="mt-4 grid gap-4">
-                      {(() => {
-                        const tone = getAssessmentTone(displayFit.status);
-                        const keyIssues = aquariumContext ? [...displayFit.confirmations.map(item => item.advice), ...displayFit.risks.map(item => item.advice)].slice(0, 3) : ['选择或创建鱼缸后，系统会结合水体、温度、空间和设备给出判断。'];
-                        const fallbackIssues = displayFit.status === 'suitable' || displayFit.status === 'alreadyInTank'
-                          ? ['当前温度、空间和水体条件基本匹配', '继续观察鱼只状态', '后续添加生物前再做混养评估']
-                          : ['当前鱼缸缺少完整环境信息', '部分水质或设备条件需要确认', '补充后可重新评估适配结果'];
-                        return (
-                          <section className={`rounded-[18px] border p-4 ${tone === 'suitable' ? 'border-emerald-100 bg-emerald-50/80' : tone === 'risk' ? 'border-red-100 bg-red-50/80' : 'border-amber-100 bg-amber-50/80'}`}>
-                            <div className="grid gap-3 min-[560px]:grid-cols-[1fr_170px]">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  {tone === 'suitable' ? <CheckCircle2 className="h-7 w-7 text-emerald-600" /> : <AlertTriangle className={`h-7 w-7 ${tone === 'risk' ? 'text-red-600' : 'text-amber-600'}`} />}
-                                  <h3 className="text-[19px] font-black leading-tight text-ink">{aquariumContext ? displayFit.title : '尚未选择鱼缸'}</h3>
-                                </div>
-                                <div className="mt-3 grid gap-2">
-                                  {(keyIssues.length > 0 ? keyIssues : fallbackIssues).slice(0, 3).map(item => (
-                                    <div key={item} className="flex items-start gap-2 text-[12px] font-bold leading-relaxed text-ink/68">
-                                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                                      <span>{item}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="rounded-[16px] border border-white/70 bg-white/65 p-3">
-                                <div className="text-[11px] font-black text-ink/42">参考鱼缸</div>
-                                <div className="mt-2 text-[13px] font-black text-ink">{aquariumContext?.name || '我的鱼缸'}</div>
-                                <div className="mt-1 text-[12px] font-bold leading-relaxed text-ink/55">{aquariumContext ? `${aquariumContext.waterType === 'Saltwater' ? '海水' : '淡水'} · ${aquariumContext.targetTemperature || '温度未设置'}℃` : '暂无鱼缸数据'}</div>
-                              </div>
-                            </div>
-                          </section>
-                        );
-                      })()}
-
-                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[15px] font-black text-ink">环境关键指标</h3>
-                            <Info className="h-4 w-4 text-ink/38" />
-                          </div>
-                          <span className="text-[12px] font-black text-ink/45">{metricCards.length} 项指标 <ChevronRight className="inline h-4 w-4" /></span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {metricCards.map(item => {
-                            const Icon = item.icon;
-                            return (
-                              <button key={item.label} type="button" onClick={() => setActiveMetric(item)} className="min-h-[86px] rounded-[16px] border border-border bg-white p-3 text-left shadow-sm transition-colors hover:border-accent/35">
-                                <div className="flex items-start justify-between gap-2">
-                                  <Icon className={`h-7 w-7 shrink-0 ${item.status === 'ok' ? 'text-emerald-600' : item.status === 'danger' ? 'text-red-500' : 'text-amber-500'}`} />
-                                  <span className={`rounded-full border px-2 py-1 text-[10px] font-black ${getFitStatusClass(item.status)}`}>{item.status === 'ok' ? '匹配' : item.status === 'info' ? '待补充' : '待调整'}</span>
-                                </div>
-                                <div className="mt-3 text-[13px] font-black text-ink">{item.label}</div>
-                                <div className="mt-1 line-clamp-1 text-[12px] font-bold text-ink/55">{item.status === 'ok' ? item.current : item.current || '未设置'}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </section>}
-
-                      {aquariumContext && <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[15px] font-black text-ink">系统适配结果</h3>
-                            <Info className="h-4 w-4 text-ink/35" />
-                          </div>
-                          <div className="shrink-0 text-[13px] font-black text-ink">{metricSummary.matched} 匹配 <span className="mx-1 text-ink/25">/</span> {metricSummary.pending + metricSummary.adjust} 待处理</div>
-                        </div>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg">
-                          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round((metricSummary.matched / metricSummary.total) * 100)}%` }} />
-                        </div>
-                        <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/55">{metricSummary.pending > 0 ? '信息尚未完整，补充后可进行完整评估。' : displayFit.conclusion}</p>
-                      </section>}
-
-                      <details className="rounded-[18px] border border-border bg-white p-3 shadow-sm">
-                        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">
-                          规则解释（AI 可选）
-                          <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
-                        </summary>
-                        {aiExplanationLoading ? (
-                          <p className="mt-3 text-[12px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
-                        ) : aiExplanation?.fallback ? (
-                          <div className="mt-3 rounded-[12px] bg-bg p-3">
-                            <div className="mb-2 w-fit rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700">
-                              本地模板
-                            </div>
-                            <p className="text-[12px] font-bold leading-relaxed text-ink/60">
-                              AI 暂不可用，系统规则仍可使用。
-                            </p>
-                          </div>
-                        ) : aiExplanation ? (
-                          <div className="mt-3 grid gap-2">
-                            <div className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
-                              模型回复 · 不改变系统结论
-                            </div>
-                            <p className="rounded-[12px] bg-bg p-3 text-[12px] font-bold leading-relaxed text-ink/65">{aiExplanation.summary}</p>
-                            {aiExplanation.reasons.slice(0, 3).map(item => (
-                              <div key={`${item.title}-${item.detail}`} className="rounded-[12px] border border-sky-100 bg-sky-50/70 p-3">
-                                <div className="text-[12px] font-black text-ink">{item.title}</div>
-                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{item.detail}</p>
-                                <p className="mt-1 text-[10px] font-black text-ink/35">{item.source}</p>
-                              </div>
-                            ))}
-                            {aiExplanation.suggestions.length > 0 && (
-                              <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/70 p-3">
-                                <div className="text-[12px] font-black text-ink">可以怎么做</div>
-                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{aiExplanation.suggestions[0].detail}</p>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-3 grid gap-2">
-                            <p className="text-[12px] font-bold leading-relaxed text-ink/55">结果由物种资料与混养规则计算，AI 仅负责把规则解释得更好懂。</p>
-                            <Button type="button" variant="outline" className="h-10 rounded-full text-[12px] font-black" onClick={handleAiExplain}>
-                              让 AI 帮我解读
-                            </Button>
-                          </div>
-                        )}
-                      </details>
+                      {fitVisualModel && (
+                        <VisualResultCard
+                          model={fitVisualModel}
+                          onPrimaryAction={handleMainAction}
+                          onSubjectSelect={subject => {
+                            const metric = metricCards.find(item => `fit-${item.type}` === subject.id);
+                            if (metric) setActiveMetric(metric);
+                          }}
+                        />
+                      )}
                     </div>
                   )}
 
                   {activeTab === 'compatibility' && (
                     <div className="mt-4 grid gap-3">
-                      <section className="rounded-[18px] border border-border bg-white p-4 shadow-sm">
-                        <h3 className="text-[16px] font-black text-ink">当前鱼缸混养关系</h3>
-                        {compatibilityPairs.length === 0 ? (
-                          <div className="mt-3 rounded-[14px] bg-bg p-3">
-                            <div className="text-[13px] font-black text-ink">尚未进行混养评估</div>
-                            <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">当前鱼缸没有可与该物种逐对比较的其他活体。添加鱼类、虾类或螺类后，系统会重新计算。</p>
-                          </div>
-                        ) : (
-                          <div className="mt-3 grid gap-2">
-                            {compatibilityPairs.map(pair => {
-                              const otherSpecies = pair.speciesA.id === fish.id ? pair.speciesB : pair.speciesA;
-                              const status = getPairStatusPresentation(pair.status);
-                              const evidence = pair.primaryReason?.evidence || pair.rawResult.summary;
-                              const action = pair.actions[0];
-                              return (
-                                <article key={pair.pairId} className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border ${getSpeciesImageSurfaceClass(otherSpecies)} p-1.5`}>
-                                      <img src={getSpeciesDisplayImage(otherSpecies)} alt={otherSpecies.name} loading="lazy" decoding="async" className={`h-full w-full object-contain ${getSpeciesImageClass(otherSpecies)}`} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="truncate text-[13px] font-black text-ink">与 {otherSpecies.name}</div>
-                                        <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${status.className}`}>{status.label}</span>
-                                      </div>
-                                      <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/60">{evidence}</p>
-                                      {action && <p className="mt-1 text-[11px] font-bold leading-relaxed text-accent">建议：{action}</p>}
-                                    </div>
-                                  </div>
-                                </article>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <Button variant="outline" className="mt-3 h-10 rounded-full px-5 text-[12px] font-black" onClick={handleOpenCalculator}><Calculator className="mr-2 h-4 w-4" />调整混养组合</Button>
-                      </section>
+                      {compatibilityVisualModel && <VisualResultCard model={compatibilityVisualModel} onPrimaryAction={handleOpenCalculator} />}
                       {(fish.housingMode || fish.housingReason) && (
                         <details className="rounded-[16px] border border-border bg-white/70 p-3">
-                          <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-black text-ink">通用饲养倾向 · 类别参考<ChevronRight className="h-4 w-4 text-ink/40" /></summary>
+                          <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-black text-ink">{t('encyclopedia.categoryReferenceTitle')}<ChevronRight className="h-4 w-4 text-ink/40" /></summary>
                           <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-medium leading-relaxed text-ink/60">
-                            <div className="font-black text-ink">{fish.housingMode || '需结合具体组合判断'}</div>
+                            <div className="font-black text-ink">{fish.housingMode ? translateTag(fish.housingMode, t) : t('encyclopedia.adviceHousingDefault')}</div>
                             {fish.housingReason && <p className="mt-1">{fish.housingReason}</p>}
-                            <p className="mt-2 text-[10px] font-bold text-amber-700">该内容是类别通用参考，不代表当前鱼缸的逐对混养结论。</p>
+                            <p className="mt-2 text-[10px] font-bold text-amber-700">{t('encyclopedia.disclaimerHousing')}</p>
                           </div>
                         </details>
                       )}
@@ -877,16 +840,21 @@ export function SpeciesDetailDialog({
                       {sexIdentificationGuide && (
                         <details open className="rounded-[16px] border border-emerald-100 bg-emerald-50/60 p-3 shadow-sm">
                           <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-black text-ink">
-                            {sexIdentificationGuide.title}
+                            {sexIdentificationGuide.title === '暂无可靠的公母辨别资料' ? t('encyclopedia.sexTitlePlaceholder') : sexIdentificationGuide.title}
                             <ChevronRight className="h-4 w-4 text-ink/40" />
                           </summary>
-                          <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/62">{sexIdentificationGuide.summary}</p>
+                          <p className="mt-3 text-[12px] font-bold leading-relaxed text-ink/62">
+                            {sexIdentificationGuide.summary === '当前图鉴没有经过人工审核的公母辨别字段，系统不会仅凭名称或品类猜测公母。' ? t('encyclopedia.sexSummaryPlaceholder') : sexIdentificationGuide.summary}
+                          </p>
                           <div className="mt-3 grid gap-2">
-                            {sexIdentificationGuide.points.map(point => (
-                              <div key={point} className="rounded-[12px] bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-ink/64">
-                                {point}
-                              </div>
-                            ))}
+                            {sexIdentificationGuide.points.map(point => {
+                              const translatedPt = point === '可先按健康状态、体型完整度和活性挑选个体。' ? t('encyclopedia.sexPt1') : point === '如果确实需要配对繁殖，建议向可靠商家确认性别来源。' ? t('encyclopedia.sexPt2') : point === '后续补充人工审核资料后，这里会显示具体辨别要点。' ? t('encyclopedia.sexPt3') : point;
+                              return (
+                                <div key={point} className="rounded-[12px] bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-ink/64">
+                                  {translatedPt}
+                                </div>
+                              );
+                            })}
                           </div>
                         </details>
                       )}
@@ -895,33 +863,40 @@ export function SpeciesDetailDialog({
                           <section className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <h3 className="text-[14px] font-black text-ink">喂养资料</h3>
-                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/52">{carePresentation.sourceDetail}</p>
+                                <h3 className="text-[14px] font-black text-ink">{t('encyclopedia.feedingLabel')}</h3>
+                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/52">
+                                  {carePresentation.sourceStatus === 'pending' ? t('encyclopedia.noCareProfile') : carePresentation.sourceStatus === 'generic' ? t('encyclopedia.disclaimerHousing') : carePresentation.sourceStatus === 'verified' ? t('encyclopedia.fitStatusOkLabel') : t('encyclopedia.adviceAlreadyInTankPage')}
+                                </p>
                               </div>
-                              <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${getCareSourceClass(carePresentation.sourceStatus)}`}>{carePresentation.sourceLabel}</span>
+                              <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${getCareSourceClass(carePresentation.sourceStatus)}`}>
+                                {carePresentation.sourceStatus === 'pending' ? t('encyclopedia.fitInsufficient') : carePresentation.sourceStatus === 'generic' ? t('encyclopedia.adviceHousingDefault') : carePresentation.sourceStatus === 'verified' ? t('encyclopedia.fitStatusOkLabel') : t('encyclopedia.fitStatusMatchConfirm')}
+                              </span>
                             </div>
                             {carePresentation.feedingItems.length > 0 ? (
                               <div className="mt-3 grid gap-2">
                                 {carePresentation.feedingItems.map(item => (
                                   <div key={item.label} className="rounded-[12px] bg-bg p-3">
-                                    <div className="text-[10px] font-black text-ink/42">{item.label}</div>
+                                    <div className="text-[10px] font-black text-ink/42">{translateLabel(item.label)}</div>
                                     <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/65">{item.value}</p>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold text-ink/55">暂无经过复核的物种专属资料。</div>
+                              <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] font-bold text-ink/55">{t('encyclopedia.noCareProfile')}</div>
                             )}
                           </section>
                           <section className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                            <h3 className="text-[14px] font-black text-ink">环境节奏</h3>
+                            <h3 className="text-[14px] font-black text-ink">{t('encyclopedia.waterEnvLabel')}</h3>
                             <div className="mt-3 grid grid-cols-2 gap-2">
-                              {carePresentation.environmentItems.map(item => (
-                                <div key={item.label} className="rounded-[12px] bg-bg p-3">
-                                  <div className="text-[10px] font-black text-ink/42">{item.label}</div>
-                                  <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/65">{item.value}</p>
-                                </div>
-                              ))}
+                              {carePresentation.environmentItems.map(item => {
+                                const displayVal = item.label === '换水周期' ? t('encyclopedia.careWaterChangeValue', { days: fish.waterChangeCycle }) : item.value;
+                                return (
+                                  <div key={item.label} className="rounded-[12px] bg-bg p-3">
+                                    <div className="text-[10px] font-black text-ink/42">{translateLabel(item.label)}</div>
+                                    <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/65">{displayVal}</p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </section>
                         </>
@@ -932,10 +907,10 @@ export function SpeciesDetailDialog({
                   {(detailFeedback || inlineFeedback) && (
                     <div className="mt-3 rounded-[14px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[12px] font-bold text-emerald-800">
                       {detailFeedback || inlineFeedback}
-                      {detailFeedback && onGoCalculator && <button type="button" className="ml-2 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={onGoCalculator}>去计算</button>}
+                      {detailFeedback && onGoCalculator && <button type="button" className="ml-2 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={onGoCalculator}>{t('encyclopedia.goToCalcBtn')}</button>}
                     </div>
                   )}
-                      </div>
+                </div>
               </div>
 
               <div className="modalFooter border-t border-border bg-white/95 px-6 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4">
@@ -944,15 +919,15 @@ export function SpeciesDetailDialog({
 
               {activeMetric && (
                 <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/24 px-3 pb-3">
-                  <button type="button" className="absolute inset-0" aria-label="关闭参数编辑" onClick={() => setActiveMetric(null)} />
+                  <button type="button" className="absolute inset-0" aria-label={t('encyclopedia.dismiss')} onClick={() => setActiveMetric(null)} />
                   <div className="relative w-full max-w-[520px] rounded-[26px] bg-white p-4 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-ink/12" />
-                    <h3 className="text-[18px] font-black text-ink">{activeMetric.status === 'ok' ? '查看环境指标' : `调整${activeMetric.label}`}</h3>
+                    <h3 className="text-[18px] font-black text-ink">{activeMetric.status === 'ok' ? t('encyclopedia.viewEnvTitle') : t('encyclopedia.adjustEnvLabel', { label: translateLabel(activeMetric.label) })}</h3>
                     <div className="mt-3 grid gap-2 rounded-[18px] bg-bg p-3">
-                      <div className="flex justify-between gap-3 text-[13px] font-bold text-ink/60"><span>当前</span><span className={getFitCurrentClass(activeMetric.status)}>{activeMetric.current || '未设置'}</span></div>
-                      <div className="flex justify-between gap-3 text-[13px] font-bold text-ink/60"><span>目标范围</span><span className="text-ink">{activeMetric.requirement || '按鱼种需求确认'}</span></div>
+                      <div className="flex justify-between gap-3 text-[13px] font-bold text-ink/60"><span>{t('encyclopedia.currentValue')}</span><span className={getFitCurrentClass(activeMetric.status)}>{activeMetric.current || t('encyclopedia.noTankSelected')}</span></div>
+                      <div className="flex justify-between gap-3 text-[13px] font-bold text-ink/60"><span>{t('encyclopedia.targetRange')}</span><span className="text-ink">{activeMetric.requirement || t('encyclopedia.checkRequirements')}</span></div>
                     </div>
-                    <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink/55">{activeMetric.advice || '当前页面不直接写入鱼缸设置，请到鱼缸设置中完善后重新评估。'}</p>
+                    <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink/55">{activeMetric.advice || t('encyclopedia.dismissAdvice')}</p>
                     {getMetricSettingsPanel(activeMetric) && onOpenTankSettings && (
                       <Button className="mt-4 h-11 w-full rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => {
                         const panel = getMetricSettingsPanel(activeMetric);
@@ -967,18 +942,19 @@ export function SpeciesDetailDialog({
 
               {isDeathFormOpen && (
                 <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/30 px-4" role="dialog" aria-modal="true" aria-labelledby="death-record-title">
-                  <button type="button" className="absolute inset-0" aria-label="取消记录" onClick={() => !isRecordingDeath && setIsDeathFormOpen(false)} />
+                  <button type="button" className="absolute inset-0" aria-label={t('encyclopedia.btnCancel')} onClick={() => !isRecordingDeath && setIsDeathFormOpen(false)} />
                   <div className="relative w-full max-w-[440px] rounded-[24px] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
-                    <h3 id="death-record-title" className="text-[18px] font-black text-ink">记录生命纪念</h3>
-                    <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">保存后会同步更新鱼缸、水族册和“认真复盘”勋章。</p>
-                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-date">日期</label>
+                    <h3 id="death-record-title" className="text-[18px] font-black text-ink">{t('encyclopedia.recordMemorialTitle')}</h3>
+                    <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/58">{t('encyclopedia.memorialSubtitle')}</p>
+                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-date">{t('encyclopedia.dateLabel')}</label>
                     <input id="death-date" type="date" value={deathDate} onChange={event => setDeathDate(event.target.value)} disabled={isRecordingDeath} className="mt-2 h-11 w-full rounded-[14px] border border-border bg-white px-3 text-[14px] font-bold text-ink outline-none focus:border-accent" />
-                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-reason">原因与复盘</label>
-                    <textarea ref={deathReasonRef} id="death-reason" value={deathReason} onChange={event => setDeathReason(event.target.value)} disabled={isRecordingDeath} rows={4} placeholder="例如：发现时的状态、可能原因和以后会注意什么" className="mt-2 w-full resize-none rounded-[14px] border border-border bg-white p-3 text-[14px] font-medium leading-relaxed text-ink outline-none focus:border-accent" />
+                    <label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-reason">{t('encyclopedia.reasonLabel')}</label>
+                    <textarea ref={deathReasonRef} id="death-reason" value={deathReason} onChange={event => setDeathReason(event.target.value)} disabled={isRecordingDeath} rows={4} placeholder={t('encyclopedia.deathReasonPlaceholder')} className="mt-2 w-full resize-none rounded-[14px] border border-border bg-white p-3 text-[14px] font-medium leading-relaxed text-ink outline-none focus:border-accent" />
+                    {deathBatches.length > 1 && <><label className="mt-4 block text-[12px] font-black text-ink" htmlFor="death-batch">{t('livestock.memorialBatch')}</label><select id="death-batch" value={deathBatchId || deathBatches[0]?.id || ''} onChange={event => setDeathBatchId(event.target.value)} disabled={isRecordingDeath} className="mt-2 h-11 w-full rounded-[14px] border border-border bg-white px-3 text-[14px] font-bold text-ink"><option value="" disabled>{t('livestock.selectMemorialBatch')}</option>{deathBatches.map((batch, index) => <option key={batch.id} value={batch.id}>{t('livestock.groupOption', { index: index + 1, count: batch.quantity })}</option>)}</select></>}
                     {deathError && <p className="mt-2 rounded-[12px] bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700" role="alert">{deathError}</p>}
                     <div className="mt-5 grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" disabled={isRecordingDeath} onClick={() => setIsDeathFormOpen(false)}>取消</Button>
-                      <Button className="h-11 rounded-full bg-ink text-sm font-black text-white hover:bg-ink/90" disabled={isRecordingDeath} onClick={handleRecordDeath}>{isRecordingDeath ? '正在保存…' : '确认保存'}</Button>
+                      <Button variant="outline" className="h-11 rounded-full border-border text-sm font-black" disabled={isRecordingDeath} onClick={() => setIsDeathFormOpen(false)}>{t('encyclopedia.btnCancel')}</Button>
+                      <Button className="h-11 rounded-full bg-ink text-sm font-black text-white hover:bg-ink/90" disabled={isRecordingDeath} onClick={handleRecordDeath}>{isRecordingDeath ? t('encyclopedia.btnSaving') : t('encyclopedia.btnSave')}</Button>
                     </div>
                   </div>
                 </div>
@@ -1014,7 +990,7 @@ export function SpeciesDetailDialog({
                         );
                       })}
                     </div>
-                    <p className="mt-3 line-clamp-1 text-[12px] font-medium leading-relaxed text-ink/62">{getSpeciesRole(fish)}</p>
+                    <p className="mt-3 line-clamp-1 text-[12px] font-medium leading-relaxed text-ink/62">{getSpeciesRole(fish, isEn)}</p>
                   </div>
                 </div>
 
@@ -1066,16 +1042,16 @@ export function SpeciesDetailDialog({
                       <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => onAddToTank(fish)}>
                         <Plus className="mr-1 h-4 w-4" />{
                           displayFit.status === 'unknown'
-                            ? '先配置鱼缸环境'
+                            ? (isEn ? 'Configure Tank First' : '先配置鱼缸环境')
                             : displayFit.status === 'conflictRisk'
-                              ? '查看风险后确认添加'
+                              ? (isEn ? 'Check Risks Then Add' : '查看风险后确认添加')
                               : displayFit.status === 'setupNeeded'
-                                ? displayFit.isEmptyTank ? '完善鱼缸环境' : '调整后加入'
+                                ? displayFit.isEmptyTank ? (isEn ? 'Improve Tank Setup' : '完善鱼缸环境') : (isEn ? 'Adjust Then Add' : '调整后加入')
                                 : displayFit.status === 'unsuitable'
-                                  ? '先配置鱼缸环境'
+                                  ? (isEn ? 'Configure Tank First' : '先配置鱼缸环境')
                                   : displayFit.status === 'needConfirmation'
-                                    ? '补充确认后加入'
-                                  : '添加到我的鱼缸'
+                                    ? (isEn ? 'Confirm Then Add' : '补充确认后加入')
+                                  : (isEn ? 'Add to My Aquarium' : '添加到我的鱼缸')
                         }
                       </Button>
                     ) : null}
@@ -1142,53 +1118,6 @@ export function SpeciesDetailDialog({
                         </div>
                       )}
                     </div>
-                  </details>
-
-                  <details className="rounded-[16px] border border-border bg-white/70 p-3 shadow-sm">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
-                      <h3 className="text-[13px] font-black text-ink">规则解释（AI 可选）</h3>
-                      <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">不改变系统结论</span>
-                    </summary>
-                    {aiExplanationLoading ? (
-                      <p className="mt-2 text-[11px] font-bold text-ink/55">正在根据系统规则生成解释...</p>
-                    ) : aiExplanation?.fallback ? (
-                      <div className="mt-2 rounded-[12px] bg-bg p-2">
-                        <div className="mb-1.5 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
-                          本地模板
-                        </div>
-                        <p className="text-[11px] font-bold leading-relaxed text-ink/60">
-                          AI 暂不可用，系统规则仍可使用。
-                        </p>
-                      </div>
-                    ) : aiExplanation ? (
-                      <div className="mt-2 grid gap-2">
-                        <div className="w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                          模型回复 · 不改变系统结论
-                        </div>
-                        <p className="rounded-[12px] bg-bg p-2 text-[11px] font-bold leading-relaxed text-ink/65">
-                          {aiExplanation.summary}
-                        </p>
-                        {aiExplanation.reasons.slice(0, 3).map(item => (
-                          <div key={`${item.title}-${item.detail}`} className="rounded-[12px] border border-sky-100 bg-sky-50/70 p-2">
-                            <div className="text-[11px] font-black text-ink">{item.title}</div>
-                            <p className="mt-0.5 text-[10px] font-medium leading-relaxed text-ink/60">{item.detail}</p>
-                          </div>
-                        ))}
-                        {aiExplanation.suggestions.length > 0 && (
-                          <div className="rounded-[12px] border border-emerald-100 bg-emerald-50/70 p-2">
-                            <div className="text-[11px] font-black text-ink">可以怎么做</div>
-                            <p className="mt-0.5 text-[10px] font-medium leading-relaxed text-ink/60">{aiExplanation.suggestions[0].detail}</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-2 grid gap-2">
-                        <p className="text-[11px] font-bold leading-relaxed text-ink/55">结果由物种资料与混养规则计算，AI 仅负责解释。</p>
-                        <Button type="button" variant="outline" className="h-9 rounded-full text-[11px] font-black" onClick={handleAiExplain}>
-                          让 AI 帮我解读
-                        </Button>
-                      </div>
-                    )}
                   </details>
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">

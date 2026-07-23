@@ -8,6 +8,8 @@ export type WorkspaceSectionId =
   | 'atlas-results'
   | 'atlas-grid'
   | 'atlas-pagination-bottom'
+  | 'calculator-sticky-target'
+  | 'compatibility-calculator'
   | 'care-search'
   | 'care-categories'
   | 'care-recommendations'

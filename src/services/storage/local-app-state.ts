@@ -1,5 +1,6 @@
-import type { Aquarium } from '../../types';
+import type { Aquarium, OnboardingState } from '../../types';
 import type { DiscoveryDeckState } from '../../modules/recommendation/recommendation.schema';
+import { notifyDataRecovery } from '../diagnostics/ui-failure.service';
 
 export const AQUARIUM_APP_STATE_KEY = 'aquarium_app_state_v1';
 export const AQUARIUM_APP_STATE_VERSION = 1;
@@ -26,21 +27,23 @@ export type LocalAppState = {
   observationRecords: LocalEventRecord[];
   riskReminderState: Record<string, string>;
   discoveryState?: DiscoveryDeckState;
+  onboarding?: OnboardingState;
+  cloudMigrationConfirmed?: boolean;
   updatedAt: string;
 };
 
-const safeParse = <T,>(value: string | null, fallback: T): T => {
+const safeParse = <T,>(value: string | null, fallback: T, resource = 'local-storage'): T => {
   if (!value) return fallback;
   try {
     return JSON.parse(value) as T;
   } catch (error) {
-    console.warn('AquaGuide local app state parse failed', error);
+    notifyDataRecovery(resource, error);
     return fallback;
   }
 };
 
 const readLegacyArray = <T,>(key: string): T[] => {
-  const parsed = safeParse<unknown>(localStorage.getItem(key), []);
+  const parsed = safeParse<unknown>(localStorage.getItem(key), [], key);
   return Array.isArray(parsed) ? parsed as T[] : [];
 };
 
@@ -74,6 +77,11 @@ const normalizeState = (value: Partial<LocalAppState> | null | undefined): Local
     observationRecords: Array.isArray(value?.observationRecords) ? value.observationRecords : fallback.observationRecords,
     riskReminderState: value?.riskReminderState && typeof value.riskReminderState === 'object' ? value.riskReminderState : fallback.riskReminderState,
     discoveryState: value?.discoveryState,
+    onboarding: value?.onboarding ? {
+      ...value.onboarding,
+      aquariumConfigured: value.onboarding.aquariumConfigured ?? value.onboarding.status === 'completed',
+    } : undefined,
+    cloudMigrationConfirmed: value?.cloudMigrationConfirmed === true,
     updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : fallback.updatedAt,
   };
 };
@@ -87,7 +95,7 @@ const emitAppStateChanged = () => {
 };
 
 export const loadAppStateFromStorage = (): LocalAppState => {
-  const stored = safeParse<Partial<LocalAppState> | null>(localStorage.getItem(AQUARIUM_APP_STATE_KEY), null);
+  const stored = safeParse<Partial<LocalAppState> | null>(localStorage.getItem(AQUARIUM_APP_STATE_KEY), null, AQUARIUM_APP_STATE_KEY);
   if (stored) return normalizeState(stored);
 
   return normalizeState({
@@ -96,7 +104,7 @@ export const loadAppStateFromStorage = (): LocalAppState => {
     wishlist: readLegacyArray<string>('wishlistFishIds'),
     diagnosisRecords: readLegacyArray<unknown>('aquarium_diagnosis_records'),
     deceasedRecords: readLegacyArray<unknown>('deceasedRecords'),
-    discoveryState: safeParse<DiscoveryDeckState | undefined>(localStorage.getItem('aquapediaDiscoveryDeck'), undefined),
+    discoveryState: safeParse<DiscoveryDeckState | undefined>(localStorage.getItem('aquapediaDiscoveryDeck'), undefined, 'aquapediaDiscoveryDeck'),
   });
 };
 
@@ -115,10 +123,14 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
       emitAppStateChanged();
     } catch (error) {
       console.warn('AquaGuide local app state save failed', error);
+      throw error instanceof Error ? error : new Error('本地数据没有保存成功。');
     }
   };
 
   if (!options.debounce) {
+    if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+    pendingTimer = null;
+    pendingState = null;
     write();
     return normalized;
   }
@@ -139,6 +151,7 @@ export const saveAppStateToStorage = (appState: LocalAppState, options: { deboun
         emitAppStateChanged();
       } catch (error) {
         console.warn('AquaGuide local app state debounced save failed', error);
+        notifyDataRecovery(AQUARIUM_APP_STATE_KEY, error);
       }
     }
     pendingTimer = null;
@@ -184,7 +197,7 @@ export const clearLocalAppState = () => {
 export const exportLocalAppState = () => JSON.stringify(loadAppStateFromStorage(), null, 2);
 
 export const importLocalAppState = (json: string) => {
-  const parsed = safeParse<Partial<LocalAppState> | null>(json, null);
+  const parsed = safeParse<Partial<LocalAppState> | null>(json, null, 'local-data-import');
   if (!parsed) throw new Error('导入失败：不是有效的 AquaGuide 本地数据。');
   return saveAppStateToStorage(normalizeState(parsed));
 };

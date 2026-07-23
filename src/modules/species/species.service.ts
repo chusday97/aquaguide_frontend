@@ -98,17 +98,20 @@ export const getDifficultyLabel = (fish: Fish) => {
 };
 
 export const getLifeType = (fish: Fish) => {
-  const text = `${fish.name} ${fish.scientificName} ${fish.category}`;
+  const origCategory = (fish as any)._originalCategory || fish.category;
+  const text = `${fish.name} ${fish.scientificName} ${fish.category} ${origCategory}`;
 
-  if (fish.category === '水草' && isHardscapeSpecies(fish)) return 'hardscape';
-  if (fish.category === '水草' && isAquaticPlantSpecies(fish)) return 'plant';
+  if (origCategory === '水草' || fish.category === '水草') {
+    if (isHardscapeSpecies(fish)) return 'hardscape';
+    if (isAquaticPlantSpecies(fish)) return 'plant';
+  }
   if (isAquaticPlantSpecies(fish)) return 'plant';
   if (isHardscapeSpecies(fish)) return 'hardscape';
   if (/水母|海月|海刺水母|Cassiopea|Aurelia|Chrysaora|Phyllorhiza|Cotylorhiza|Sanderia/i.test(text)) return 'coral';
-  if (fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone|管虫|海绵|海星|海参|sponge|starfish|Sabellastarte|Protula|Haliclona|Astropecten/i.test(text)) return 'coral';
-  if (fish.category === '虾螺蟹' || fish.category === '虾类' || fish.category === '螺类' || /虾|螺|蟹|shrimp|snail|crab|Lysmata|Thor|Paguristes|Pomacea|Neritina|Clithon|Anentome|Caridina|Neocaridina|Geosesarma/i.test(text)) return 'invertebrate';
-  if (fish.category === '海水鱼' || isMarineFishText(text)) return 'fish';
-  if (fish.category === '龟类' || fish.category === '两栖/爬宠' || /龟|蛙|蝾螈|六角恐龙|axolotl|turtle|frog|newt/i.test(text)) return 'reptile';
+  if (origCategory === '珊瑚/海水无脊椎' || fish.category === '珊瑚/海水无脊椎' || /珊瑚|海葵|coral|anemone|管虫|海绵|海星|海参|sponge|starfish|Sabellastarte|Protula|Haliclona|Astropecten/i.test(text)) return 'coral';
+  if (origCategory === '虾螺蟹' || origCategory === '虾类' || origCategory === '螺类' || fish.category === '虾螺蟹' || fish.category === '虾类' || fish.category === '螺类' || /虾|螺|蟹|shrimp|snail|crab|Lysmata|Thor|Paguristes|Pomacea|Neritina|Clithon|Anentome|Caridina|Neocaridina|Geosesarma/i.test(text)) return 'invertebrate';
+  if (origCategory === '龟类' || origCategory === '两栖/爬宠' || fish.category === '龟类' || fish.category === '两栖/爬宠' || fish.category === 'Amphibians/Reptiles' || fish.category === 'Turtles' || /龟|蛙|蝾螈|六角恐龙|axolotl|turtle|frog|newt|Ambystoma|Cynops|Ceratophrys|Amphibian|Reptile/i.test(text)) return 'reptile';
+  if (origCategory === '海水鱼' || fish.category === '海水鱼' || fish.category === 'Marine Fish' || isMarineFishText(text)) return 'fish';
   return 'fish';
 };
 
@@ -300,34 +303,34 @@ const getSpeciesAliases = (fish: Fish) => {
   return [];
 };
 
-export const getSpeciesRoleLabel = (fish: Fish) => {
+export const getSpeciesRoleLabel = (fish: Fish, isEn = false) => {
   const override = speciesTaxonomyOverrides[fish.id]?.roleLabel;
   if (override) return override;
   const lifeType = getLifeType(fish);
   const secondaryCategory = getSecondaryCategory(fish);
   const tools = getToolFunctions(fish);
-  if (secondaryCategory === '水母') return '观赏生物 / 特殊缸体';
-  if (secondaryCategory === '海葵') return '观赏生物 / 海水特殊养护';
-  if (lifeType === 'plant') return '水草造景 / 环境植物';
-  if (lifeType === 'hardscape') return '造景素材 / 环境配置';
-  if (tools.includes('除藻')) return lifeType === 'invertebrate' ? '工具虾螺 / 除藻生物' : '工具生物 / 除藻辅助';
-  if (tools.includes('清残饵')) return '底层生物 / 清残饵';
-  if (lifeType === 'reptile') return '水陆生物 / 独立规划';
-  if (fish.housingMode === '建议单养') return '观赏主角 / 建议单养';
-  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return '小型观赏鱼 / 群游搭配';
-  return lifeType === 'invertebrate' ? '观赏无脊椎 / 生态搭配' : '观赏生物 / 鱼缸搭配';
+  if (secondaryCategory === '水母') return isEn ? 'Ornamental Creature / Specialized Tank' : '观赏生物 / 特殊缸体';
+  if (secondaryCategory === '海葵') return isEn ? 'Ornamental Creature / Marine Care' : '观赏生物 / 海水特殊养护';
+  if (lifeType === 'plant') return isEn ? 'Aquatic Plant / Aquascape Flora' : '水草造景 / 环境植物';
+  if (lifeType === 'hardscape') return isEn ? 'Hardscape / Aquascape Material' : '造景素材 / 环境配置';
+  if (tools.includes('除藻')) return lifeType === 'invertebrate' ? (isEn ? 'Cleaner Shrimp/Snail / Algae Control' : '工具虾螺 / 除藻生物') : (isEn ? 'Utility Creature / Algae Helper' : '工具生物 / 除藻辅助');
+  if (tools.includes('清残饵')) return isEn ? 'Bottom Dweller / Scavenger' : '底层生物 / 清残饵';
+  if (lifeType === 'reptile') return isEn ? 'Semi-Aquatic / Standalone Tank' : '水陆生物 / 独立规划';
+  if (fish.housingMode === '建议单养' || (fish.housingMode as string) === 'Single Specimen') return isEn ? 'Feature Specimen / Single Species' : '观赏主角 / 建议单养';
+  if (fish.size === 'Small' && fish.temperament === 'Peaceful') return isEn ? 'Small Fish / Schooling Mix' : '小型观赏鱼 / 群游搭配';
+  return lifeType === 'invertebrate' ? (isEn ? 'Ornamental Invertebrate / Eco Balance' : '观赏无脊椎 / 生态搭配') : (isEn ? 'Ornamental Creature / Tank Mix' : '观赏生物 / 鱼缸搭配');
 };
 
-export const getSpeciesPositioning = (fish: Fish) => {
+export const getSpeciesPositioning = (fish: Fish, isEn = false) => {
   const override = speciesTaxonomyOverrides[fish.id]?.positioning;
   if (override) return override;
   const tools = getToolFunctions(fish);
-  if (tools.includes('除藻')) return '适合作为除藻辅助生物';
-  if (tools.includes('清残饵')) return '适合清理残饵的底层生物';
-  if (fish.housingMode === '建议单养') return '更适合单独饲养观察';
-  if (fish.housingMode === '谨慎混养') return '可混养，但需要先确认同缸对象';
-  if (fish.difficulty === 'Easy' && fish.size === 'Small') return '适合新手的小型观赏生物';
-  return fish.temperament === 'Peaceful' ? '适合温和社区缸搭配' : '需要留意性情和空间';
+  if (tools.includes('除藻')) return isEn ? 'Suitable as an algae control helper' : '适合作为除藻辅助生物';
+  if (tools.includes('清残饵')) return isEn ? 'Suitable bottom dweller for clearing leftover food' : '适合清理残饵的底层生物';
+  if (fish.housingMode === '建议单养' || (fish.housingMode as string) === 'Single Specimen') return isEn ? 'Best suited for single species keeping' : '更适合单独饲养观察';
+  if (fish.housingMode === '谨慎混养' || (fish.housingMode as string) === 'Caution Mix') return isEn ? 'Compatible, but confirm tank mates first' : '可混养，但需要先确认同缸对象';
+  if (fish.difficulty === 'Easy' && fish.size === 'Small') return isEn ? 'Beginner-friendly small ornamental species' : '适合新手的小型观赏生物';
+  return fish.temperament === 'Peaceful' ? (isEn ? 'Suitable for peaceful community tanks' : '适合温和社区缸搭配') : (isEn ? 'Requires attention to temperament and tank space' : '需要留意性情和空间');
 };
 
 export const getSpeciesFilterTags = (fish: Fish) => {

@@ -3,31 +3,82 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Component, Suspense, useEffect, useMemo, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { hydrateOnboardingFromProfile, ONBOARDING_SYNC_FAILED_EVENT, shouldStartOnboarding, subscribeToOnboardingAuth } from './services/onboarding/onboarding.service';
 import {
   Activity,
   BookHeart,
+  BookOpenCheck,
   BookOpen,
   ChevronLeft,
   Database,
   Droplets,
   Library,
+  Medal,
+  Heart,
+  Skull,
+  Settings,
+  Search as SearchIcon,
+  Camera,
 } from 'lucide-react';
-import { ToastProvider } from './components/common/ToastProvider';
+import { ToastProvider, useToast } from './components/common/ToastProvider';
 import { WorkspaceNavigationProvider, useWorkspaceNavigation } from './components/layout/WorkspaceNavigationProvider';
 import { LayoutModeProvider, useLayoutMode } from './components/layout/LayoutModeProvider';
-import { getFavoriteCounts, subscribeToFavorites } from './services/favorites/favorites.service';
-import { captureProductException } from './services/analytics/product-analytics.service';
+import { DataRecoveryNotice, RouteErrorBoundary } from './components/common/RouteErrorBoundary';
+import { lazyWithRecovery } from './lib/lazyWithRecovery';
+import i18n from './i18n';
 
-const AquariumManager = lazy(() => import('./pages/Aquarium'));
-const Encyclopedia = lazy(() => import('./pages/Encyclopedia'));
-const CareEncyclopedia = lazy(() => import('./pages/CareEncyclopedia'));
-const Collection = lazy(() => import('./pages/Collection'));
-const ProjectStructurePreview = lazy(() => import('./pages/ProjectStructurePreview'));
-const Login = lazy(() => import('./pages/Login'));
-const ThreeDemo = lazy(() => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo })));
+const loadAquarium = () => import('./pages/Aquarium');
+const loadEncyclopedia = () => import('./pages/Encyclopedia');
+const loadCare = () => import('./pages/CareEncyclopedia');
+const loadCollection = () => import('./pages/Collection');
+const loadCollectionHub = () => import('./pages/CollectionHub');
+const loadProjectStructure = () => import('./pages/ProjectStructurePreview');
+const loadLogin = () => import('./pages/Login');
+const loadAdminContent = () => import('./pages/AdminContent');
+const loadIdentify = () => import('./pages/Identify');
+const loadThreeDemo = () => import('./pages/ThreeDemo').then(module => ({ default: module.ThreeDemo }));
+const loadSearch = () => import('./pages/Search');
+const loadSettings = () => import('./pages/Settings');
+const loadWelcome = () => import('./pages/Welcome');
+
+const AquariumManager = lazyWithRecovery(loadAquarium, 'aquarium');
+const Encyclopedia = lazyWithRecovery(loadEncyclopedia, 'encyclopedia');
+const CareEncyclopedia = lazyWithRecovery(loadCare, 'care');
+const Collection = lazyWithRecovery(loadCollection, 'collection-module');
+const CollectionHub = lazyWithRecovery(loadCollectionHub, 'collection-hub');
+const ProjectStructurePreview = lazyWithRecovery(loadProjectStructure, 'project-structure');
+const Login = lazyWithRecovery(loadLogin, 'login');
+const AdminContent = lazyWithRecovery(loadAdminContent, 'admin-content');
+const Identify = lazyWithRecovery(loadIdentify, 'identify');
+const ThreeDemo = lazyWithRecovery(loadThreeDemo, '3d-demo');
+const SearchPage = lazyWithRecovery(loadSearch, 'search');
+const SettingsPage = lazyWithRecovery(loadSettings, 'settings');
+const WelcomePage = lazyWithRecovery(loadWelcome, 'welcome');
+
+const preloadRoute = (path: string) => {
+  const loader = path === '/aquarium'
+    ? loadAquarium
+    : path === '/encyclopedia'
+      ? loadEncyclopedia
+      : path === '/identify'
+        ? loadIdentify
+      : path === '/search'
+        ? loadSearch
+      : path === '/settings'
+        ? loadSettings
+      : path === '/care'
+        ? loadCare
+        : path === '/collection'
+          ? loadCollectionHub
+          : path.startsWith('/collection/')
+            ? loadCollection
+          : null;
+  if (loader) void loader().catch(() => undefined);
+};
 
 
 const createWatermarkedImageSrc = (image: HTMLImageElement) => {
@@ -102,7 +153,6 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('AquaGuide render error', error, info);
-    captureProductException(error, { extra: { componentStack: info.componentStack } });
   }
 
   render() {
@@ -112,23 +162,14 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
       <div className="mx-auto flex min-h-[100dvh] max-w-[430px] items-center justify-center bg-[#eef4f1] p-5 text-ink md:max-w-none">
         <div className="w-full max-w-[430px] rounded-3xl bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)] md:max-w-[560px]">
           <div className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
-            页面加载异常
+            {i18n.t('common.pageError')}
           </div>
-          <h1 className="text-xl font-black">AquaGuide 暂时没有渲染出来</h1>
-          <p className="mt-2 text-sm leading-6 text-ink/60">
-            这通常是旧数据或某个组件运行时报错导致的。下面是浏览器捕获到的错误，发给我我就能继续精确修。
-          </p>
-          <pre className="mt-4 max-h-56 overflow-auto rounded-2xl bg-slate-950 p-3 text-[11px] leading-5 text-white">
-            {this.state.error.message}
-            {this.state.error.stack ? `\n\n${this.state.error.stack}` : ''}
-          </pre>
-          <button
-            type="button"
-            className="mt-4 h-11 w-full rounded-2xl bg-emerald-600 text-sm font-black text-white"
-            onClick={() => window.location.reload()}
-          >
-            重新加载
-          </button>
+          <h1 className="text-xl font-black">{i18n.t('common.renderError')}</h1>
+          <p className="mt-2 text-sm leading-6 text-ink/60">{i18n.t('common.renderErrorHint')}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" className="h-11 rounded-2xl bg-emerald-700 text-sm font-black text-white" onClick={() => this.setState({ error: null })}>{i18n.t('common.retry')}</button>
+            <button type="button" className="h-11 rounded-2xl border border-emerald-100 bg-white text-sm font-black text-emerald-800" onClick={() => window.location.assign('/aquarium')}>{i18n.t('common.backToAquarium')}</button>
+          </div>
         </div>
       </div>
     );
@@ -136,26 +177,38 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 }
 
 const navItems = [
-  { path: '/aquarium', label: '我的鱼缸', description: '管理设备与缸内状态', icon: Droplets },
-  { path: '/encyclopedia', label: '图鉴', description: '查找生物与混养计算', icon: BookOpen },
-  { path: '/care', label: '养护百科', description: '排查问题与养护步骤', icon: Library },
+  { path: '/aquarium', labelKey: 'nav.aquarium', descriptionKey: 'nav.aquariumDescription', icon: Droplets },
+  { path: '/encyclopedia', labelKey: 'nav.encyclopedia', descriptionKey: 'nav.encyclopediaDescription', icon: BookOpen },
+  { path: '/care', labelKey: 'nav.care', descriptionKey: 'nav.careDescription', icon: Library },
+  { path: '/collection', labelKey: 'nav.collection', descriptionKey: 'nav.collectionDescription', icon: BookHeart },
 ];
 
-const mobileNavItems = [
-  ...navItems,
-  { path: '/collection', label: '水族册', description: '收藏、纪念与勋章', icon: BookHeart },
-];
+const mobileNavItems = navItems.map(item => item.path === '/collection' ? { ...item, labelKey: 'nav.collectionMobile' } : item);
 
-const desktopSubMenus = {
+const desktopSubMenus: Record<string, Array<{
+  id: string;
+  labelKey: string;
+  descriptionKey: string;
+  icon: typeof BookOpen;
+  hash?: string;
+  path?: string;
+}>> = {
   '/encyclopedia': [
-    { id: 'browse', label: '浏览图鉴', description: '查找生物和分类', icon: BookOpen, hash: '#browse' },
-    { id: 'compatibility', label: '混养计算', description: '选择生物看风险', icon: Activity, hash: '#compatibility' },
+    { id: 'browse', labelKey: 'nav.browse', descriptionKey: 'nav.browseDescription', icon: BookOpen, path: '/encyclopedia?mode=browse' },
+    { id: 'compatibility', labelKey: 'nav.compatibility', descriptionKey: 'nav.compatibilityDescription', icon: Activity, path: '/encyclopedia?mode=compatibility' },
   ],
-} as const;
+  '/collection': [
+    { id: 'wishlist', labelKey: 'nav.wishlist', descriptionKey: 'nav.wishlistDescription', icon: Heart, path: '/collection/wishlist' },
+    { id: 'care', labelKey: 'nav.careFavorites', descriptionKey: 'nav.careFavoritesDescription', icon: BookOpenCheck, path: '/collection/care' },
+    { id: 'memorial', labelKey: 'nav.memorial', descriptionKey: 'nav.memorialDescription', icon: Skull, path: '/collection/memorial' },
+    { id: 'achievements', labelKey: 'nav.achievements', descriptionKey: 'nav.achievementsDescription', icon: Medal, path: '/collection/achievements' },
+  ],
+};
 
 function BottomNavigation() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateToRoute } = useWorkspaceNavigation();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -163,14 +216,18 @@ function BottomNavigation() {
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-white/95 px-2 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(26,26,26,0.06)] backdrop-blur-md">
         <div className="grid grid-cols-4 gap-1">
           {mobileNavItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = item.path === '/collection'
+              ? location.pathname.startsWith('/collection')
+              : location.pathname === item.path;
             const Icon = item.icon;
             return (
               <button
                 key={item.path}
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
-                onClick={() => navigate(item.path)}
+                  onClick={() => navigateToRoute(item.path)}
+                  onMouseEnter={() => preloadRoute(item.path)}
+                  onFocus={() => preloadRoute(item.path)}
                 className={cn(
                   "relative flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-bold transition-all",
                   isActive
@@ -179,7 +236,7 @@ function BottomNavigation() {
                 )}
               >
                 <Icon className={cn("mb-1 h-5 w-5", isActive ? "stroke-white" : "")} />
-                {item.label}
+                {t(item.labelKey)}
               </button>
             );
           })}
@@ -193,55 +250,24 @@ function BottomNavigation() {
 function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const location = useLocation();
   const { navigateToRoute, navigateToView } = useWorkspaceNavigation();
+  const { t } = useTranslation();
+  const [searchDraft, setSearchDraft] = useState('');
   const activePath = location.pathname === '/wishlist'
     ? '/collection'
     : location.pathname === '/care-favorites'
       ? '/collection'
-      : location.pathname === '/collection'
+      : location.pathname.startsWith('/collection')
         ? '/collection'
       : navItems.some(item => item.path === location.pathname) ? location.pathname : '/aquarium';
-  const [favoriteCounts, setFavoriteCounts] = useState({ species: 0, care: 0 });
-  const activeMenu = useMemo(() => {
-    if (activePath === '/encyclopedia') return [...desktopSubMenus['/encyclopedia']];
-    return [];
-  }, [activePath]);
-
-  const fixedUtilityItems = useMemo(() => [
-    {
-      id: 'collection',
-      label: '我的水族册',
-      description: favoriteCounts.species + favoriteCounts.care > 0
-        ? `种草 ${favoriteCounts.species} · 养护 ${favoriteCounts.care}`
-        : '收藏、纪念与勋章',
-      icon: BookHeart,
-      path: '/collection',
-      count: favoriteCounts.species + favoriteCounts.care,
-    },
-  ], [favoriteCounts]);
-
-  useEffect(() => {
-    const refreshCounts = () => {
-      setFavoriteCounts(getFavoriteCounts());
-    };
-    refreshCounts();
-    window.addEventListener('focus', refreshCounts);
-    const unsubscribe = subscribeToFavorites(refreshCounts);
-    return () => {
-      window.removeEventListener('focus', refreshCounts);
-      unsubscribe();
-    };
-  }, []);
+  const activeMenu = desktopSubMenus[activePath] || [];
 
   const handlePrimaryNav = (path: string) => {
     navigateToRoute(path);
   };
 
-  const handleSubNav = (hash: string) => {
-    navigateToView(activePath, hash);
-  };
-
-  const handleUtilityNav = (path: string) => {
-    navigateToRoute(path);
+  const handleSubNav = (item: (typeof activeMenu)[number]) => {
+    if (item.path) navigateToRoute(item.path);
+    else if (item.hash) navigateToView(activePath, item.hash);
   };
 
   return (
@@ -260,7 +286,7 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           {!collapsed && (
             <div className="min-w-0">
               <div className="text-[19px] font-black leading-tight text-ink">AquaGuide</div>
-              <div className="mt-0.5 text-[12px] font-bold text-ink/42">水族养护助手</div>
+              <div className="mt-0.5 text-[12px] font-bold text-ink/42">{t('nav.assistant')}</div>
             </div>
           )}
         </div>
@@ -269,12 +295,30 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           type="button"
           onClick={onToggleCollapsed}
           className="absolute -right-4 top-7 flex h-9 w-9 items-center justify-center rounded-full border border-white bg-white text-ink/50 shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-colors hover:text-accent"
-          aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
         >
           <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
         </button>
 
         <nav className="min-h-0 flex-1 px-3 pb-4">
+          <div className={cn('mb-4 grid gap-2', collapsed ? 'justify-items-center' : 'grid-cols-[minmax(0,1fr)_44px]')}>
+            {collapsed ? (
+              <button type="button" onClick={() => navigateToRoute('/search')} title={t('searchPage.title')} aria-label={t('searchPage.title')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-ink/55 shadow-sm hover:text-emerald-700"><SearchIcon className="h-5 w-5" /></button>
+            ) : (
+              <form
+                onSubmit={event => {
+                  event.preventDefault();
+                  const query = searchDraft.trim();
+                  navigateToRoute(query ? `/search?q=${encodeURIComponent(query)}` : '/search');
+                }}
+                className="flex min-w-0 items-center rounded-2xl bg-white px-3 shadow-sm"
+              >
+                <SearchIcon className="h-4 w-4 shrink-0 text-ink/35" />
+                <input value={searchDraft} onChange={event => setSearchDraft(event.target.value)} aria-label={t('searchPage.placeholder')} placeholder={t('searchPage.shortPlaceholder')} className="h-11 min-w-0 flex-1 bg-transparent px-2 text-xs font-bold text-ink outline-none placeholder:text-ink/30" />
+              </form>
+            )}
+            <button type="button" onClick={() => navigateToRoute('/identify')} title={t('identify.entry')} aria-label={t('identify.entry')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-ink/55 shadow-sm hover:text-emerald-700"><Camera className="h-5 w-5" /></button>
+          </div>
           <div className="grid gap-2">
             {navItems.map((item) => {
               const isActive = activePath === item.path;
@@ -284,7 +328,9 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   key={item.path}
                   type="button"
                   onClick={() => handlePrimaryNav(item.path)}
-                  title={collapsed ? item.label : undefined}
+                  onMouseEnter={() => preloadRoute(item.path)}
+                  onFocus={() => preloadRoute(item.path)}
+                  title={collapsed ? t(item.labelKey) : undefined}
                   className={cn(
                     'flex min-h-[58px] w-full items-center gap-3 rounded-[20px] px-3 text-left transition-colors',
                     collapsed && 'justify-center px-2',
@@ -298,9 +344,9 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                   </span>
                   {!collapsed && (
                     <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-black leading-tight">{item.label}</span>
+                      <span className="block truncate text-[15px] font-black leading-tight">{t(item.labelKey)}</span>
                       <span className={cn('mt-1 block truncate text-[10px] font-bold leading-tight', isActive ? 'text-white/65' : 'text-ink/36')}>
-                        {item.description}
+                        {t(item.descriptionKey)}
                       </span>
                     </span>
                   )}
@@ -314,13 +360,13 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
             <div className="grid gap-1.5">
               {activeMenu.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.hash === item.hash;
+                const isActive = item.path ? `${location.pathname}${location.search}` === item.path : location.hash === item.hash;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    title={collapsed ? item.label : undefined}
-                    onClick={() => handleSubNav(item.hash)}
+                      title={collapsed ? t(item.labelKey) : undefined}
+                    onClick={() => handleSubNav(item)}
                     className={cn(
                       'flex min-h-[50px] items-center gap-3 rounded-[16px] px-3 text-left transition-colors',
                       collapsed && 'justify-center px-2',
@@ -332,8 +378,8 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
                     <Icon className="h-[18px] w-[18px] shrink-0" />
                     {!collapsed && (
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
-                        <span className="mt-0.5 block truncate text-[9px] font-bold leading-tight text-ink/34">{item.description}</span>
+                        <span className="block truncate text-[13px] font-black leading-tight">{t(item.labelKey)}</span>
+                        <span className="mt-0.5 block truncate text-[9px] font-bold leading-tight text-ink/34">{t(item.descriptionKey)}</span>
                       </span>
                     )}
                   </button>
@@ -344,79 +390,40 @@ function DesktopSidebar({ collapsed, onToggleCollapsed }: { collapsed: boolean; 
           )}
         </nav>
 
-        {!collapsed && (
-          <div className="shrink-0 border-t border-ink/6 px-5 py-4">
-            <div className="mb-3 grid gap-2">
-              {fixedUtilityItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleUtilityNav(item.path)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left shadow-sm transition-colors',
-                      isActive
-                        ? 'bg-white text-accent ring-1 ring-emerald-100'
-                        : 'bg-white/75 text-ink/55 hover:bg-white hover:text-accent'
-                    )}
-                  >
-                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px]', isActive ? 'bg-emerald-50 text-accent' : 'bg-white text-ink/48')}>
-                      <Icon className="h-4.5 w-4.5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-black leading-tight">{item.label}</span>
-                      <span className="mt-0.5 block truncate text-[10px] font-bold leading-tight text-ink/42">{item.description}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+        <div className={cn('shrink-0 border-t border-ink/6 py-4', collapsed ? 'px-3' : 'px-5')}>
+          <button
+            type="button"
+            onClick={() => navigateToRoute('/settings')}
+            title={collapsed ? t('common.settings') : undefined}
+            aria-label={t('common.settings')}
+            className={cn('flex min-h-11 w-full items-center gap-3 rounded-[16px] bg-white px-3 text-left text-ink/58 shadow-sm transition-colors hover:text-emerald-700', collapsed && 'justify-center px-0')}
+          >
+            <Settings className="h-5 w-5 shrink-0" />
+            {!collapsed && <span className="text-[13px] font-black">{t('common.settings')}</span>}
+          </button>
+          {!collapsed && (
+            <>
             <div className="flex items-start gap-2 rounded-[18px] bg-white/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-ink/45 shadow-sm">
               <Database className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-              数据保存在当前浏览器，切换设备前请先同步或导出。
+              {t('common.localDataHint')}
             </div>
             <div className="mt-3 text-[10px] font-black text-ink/28">AquaGuide v1.0</div>
-          </div>
-        )}
-        {collapsed && (
-          <div className="grid shrink-0 gap-2 border-t border-ink/6 px-3 py-4">
-            {fixedUtilityItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  title={item.label}
-                  onClick={() => handleUtilityNav(item.path)}
-                  className={cn(
-                    'relative flex h-11 w-full items-center justify-center rounded-[16px] shadow-sm transition-colors',
-                    isActive ? 'bg-white text-accent ring-1 ring-emerald-100' : 'bg-white/75 text-ink/50 hover:bg-white hover:text-accent'
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.count > 0 && (
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
 function PageLoading() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[60dvh] items-center justify-center rounded-sm border border-border bg-white p-6 text-center">
       <div>
         <div className="mx-auto mb-3 h-10 w-10 animate-pulse rounded-full bg-accent-light" />
-        <p className="text-sm font-bold text-ink/70">正在加载 AquaGuide...</p>
-        <p className="mt-1 text-[11px] font-medium text-ink/45">国内网络首次打开可能需要几秒</p>
+        <p className="text-sm font-bold text-ink/70">{t('common.loading')}</p>
+        <p className="mt-1 text-[11px] font-medium text-ink/45">{t('common.loadingHint')}</p>
       </div>
     </div>
   );
@@ -440,9 +447,14 @@ export default function App() {
 
 function AppShell() {
   const location = useLocation();
+  const { t } = useTranslation();
+  const { showToast } = useToast();
   const { isPhoneLayout } = useLayoutMode();
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const isStructurePreview = location.pathname === '/project-structure';
   const isLogin = location.pathname === '/login';
+  const isAdminContent = location.pathname === '/admin/content';
+  const isWelcome = location.pathname === '/welcome';
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('aquaguide_desktop_sidebar_collapsed') === 'true';
@@ -450,6 +462,25 @@ function AppShell() {
       return false;
     }
   });
+
+  useEffect(() => {
+    const handleSyncFailure = () => showToast(t('onboarding.syncFailed'), 'error');
+    window.addEventListener(ONBOARDING_SYNC_FAILED_EVENT, handleSyncFailure);
+    let active = true;
+    void hydrateOnboardingFromProfile().finally(() => {
+      if (active) setPreferencesReady(true);
+    });
+    const unsubscribeAuth = subscribeToOnboardingAuth(() => {
+      void hydrateOnboardingFromProfile().finally(() => {
+        if (active) setPreferencesReady(true);
+      });
+    });
+    return () => {
+      active = false;
+      unsubscribeAuth();
+      window.removeEventListener(ONBOARDING_SYNC_FAILED_EVENT, handleSyncFailure);
+    };
+  }, [showToast, t]);
 
   const desktopShellStyle = useMemo(() => ({
     '--desktop-sidebar-width': isDesktopSidebarCollapsed ? '76px' : '280px',
@@ -508,6 +539,8 @@ function AppShell() {
     };
   }, []);
 
+  if (!preferencesReady && !isStructurePreview && !isLogin && !isAdminContent) return <PageLoading />;
+
   if (isStructurePreview) {
     return (
       <Suspense fallback={<PageLoading />}>
@@ -530,32 +563,82 @@ function AppShell() {
     );
   }
 
+  if (isAdminContent) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/admin/content" element={<RouteErrorBoundary page="admin-content"><AdminContent /></RouteErrorBoundary>} />
+          <Route path="*" element={<Navigate to="/admin/content" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  if (isWelcome) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/welcome" element={<RouteErrorBoundary page="welcome"><WelcomePage /></RouteErrorBoundary>} />
+          <Route path="*" element={<Navigate to="/welcome" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   if (isPhoneLayout) return <MobileAppShell />;
 
   return (
-    <DesktopAppShell
-      collapsed={isDesktopSidebarCollapsed}
-      onToggleCollapsed={toggleDesktopSidebar}
-      style={desktopShellStyle}
-    />
+    <>
+      <DesktopAppShell
+        collapsed={isDesktopSidebarCollapsed}
+        onToggleCollapsed={toggleDesktopSidebar}
+        style={desktopShellStyle}
+      />
+    </>
   );
 }
 
+function CollectionEntry() {
+  const location = useLocation();
+  const tab = new URLSearchParams(location.search).get('tab');
+  const routeByTab: Record<string, string> = {
+    wishlist: '/collection/wishlist',
+    care: '/collection/care',
+    memorial: '/collection/memorial',
+    achievements: '/collection/achievements',
+  };
+  if (tab && routeByTab[tab]) return <Navigate to={routeByTab[tab]} replace />;
+  return <CollectionHub />;
+}
+
 function WorkspaceRoutes() {
+  const page = (content: ReactNode, name: string) => <RouteErrorBoundary page={name}>{content}</RouteErrorBoundary>;
   return (
-    <Suspense fallback={<PageLoading />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/aquarium" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/encyclopedia" element={<Encyclopedia />} />
-        <Route path="/care" element={<CareEncyclopedia />} />
-        <Route path="/collection" element={<Collection />} />
-        <Route path="/wishlist" element={<Navigate to="/collection?tab=wishlist" replace />} />
-        <Route path="/care-favorites" element={<Navigate to="/collection?tab=care" replace />} />
-        <Route path="/aquarium" element={<AquariumManager />} />
-        <Route path="/3d-demo" element={<ThreeDemo />} />
-      </Routes>
-    </Suspense>
+    <>
+      <DataRecoveryNotice />
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/" element={<Navigate to={shouldStartOnboarding() ? '/welcome' : '/aquarium'} replace />} />
+          <Route path="/login" element={page(<Login />, 'login')} />
+          <Route path="/encyclopedia" element={page(<Encyclopedia />, 'encyclopedia')} />
+          <Route path="/identify" element={page(<Identify />, 'identify')} />
+          <Route path="/search" element={page(<SearchPage />, 'search')} />
+          <Route path="/settings" element={page(<SettingsPage />, 'settings')} />
+          <Route path="/welcome" element={page(<WelcomePage />, 'welcome')} />
+          <Route path="/care" element={page(<CareEncyclopedia />, 'care')} />
+          <Route path="/collection" element={page(<CollectionEntry />, 'collection')} />
+          <Route path="/collection/wishlist" element={page(<Collection module="wishlist" />, 'collection-wishlist')} />
+          <Route path="/collection/care" element={page(<Collection module="care" />, 'collection-care')} />
+          <Route path="/collection/memorial" element={page(<Collection module="memorial" />, 'collection-memorial')} />
+          <Route path="/collection/achievements" element={page(<Collection module="achievements" />, 'collection-achievements')} />
+          <Route path="/wishlist" element={<Navigate to="/collection/wishlist" replace />} />
+          <Route path="/care-favorites" element={<Navigate to="/collection/care" replace />} />
+          <Route path="/aquarium" element={shouldStartOnboarding() ? <Navigate to="/welcome" replace /> : page(<AquariumManager />, 'aquarium')} />
+          <Route path="/3d-demo" element={page(<ThreeDemo />, '3d-demo')} />
+          <Route path="/admin/content" element={page(<AdminContent />, 'admin-content')} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }
 
@@ -598,13 +681,20 @@ function DesktopAppShell({
 }
 
 function MobileAppShell() {
+  const { navigateToRoute } = useWorkspaceNavigation();
+  const { t } = useTranslation();
   return (
     <div
       className="aquaguide-app phone-shell-active flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#dfe8e5] text-ink"
       data-layout-mode="phone"
     >
       <div className="app-main-shell mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden bg-bg shadow-2xl">
-        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))]">
+        <header className="flex shrink-0 items-center justify-end gap-1 border-b border-ink/5 bg-white/92 px-3 pb-2 pt-[calc(8px+env(safe-area-inset-top))] backdrop-blur-md">
+          <button type="button" onClick={() => navigateToRoute('/search')} aria-label={t('searchPage.title')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><SearchIcon className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateToRoute('/identify')} aria-label={t('identify.entry')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><Camera className="h-5 w-5" /></button>
+          <button type="button" onClick={() => navigateToRoute('/settings')} aria-label={t('common.settings')} className="flex h-11 w-11 items-center justify-center rounded-2xl text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"><Settings className="h-5 w-5" /></button>
+        </header>
+        <main className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-[calc(88px+env(safe-area-inset-bottom))] pt-3">
           <div className="mx-auto w-full max-w-full min-w-0 overflow-x-hidden">
             <WorkspaceRoutes />
           </div>

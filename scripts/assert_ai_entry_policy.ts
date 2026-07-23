@@ -25,6 +25,8 @@ assert.equal(productSource.includes('generateRecommendationAssist'), false, '产
 assert.equal(appSource.includes('AIAssistant'), false, '独立 AI 助手不得出现在应用路由。');
 assert.equal(productSource.includes('AI 建缸助手'), true, '鱼缸页必须保留 AI 建缸助手主入口。');
 assert.equal(productSource.includes('AI 建缸规划'), false, '用户界面不得继续显示 AI 建缸规划旧名称。');
-assert.equal(productSource.includes('让 AI 帮我解读'), true, '规则详情必须保留低频 AI 解读入口。');
+assert.equal(productSource.includes('让 AI 帮我解读'), false, '规则详情不得继续暴露通用 AI 解读入口。');
+assert.equal(productSource.includes('让 AI 简短解释'), false, '今日行动不得继续暴露 AI 解释入口。');
+assert.equal(productSource.includes('generateTankDailyCheckInterpretation'), true, '异常巡检必须保留受控 AI 解读。');
 
 console.log('AI entry policy assertions passed');

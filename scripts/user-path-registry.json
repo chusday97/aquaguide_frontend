@@ -1,0 +1,178 @@
+[
+  {
+    "id": "daily-action",
+    "start": "我的鱼缸",
+    "target": "今日行动对应任务",
+    "route": "/aquarium",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "返回我的鱼缸原滚动位置",
+    "emptyStateNextAction": "开始今日检查或显示今天没有必须处理"
+  },
+  {
+    "id": "collection-wishlist",
+    "start": "桌面侧栏种草图鉴 / 水族册首页",
+    "target": "种草图鉴",
+    "route": "/collection/wishlist",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "关闭详情后恢复来源卡片",
+    "emptyStateNextAction": "前往图鉴挑选生物"
+  },
+  {
+    "id": "collection-care",
+    "start": "桌面侧栏养护收藏 / 水族册首页",
+    "target": "养护收藏",
+    "route": "/collection/care",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "关闭文章后恢复来源卡片",
+    "emptyStateNextAction": "前往养护百科收藏文章"
+  },
+  {
+    "id": "collection-memorial",
+    "start": "桌面侧栏生命纪念 / 水族册首页",
+    "target": "生命纪念",
+    "route": "/collection/memorial",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "关闭详情后恢复来源记录",
+    "emptyStateNextAction": "说明记录会在物种离缸流程后出现"
+  },
+  {
+    "id": "collection-achievements",
+    "start": "桌面侧栏成就勋章 / 水族册首页",
+    "target": "成就勋章",
+    "route": "/collection/achievements",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "返回水族册首页",
+    "emptyStateNextAction": "展示首枚勋章的唯一下一步"
+  },
+  {
+    "id": "memorial-readd",
+    "start": "生命纪念详情",
+    "target": "预选物种的添加流程",
+    "route": "/aquarium?action=add-species&species=:speciesId",
+    "maxNavigationClicks": 2,
+    "taskScreens": 2,
+    "safetyConfirmation": true,
+    "returnBehavior": "取消后返回鱼缸，纪念记录保持不变",
+    "emptyStateNextAction": "没有鱼缸时先新建鱼缸"
+  },
+  {
+    "id": "daily-check",
+    "start": "我的鱼缸 / 今日行动",
+    "target": "每日检查结果",
+    "route": "/aquarium?action=daily-check",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "关闭结果后返回我的鱼缸",
+    "emptyStateNextAction": "选择当前鱼缸"
+  },
+  {
+    "id": "care-self-check",
+    "start": "养护文章",
+    "target": "问题自查结果",
+    "route": "/care",
+    "maxNavigationClicks": 2,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "重新自查或关闭文章返回列表",
+    "emptyStateNextAction": "无鱼缸时仍按观察回答生成基础结果"
+  },
+  {
+    "id": "add-species",
+    "start": "我的鱼缸",
+    "target": "添加生物完成",
+    "route": "/aquarium?action=add-species",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": true,
+    "returnBehavior": "取消后返回我的鱼缸",
+    "emptyStateNextAction": "搜索或从推荐选择生物"
+  },
+  {
+    "id": "mini-compatibility",
+    "start": "图鉴",
+    "target": "完整混养判断",
+    "route": "/encyclopedia",
+    "maxNavigationClicks": 2,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "返回图鉴并保留所选生物",
+    "emptyStateNextAction": "继续选择第二个生物"
+  },
+  {
+    "id": "tank-copilot",
+    "start": "我的鱼缸",
+    "target": "AI 建缸方案",
+    "route": "/aquarium?action=build-assistant",
+    "maxNavigationClicks": 1,
+    "taskScreens": 3,
+    "safetyConfirmation": false,
+    "returnBehavior": "关闭后返回我的鱼缸",
+    "emptyStateNextAction": "输入想养的生物或鱼缸目标"
+  },
+  {
+    "id": "create-aquarium",
+    "start": "我的鱼缸",
+    "target": "新鱼缸创建完成",
+    "route": "/aquarium?action=create",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "取消后返回原鱼缸",
+    "emptyStateNextAction": "填写名称、尺寸和水体"
+  },
+  {
+    "id": "first-use-onboarding",
+    "start": "首次访问",
+    "target": "建缸任务或新手物种列表",
+    "route": "/welcome",
+    "maxNavigationClicks": 1,
+    "taskScreens": 2,
+    "safetyConfirmation": false,
+    "returnBehavior": "可跳过；设置页可重新打开",
+    "emptyStateNextAction": "选择先建缸或先浏览物种"
+  },
+  {
+    "id": "global-search",
+    "start": "桌面侧栏 / 手机页头",
+    "target": "具体物种或养护文章",
+    "route": "/search?q=:query",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": false,
+    "returnBehavior": "恢复搜索词、滚动和触发结果",
+    "emptyStateNextAction": "改用拍照识别或更换关键词"
+  },
+  {
+    "id": "photo-identification",
+    "start": "桌面侧栏 / 手机页头 / 图鉴",
+    "target": "候选确认或手动搜索",
+    "route": "/identify",
+    "maxNavigationClicks": 1,
+    "taskScreens": 3,
+    "safetyConfirmation": false,
+    "returnBehavior": "未保存判断离开时确认",
+    "emptyStateNextAction": "视觉不可用时手动选择物种"
+  },
+  {
+    "id": "livestock-batch-state",
+    "start": "我的鱼缸",
+    "target": "具体物种体态批次",
+    "route": "/aquarium",
+    "maxNavigationClicks": 2,
+    "taskScreens": 1,
+    "safetyConfirmation": true,
+    "returnBehavior": "保存后回到缸内物种摘要",
+    "emptyStateNextAction": "没有缸内物种时先添加生物"
+  }
+]

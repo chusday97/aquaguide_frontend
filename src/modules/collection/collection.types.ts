@@ -1,4 +1,6 @@
-export type CollectionTab = 'wishlist' | 'care' | 'memorial' | 'achievements';
+export type CollectionModule = 'wishlist' | 'care' | 'memorial' | 'achievements';
+
+export type CollectionTab = CollectionModule;
 
 export type AchievementId =
   | 'first_aquarium'

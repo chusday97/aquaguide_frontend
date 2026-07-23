@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import type { Fish } from '../types';
 
 export interface SpeciesGroup {
@@ -19,6 +20,25 @@ const MANUAL_GROUP_NAMES: Record<string, string> = {
   'amatitlania nigrofasciata': '迷你鹦鹉鱼',
   'carassius auratus': '金鱼',
   'neocaridina davidi': '米虾',
+  'ancistrus sp': '黄金胡子',
+  'bucephalandra sp': '辣椒榕',
+  'tylomelania sp': '兔螺',
+  'vesicularia sp': '莫斯',
+  'zoanthus sp': '纽扣珊瑚',
+  'geophagus sp': '关刀鱼',
+};
+
+const MANUAL_GROUP_NAMES_EN: Record<string, string> = {
+  'poecilia reticulata': 'Guppy',
+  'amatitlania nigrofasciata': 'Mini Parrot Cichlid',
+  'carassius auratus': 'Goldfish',
+  'neocaridina davidi': 'Dwarf Shrimp',
+  'ancistrus sp': 'Ancistrus Pleco',
+  'bucephalandra sp': 'Bucephalandra',
+  'tylomelania sp': 'Rabbit Snail',
+  'vesicularia sp': 'Moss',
+  'zoanthus sp': 'Zoanthid Button Coral',
+  'geophagus sp': 'Eartheater Cichlid',
 };
 
 const PRIORITY_GROUP_REPRESENTATIVES: Record<string, string[]> = {
@@ -26,6 +46,10 @@ const PRIORITY_GROUP_REPRESENTATIVES: Record<string, string[]> = {
   'amatitlania nigrofasciata': ['迷你鹦鹉鱼'],
   'carassius auratus': ['金鱼'],
   'neocaridina davidi': ['极火虾', '黑壳虾'],
+  'ancistrus sp': ['黄金胡子'],
+  'bucephalandra sp': ['辣椒榕'],
+  'tylomelania sp': ['橙兔螺', '兔螺'],
+  'vesicularia sp': ['莫斯'],
 };
 
 const normalizeScientificName = (value: string) => (
@@ -39,6 +63,15 @@ const normalizeScientificName = (value: string) => (
 export const getBaseScientificName = (scientificName = '') => {
   const normalized = normalizeScientificName(scientificName);
   if (!normalized) return '';
+  
+  if (/\bsp\.?\b/i.test(normalized)) {
+    const parts = normalized.split(/\bsp\.?\b/i);
+    const genus = parts[0].trim();
+    if (genus) {
+      return `${genus} sp`;
+    }
+  }
+
   return normalized
     .replace(/\s+(var\.?|sp\.?|cf\.?|aff\.?|forma|f\.)\b.*$/i, '')
     .replace(/\s+["'“”‘’].*$/i, '')
@@ -54,14 +87,26 @@ const getRepresentativeSpecies = (baseScientificName: string, variants: Fish[]) 
   const preferredNames = PRIORITY_GROUP_REPRESENTATIVES[baseScientificName] || [];
   return (
     variants.find(fish => normalizeScientificName(fish.scientificName) === baseScientificName)
-    || variants.find(fish => preferredNames.some(name => fish.name === name || fish.name.includes(name)))
+    || variants.find(fish => preferredNames.some(name => {
+      const currentName = fish.name;
+      const originalName = (fish as any)._originalName || fish.name;
+      return currentName === name || currentName.includes(name) || originalName === name || originalName.includes(name);
+    }))
     || variants[0]
   );
 };
 
-const getGroupName = (baseScientificName: string, representative: Fish) => (
-  MANUAL_GROUP_NAMES[baseScientificName] || representative.name.replace(/[（(].*?[）)]/g, '').trim()
-);
+const getGroupName = (baseScientificName: string, representative: Fish) => {
+  const i18nKey = `encyclopedia.group_${baseScientificName.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '')}`;
+  if (i18n.exists(i18nKey)) {
+    return i18n.t(i18nKey);
+  }
+  const isEn = i18n.language === 'en';
+  if (isEn) {
+    return MANUAL_GROUP_NAMES_EN[baseScientificName] || representative.name.replace(/[（(].*?[）)]/g, '').trim();
+  }
+  return MANUAL_GROUP_NAMES[baseScientificName] || representative.name.replace(/[（(].*?[）)]/g, '').trim();
+};
 
 const getGroupTags = (variants: Fish[], representative: Fish) => {
   const tags = [
@@ -149,5 +194,8 @@ export const speciesMatchesKeyword = (fish: Fish, keyword: string) => {
     fish.scientificName,
     fish.category,
     fish.description,
+    (fish as any)._originalName,
+    (fish as any)._originalCategory,
+    (fish as any)._originalDescription,
   ].some(value => value?.toLowerCase().includes(q));
 };

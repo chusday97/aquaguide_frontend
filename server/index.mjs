@@ -47,7 +47,7 @@ const checkAiRateLimit = (clientId) => {
 
 app.use(express.json({ limit: '3mb' }));
 
-app.get('/api/health', (_req, res) => {
+app.get(['/api/health', '/api/v1/health'], (_req, res) => {
   res.json({
     ok: true,
     provider: aiProvider,
@@ -389,7 +389,7 @@ const aiFailureReasonFromError = (error) => {
   return 'unknown';
 };
 
-app.post('/api/ai/chat', async (req, res) => {
+app.post(['/api/ai/chat', '/api/v1/ai/chat'], async (req, res) => {
   const rateLimit = checkAiRateLimit(getClientId(req));
   if (!rateLimit.allowed) {
     return res
@@ -537,6 +537,11 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(port, () => {
-  console.log(`AquaGuide API server running at http://localhost:${port}`);
-});
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+if (isDirectRun) {
+  app.listen(port, () => {
+    console.log(`AquaGuide API server running at http://localhost:${port}`);
+  });
+}
+
+export default app;

@@ -1,4 +1,5 @@
 import type { Aquarium, Fish } from '../../types';
+import { appendSpeciesBatch, createSpeciesBatch } from './species-batches.service';
 import {
   evaluateTankCompatibility,
   getTankCompatibilityAddPolicy,
@@ -159,10 +160,11 @@ export const executeSpeciesAddition = ({
     review.items.forEach(addition => {
       const existingIndex = nextFishes.findIndex(record => record.fishId === addition.fishId);
       if (existingIndex >= 0) {
-        nextFishes[existingIndex] = {
-          ...nextFishes[existingIndex],
-          quantity: Math.max(1, nextFishes[existingIndex].quantity || 1) + addition.quantity,
-        };
+        const entryDate = addition.entryDate ? new Date(addition.entryDate).toISOString() : now;
+        nextFishes[existingIndex] = appendSpeciesBatch(nextFishes[existingIndex], {
+          quantity: addition.quantity,
+          entryDate,
+        });
         return;
       }
       const entryDate = addition.entryDate ? new Date(addition.entryDate).toISOString() : now;
@@ -172,6 +174,7 @@ export const executeSpeciesAddition = ({
         quantity: addition.quantity,
         entryDate,
         lastWaterChangeDate: entryDate,
+        batches: [createSpeciesBatch({ quantity: addition.quantity, entryDate })],
       });
     });
     return { ...item, fishes: nextFishes };

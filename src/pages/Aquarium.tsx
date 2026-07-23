@@ -1,9 +1,12 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
+import i18n from '../i18n';
+import { getLocalizedAquariumName } from '../i18n/localizeData';
 import { Button } from '@/components/ui/button';
-import { captureProductEvent } from '@/src/services/analytics/product-analytics.service';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -12,17 +15,13 @@ import { format, differenceInDays, addDays, isPast, startOfMonth, endOfMonth, ea
 import { Plus, Trash2, AlertTriangle, Edit2, Calendar, Droplets, Sparkles, Search, ChevronLeft, ChevronRight, Settings, BookOpen, Info, Crown, Activity, HelpCircle, Skull, Heart, HeartOff, X, Layers3, Maximize2, CheckCircle2 } from 'lucide-react';
 import { DeceasedRecord } from '../types';
 import {
-  askAquaGuideAI,
-  generateRiskExplanation,
   generateTankBuildCopilot,
   generateTankDailyCheckInterpretation,
-  type AiResponseSource,
-  type RiskExplanationData,
   type TankBuildCopilotData,
   type TankDailyCheckInterpretationData,
 } from '../lib/aiClient';
 import { isAquaticPlantSpecies, isHardscapeSpecies } from '../lib/speciesClassification';
-import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass } from '../lib/speciesVisual';
+import { getSpeciesDisplayImage, getSpeciesImageClass, getSpeciesImageSurfaceClass, getSpeciesVisualSources } from '../lib/speciesVisual';
 import { getLifeType, getToolFunctions, isSpeciesCompatibleWithWaterType } from '../modules/species/species.service';
 import type { DiscoveryDeckState, RecommendationCandidate, RecommendationMode, SimulationResult, SmartRecommendationOutput } from '../modules/recommendation/recommendation.schema';
 import { careTopicsData } from '../data/careTopicsData';
@@ -52,7 +51,13 @@ import {
   saveAppStateToStorage,
   type LocalEventRecord,
 } from '../services/storage/local-app-state';
-import { StatusSummaryCard, type AquariumStatusLevel, type DailyAdviceTask, type DailyAdviceViewModel } from '../components/product/StatusSummaryCard';
+import {
+  StatusSummaryCard,
+  type AquariumStatusLevel,
+  type CarePlanSummaryViewModel,
+  type DailyActionTask,
+  type DailyActionViewModel,
+} from '../components/product/StatusSummaryCard';
 import type { TodayTaskStatus } from '../components/product/TodayTaskCard';
 import { SectionHeader } from '../components/product/SectionHeader';
 import { TagPill } from '../components/product/TagPill';
@@ -63,8 +68,14 @@ import { TemplatePlanCard } from '../components/product/TemplatePlanCard';
 import { ActionCenterCard, type ActionCenterStatus } from '../components/product/ActionCenterCard';
 import { QuickActionGrid } from '../components/product/QuickActionGrid';
 import { FilterBottomSheet } from '../components/common/FilterBottomSheet';
+import { ResilientImage } from '../components/common/ResilientImage';
 import { AdaptiveTaskContent } from '../components/common/AdaptiveTaskContent';
 import { SpeciesDetailDialog } from '../components/SpeciesDetailDialog';
+import { OnboardingTaskCard } from '../components/onboarding/OnboardingTaskCard';
+import { markAquariumConfigured } from '../services/onboarding/onboarding.service';
+import { LivestockBatchCard } from '../components/aquarium/LivestockBatchCard';
+import { VisualResultCard } from '../components/visual-results/VisualResultCard';
+import { buildDiagnosisVisualResult } from '../components/visual-results/visual-result.adapters';
 import {
   getTankCompatibilityAddPolicy,
   getTankCompatibilityStatusLabel,
@@ -82,7 +93,7 @@ import type { WorkspaceNavigationContext } from '../types/navigation';
 import { findDailyPatrolRecord, persistDiagnosisRecords, upsertDiagnosisRecord } from '../services/diagnosis/diagnosis-records.service';
 import { trackSessionEvent } from '../services/analytics/session-events.service';
 import { getCompatibilitySelection, setCompatibilitySelection } from '../services/compatibility/compatibility-selection.service';
-import { recordSpeciesMemorial } from '../services/collection/memorial.service';
+import { getAquaGuideRepository, getCurrentAquaGuideRepository, resolveRepositoryMode, subscribeToRepositoryMode } from '../services/repository/repository-provider';
 import { persistAquariums } from '../services/aquarium/aquarium-state.service';
 import {
   completeCareReminder,
@@ -93,20 +104,184 @@ import {
   subscribeToCareActivity,
   type CareReminderRecord,
 } from '../services/care/care-activity.service';
+import { appendSpeciesBatch, createSpeciesBatch, getSpeciesBatchContextLabel, withNormalizedSpeciesBatches } from '../services/aquarium/species-batches.service';
 
 const ThreeAquarium = lazy(() => import('../components/ThreeAquarium').then(module => ({ default: module.ThreeAquarium })));
 
+function AquariumZoneHeader({ index, title, subtitle, titleId }: { index: number; title: string; subtitle: string; titleId: string }) {
+  return (
+    <header className="aquarium-zone-header">
+      <span className="aquarium-zone-index" aria-hidden="true">{index}</span>
+      <span className="min-w-0">
+        <h2 id={titleId} className="block text-[14px] font-black leading-tight text-ink">{title}</h2>
+        <span className="mt-0.5 block text-[10px] font-bold leading-4 text-ink/45">{subtitle}</span>
+      </span>
+    </header>
+  );
+}
+
+function AquariumWorkspace({
+  observeTitle,
+  observeSubtitle,
+  manageTitle,
+  manageSubtitle,
+  learnTitle,
+  learnSubtitle,
+  tank,
+  status,
+  archive,
+  actions,
+  discovery,
+  basics,
+  advanced,
+}: {
+  observeTitle: string;
+  observeSubtitle: string;
+  manageTitle: string;
+  manageSubtitle: string;
+  learnTitle: string;
+  learnSubtitle: string;
+  tank: ReactNode;
+  status: ReactNode;
+  archive: ReactNode;
+  actions: ReactNode;
+  discovery: ReactNode;
+  basics: ReactNode;
+  advanced: ReactNode;
+}) {
+  return (
+    <>
+      <section className="aquarium-workspace-zone aquarium-observe-zone" aria-labelledby="aquarium-observe-title">
+        <AquariumZoneHeader index={1} title={observeTitle} subtitle={observeSubtitle} titleId="aquarium-observe-title" />
+        <div className="aquarium-zone-grid aquarium-observe-grid">{tank}{status}</div>
+      </section>
+      <section className="aquarium-workspace-zone aquarium-manage-zone" aria-labelledby="aquarium-manage-title">
+        <AquariumZoneHeader index={2} title={manageTitle} subtitle={manageSubtitle} titleId="aquarium-manage-title" />
+        <div className="aquarium-zone-grid aquarium-manage-grid">{archive}{actions}</div>
+      </section>
+      <section className="aquarium-workspace-zone aquarium-learn-zone" aria-labelledby="aquarium-learn-title">
+        <AquariumZoneHeader index={3} title={learnTitle} subtitle={learnSubtitle} titleId="aquarium-learn-title" />
+        <div className="aquarium-zone-grid aquarium-learn-grid">{discovery}{basics}</div>
+        {advanced}
+      </section>
+    </>
+  );
+}
+
+
+const getSubstrateLabelLocalized = (value: string, isEn = false) => {
+  if (!isEn) return value;
+  const map: Record<string, string> = {
+    '无': 'None (Bare Bottom)',
+    '裸缸': 'Bare Bottom',
+    '河沙': 'River Sand',
+    '溪流砂': 'Creek Sand',
+    '化妆砂': 'Cosmetic Sand',
+    '水草泥': 'Aquarium Soil',
+    '黑金沙': 'Black Quartz Sand',
+    '陶粒': 'Ceramic Gravel',
+    '碎石': 'Gravel',
+    '鹅卵石': 'Stream Pebbles',
+    '珊瑚砂': 'Coral Sand',
+  };
+  return map[value] || value;
+};
+
+const getSubstrateHintLocalized = (hint: string, isEn = false) => {
+  if (!isEn) return hint;
+  const map: Record<string, string> = {
+    '方便清洁': 'Easy to clean',
+    '自然浅色': 'Natural light color',
+    '原生溪流': 'Natural river style',
+    '明亮前景': 'Bright foreground',
+    '草缸首选': 'Best for planted tanks',
+    '显色强烈': 'Strong color contrast',
+    '透气颗粒': 'Porous clay pebbles',
+    '粗颗粒': 'Coarse texture',
+    '溪流大石': 'Stream river stones',
+    '海水/硬水': 'Marine / hard water',
+  };
+  return map[hint] || hint;
+};
+
+const getArchiveCategoryLocalized = (cat: string, isEn = false) => {
+  if (!isEn) return cat;
+  const map: Record<string, string> = {
+    '全部': 'All',
+    '鱼类': 'Fish',
+    '虾螺': 'Shrimp & Snails',
+    '水草': 'Plants',
+    '底砂': 'Substrate',
+    '造景': 'Hardscape',
+    '设备': 'Equipment',
+  };
+  return map[cat] || cat;
+};
+
+const getEmptyArchiveMessageLocalized = (categoryKey: string, isEn = false) => {
+  if (!isEn) {
+    const map: Record<string, string> = {
+      全部: '当前还没有配置鱼缸内容，可以先完善配置或套用搭建方案。',
+      鱼类: '暂无鱼类。',
+      虾螺: '暂无虾螺蟹。',
+      水草: '暂无水草配置。',
+      底砂: '暂无底砂配置。',
+      造景: '暂无造景配置。',
+    };
+    return map[categoryKey] || '暂无内容。';
+  }
+  const mapEn: Record<string, string> = {
+    全部: 'No tank content configured yet. Complete setup or apply a template plan.',
+    鱼类: 'No fish added yet.',
+    虾螺: 'No shrimp or snails added yet.',
+    水草: 'No plants configured.',
+    底砂: 'No substrate configured.',
+    造景: 'No hardscape configured.',
+  };
+  return mapEn[categoryKey] || 'No items.';
+};
+
+const getRecommendationTagLocalized = (tag: string, isEn = false) => {
+  if (!isEn) return tag;
+  const map: Record<string, string> = {
+    '新手友好': 'Beginner Friendly',
+    '小型温和': 'Small & Peaceful',
+    '后续好搭配': 'Easy Companion',
+    '低维护绿意': 'Low Maintenance Greenery',
+    '适合第一缸': 'Great First Tank',
+    '维护压力低': 'Low Maintenance',
+    '桌面缸友好': 'Desktop Friendly',
+    '群游草景': 'Schooling Planted',
+    '群游鱼效果好': 'Stunning Schooling',
+    '观赏性强': 'High Visual Appeal',
+    '草缸入门': 'Planted Tank Starter',
+    '虾类观察': 'Shrimp Observation',
+    '虾类友好': 'Shrimp Friendly',
+    '适合观察': 'Great to Observe',
+    '小缸稳定': 'Stable Small Tank',
+    '暗色原生': 'Dark Biotope',
+    '氛围感强': 'Immersive Atmosphere',
+    '南美主题': 'South American Biotope',
+    '状态展示': 'Prime Condition Display',
+    '新手阴性草缸': 'Beginner Low-Tech Tank',
+    '灯鱼草缸': 'Tetra Planted Tank',
+    '虾缸': 'Dwarf Shrimp Tank',
+    '南美黑水缸': 'South American Blackwater Tank',
+  };
+  return map[tag] || tag;
+};
+
 const substrateOptions = [
-  { value: '无', label: '裸缸', hint: '方便清洁' },
-  { value: '河沙', label: '河沙', hint: '自然浅色' },
-  { value: '溪流砂', label: '溪流砂', hint: '原生溪流' },
-  { value: '化妆砂', label: '化妆砂', hint: '明亮前景' },
-  { value: '水草泥', label: '水草泥', hint: '草缸首选' },
-  { value: '黑金沙', label: '黑金沙', hint: '显色强烈' },
-  { value: '陶粒', label: '陶粒', hint: '透气颗粒' },
-  { value: '碎石', label: '碎石', hint: '粗颗粒' },
-  { value: '鹅卵石', label: '鹅卵石', hint: '溪流大石' },
-  { value: '珊瑚砂', label: '珊瑚砂', hint: '海水/硬水' },
+  { value: '无', label: '裸缸', labelEn: 'Bare Bottom', hint: '方便清洁', hintEn: 'Easy to clean' },
+  { value: '河沙', label: '河沙', labelEn: 'River Sand', hint: '自然浅色', hintEn: 'Natural light color' },
+  { value: '溪流砂', label: '溪流砂', labelEn: 'Creek Sand', hint: '原生溪流', hintEn: 'Natural river style' },
+  { value: '化妆砂', label: '化妆砂', labelEn: 'Cosmetic Sand', hint: '明亮前景', hintEn: 'Bright foreground' },
+  { value: '水草泥', label: '水草泥', labelEn: 'Aquarium Soil', hint: '草缸首选', hintEn: 'Best for planted tanks' },
+  { value: '黑金沙', label: '黑金沙', labelEn: 'Black Quartz Sand', hint: '显色强烈', hintEn: 'Strong color contrast' },
+  { value: '陶粒', label: '陶粒', labelEn: 'Ceramic Gravel', hint: '透气颗粒', hintEn: 'Porous clay pebbles' },
+  { value: '碎石', label: '碎石', labelEn: 'Gravel', hint: '粗颗粒', hintEn: 'Coarse texture' },
+  { value: '鹅卵石', label: '鹅卵石', labelEn: 'Pebbles', hint: '溪流大石', hintEn: 'Stream river stones' },
+  { value: '珊瑚砂', label: '珊瑚砂', labelEn: 'Coral Sand', hint: '海水/硬水', hintEn: 'Marine / hard water' },
 ];
 
 const plantOptions = fishData
@@ -120,6 +295,17 @@ const hardscapeOptions = fishData
   .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 
 type AquariumSettingsPanel = 'size' | 'parameters' | 'substrate' | 'plants' | 'lighting' | 'equipment';
+
+const speciesHealthDiagnosisTypes = new Set<DiagnosisProblemType>([
+  '鱼只异常',
+  '鱼浮头 / 呼吸急促',
+  '拒食',
+  '躲藏不动',
+  '追咬打架',
+  '新鱼入缸',
+  '死亡处理',
+  '死亡 / 异常死亡',
+]);
 
 const dimensionFields: Array<{ key: keyof NonNullable<Aquarium['dimensions']>; label: string }> = [
   { key: 'length', label: '长' },
@@ -425,6 +611,156 @@ const tankBuildTemplates: TankBuildTemplate[] = ([
   hardscape: template.hardscape.map(name => findSpeciesValueByName(name, isHardscapeSpecies)),
 }));
 
+const getLocalizedTemplates = (isEn: boolean): TankBuildTemplate[] => {
+  if (!isEn) return tankBuildTemplates;
+  
+  const translations: Record<string, Partial<TankBuildTemplate>> = {
+    'beginner-low-tech': {
+      name: 'Beginner Low-Tech Planted Tank',
+      tagline: 'Low light, low CO2 dependency. Form good stability habits first.',
+      bestFor: '30-60cm starter tanks, office desktop setups',
+      difficulty: '新手',
+      baseEquipment: ['Hang-on-back or small canister filter', 'Standard/entry-level light', 'Optional heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Anubias Nana', 'Java Fern', 'Bolbitis', 'Christmas Moss'],
+      baseHardscape: ['Driftwood', 'Spider Wood'],
+      visualLabel: 'Low Maintenance Greenery',
+      benefitTags: ['Perfect for first tank', 'Low maintenance pressure', 'Desktop friendly'],
+      tankSize: 'At least 30L, 60cm tank is more stable',
+      substrate: 'Aquarium soil',
+      plants: ['Anubias Nana', 'Java Fern', 'Bolbitis', 'Christmas Moss'],
+      hardscape: ['Driftwood', 'Spider Wood'],
+      equipment: ['Hang-on-back or small canister filter', 'Standard/entry-level light', 'Optional heater'],
+      livestock: ['Cardinal Tetra 8-12 pcs', 'Bronze Corydoras 3-5 pcs', 'Zebra Snail 1-2 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '30-60L',
+        maxLivestock: 'Small schooling fish 8-12; bottom corydoras 3-5; snail 1-2',
+        suitableTypes: ['Small tetras', 'Peaceful bottom dwellers', 'A few utility snails'],
+        avoidTypes: ['Large fish', 'High-waste fish', 'Strong territorial fish'],
+      },
+      maintenance: ['Weekly water change of 20%-30%', 'Weekly glass cleaning & pruning old leaves', 'Light 6-7 hours daily; reduce light if algae blooms'],
+      caution: 'Do not bury the rhizomes of Anubias and Java Fern in soil; tie them to driftwood or stones instead.',
+    },
+    'tetra-planted': {
+      name: 'Tetra Planted Tank',
+      tagline: 'Schooling tetras as the visual center, with plants providing depth and safety.',
+      bestFor: '45-90cm small and medium planted tanks',
+      difficulty: '新手',
+      baseEquipment: ['Planted tank light', 'Canister or strong HOB filter', 'Optional CO2', 'Heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Dwarf Hairgrass', 'Rotala Rotundifolia', 'Rotala Green', 'Anubias'],
+      baseHardscape: ['Seiryu Stones', 'Cosmetic Sand'],
+      visualLabel: 'Schooling Nature Scape',
+      benefitTags: ['Great schooling effect', 'Highly ornamental', 'Planted tank starter'],
+      tankSize: 'At least 45L, 60cm or larger recommended',
+      substrate: 'Aquarium soil',
+      plants: ['Dwarf Hairgrass', 'Rotala Rotundifolia', 'Rotala Green', 'Anubias'],
+      hardscape: ['Seiryu Stones', 'Cosmetic Sand'],
+      equipment: ['Planted tank light', 'Canister or strong HOB filter', 'Optional CO2', 'Heater'],
+      livestock: ['Cardinal Tetra 12-20 pcs', 'Rummy-nose Tetra 10-15 pcs', 'Bronze Corydoras 4-6 pcs', 'Cherry Shrimp'],
+      capacityGuidance: {
+        recommendedLiters: '45-90L',
+        maxLivestock: 'Small schooling tetras 18-28; bottom corydoras 4-6; utility shrimp 5-10',
+        suitableTypes: ['Small schooling tetras', 'Peaceful corydoras', 'Utility shrimps'],
+        avoidTypes: ['Large fish', 'Aggressive fish', 'Hard-water sensitive fish'],
+      },
+      maintenance: ['Weekly water change of 30%', 'Prune stem plants every 2 weeks', 'Light 7+ hours daily; reduce red plants if CO2 is unstable'],
+      caution: 'Foreground and red plants are sensitive to light, nutrients, and CO2. Starters can reduce dwarf hairgrass area.',
+    },
+    'shrimp-tank': {
+      name: 'Shrimp Breeding Tank',
+      tagline: 'Provide plenty of hiding spots and biofilms. Focus on water parameter stability.',
+      bestFor: '30-45cm nano tanks, breeding observation setups',
+      difficulty: '新手',
+      baseEquipment: ['Sponge filter', 'Standard light', 'Heater (depending on room temperature)'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Christmas Moss', 'Flame Moss', 'Anubias Nana', 'Bucephalandra'],
+      baseHardscape: ['Driftwood', 'Lava Rock Slabs'],
+      visualLabel: 'Shrimp Observation',
+      benefitTags: ['Shrimp friendly', 'Easy to observe', 'Stable nano setup'],
+      tankSize: 'At least 20L, 30L+ is more stable',
+      substrate: 'Aquarium soil',
+      plants: ['Christmas Moss', 'Flame Moss', 'Anubias Nana', 'Bucephalandra'],
+      hardscape: ['Driftwood', 'Lava Rock Slabs'],
+      equipment: ['Sponge filter', 'Standard light', 'Heater (depending on room temp)'],
+      livestock: ['Cherry Shrimp 10-20 pcs', 'Yellow/Blue Velvet Shrimp (single color group)', 'Zebra Snail 1 pc'],
+      capacityGuidance: {
+        recommendedLiters: '20-40L',
+        maxLivestock: 'Neocaridina shrimp 10-20; snail 1; fish not recommended',
+        suitableTypes: ['Neocaridina/Caridina shrimp', 'Single utility snail', 'Moss/low-light plants'],
+        avoidTypes: ['Fish that prey on shrimp', 'Large fish', 'Combinations requiring frequent medications'],
+      },
+      maintenance: ['Weekly small water change of 10%-20%', 'Keep water temp difference within 1-2°C during changes', 'Avoid copper meds and strong algaecides'],
+      caution: 'Mixing different color shrimp will result in wild-type (brownish) offspring. Keep single colors to preserve breed.',
+    },
+    'south-american-blackwater': {
+      name: 'Amazon Blackwater Tank',
+      tagline: 'Soft, acidic water with driftwood, leaf litter, and dim lighting to show fish colors.',
+      bestFor: '60cm+ display tanks, Apistogramma/Angelfish theme setups',
+      difficulty: '进阶',
+      baseEquipment: ['Canister filter', 'Dim light', 'Heater', 'Blackwater extract / Almond leaves'],
+      baseSubstrate: 'River sand',
+      basePlants: ['Amazon Sword', 'Chain Sword', 'Bolbitis'],
+      baseHardscape: ['Driftwood', 'Spider Wood'],
+      visualLabel: 'Amazon Native',
+      benefitTags: ['Strong atmospheric feel', 'Amazon theme', 'Excellent state display'],
+      tankSize: 'At least 60L, Angelfish requires taller tank',
+      substrate: 'River sand',
+      plants: ['Amazon Sword', 'Chain Sword', 'Bolbitis'],
+      hardscape: ['Driftwood', 'Spider Wood'],
+      equipment: ['Canister filter', 'Dim light', 'Heater', 'Blackwater extract / Almond leaves'],
+      livestock: ['Cardinal Tetra 15-30 pcs', 'Apistogramma 1 pair', 'Angelfish 2-4 pcs', 'Bronze Corydoras 4-6 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '60-120L',
+        maxLivestock: 'Tetras 15-25; Apistogramma 1 pair; Angelfish 2; corydoras 4-6',
+        suitableTypes: ['Acidic Amazon tetras', 'Apistogramma pairs', 'Angelfish', 'Peaceful bottom dwellers'],
+        avoidTypes: ['Hard-water livebearers', 'Large predatory fish', 'High-current stream fish'],
+      },
+      maintenance: ['Weekly water change of 20%', 'Periodically add leaf litter or blackwater extract', 'Keep flow gentle; avoid frequent large pH adjustments'],
+      caution: 'Blackwater setups target stable soft acidic parameters. Do not mix hard-water or high-flow demanding species.',
+    },
+    'seiryu-stone-iwagumi': {
+      name: 'Seiryu Stone Iwagumi Scape',
+      tagline: 'Strong stone composition and clean aesthetics, but tests algae control and hardness management.',
+      bestFor: '45-90cm stone Iwagumi layouts, minimalist planted tanks',
+      difficulty: '进阶',
+      baseEquipment: ['High-power planted light', 'Canister filter', 'CO2 system highly recommended', 'Heater'],
+      baseSubstrate: 'Aquarium soil',
+      basePlants: ['Dwarf Baby Tears', 'Hairgrass', 'Staurogyne Repens'],
+      baseHardscape: ['Seiryu Stones', 'ADA style cosmetic sand'],
+      visualLabel: 'Minimalist Iwagumi',
+      benefitTags: ['Strong visual depth', 'Minimalist style', 'Advanced aquascaping'],
+      tankSize: 'At least 45L, 60cm+ makes it easier to create depth',
+      substrate: 'Aquarium soil',
+      plants: ['Dwarf Baby Tears', 'Hairgrass', 'Staurogyne Repens'],
+      hardscape: ['Seiryu Stones', 'ADA style cosmetic sand'],
+      equipment: ['High-power planted light', 'Canister filter', 'CO2 system highly recommended', 'Heater'],
+      livestock: ['Cardinal Tetra 12-20 pcs', 'Neon Tetra 15-25 pcs', 'Cherry Shrimp', 'Zebra Snail 1-2 pcs'],
+      capacityGuidance: {
+        recommendedLiters: '45-90L',
+        maxLivestock: 'Small tetras 20-30; utility shrimp 5-10; snail 1-2',
+        suitableTypes: ['Small schooling tetras', 'A few utility shrimps', 'Utility snails'],
+        avoidTypes: ['Large fish', 'Bottom-digging fish', 'Sensitive species vulnerable to hardness fluctuations'],
+      },
+      maintenance: ['Weekly water change of 30%-40%', 'Focus on light control and water changes in the first 4 weeks', 'Prune foreground carpet once fully covered'],
+      caution: 'Seiryu stones leach calcium and raise hardness. Monitor GH/KH when keeping soft-water tetras.',
+    },
+  };
+
+  return tankBuildTemplates.map(template => {
+    const tr = translations[template.id];
+    if (!tr) return template;
+    return {
+      ...template,
+      ...tr,
+      capacityGuidance: {
+        ...template.capacityGuidance,
+        ...tr.capacityGuidance,
+      },
+    };
+  });
+};
+
 const safeJsonParse = <T,>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -643,7 +979,25 @@ const loadWishlistFishIds = () => {
 };
 
 export default function AquariumManager() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const localizedTemplates = useMemo(() => getLocalizedTemplates(isEn), [isEn]);
+  const filterOptionKeys: Record<string, string> = {
+    '无': 'none',
+    '瀑布过滤': 'filterCascade',
+    '桶滤': 'filterCanister',
+    '上滤': 'filterTop',
+    '海绵过滤': 'filterSponge',
+  };
+  const lightOptionKeys: Record<string, string> = {
+    '无': 'none',
+    '普通灯': 'lightNormal',
+    '水草灯': 'lightPlanted',
+    '海水灯': 'lightMarine',
+  };
   const { captureContext, navigateToRoute, navigateToSection, navigateToView, restoreContext } = useWorkspaceNavigation();
+  const routeLocation = useLocation();
+  const routeNavigate = useNavigate();
   const { showToast } = useToast();
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [activeId, setActiveId] = useState<string>('');
@@ -672,16 +1026,19 @@ export default function AquariumManager() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isBuildPlanOpen, setIsBuildPlanOpen] = useState(false);
   const [isTankPreviewOpen, setIsTankPreviewOpen] = useState(false);
+  const [shouldLoadThreeAquarium, setShouldLoadThreeAquarium] = useState(false);
+  const [requiresManualThreeLoad, setRequiresManualThreeLoad] = useState(false);
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [diagnosisText, setDiagnosisText] = useState('');
   const [diagnosisFullText, setDiagnosisFullText] = useState('');
-  const [diagnosisQuestion, setDiagnosisQuestion] = useState('');
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [diagnosisIssueType, setDiagnosisIssueType] = useState('巡检');
   const [diagnosisMode, setDiagnosisMode] = useState<DiagnosisMode>('home');
   const [diagnosisQuestionIndex, setDiagnosisQuestionIndex] = useState(0);
+  const diagnosisAdvanceTimerRef = useRef<number | null>(null);
+  const diagnosisQuestionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const diagnosisSubmitRef = useRef<HTMLButtonElement | null>(null);
   const [diagnosisQuizAnswers, setDiagnosisQuizAnswers] = useState<Record<string, string>>({});
-  const [diagnosisFollowUps, setDiagnosisFollowUps] = useState<Array<{ question: string; answer: string }>>([]);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
   const [diagnosisAquariumId, setDiagnosisAquariumId] = useState('');
   const [diagnosisRecords, setDiagnosisRecords] = useState<DiagnosisRecord[]>([]);
@@ -691,9 +1048,8 @@ export default function AquariumManager() {
   const [dailyCheckArticles, setDailyCheckArticles] = useState<typeof careTopicsData>([]);
   const [selectedDailyCheckArticle, setSelectedDailyCheckArticle] = useState<(typeof careTopicsData)[number] | null>(null);
   const [careDiagnosisContext, setCareDiagnosisContext] = useState<CareDiagnosisContext | null>(null);
-  const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(tankBuildTemplates[0].id);
+  const [selectedBuildTemplateId, setSelectedBuildTemplateId] = useState(localizedTemplates[0].id);
   const [isTankArchiveExpanded, setIsTankArchiveExpanded] = useState(false);
-  const [isDeceasedArchiveExpanded, setIsDeceasedArchiveExpanded] = useState(false);
   const [tankArchiveCategory, setTankArchiveCategory] = useState('全部');
   const [isTankContentFilterOpen, setIsTankContentFilterOpen] = useState(false);
   const [draftTankArchiveCategory, setDraftTankArchiveCategory] = useState('全部');
@@ -703,6 +1059,8 @@ export default function AquariumManager() {
   const [isScapeListExpanded, setIsScapeListExpanded] = useState(false);
   const settingsBodyRef = useRef<HTMLDivElement | null>(null);
   const settingPanelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const handledAddSpeciesRequestRef = useRef('');
+  const handledOnboardingActionRef = useRef('');
   
   // 3D Highlight state
   const [active3DSpecies, setActive3DSpecies] = useState<string | null>(null);
@@ -720,10 +1078,6 @@ export default function AquariumManager() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedWaterChangeDate, setSelectedWaterChangeDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [waterChangeFeedback, setWaterChangeFeedback] = useState('');
-
-  const [isRecommending, setIsRecommending] = useState(false);
-  const [aiReasoning, setAiReasoning] = useState<string>('');
-  const [aiReasoningSource, setAiReasoningSource] = useState<AiResponseSource | null>(null);
 
   const [wishlistFishIds, setWishlistFishIds] = useState<Set<string>>(() => loadWishlistFishIds());
   const [careReminders, setCareRemindersState] = useState<CareReminderRecord[]>(() => getCareReminders());
@@ -760,11 +1114,8 @@ export default function AquariumManager() {
   const [tankActionMessage, setTankActionMessage] = useState<string>('');
   const [fedToday, setFedToday] = useState(false);
   const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, string>>({});
-  const [isDailyAdviceDetailsOpen, setIsDailyAdviceDetailsOpen] = useState(false);
-  const [dailyAdviceAiAnswer, setDailyAdviceAiAnswer] = useState('');
-  const [dailyAdviceAiError, setDailyAdviceAiError] = useState('');
-  const [dailyAdviceAiSource, setDailyAdviceAiSource] = useState<AiResponseSource | null>(null);
-  const [isDailyAdviceAiLoading, setIsDailyAdviceAiLoading] = useState(false);
+  const [isDailyActionWhyOpen, setIsDailyActionWhyOpen] = useState(false);
+  const [isCarePlanExpanded, setIsCarePlanExpanded] = useState(false);
   const [isRiskReminderOpen, setIsRiskReminderOpen] = useState(false);
   const [isObservationOpen, setIsObservationOpen] = useState(false);
   const [observationChecks, setObservationChecks] = useState<string[]>([]);
@@ -775,6 +1126,48 @@ export default function AquariumManager() {
   const [localDataMessage, setLocalDataMessage] = useState('');
   const [localWeather, setLocalWeather] = useState<LocalWeatherOutput | null>(null);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const slowConnection = Boolean(connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType || ''));
+    if (slowConnection) {
+      setRequiresManualThreeLoad(true);
+      return;
+    }
+    let idleId: number | undefined;
+    const fallbackTimer = typeof window.requestIdleCallback === 'function'
+      ? undefined
+      : window.setTimeout(() => setShouldLoadThreeAquarium(true), 900);
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(() => setShouldLoadThreeAquarium(true), { timeout: 1400 });
+    }
+    return () => {
+      if (idleId !== undefined && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
+      if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadRepositoryAquariums = async (mode?: 'local' | 'cloud') => {
+      try {
+        const resolvedMode = mode ?? await resolveRepositoryMode();
+        const repositoryAquariums = resolvedMode === 'cloud'
+          ? await getAquaGuideRepository('cloud').getAquariums()
+          : loadAppStateFromStorage().aquariums;
+        if (!active || repositoryAquariums.length === 0) return;
+        if (resolvedMode === 'cloud') patchLocalAppState({ cloudMigrationConfirmed: true });
+        const normalized = normalizeAquariumPlants(repositoryAquariums);
+        setAquariums(normalized);
+        setActiveId(current => normalized.some(item => item.id === current) ? current : normalized[0].id);
+      } catch (error) {
+        if (active) showToast(error instanceof Error ? error.message : (isEn ? 'Cloud aquarium data could not be loaded.' : '云端鱼缸暂时无法读取。'), 'error');
+      }
+    };
+    void loadRepositoryAquariums();
+    const unsubscribe = subscribeToRepositoryMode(mode => void loadRepositoryAquariums(mode));
+    return () => { active = false; unsubscribe(); };
+  }, [isEn, showToast]);
+
   useEffect(() => {
     const appState = loadAppStateFromStorage();
     setWishlistFishIds(loadWishlistFishIds());
@@ -866,7 +1259,9 @@ export default function AquariumManager() {
       const initialAquariums = normalizeAquariumPlants(oldAquarium ? [oldAquarium] : [createDefaultAquarium()]);
       setAquariums(initialAquariums);
       setActiveId(initialAquariums[0].id);
-      saveAppStateToStorage({ ...appState, aquariums: initialAquariums, currentAquariumId: initialAquariums[0].id });
+      if (oldAquarium) {
+        saveAppStateToStorage({ ...appState, aquariums: initialAquariums, currentAquariumId: initialAquariums[0].id });
+      }
     }
   }, []);
 
@@ -875,12 +1270,28 @@ export default function AquariumManager() {
     setAquariums(saved.aquariums);
   };
 
+  const saveLivestockBatches = async (recordId: string, nextRecord: AquariumFish | null) => {
+    const active = aquariums.find(aquarium => aquarium.id === activeId);
+    if (!active) throw new Error(isEn ? 'No active aquarium was found.' : '没有找到当前鱼缸。');
+    const nextAquarium = {
+      ...active,
+      fishes: nextRecord
+        ? active.fishes.map(record => record.id === recordId ? nextRecord : record)
+        : active.fishes.filter(record => record.id !== recordId),
+    };
+    const repository = await getCurrentAquaGuideRepository();
+    const savedAquarium = await repository.saveAquarium(nextAquarium);
+    setAquariums(current => current.map(aquarium => aquarium.id === activeId ? savedAquarium : aquarium));
+    showToast(nextRecord
+      ? (isEn ? 'Livestock group states updated' : '体态与数量已更新')
+      : (isEn ? 'Species removed from this tank' : '该物种已移出鱼缸'));
+  };
   const handleAddAquarium = () => {
     const newAq = createDefaultAquarium(`我的鱼缸 ${aquariums.length + 1}`);
     const updated = [...aquariums, newAq];
     saveAquariums(updated);
     setActiveId(newAq.id);
-    showToast(`已新建“${newAq.name}”`);
+    showToast(i18n.language === 'en' ? `Created new aquarium "${newAq.name}"` : `已新建“${newAq.name}”`);
   };
 
   const openTankArchive = () => {
@@ -893,9 +1304,9 @@ export default function AquariumManager() {
   const handleCompleteReminder = (reminder: CareReminderRecord) => {
     try {
       completeCareReminder(reminder.id);
-      showToast('养护计划已完成');
+      showToast(i18n.language === 'en' ? 'Care plan task marked completed' : '养护计划已完成');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有更新成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to update care plan.' : '养护计划没有更新成功。'), 'error');
     }
   };
 
@@ -905,9 +1316,9 @@ export default function AquariumManager() {
     try {
       rescheduleCareReminder(reminder.id, scheduled.toISOString(), `${days} 天后提醒`);
       setPendingReminderReschedule(null);
-      showToast(`已改为 ${days} 天后提醒`);
+      showToast(i18n.language === 'en' ? `Rescheduled to remind in ${days} days` : `已改为 ${days} 天后提醒`);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有改期成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to reschedule care plan.' : '养护计划没有改期成功。'), 'error');
     }
   };
 
@@ -916,9 +1327,9 @@ export default function AquariumManager() {
     try {
       deleteCareReminder(pendingReminderDelete.id);
       setPendingReminderDelete(null);
-      showToast('养护计划已删除');
+      showToast(i18n.language === 'en' ? 'Care plan task deleted' : '养护计划已删除');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '养护计划没有删除成功。', 'error');
+      showToast(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Failed to delete care plan.' : '养护计划没有删除成功。'), 'error');
     }
   };
 
@@ -944,7 +1355,7 @@ export default function AquariumManager() {
 
   const openAquariumSettings = (panel: typeof activeSettingsPanel = null) => {
     if (!activeAquarium) {
-      showToast('暂时无法打开设置，请先选择一个鱼缸。', 'error');
+      showToast(i18n.language === 'en' ? 'Cannot open settings, please select an aquarium first.' : '暂时无法打开设置，请先选择一个鱼缸。', 'error');
       return;
     }
     setSettingsForm(activeAquarium);
@@ -980,28 +1391,55 @@ export default function AquariumManager() {
 
   const handleExportLocalData = () => {
     setLocalDataText(exportLocalAppState());
-    setLocalDataMessage('已生成本地数据，可复制保存。');
+    setLocalDataMessage(i18n.language === 'en' ? 'Local data generated, copy to save.' : '已生成本地数据，可复制保存。');
   };
 
   const handleImportLocalData = () => {
     try {
       importLocalAppState(localDataText);
-      setLocalDataMessage('导入成功，正在重新加载。');
+      setLocalDataMessage(i18n.language === 'en' ? 'Import successful, reloading...' : '导入成功，正在重新加载。');
       window.setTimeout(() => window.location.reload(), 300);
     } catch (error) {
-      setLocalDataMessage(error instanceof Error ? error.message : '导入失败，请检查 JSON 格式。');
+      setLocalDataMessage(error instanceof Error ? error.message : (i18n.language === 'en' ? 'Import failed, please check JSON format.' : '导入失败，请检查 JSON 格式。'));
     }
   };
 
   const handleClearLocalData = () => {
-    const confirmed = window.confirm('确认清除本地数据吗？清除后鱼缸、种草、诊断和记录都不会恢复。');
+    const confirmed = window.confirm(i18n.language === 'en' ? 'Are you sure you want to clear local data? Tank, stocking, diagnosis, and logs cannot be recovered.' : '确认清除本地数据吗？清除后鱼缸、种草、诊断和记录都不会恢复。');
     if (!confirmed) return;
     clearLocalAppState();
-    setLocalDataMessage('已清除本地数据，正在恢复默认鱼缸。');
+    setLocalDataMessage(i18n.language === 'en' ? 'Local data cleared, restoring default aquarium...' : '已清除本地数据，正在恢复默认鱼缸。');
     window.setTimeout(() => window.location.reload(), 300);
   };
 
   const activeAquarium = aquariums.find(a => a.id === activeId);
+
+  useEffect(() => {
+    const params = new URLSearchParams(routeLocation.search);
+    if (params.get('action') !== 'add-species') {
+      handledAddSpeciesRequestRef.current = '';
+      return;
+    }
+    if (!activeAquarium) return;
+    const speciesId = params.get('species') || '';
+    const requestKey = `${activeAquarium.id}:${speciesId}`;
+    if (handledAddSpeciesRequestRef.current === requestKey) return;
+    handledAddSpeciesRequestRef.current = requestKey;
+    const fish = fishData.find(item => item.id === speciesId);
+    if (!fish) {
+      showToast(i18n.language === 'en' ? 'No corresponding species found for this memorial' : '没有找到这条生命纪念对应的物种', 'error');
+      routeNavigate('/aquarium', { replace: true });
+      return;
+    }
+    setAddFishSuccess(null);
+    setAddFishDatePicker(null);
+    setAddFishCompatibilityReview(null);
+    setFishSearchTerm('');
+    setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
+    setIsAddFishOpen(true);
+    showToast(i18n.language === 'en' ? `Pre-selected "${fish.name}", compatibility will be checked before adding` : `已预选“${fish.name}”，加入前会再次检查混养风险`);
+    routeNavigate('/aquarium', { replace: true });
+  }, [activeAquarium, routeLocation.search, routeNavigate, showToast]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !activeAquarium) return;
@@ -1059,23 +1497,28 @@ export default function AquariumManager() {
     const hasSmall = curFishes.some(f => f.size === 'Small');
     const hasLarge = curFishes.some(f => f.size === 'Large');
 
+    const isEn = i18n.language === 'en';
     if (hasAggressive && hasPeaceful) {
-      const aggressiveNames = curFishes.filter(f => f.temperament === 'Aggressive').map(f => f.name).slice(0, 3).join('、');
+      const aggressiveNames = curFishes.filter(f => f.temperament === 'Aggressive').map(f => f.name).slice(0, 3).join(isEn ? ', ' : '、');
       risks.push({
-        group: '混养风险',
+        group: isEn ? '混养风险' : '混养风险', // Keep internal key matching if needed, or map display
         severity: 'danger',
-        title: '攻击性和温和生物同缸',
-        detail: `${aggressiveNames || '攻击性生物'} 与温和小型生物同缸，发生撕咬、追逐或吞食的风险较高。`,
-        nextStep: '优先移除攻击性生物，或单独规划主题缸。',
+        title: isEn ? 'Aggressive & Peaceful Species Mixed' : '攻击性和温和生物同缸',
+        detail: isEn 
+          ? `${aggressiveNames || 'Aggressive species'} housed with peaceful small species carries a high risk of nipping, chasing, or predation.`
+          : `${aggressiveNames || '攻击性生物'} 与温和小型生物同缸，发生撕咬、追逐或吞食的风险较高。`,
+        nextStep: isEn ? 'Prioritize removing aggressive species or setup a separate theme tank.' : '优先移除攻击性生物，或单独规划主题缸。',
       });
     }
     if (hasLarge && hasSmall && !hasAggressive) { // if aggressive already marked, avoid spam
       risks.push({
-        group: '混养风险',
+        group: isEn ? '混养风险' : '混养风险',
         severity: 'danger',
-        title: '体型差异过大',
-        detail: '当前同时存在大型和小型生物，小型鱼虾可能被追逐、抢食或吞食。',
-        nextStep: '减少大型鱼，或为小型生物单独开缸。',
+        title: isEn ? 'Extremely Large Size Difference' : '体型差异过大',
+        detail: isEn
+          ? 'Large and small species co-exist; small fish or shrimp may be chased, outcompeted, or eaten.'
+          : '当前同时存在大型和小型生物，小型鱼虾可能被追逐、抢食或吞食。',
+        nextStep: isEn ? 'Reduce large fish or build a separate tank for small species.' : '减少大型鱼，或为小型生物单独开缸。',
       });
     }
 
@@ -1108,11 +1551,13 @@ export default function AquariumManager() {
       const low = sorted[0];
       const high = sorted[sorted.length - 1];
       risks.push({
-        group: '水质参数冲突',
+        group: isEn ? '水质参数冲突' : '水质参数冲突',
         severity: 'danger',
-        title: 'pH 要求冲突',
-        detail: `${low.fish.name}：${low.fish.phLevel}；${high.fish.name}：${high.fish.phLevel}。两者重叠区间为空，因此不建议同缸。`,
-        nextStep: '移除偏酸或偏碱需求差异最大的对象，保持同缸生物 pH 区间有交集。',
+        title: isEn ? 'pH Requirement Conflict' : 'pH 要求冲突',
+        detail: isEn
+          ? `${low.fish.name}: ${low.fish.phLevel}; ${high.fish.name}: ${high.fish.phLevel}. There is no overlapping pH range, so mixing is not recommended.`
+          : `${low.fish.name}：${low.fish.phLevel}；${high.fish.name}：${high.fish.phLevel}。两者重叠区间为空，因此不建议同缸。`,
+        nextStep: isEn ? 'Remove the species with the most extreme pH demand to ensure overlapping ranges.' : '移除偏酸或偏碱需求差异最大的对象，保持同缸生物 pH 区间有交集。',
       });
     }
 
@@ -1120,11 +1565,11 @@ export default function AquariumManager() {
     const waterTypes = new Set(curFishes.map(f => f.category === '海水鱼' ? 'Saltwater' : 'Freshwater'));
     if (waterTypes.size > 1) {
       risks.push({
-        group: '水质参数冲突',
+        group: isEn ? '水质参数冲突' : '水质参数冲突',
         severity: 'danger',
-        title: '水体类型冲突',
-        detail: '当前同时存在海水与淡水生物，水体类型无法同时满足。',
-        nextStep: '把海水生物和淡水生物分缸管理。',
+        title: isEn ? 'Water Type Conflict' : '水体类型冲突',
+        detail: isEn ? 'Both saltwater and freshwater species are present; water conditions cannot satisfy both.' : '当前同时存在海水与淡水生物，水体类型无法同时满足。',
+        nextStep: isEn ? 'Separate saltwater and freshwater species into different tanks.' : '把海水生物和淡水生物分缸管理。',
       });
     }
 
@@ -1231,10 +1676,6 @@ export default function AquariumManager() {
     if (!execution.added) return false;
 
     saveAquariums(execution.aquariums);
-    captureProductEvent('species_added_to_aquarium', {
-      species_count: normalizedItems.length,
-      compatibility_status: execution.review?.status ?? 'compatible',
-    });
     setAddFishCompatibilityReview(null);
     setAddFishSuccess({
       aquariumName: activeAquarium.name,
@@ -1248,7 +1689,7 @@ export default function AquariumManager() {
 
   const handleAddFish = () => {
     if (!activeAquarium) {
-      setTankActionMessage('请先选择当前鱼缸。');
+      setTankActionMessage(i18n.language === 'en' ? 'Please select an aquarium first.' : '请先选择当前鱼缸。');
       return;
     }
     if (selectedAddFishItems.length === 0) return;
@@ -1269,7 +1710,7 @@ export default function AquariumManager() {
     if (!addFishCompatibilityReview) return;
     const addPolicy = getTankCompatibilityAddPolicy(addFishCompatibilityReview.status);
     if (addPolicy === 'block') {
-      setTankActionMessage('当前组合不建议加入，请先返回调整。');
+      setTankActionMessage(i18n.language === 'en' ? 'Current stocking mix is not recommended, please adjust.' : '当前组合不建议加入，请先返回调整。');
       return;
     }
     if (addPolicy === 'complete_information') {
@@ -1282,7 +1723,7 @@ export default function AquariumManager() {
       setIsAddFishOpen(false);
       setAddFishCompatibilityReview(null);
       openAquariumSettings(settingsPanel);
-      setTankActionMessage('请先补充鱼缸信息，再评估是否可以加入。');
+      setTankActionMessage(i18n.language === 'en' ? 'Please fill in aquarium details before evaluating.' : '请先补充鱼缸信息，再评估是否可以加入。');
       return;
     }
     commitAddFishItems(addFishCompatibilityReview.items, true);
@@ -1290,7 +1731,7 @@ export default function AquariumManager() {
 
   const handleAddCompatibilitySpeciesToTank = async (items: { fishId: string; quantity: number }[]) => {
     if (!activeAquarium) {
-      throw new Error('请先选择当前鱼缸。');
+      throw new Error(i18n.language === 'en' ? 'Please select an aquarium first.' : '请先选择当前鱼缸。');
     }
 
     const entryDate = format(new Date(), 'yyyy-MM-dd');
@@ -1303,7 +1744,7 @@ export default function AquariumManager() {
       }));
 
     if (normalizedItems.length === 0) {
-      throw new Error('没有可加入当前鱼缸的生物。');
+      throw new Error(i18n.language === 'en' ? 'No species to add to the active aquarium.' : '没有可加入当前鱼缸的生物。');
     }
 
     const execution = executeSpeciesAddition({
@@ -1315,10 +1756,10 @@ export default function AquariumManager() {
     });
     if (!execution.added) {
       throw new Error(execution.reason === 'missing_information'
-        ? '请先补充鱼缸信息后再添加。'
+        ? (i18n.language === 'en' ? 'Please complete aquarium details before adding.' : '请先补充鱼缸信息后再添加。')
         : execution.reason === 'blocked'
-          ? '当前组合不建议加入鱼缸。'
-          : '请先确认混养提醒后再添加。');
+          ? (i18n.language === 'en' ? 'Stocking mix is not recommended for this aquarium.' : '当前组合不建议加入鱼缸。')
+          : (i18n.language === 'en' ? 'Please acknowledge compatibility warning first.' : '请先确认混养提醒后再添加。'));
     }
 
     saveAquariums(execution.aquariums);
@@ -1326,7 +1767,7 @@ export default function AquariumManager() {
       .map(item => fishData.find(fish => fish.id === item.fishId)?.name)
       .filter(Boolean)
       .join('、');
-    const message = `已加入 ${normalizedItems.length} 种生物到当前鱼缸${addedNames ? `：${addedNames}` : ''}。`;
+    const message = i18n.language === 'en' ? `Added ${normalizedItems.length} species to active aquarium${addedNames ? `: ${addedNames}` : ''}.` : `已加入 ${normalizedItems.length} 种生物到当前鱼缸${addedNames ? `：${addedNames}` : ''}。`;
     setTankActionMessage(message);
     return { message };
   };
@@ -1334,7 +1775,7 @@ export default function AquariumManager() {
   const handleViewTankAfterAdd = () => {
     setIsAddFishOpen(false);
     setAddFishSuccess(null);
-    void navigateToSection('aquarium-records', { updateHash: false });
+    openTankArchive();
   };
 
   const handleContinueAddFish = () => {
@@ -1346,11 +1787,10 @@ export default function AquariumManager() {
 
   const handleRemoveFish = (fishIdToRemove: string) => {
     if (!activeAquarium) return;
-    const updated = aquariums.map(a =>
+    const updated = aquariums.map(a => 
       a.id === activeId ? { ...a, fishes: a.fishes.filter(f => f.id !== fishIdToRemove) } : a
     );
     saveAquariums(updated);
-    captureProductEvent('species_removed_from_aquarium');
   };
 
   const handleUpdateEntryDate = (fishId: string, newDate: string) => {
@@ -1401,111 +1841,44 @@ export default function AquariumManager() {
       } : a
     );
     saveAquariums(updated);
-    setTankActionMessage(hasTodayRecord ? '已撤回今日换水记录' : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
+    setTankActionMessage(hasTodayRecord ? (i18n.language === 'en' ? 'Recalled today\'s water change record' : '已撤回今日换水记录') : (i18n.language === 'en' ? `Logged water change: ${format(new Date(), 'yyyy-MM-dd HH:mm')}` : `已记录换水：${format(new Date(), 'yyyy-MM-dd HH:mm')}`));
   };
 
-  const handleDailyAdviceAction = (action: 'start' | 'complete' | 'snooze' | 'toggle_steps') => {
-    const task = dailyAdviceViewModel.task;
-
-    if (action === 'toggle_steps') {
-      setIsDailyAdviceDetailsOpen(prev => !prev);
-      return;
-    }
-
-    if (action === 'start') {
-      if (task?.type === 'water_change') {
-        handleTankWaterChange();
-        return;
-      }
-      setIsDailyAdviceDetailsOpen(true);
-      setTankActionMessage(task ? '已展开今日建议步骤，请按步骤处理。' : '今天没有必须处理的任务，保持常规观察即可。');
-      return;
-    }
-
-    if (action === 'complete') {
-      if (!task) return;
-      if (task.type === 'water_change') {
-        handleTankWaterChange();
+  const handleDailyActionPrimary = () => {
+    const task = dailyActionViewModel.task;
+    if (task.actionType === 'urgent_recovery') {
+      if (todayDailyCheckRecord) {
+        setSelectedDiagnosisRecord(todayDailyCheckRecord);
+        setDiagnosisMode('history');
+        setIsDiagnosisOpen(true);
       } else {
-        setTankActionMessage('已记录本次处理。');
+        handleOpenDailyCheck();
       }
       return;
     }
-
-    if (action === 'snooze') {
-      if (!task) return;
-      const overdueDays = Number(task.trigger.value?.overdueDays || 0);
-      const confirmMessage = overdueDays > 0
-        ? `换水计划已经逾期 ${overdueDays} 天，仍要推迟到明天吗？`
-        : '确认把这项建议推迟到明天吗？';
-      if (window.confirm(confirmMessage)) {
-        setTankActionMessage('已记录：明天再次提醒。换水周期未改变。');
-      }
+    if (task.actionType === 'compatibility_review') {
+      setIsConflictDialogOpen(true);
       return;
     }
-  };
-
-  const handleAskDailyAdviceAI = async (question: string) => {
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) return;
-
-    const context = {
-      aquariumId: activeAquarium?.id || '',
-      aquarium: activeAquarium ? {
-        name: activeAquarium.name,
-        waterType: activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水',
-        volume: getTankVolumeLiters(activeAquarium),
-        temperature: activeAquarium.targetTemperature,
-        speciesCount: activeAquarium.fishes.reduce((sum, fish) => sum + Math.max(1, fish.quantity || 1), 0),
-      } : null,
-      currentTask: dailyAdviceViewModel.task ? {
-        id: dailyAdviceViewModel.task.id,
-        type: dailyAdviceViewModel.task.type,
-        title: dailyAdviceViewModel.task.title,
-        priority: dailyAdviceViewModel.task.priority,
-        trigger: dailyAdviceViewModel.task.trigger,
-      } : null,
-      status: dailyAdviceViewModel.status,
-      dataFreshness: {
-        latestWaterChangeDate,
-        missingData: dailyAdviceViewModel.status.missingData,
-      },
-    };
-
-    setDailyAdviceAiAnswer('');
-    setDailyAdviceAiError('');
-    setDailyAdviceAiSource(null);
-    setIsDailyAdviceAiLoading(true);
-
-    try {
-      const text = await askAquaGuideAI({
-        system: [
-          '你是 AquaGuide 今日建议解释助手。',
-          '只能解释输入中的事实、缺失信息、建议步骤和还需要补充的信息。',
-          '不能编造未记录的异常，不能把“暂无记录”说成“没有风险”。',
-          '回答要短，最多 4 句。',
-        ].join('\n'),
-        messages: [{
-          role: 'user',
-          content: JSON.stringify({ question: trimmedQuestion, context }, null, 2),
-        }],
-        maxTokens: 500,
-        temperature: 0.2,
-      });
-      setDailyAdviceAiSource('model');
-      setDailyAdviceAiAnswer(text);
-    } catch {
-      setDailyAdviceAiSource('fallback');
-      setDailyAdviceAiError('AI 暂不可用，系统规则仍可使用。');
-    } finally {
-      setIsDailyAdviceAiLoading(false);
+    if (task.actionType === 'care_plan') {
+      const reminder = activeCareReminders.find(item => item.id === task.targetId);
+      if (reminder) navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`);
+      else showToast(i18n.language === 'en' ? 'This care task has been updated, please view latest tasks.' : '这条养护计划已经更新，请查看最新任务。', 'error');
+      return;
+    }
+    if (task.actionType === 'water_change') {
+      handleTankWaterChange();
+      return;
+    }
+    if (task.actionType === 'daily_check') {
+      handleOpenDailyCheck();
     }
   };
 
   const handleApplyBuildTemplate = (adaptedPlan: AdaptedBuildPlan) => {
     if (!activeAquarium) return;
     if (!adaptedPlan.canApply) {
-      setTankActionMessage('当前鱼缸低于该方案最低要求，无法直接应用。');
+      setTankActionMessage(i18n.language === 'en' ? 'Active aquarium size is smaller than the minimum setup requirement.' : '当前鱼缸低于该方案最低要求，无法直接应用。');
       return;
     }
     const template = adaptedPlan.template;
@@ -1521,10 +1894,10 @@ export default function AquariumManager() {
             templateFish.forEach(({ fish, quantity }) => {
               const existingIndex = nextFishes.findIndex(item => item.fishId === fish.id);
               if (existingIndex >= 0) {
-                nextFishes[existingIndex] = {
-                  ...nextFishes[existingIndex],
-                  quantity: Math.max(nextFishes[existingIndex].quantity || 1, quantity),
-                };
+                const existing = withNormalizedSpeciesBatches(nextFishes[existingIndex]);
+                nextFishes[existingIndex] = quantity > existing.quantity
+                  ? appendSpeciesBatch(existing, { quantity: quantity - existing.quantity, entryDate: now })
+                  : existing;
                 return;
               }
 
@@ -1534,6 +1907,7 @@ export default function AquariumManager() {
                 quantity,
                 entryDate: now,
                 lastWaterChangeDate: now,
+                batches: [createSpeciesBatch({ quantity, entryDate: now })],
               });
             });
 
@@ -1561,7 +1935,7 @@ export default function AquariumManager() {
     ));
 
     saveAquariums(updated);
-    setTankActionMessage(`已应用「${template.name}」的适配方案：${adaptedPlan.summary}`);
+    setTankActionMessage(i18n.language === 'en' ? `Applied "${template.name}" setup layout: ${adaptedPlan.summary}` : `已应用「${template.name}」的适配方案：${adaptedPlan.summary}`);
     setIsBuildPlanOpen(false);
   };
 
@@ -1599,89 +1973,6 @@ export default function AquariumManager() {
     return tankRiskItems.filter(item => item.severity !== 'info').map(item => `${item.title}：${item.detail}`);
   };
 
-  const formatRiskExplanationText = (explanation: RiskExplanationData, localRiskItems: TankRiskItem[]) => {
-    const localFallbackText = 'AI 暂不可用，系统规则仍可使用。';
-
-    if (explanation.fallback) return localFallbackText;
-
-    const lines = [
-      explanation.summary,
-      ...explanation.reasons.map(reason => `${reason.title}：${reason.detail}${reason.source ? `（${reason.source}）` : ''}`),
-      ...explanation.suggestions.map(suggestion => `建议：${suggestion.title}，${suggestion.detail}`),
-      ...explanation.nextSteps.map((step, index) => `下一步 ${index + 1}：${step}`),
-      explanation.disclaimer,
-    ];
-
-    return lines.filter(Boolean).join('\n');
-  };
-
-  const handleAskAIAboutConflicts = async () => {
-    if (!activeAquarium) return;
-    setIsRecommending(true);
-    setAiReasoning('');
-    setAiReasoningSource(null);
-    try {
-      const livestock = activeAquarium.fishes.map(af => {
-        const fish = fishData.find(d => d.id === af.fishId);
-        return fish ? {
-          id: fish.id,
-          name: fish.name,
-          quantity: af.quantity,
-          category: fish.category,
-          phLevel: fish.phLevel,
-          waterTemperature: fish.waterTemperature,
-          size: fish.size,
-          temperament: fish.temperament,
-          tankSize: fish.tankSize,
-        } : null;
-      }).filter(Boolean);
-      const riskLevel = tankRiskItems.some(item => item.severity === 'danger')
-        ? 'high'
-        : tankRiskItems.some(item => item.severity === 'warning')
-          ? 'medium'
-          : 'info';
-      const riskResult = {
-        riskLevel,
-        riskItems: tankRiskItems,
-        conflicts,
-      };
-
-      const explanation = await generateRiskExplanation({
-        aquarium: {
-          id: activeAquarium.id,
-          name: activeAquarium.name,
-          waterType: activeAquarium.waterType,
-          targetTemperature: activeAquarium.targetTemperature,
-          dimensions: activeAquarium.dimensions,
-          equipment: activeAquarium.equipment,
-          volumeLiters: getTankVolumeLiters(activeAquarium),
-        },
-        selectedSpecies: livestock,
-        existingLivestock: livestock,
-        riskResult,
-        ruleFacts: {
-          source: 'AquaGuide local tank risk checker',
-          riskItems: tankRiskItems,
-          conflicts,
-        },
-      });
-
-      setAiReasoningSource(explanation.source === 'model' ? 'model' : 'fallback');
-      setAiReasoning(formatRiskExplanationText(explanation, tankRiskItems));
-    } catch(e) {
-      console.error(e);
-      setAiReasoningSource('fallback');
-      setAiReasoning(formatRiskExplanationText({
-        summary: 'AI 暂不可用，系统规则仍可使用。',
-        reasons: [],
-        suggestions: [],
-        nextSteps: [],
-        disclaimer: '最终判断以系统规则结果为准',
-        fallback: true,
-      }, tankRiskItems));
-    }
-    setIsRecommending(false);
-  };
   const openSmartRecommendation = (
     mode: RecommendationMode = activeAquarium.fishes.length > 0 ? 'existing_livestock' : 'empty_tank',
     candidateIds: string[] | null = null,
@@ -1697,7 +1988,7 @@ export default function AquariumManager() {
     setTankCopilotError('');
     setTankCopilotResult(null);
     setTankCopilotAnswers({});
-    setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? '基于当前鱼缸规划下一步安全搭配' : '新手小型淡水缸'));
+    setTankCopilotGoal(prev => prev || (activeAquarium.fishes.length > 0 ? (i18n.language === 'en' ? 'Plan safe additions based on active tank' : '基于当前鱼缸规划下一步安全搭配') : (i18n.language === 'en' ? 'Beginner small freshwater tank' : '新手小型淡水缸')));
     setIsTankCopilotOpen(true);
   };
 
@@ -1725,7 +2016,7 @@ export default function AquariumManager() {
       setTankCopilotResult(result);
       setTankCopilotError('');
     } catch {
-      setTankCopilotError('AI 建缸助手暂时不可用，请稍后重试。');
+      setTankCopilotError(isEn ? 'AI Tank Copilot is temporarily unavailable, please try again later.' : 'AI 建缸助手暂时不可用，请稍后重试。');
     } finally {
       setIsTankCopilotLoading(false);
     }
@@ -1838,8 +2129,8 @@ export default function AquariumManager() {
     }
 
     saveAquariums(execution.aquariums);
-    setTankActionMessage(`已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
-    showToast(`已加入 ${species.name} x${smartAddQuantity}`, 'success');
+    setTankActionMessage(i18n.language === 'en' ? `Added ${species.name} x${smartAddQuantity}, recommend to observe for 3-7 days.` : `已加入 ${species.name} x${smartAddQuantity}，建议观察 3-7 天。`);
+    showToast(i18n.language === 'en' ? `Added ${species.name} x${smartAddQuantity}` : `已加入 ${species.name} x${smartAddQuantity}`, 'success');
     setSmartSimulation(null);
     setSmartCandidateScopeIds(null);
     setIsSmartRecommendOpen(false);
@@ -1877,8 +2168,8 @@ export default function AquariumManager() {
     const stockedFishes = targetAquarium?.fishes || [];
     const currentLivestock = getDiagnosisLivestock(targetAquarium);
     const stocked = currentLivestock
-      .map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1}`)
-      .join('、') || '暂无活体生物';
+      .map(({ aqFish, fish }) => `${fish.name} x${aqFish.quantity || 1} (${getSpeciesBatchContextLabel(aqFish, isEn)})`)
+      .join(i18n.language === 'zh-CN' ? '、' : ', ') || t('aquarium.noLivestock');
     const latestAdded = [...stockedFishes]
       .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())[0];
     const latestAddedFish = latestAdded ? fishData.find(item => item.id === latestAdded.fishId) : null;
@@ -1888,22 +2179,22 @@ export default function AquariumManager() {
 
     return {
       aquariumId: targetAquarium?.id || '',
-      name: targetAquarium?.name || '未选择鱼缸',
-      water: targetAquarium?.waterType === 'Saltwater' ? '海水' : '淡水',
+      name: targetAquarium?.name || t('aquarium.switchTank'),
+      water: targetAquarium?.waterType === 'Saltwater' ? t('aquarium.saltwater') : t('aquarium.freshwater'),
       temperature: `${targetAquarium?.targetTemperature || 25}°C`,
       volume: `约 ${targetAquarium ? getTankVolumeLiters(targetAquarium) : 0}L`,
-      dimensions: targetAquarium ? `${targetAquarium.dimensions.length}×${targetAquarium.dimensions.width}×${targetAquarium.dimensions.height}cm` : '未设置',
+      dimensions: targetAquarium ? `${targetAquarium.dimensions.length}×${targetAquarium.dimensions.width}×${targetAquarium.dimensions.height}cm` : t('aquarium.none'),
       stocked,
       livestockCount: currentLivestock.reduce((sum, item) => sum + (item.aqFish.quantity || 1), 0),
-      waterChange: targetAquarium?.lastWaterChangeDate ? format(new Date(targetAquarium.lastWaterChangeDate), 'MM/dd') : '暂无记录',
-      recentFeeding: latestFeeding ? format(new Date(latestFeeding.createdAt), 'MM/dd HH:mm') : '暂无记录',
-      recentAddedSpecies: latestAddedFish ? `${latestAddedFish.name} · ${format(new Date(latestAdded.entryDate), 'MM/dd')}` : '暂无记录',
+      waterChange: targetAquarium?.lastWaterChangeDate ? format(new Date(targetAquarium.lastWaterChangeDate), 'MM/dd') : t('aquarium.none'),
+      recentFeeding: latestFeeding ? format(new Date(latestFeeding.createdAt), 'MM/dd HH:mm') : t('aquarium.none'),
+      recentAddedSpecies: latestAddedFish ? `${latestAddedFish.name} · ${format(new Date(latestAdded.entryDate), 'MM/dd')}` : t('aquarium.none'),
       equipment: targetAquarium ? [
-        targetAquarium.equipment?.filter ? `过滤：${targetAquarium.equipment.filter}` : '',
-        targetAquarium.equipment?.heater ? '加热：有' : '加热：无',
-        targetAquarium.equipment?.oxygen ? '增氧：有' : '增氧：无',
-      ].filter(Boolean).join(' / ') : '未设置',
-      missing: ['如情况没有改善，可选补充 pH / 氨氮 / 亚硝酸盐'],
+        targetAquarium.equipment?.filter ? `${t('aquarium.filterSystem')}：${t(`aquarium.${filterOptionKeys[targetAquarium.equipment.filter] || 'none'}`)}` : '',
+        `${t('aquarium.heater')}：${targetAquarium.equipment?.heater ? t('aquarium.yes') : t('aquarium.no')}`,
+        `${t('aquarium.oxygen')}：${targetAquarium.equipment?.oxygen ? t('aquarium.yes') : t('aquarium.no')}`,
+      ].filter(Boolean).join(' / ') : t('aquarium.none'),
+      missing: [t('aquarium.missingInfoDesc')],
     };
   };
 
@@ -2045,27 +2336,6 @@ export default function AquariumManager() {
     };
   };
 
-  const buildDiagnosisFollowUpAnswer = (question: string) => {
-    const lower = question.toLowerCase();
-    const base = diagnosisIssueType === '巡检' ? '当前是巡检模式，建议先选择一个具体问题类型，这样判断会更准确。' : `这个追问仍按「${diagnosisIssueType}」来判断。`;
-    if (/躲|藏|不出来|怕/.test(question)) {
-      return `${base} 更像应激或被追赶。先弱光、减少打扰，观察 24-48 小时；如果同时浮头、白点或拒食，需要升级为鱼只异常诊断。还需要补充：入缸多久、同缸鱼是否追它。`;
-    }
-    if (/浮头|呼吸|喘|缺氧/.test(question)) {
-      return `${base} 浮头/急促呼吸优先按缺氧或水质刺激处理：先增加打氧，检查过滤出水，今天停喂；若伴随异味或水浑，少量换水 20%。还需要补充：是否多条鱼同时浮头、水温和最近换水时间。`;
-    }
-    if (/白点|烂尾|红血丝|蹭/.test(question)) {
-      return `${base} 体表异常不要直接混药。先隔离观察、确认是否扩散到多条鱼，再决定治疗方向。需要补充：异常持续多久、是否有照片描述、同缸其他鱼是否正常。`;
-    }
-    if (/喂|饲料|吃|残饵/.test(question) || lower.includes('feed')) {
-      return `${base} 先把投喂降到 2-3 分钟内吃完，残饵及时清理；如果水已经变浑，停喂 1 天并检查过滤。需要补充：每天喂几次、缸底是否有残饵。`;
-    }
-    if (/死|死亡/.test(question)) {
-      return `${base} 死鱼先立即移除，再看是否连续死亡或其他鱼异常。不要马上全缸下药，先补充最近换水、加药、新鱼入缸和水质数据。`;
-    }
-    return `${base} 目前信息还不足，先补充：异常持续多久、是否多条鱼同时出现、最近是否换水/加药/新鱼入缸，以及 pH、氨氮、亚硝酸盐数据。`;
-  };
-
   const handleOpenDiagnosis = () => {
     if (!activeAquarium) return;
     setDiagnosisAquariumId(activeAquarium.id);
@@ -2090,9 +2360,7 @@ export default function AquariumManager() {
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2105,15 +2373,18 @@ export default function AquariumManager() {
   const handleOpenDiagnosisWithType = (typeId: string) => {
     if (!activeAquarium) return;
     const safeType: DiagnosisProblemType = isDiagnosisProblemType(typeId) ? typeId : '巡检';
+    if (speciesHealthDiagnosisTypes.has(safeType)) {
+      setIsDiagnosisOpen(false);
+      navigateToRoute('/identify');
+      return;
+    }
     setDiagnosisAquariumId(activeAquarium.id);
     setIsDiagnosisOpen(true);
     setDiagnosisIssueType(safeType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2126,13 +2397,16 @@ export default function AquariumManager() {
 
   const handleStartDiagnosisQuiz = (typeId: string) => {
     const safeType: DiagnosisProblemType = isDiagnosisProblemType(typeId) ? typeId : '巡检';
+    if (speciesHealthDiagnosisTypes.has(safeType)) {
+      setIsDiagnosisOpen(false);
+      navigateToRoute('/identify');
+      return;
+    }
     setDiagnosisIssueType(safeType);
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setCareDiagnosisContext(null);
@@ -2140,11 +2414,70 @@ export default function AquariumManager() {
     setDailyCheckArticles([]);
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(routeLocation.search);
+    const action = params.get('action');
+    if (!activeAquarium || !action || !['create', 'setup', 'daily-check'].includes(action)) return;
+    const requestKey = `${activeAquarium.id}:${action}:${params.get('source') ?? ''}`;
+    if (handledOnboardingActionRef.current === requestKey) return;
+    handledOnboardingActionRef.current = requestKey;
+
+    if (action === 'daily-check') {
+      setIsDiagnosisOpen(true);
+      handleStartDiagnosisQuiz('巡检');
+      return;
+    }
+    openAquariumSettings('size');
+  }, [activeAquarium?.id, routeLocation.search]);
+
   const handleDiagnosisAnswer = (questionId: string, answer: string) => {
     setDiagnosisQuizAnswers(prev => ({ ...prev, [questionId]: answer }));
     setDiagnosisResult(null);
     setDiagnosisSaveMessage('');
   };
+
+  const handleDiagnosisChoice = (questionId: string, answer: string) => {
+    handleDiagnosisAnswer(questionId, answer);
+    if (diagnosisAdvanceTimerRef.current !== null) window.clearTimeout(diagnosisAdvanceTimerRef.current);
+    diagnosisAdvanceTimerRef.current = window.setTimeout(() => {
+      diagnosisAdvanceTimerRef.current = null;
+      const problemType: DiagnosisProblemType = isDiagnosisProblemType(diagnosisIssueType) ? diagnosisIssueType : '巡检';
+      const nextAnswers = { ...diagnosisQuizAnswers, [questionId]: answer };
+      const questions = getDiagnosisQuestions(problemType, nextAnswers);
+
+      if (problemType === '巡检') {
+        const currentIndex = questions.findIndex(question => question.id === questionId);
+        const requiredQuestions = questions.filter(question => !question.optionalText);
+        const nextQuestion = questions
+          .slice(Math.max(0, currentIndex + 1))
+          .find(question => !question.optionalText && !nextAnswers[question.id])
+          || requiredQuestions.find(question => !nextAnswers[question.id]);
+        if (nextQuestion) {
+          const target = diagnosisQuestionRefs.current[nextQuestion.id];
+          const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          target?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+          target?.focus({ preventScroll: true });
+          return;
+        }
+        diagnosisSubmitRef.current?.focus();
+        return;
+      }
+
+      if (diagnosisQuestionIndex < questions.length - 1) {
+        const nextQuestion = questions[diagnosisQuestionIndex + 1];
+        setDiagnosisQuestionIndex(index => Math.min(index + 1, questions.length - 1));
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => diagnosisQuestionRefs.current[nextQuestion.id]?.focus());
+        });
+        return;
+      }
+      diagnosisSubmitRef.current?.focus();
+    }, 200);
+  };
+
+  useEffect(() => () => {
+    if (diagnosisAdvanceTimerRef.current !== null) window.clearTimeout(diagnosisAdvanceTimerRef.current);
+  }, []);
 
   const handleRunDiagnosis = async () => {
     const result = buildStructuredDiagnosis();
@@ -2291,10 +2624,7 @@ export default function AquariumManager() {
       missingInfo: result.missing,
       optionalMissingInfo: result.missing,
       nextCheckAt: result.nextCheckAt,
-      followUpNotes: [
-        ...(careDiagnosisContext ? [`来自百科：${careDiagnosisContext.title}`] : []),
-        ...diagnosisFollowUps.map(item => `问：${item.question}；答：${item.answer}`),
-      ],
+      followUpNotes: careDiagnosisContext ? [`来自百科：${careDiagnosisContext.title}`] : [],
     };
     const nextRecords = upsertDiagnosisRecord(diagnosisRecords, record);
     setDiagnosisRecords(persistDiagnosisRecords(nextRecords));
@@ -2306,15 +2636,7 @@ export default function AquariumManager() {
       : '已保存本次诊断');
     if (problemType === '巡检') {
       trackSessionEvent('daily_check_completed', { action: existingDailyRecord ? 'update' : 'complete', status: result.riskLevel, entry: 'aquarium' });
-      captureProductEvent('daily_check_completed', { risk_level: result.riskLevel, is_update: Boolean(existingDailyRecord) });
     }
-  };
-
-  const handleDiagnosisFollowUp = () => {
-    const question = diagnosisQuestion.trim();
-    if (!question || isDiagnosing) return;
-    setDiagnosisQuestion('');
-    setDiagnosisFollowUps(prev => [...prev, { question, answer: buildDiagnosisFollowUpAnswer(question) }]);
   };
 
   useEffect(() => {
@@ -2339,9 +2661,7 @@ export default function AquariumManager() {
     setDiagnosisMode('quiz');
     setDiagnosisQuestionIndex(0);
     setDiagnosisQuizAnswers({});
-    setDiagnosisFollowUps([]);
     setDiagnosisResult(null);
-    setDiagnosisQuestion('');
     setDiagnosisSaveMessage('');
     setSelectedDiagnosisRecord(null);
     setIsDiagnosisOpen(true);
@@ -2371,7 +2691,7 @@ export default function AquariumManager() {
     () => discoveryPool.find(fish => fish.id === discoveryState.queueIds[1]) || null,
     [discoveryPool, discoveryState.queueIds]
   );
-  const discoveryImageSrc = discoveryFish ? getSpeciesDisplayImage(discoveryFish) : '';
+  const discoveryImageSrc = discoveryFish ? getSpeciesVisualSources(discoveryFish).thumbnail : '';
   const nextDiscoveryImageSrc = nextDiscoveryFish ? getSpeciesDisplayImage(nextDiscoveryFish) : '';
   const discoveryUsedToday = discoveryState.consumedIds.length;
   const discoveryRemainingToday = Math.max(0, DISCOVERY_DAILY_LIMIT - discoveryUsedToday);
@@ -2394,7 +2714,7 @@ export default function AquariumManager() {
       if (!fish) return;
       const preload = new Image();
       preload.decoding = 'async';
-      preload.src = getSpeciesDisplayImage(fish);
+      preload.src = getSpeciesVisualSources(fish).thumbnail;
     });
   }, [discoveryImageSrc, discoveryPool, discoveryState.queueIds]);
 
@@ -2488,6 +2808,21 @@ export default function AquariumManager() {
     .filter(reminder => !reminder.completedAt && (!reminder.aquariumId || reminder.aquariumId === activeAquarium.id))
     .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
   const dueCareReminders = activeCareReminders.filter(reminder => ['overdue', 'today'].includes(getCareReminderStatus(reminder)));
+  const carePlanSummary: CarePlanSummaryViewModel = {
+    activeCount: activeCareReminders.length,
+    dueCount: dueCareReminders.length,
+    overdueCount: activeCareReminders.filter(reminder => getCareReminderStatus(reminder) === 'overdue').length,
+    visibleItems: activeCareReminders.slice(0, 3).map(reminder => {
+      const status = getCareReminderStatus(reminder);
+      return {
+        id: reminder.id,
+        title: reminder.title,
+        dateLabel: format(new Date(reminder.scheduledFor), 'MM月dd日'),
+        detail: reminder.label || '复查养护状态',
+        status: status === 'completed' ? 'upcoming' : status,
+      };
+    }),
+  };
   const heaterStockedItems = activeAquarium.fishes
     .map(aqFish => ({ aqFish, fish: fishData.find(f => f.id === aqFish.fishId) }))
     .filter((item): item is { aqFish: AquariumFish; fish: Fish } => Boolean(item.fish) && needsHeaterForSpecies(item.fish));
@@ -2585,7 +2920,7 @@ export default function AquariumManager() {
   const wishlistFishes = Array.from(wishlistFishIds)
     .map(id => fishData.find(fish => fish.id === id))
     .filter(Boolean) as Fish[];
-  const selectedBuildTemplate = tankBuildTemplates.find(template => template.id === selectedBuildTemplateId) || tankBuildTemplates[0];
+  const selectedBuildTemplate = localizedTemplates.find(template => template.id === selectedBuildTemplateId) || localizedTemplates[0];
   const currentTankVolumeLiters = getTankVolumeLiters(activeAquarium);
   const currentTankLengthCm = parseFloat(activeAquarium.dimensions?.length || '0') || 0;
   const getSpeciesDisplayName = (value: string) => fishData.find(fish => fish.id === value)?.name || value;
@@ -2642,28 +2977,34 @@ export default function AquariumManager() {
 
     const riskItems: string[] = [];
     if (belowMinimum) {
-      riskItems.push(`当前约 ${volumeLiters}L / ${tankLengthCm || '未设置'}cm，低于 ${template.name} 的最低要求 ${template.minVolumeLiters}L / ${template.minLengthCm}cm。`);
+      riskItems.push(isEn 
+        ? `Current water: ~${volumeLiters}L / ${tankLengthCm || 'Not Set'}cm, below minimum requirement ${template.minVolumeLiters}L / ${template.minLengthCm}cm.`
+        : `当前约 ${volumeLiters}L / ${tankLengthCm || '未设置'}cm，低于 ${template.name} 的最低要求 ${template.minVolumeLiters}L / ${template.minLengthCm}cm。`);
     }
     if (existingAnimalLoad > safeLoadBudget * 0.8) {
-      riskItems.push('当前已有动物负载偏高，应用方案时不建议继续加入完整生物组合。');
+      riskItems.push(isEn ? 'Current livestock bioload is high; not recommended to add full stocking list.' : '当前已有动物负载偏高，应用方案时不建议继续加入完整生物组合。');
     }
     if (status !== 'unsuitable' && appliedSpecies.length === 0 && template.speciesRecommendations.length > 0) {
-      riskItems.push('当前鱼缸剩余承载空间不足，方案只建议应用环境配置，暂不新增生物。');
+      riskItems.push(isEn ? 'Insufficient remaining space; only environment settings recommended, no new species added.' : '当前鱼缸剩余承载空间不足，方案只建议应用环境配置，暂不新增生物。');
     }
 
     const school = appliedSpecies.find(item => item.role === 'schooling');
     const omittedSecondSchool = template.speciesRecommendations.filter(item => item.role === 'schooling').length > 1 && status === 'caution';
     const autoFixes = [
-      status === 'caution' && school ? `已根据你的 ${volumeLiters}L 鱼缸调整：建议 ${school.name} ${school.quantity} 条。` : '',
-      omittedSecondSchool ? '不建议同时加入第二种群游鱼，避免满配多个鱼群。' : '',
-      existingAnimalLoad > 0 ? '已预留当前已有生物的承载空间。' : '',
+      status === 'caution' && school ? (isEn ? `Adjusted for your ${volumeLiters}L tank: recommend ${school.name} ${school.quantity} pcs.` : `已根据你的 ${volumeLiters}L 鱼缸调整：建议 ${school.name} ${school.quantity} 条。`) : '',
+      omittedSecondSchool ? (isEn ? 'Do not add a second schooling fish group to avoid overstocking multiple schools.' : '不建议同时加入第二种群游鱼，避免满配多个鱼群。') : '',
+      existingAnimalLoad > 0 ? (isEn ? 'Reserved space for existing livestock in the tank.' : '已预留当前已有生物的承载空间。') : '',
     ].filter(Boolean);
-    const statusLabel = status === 'suitable' ? '适合当前鱼缸' : status === 'caution' ? '可用，已缩减生物' : '不适合当前鱼缸';
+    const statusLabel = status === 'suitable' 
+      ? (isEn ? 'Suitable for active tank' : '适合当前鱼缸') 
+      : status === 'caution' 
+        ? (isEn ? 'Available, scaled list' : '可用，已缩减生物') 
+        : (isEn ? 'Unsuitable for active tank' : '不适合当前鱼缸');
     const ctaLabel = status === 'suitable'
-      ? '应用到当前鱼缸'
+      ? (isEn ? 'Apply to active tank' : '应用到当前鱼缸')
       : status === 'caution'
-        ? '应用调整后的安全方案'
-        : '当前鱼缸偏小';
+        ? (isEn ? 'Apply adjusted safe setup' : '应用调整后的安全方案')
+        : (isEn ? 'Tank size too small' : '当前鱼缸偏小');
 
     return {
       template,
@@ -2674,10 +3015,12 @@ export default function AquariumManager() {
       currentLengthCm: tankLengthCm,
       volumeRatio,
       summary: status === 'unsuitable'
-        ? `当前鱼缸低于最低要求，建议更换更大鱼缸或选择更小方案。`
-        : autoFixes.join(' ') || `当前鱼缸可承接该方案，按 ${volumeLiters}L 水体生成安全组合。`,
+        ? (isEn ? 'Current tank size is below requirements. Larger tank or smaller plan recommended.' : '当前鱼缸低于最低要求，建议更换更大鱼缸或选择更小方案。')
+        : autoFixes.join(' ') || (isEn ? `Tank suitable, safe stocking combination generated for ${volumeLiters}L.` : `当前鱼缸可承接该方案，按 ${volumeLiters}L 水体生成安全组合。`),
       coreConfigSummary: `${template.baseSubstrate} · ${template.baseEquipment.slice(0, 2).join(' · ')}`,
-      livestockSummary: appliedSpecies.length > 0 ? appliedSpecies.map(item => `${item.name} ${item.quantity}`).join(' · ') : '仅应用环境配置，暂不新增生物',
+      livestockSummary: appliedSpecies.length > 0 
+        ? appliedSpecies.map(item => `${item.name} ${item.quantity}`).join(' · ') 
+        : (isEn ? 'Environment setup only, no new species added' : '仅应用环境配置，暂不新增生物'),
       appliedSpecies,
       riskItems,
       autoFixes,
@@ -2685,28 +3028,39 @@ export default function AquariumManager() {
       ctaLabel,
     };
   };
-  const adaptedBuildPlans = tankBuildTemplates.map(template => adaptBuildTemplate(template, activeAquarium));
+  const adaptedBuildPlans = localizedTemplates.map(template => adaptBuildTemplate(template, activeAquarium));
   const selectedAdaptedBuildPlan = adaptedBuildPlans.find(plan => plan.template.id === selectedBuildTemplate.id) || adaptedBuildPlans[0];
   const getTemplateEnvironmentSummary = (template: TankBuildTemplate) => {
-    const heatText = template.equipmentSettings.heater ? '稳定加热' : '室温可养';
-    return `${template.waterType === 'Saltwater' ? '海水' : '淡水'} · ${template.temperatureRange[0]}-${template.temperatureRange[1]}°C · ${heatText}`;
+    const heatText = template.equipmentSettings.heater ? (isEn ? 'Stable Heated' : '稳定加热') : (isEn ? 'Room Temp' : '室温可养');
+    return `${template.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水')} · ${template.temperatureRange[0]}-${template.temperatureRange[1]}°C · ${heatText}`;
   };
   const getTemplateLayoutSummary = (template: TankBuildTemplate) => {
-    const plantNames = template.plants.map(getSpeciesDisplayName).slice(0, 2).join('、') || '少量水草';
-    const hardscapeNames = template.hardscape.map(getSpeciesDisplayName).slice(0, 2).join('、') || '自然造景';
+    const plantNames = template.plants.map(getSpeciesDisplayName).slice(0, 2).join(isEn ? ', ' : '、') || (isEn ? 'Few plants' : '少量水草');
+    const hardscapeNames = template.hardscape.map(getSpeciesDisplayName).slice(0, 2).join(isEn ? ', ' : '、') || (isEn ? 'Natural scape' : '自然造景');
     return `${template.substrate} · ${hardscapeNames} · ${plantNames}`;
   };
   const getTemplateLivestockSummary = (template: TankBuildTemplate) => (
-    template.livestock.slice(0, 3).join(' · ') || '按方案选择生物'
+    template.livestock.slice(0, 3).join(' · ') || (isEn ? 'Select species by plan' : '按方案选择生物')
   );
   const getTemplateEquipmentSummary = (template: TankBuildTemplate) => {
+    const translateEquip = (name: string) => {
+      if (!isEn) return name;
+      if (name === '瀑布过滤') return 'HOB Filter';
+      if (name === '桶滤') return 'Canister Filter';
+      if (name === '上滤') return 'Top Filter';
+      if (name === '海绵过滤') return 'Sponge Filter';
+      if (name === '普通灯') return 'Standard Light';
+      if (name === '水草灯') return 'Planted Light';
+      if (name === '海水灯') return 'Marine Light';
+      return name;
+    };
     const equipment = [
-      template.equipmentSettings.filter,
-      template.equipmentSettings.light,
-      template.equipmentSettings.heater ? '加热棒' : null,
-      template.equipmentSettings.oxygen ? '氧气/气泡石' : null,
+      template.equipmentSettings.filter ? translateEquip(template.equipmentSettings.filter) : null,
+      template.equipmentSettings.light ? translateEquip(template.equipmentSettings.light) : null,
+      template.equipmentSettings.heater ? (isEn ? 'Heater' : '加热棒') : null,
+      template.equipmentSettings.oxygen ? (isEn ? 'Aeration' : '氧气/气泡石') : null,
     ].filter(Boolean);
-    return equipment.join(' · ') || template.equipment.slice(0, 2).join(' · ');
+    return equipment.join(' · ') || template.equipment.slice(0, 2).map(translateEquip).join(' · ');
   };
   const getTemplateVisualImages = (template: TankBuildTemplate) => [
     ...template.hardscape,
@@ -2759,14 +3113,6 @@ export default function AquariumManager() {
       }
       return [...prev, { fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }];
     });
-  };
-  const handleReAddDeceasedFish = (fish: Fish) => {
-    setAddFishSuccess(null);
-    setAddFishDatePicker(null);
-    setAddFishCompatibilityReview(null);
-    setFishSearchTerm('');
-    setSelectedAddFishItems([{ fishId: fish.id, quantity: 1, entryDate: format(new Date(), 'yyyy-MM-dd') }]);
-    setIsAddFishOpen(true);
   };
   const addFishIntro = activeAquarium.fishes.length === 0
     ? '当前为空缸，建议先选择新手友好、适合建立生态的起步生物。'
@@ -2837,8 +3183,8 @@ export default function AquariumManager() {
       type: 'substrate' as const,
       id: `substrate-${option.value}`,
       value: option.value,
-      label: option.label,
-      hint: option.hint,
+      label: isEn ? option.labelEn : option.label,
+      hint: isEn ? option.hintEn : option.hint,
     })),
     ...availableHardscapeOptions.map(item => ({
       type: 'hardscape' as const,
@@ -2887,46 +3233,50 @@ export default function AquariumManager() {
   }> = [
     {
       id: 'size',
-      title: '尺寸',
+      title: isEn ? 'Dimensions' : '尺寸',
       summary: settingsEstimatedWaterLiters > 0
-        ? `${settingsForm.dimensions?.length || '--'}x${settingsForm.dimensions?.width || '--'}x${settingsForm.dimensions?.height || '--'}cm · 约 ${settingsEstimatedWaterLiters}L`
-        : '长宽高未完整填写',
+        ? `${settingsForm.dimensions?.length || '--'}x${settingsForm.dimensions?.width || '--'}x${settingsForm.dimensions?.height || '--'}cm · ${isEn ? `~${Math.round(settingsEstimatedWaterLiters)}L` : `约 ${settingsEstimatedWaterLiters}L`}`
+        : (isEn ? 'Incomplete dimensions' : '长宽高未完整填写'),
       configured: Boolean(settingsForm.dimensions?.length && settingsForm.dimensions?.width && settingsForm.dimensions?.height),
     },
     {
       id: 'parameters',
-      title: '参数',
-      summary: `${settingsForm.waterType === 'Saltwater' ? '海水' : '淡水'} · ${settingsForm.targetTemperature || '--'}°C`,
+      title: isEn ? 'Parameters' : '参数',
+      summary: `${settingsForm.waterType === 'Saltwater' ? (isEn ? 'Marine' : '海水') : (isEn ? 'Freshwater' : '淡水')} · ${settingsForm.targetTemperature || '--'}°C`,
       configured: Boolean(settingsForm.waterType && settingsForm.targetTemperature),
     },
     {
       id: 'substrate',
-      title: '底砂',
+      title: isEn ? 'Substrate' : '底砂',
       summary: currentSubstrate !== '无' || selectedHardscapeNames.length > 0
-        ? [currentSubstrate !== '无' ? currentSubstrate : null, ...selectedHardscapeNames].filter(Boolean).join('、')
-        : '未选择底砂或造景',
+        ? [currentSubstrate !== '无' ? (isEn ? (substrateOptions.find(opt => opt.value === currentSubstrate)?.labelEn || currentSubstrate) : currentSubstrate) : null, ...selectedHardscapeNames].filter(Boolean).join(isEn ? ', ' : '、')
+        : (isEn ? 'No substrate or hardscape selected' : '未选择底砂或造景'),
       configured: currentSubstrate !== '无' || selectedHardscapeCount > 0,
     },
     {
       id: 'plants',
-      title: '水草',
-      summary: selectedPlantNames.length > 0 ? selectedPlantNames.join('、') : '未选择水草',
+      title: isEn ? 'Plants' : '水草',
+      summary: selectedPlantNames.length > 0 ? selectedPlantNames.join(isEn ? ', ' : '、') : (isEn ? 'No plants selected' : '未选择水草'),
       configured: selectedPlantCount > 0,
     },
     {
       id: 'lighting',
-      title: '灯光',
-      summary: settingsForm.equipment?.light && settingsForm.equipment.light !== '无' ? settingsForm.equipment.light : '未选择灯光',
+      title: isEn ? 'Lighting' : '灯光',
+      summary: settingsForm.equipment?.light && settingsForm.equipment.light !== '无' 
+        ? (isEn ? (t(`aquarium.${lightOptionKeys[settingsForm.equipment.light] || 'none'}`) || settingsForm.equipment.light) : settingsForm.equipment.light) 
+        : (isEn ? 'No lighting selected' : '未选择灯光'),
       configured: Boolean(settingsForm.equipment?.light && settingsForm.equipment.light !== '无'),
     },
     {
       id: 'equipment',
-      title: '设备',
+      title: isEn ? 'Equipment' : '设备',
       summary: [
-        settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无' ? settingsForm.equipment.filter : null,
-        settingsForm.equipment?.heater ? '加热棒' : null,
-        settingsForm.equipment?.oxygen ? '氧气/气泡石' : null,
-      ].filter(Boolean).join('、') || '未选择过滤或辅助设备',
+        settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无' 
+          ? (isEn ? (t(`aquarium.${filterOptionKeys[settingsForm.equipment.filter] || 'none'}`) || settingsForm.equipment.filter) : settingsForm.equipment.filter) 
+          : null,
+        settingsForm.equipment?.heater ? (isEn ? 'Heater' : '加热棒') : null,
+        settingsForm.equipment?.oxygen ? (isEn ? 'Aeration' : '氧气/气泡石') : null,
+      ].filter(Boolean).join(isEn ? ', ' : '、') || (isEn ? 'No filter or auxiliary equipment selected' : '未选择过滤或辅助设备'),
       configured: Boolean(
         (settingsForm.equipment?.filter && settingsForm.equipment.filter !== '无')
         || settingsForm.equipment?.heater
@@ -2962,11 +3312,11 @@ export default function AquariumManager() {
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-emerald-50/70 p-3">
             <div>
-              <div className="text-[10px] font-black text-ink/45">理论容量</div>
+              <div className="text-[10px] font-black text-ink/45">{isEn ? 'Gross Capacity' : '理论容量'}</div>
               <div className="mt-1 text-2xl font-black text-ink">{settingsGrossVolumeLiters > 0 ? `${settingsGrossVolumeLiters}L` : '--'}</div>
             </div>
             <div>
-              <div className="text-[10px] font-black text-ink/45">估算实际水量</div>
+              <div className="text-[10px] font-black text-ink/45">{isEn ? 'Estimated Water Volume' : '估算实际水量'}</div>
               <div className="mt-1 text-2xl font-black text-emerald-700">{settingsEstimatedWaterLiters > 0 ? `${settingsEstimatedWaterLiters}L` : '--'}</div>
             </div>
           </div>
@@ -2994,7 +3344,7 @@ export default function AquariumManager() {
             ))}
           </div>
           <div className="mt-3 grid gap-1.5">
-            <Label className="text-[11px] font-bold text-ink/55">目标温度 (°C)</Label>
+            <Label className="text-[11px] font-bold text-ink/55">{isEn ? 'Target Temp (°C)' : '目标温度 (°C)'}</Label>
             <Input
               type="number"
               value={settingsForm.targetTemperature || ''}
@@ -3023,12 +3373,12 @@ export default function AquariumManager() {
               return (
                 <SelectableOptionCard
                   key={option.id}
-                  label={option.label}
-                  description={option.type === 'substrate' ? `底砂 · ${option.hint}` : `硬景 · ${option.hint}`}
+                  label={isEn ? (option.labelEn || option.label) : option.label}
+                  description={option.type === 'substrate' ? (isEn ? `Substrate · ${option.hintEn || option.hint}` : `底砂 · ${option.hint}`) : (isEn ? `Hardscape · ${option.hintEn || option.hint}` : `硬景 · ${option.hint}`)}
                   selected={isSelected}
                   mode={option.type === 'substrate' ? 'single' : 'multi'}
                   visual={option.type === 'hardscape' ? (
-                    <img src={option.image} alt={option.label} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />
+                    <ResilientImage src={getSpeciesDisplayImage(option)} alt={isEn ? (option.labelEn || option.label) : option.label} className="h-full w-full object-contain p-0.5" />
                   ) : (
                     <span className={`h-6 w-6 rounded-full border ${
                       option.value === '无' ? 'border-dashed border-ink/30 bg-white' :
@@ -3078,7 +3428,7 @@ export default function AquariumManager() {
                   description={plant.scientificName}
                   selected={isSelected}
                   mode="multi"
-                  visual={<img src={plant.image} alt={plant.name} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />}
+                  visual={<ResilientImage src={getSpeciesDisplayImage(plant)} alt={plant.name} className="h-full w-full object-contain p-0.5" />}
                   onClick={() => {
                     setSettingsForm({
                       ...settingsForm,
@@ -3251,8 +3601,8 @@ export default function AquariumManager() {
     ...Array.from(archiveOwnedById.values()).map(item => ({ ...item, locked: false })),
     ...lockedArchiveItems,
   ];
-  const archiveCategories = ['全部', '鱼类', '虾螺', '水草', '底砂', '造景'];
-  const primaryArchiveCategories = ['全部', '鱼类', '虾螺', '水草'];
+  const archiveCategories = isEn ? ['All', 'Fish', 'Shrimp & Snails', 'Plants', 'Substrate', 'Hardscape'] : ['全部', '鱼类', '虾螺', '水草', '底砂', '造景'];
+  const primaryArchiveCategories = isEn ? ['All', 'Fish', 'Shrimp & Snails', 'Plants'] : ['全部', '鱼类', '虾螺', '水草'];
   const activeConfiguredSettingCount = [
     activeAquarium.dimensions?.length && activeAquarium.dimensions?.width && activeAquarium.dimensions?.height,
     activeAquarium.waterType,
@@ -3288,34 +3638,42 @@ export default function AquariumManager() {
       : item.source === 'plant'
         ? '已配置水草'
         : item.source === 'substrate'
-          ? '当前底砂'
-          : '已配置造景',
+          ? (isEn ? 'Current Substrate' : '当前底砂')
+          : (isEn ? 'Configured Hardscape' : '已配置造景'),
   }));
-  if (activeAquarium.substrate && activeAquarium.substrate !== '无' && !tankConfiguredContentItems.some(item => item.category === '底砂')) {
+  if (activeAquarium.substrate && activeAquarium.substrate !== '无' && !tankConfiguredContentItems.some(item => item.category === '底砂' || item.category === 'Substrate')) {
     const substrateMeta = substrateOptions.find(item => item.value === activeAquarium.substrate);
     tankConfiguredContentItems.push({
       id: `substrate-${activeAquarium.substrate}`,
       fish: null,
-      name: substrateMeta?.label || activeAquarium.substrate,
-      category: '底砂',
+      name: isEn ? (substrateMeta?.labelEn || activeAquarium.substrate) : (substrateMeta?.label || activeAquarium.substrate),
+      category: isEn ? 'Substrate' : '底砂',
       quantity: 1,
       acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
       source: 'substrate',
-      description: substrateMeta?.hint ? `当前底砂 · ${substrateMeta.hint}` : '当前底砂配置',
+      description: substrateMeta ? (isEn ? `Current Substrate · ${substrateMeta.hintEn}` : `当前底砂 · ${substrateMeta.hint}`) : (isEn ? 'Current substrate setup' : '当前底砂配置'),
     });
   }
   const equipmentSummaryItems = [
-    activeAquarium.equipment?.filter && `过滤：${activeAquarium.equipment.filter}`,
-    activeAquarium.equipment?.light && `灯光：${activeAquarium.equipment.light}`,
-    typeof activeAquarium.equipment?.heater === 'boolean' && (activeAquarium.equipment.heater ? '加热棒：已开启' : '加热棒：未开启'),
-    typeof activeAquarium.equipment?.oxygen === 'boolean' && (activeAquarium.equipment.oxygen ? '氧气：已开启' : '氧气：未开启'),
+    activeAquarium.equipment?.filter && (isEn 
+      ? `Filter: ${t(`aquarium.${filterOptionKeys[activeAquarium.equipment.filter] || 'none'}`) || activeAquarium.equipment.filter}`
+      : `过滤：${activeAquarium.equipment.filter}`),
+    activeAquarium.equipment?.light && (isEn 
+      ? `Lighting: ${t(`aquarium.${lightOptionKeys[activeAquarium.equipment.light] || 'none'}`) || activeAquarium.equipment.light}`
+      : `灯光：${activeAquarium.equipment.light}`),
+    typeof activeAquarium.equipment?.heater === 'boolean' && (activeAquarium.equipment.heater 
+      ? (isEn ? 'Heater: On' : '加热棒：已开启') 
+      : (isEn ? 'Heater: Off' : '加热棒：未开启')),
+    typeof activeAquarium.equipment?.oxygen === 'boolean' && (activeAquarium.equipment.oxygen 
+      ? (isEn ? 'Aeration: On' : '氧气：已开启') 
+      : (isEn ? 'Aeration: Off' : '氧气：未开启')),
   ].filter(Boolean) as string[];
   if (equipmentSummaryItems.length > 0) {
     tankConfiguredContentItems.push({
       id: 'equipment-summary',
       fish: null,
-      name: '设备配置',
-      category: '设备',
+      name: isEn ? 'Equipment Setup' : '设备配置',
+      category: isEn ? 'Equipment' : '设备',
       quantity: equipmentSummaryItems.length,
       acquiredDate: activeAquarium.lastWaterChangeDate || new Date().toISOString(),
       source: 'equipment',
@@ -3325,7 +3683,7 @@ export default function AquariumManager() {
   const filteredTankContentItems = tankConfiguredContentItems;
   const formatTankContentDate = (dateValue: string) => {
     const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return '时间未知';
+    if (Number.isNaN(date.getTime())) return isEn ? 'Unknown time' : '时间未知';
     return format(date, 'yyyy/MM/dd');
   };
   const ownedArchivePreviewItems = tankConfiguredContentItems
@@ -3342,14 +3700,6 @@ export default function AquariumManager() {
     底砂: '暂无底砂配置。',
     造景: '暂无造景配置。',
   };
-  const deceasedArchiveItems = deceasedRecords
-    .map(record => {
-      const fish = fishData.find(item => item.id === record.fishId);
-      return fish ? { record, fish } : null;
-    })
-    .filter((item): item is { record: DeceasedRecord; fish: Fish } => Boolean(item))
-    .sort((a, b) => new Date(b.record.date).getTime() - new Date(a.record.date).getTime());
-
   // Water change calculation
   const shortestCycle = currentFishesDetails.length > 0 ? Math.min(...currentFishesDetails.map(f => f.waterChangeCycle)) : 7;
   const lastChangeDate = new Date(activeAquarium.lastWaterChangeDate || new Date());
@@ -3431,6 +3781,11 @@ export default function AquariumManager() {
   const activeDiagnosisQuestions = getDiagnosisQuestions(activeDiagnosisProblemType, diagnosisQuizAnswers);
   const activeDiagnosisQuestion = activeDiagnosisQuestions[diagnosisQuestionIndex];
   const currentDiagnosisAnswer = activeDiagnosisQuestion ? diagnosisQuizAnswers[activeDiagnosisQuestion.id] || '' : '';
+  const isDailyCheckQuiz = diagnosisMode === 'quiz' && activeDiagnosisProblemType === '巡检';
+  const dailyCheckRequiredQuestions = activeDiagnosisQuestions.filter(question => !question.optionalText);
+  const dailyCheckAnsweredCount = dailyCheckRequiredQuestions.filter(question => Boolean(diagnosisQuizAnswers[question.id])).length;
+  const isDailyCheckReady = dailyCheckRequiredQuestions.length > 0
+    && dailyCheckAnsweredCount === dailyCheckRequiredQuestions.length;
   const diagnosisProgressPercent = activeDiagnosisQuestions.length > 0
     ? ((diagnosisQuestionIndex + 1) / activeDiagnosisQuestions.length) * 100
     : 0;
@@ -3450,104 +3805,128 @@ export default function AquariumManager() {
     ...(!activeAquarium.targetTemperature ? ['当前水温'] : []),
   ];
   const knownRiskLevel = conflicts.length >= 3 ? 'high' : conflicts.length > 0 ? 'medium' : 'none_recorded';
-  const dailyAdviceTask: DailyAdviceTask | null = waterChangedToday
-    ? null
-    : isChangeOverdue || daysUntilChange <= 1
-      ? {
-        id: `water-change-${activeAquarium.id}`,
-        type: 'water_change',
-        title: '今天优先完成本次换水',
-        priority: isChangeOverdue ? 'high' : 'medium',
-        reason: isChangeOverdue
-          ? `换水计划已逾期 ${waterChangeOverdueDays} 天。`
-          : '换水计划今天需要处理。',
-        evidence: latestWaterChangeDate
-          ? '上次换水记录与设定的换水周期'
-          : '缺少上次换水记录，建议先补充或完成一次换水记录',
-        trigger: {
-          type: isChangeOverdue ? 'maintenance_overdue' : 'maintenance_due',
-          source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule',
-          value: {
-            overdueDays: waterChangeOverdueDays,
-            latestWaterChangeDate: latestWaterChangeDate || '',
-            shortestCycle,
-          },
-        },
-        steps: [
-          '准备经过处理且温度接近的水。',
-          '按当前稳定方案完成换水。',
-          '记录本次换水日期。',
-          '换水后观察鱼群是否出现明显异常。',
-        ],
-        observationNote: '换水后进行常规状态观察；只有用户记录了异常时，系统才会显示当前异常。',
-      }
-      : null;
-  const dailyAdviceLevel: AquariumStatusLevel = knownRiskLevel === 'high'
+  const todayDailyCheckRecord = findDailyPatrolRecord(diagnosisRecords, activeAquarium.id);
+  const unresolvedPatrol = todayDailyCheckRecord && ['high', 'medium', 'unknown'].includes(todayDailyCheckRecord.riskCode || 'unknown')
+    ? todayDailyCheckRecord
+    : null;
+  const blockingCompatibilityRisk = tankRiskItems.find(item => item.severity === 'danger');
+  const overdueCareReminder = activeCareReminders.find(reminder => getCareReminderStatus(reminder) === 'overdue');
+  const todayCareReminder = activeCareReminders.find(reminder => getCareReminderStatus(reminder) === 'today');
+
+  let dailyActionTask: DailyActionTask;
+  if (unresolvedPatrol) {
+    dailyActionTask = {
+      id: unresolvedPatrol.diagnosisId,
+      actionType: 'urgent_recovery',
+      title: '继续处理今天发现的异常',
+      priority: 'high',
+      reason: unresolvedPatrol.resultSummary || '今天的巡检仍有需要继续观察或处理的异常。',
+      evidence: '来自今天保存的每日鱼缸检查',
+      primaryLabel: '继续处理异常',
+      targetId: unresolvedPatrol.diagnosisId,
+      trigger: { type: 'user_reported_abnormality', source: 'user_observation' },
+    };
+  } else if (blockingCompatibilityRisk) {
+    dailyActionTask = {
+      id: `compatibility-${activeAquarium.id}`,
+      actionType: 'compatibility_review',
+      title: '先处理缸内混养风险',
+      priority: 'high',
+      reason: blockingCompatibilityRisk.title,
+      evidence: blockingCompatibilityRisk.detail,
+      primaryLabel: '查看混养风险',
+      trigger: { type: 'new_species_added', source: 'aquarium_stock' },
+    };
+  } else if (overdueCareReminder) {
+    dailyActionTask = {
+      id: overdueCareReminder.id,
+      actionType: 'care_plan',
+      title: overdueCareReminder.title,
+      priority: 'high',
+      reason: '这项养护计划已经逾期，今天先完成并记录结果。',
+      evidence: `计划日期：${format(new Date(overdueCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
+      primaryLabel: '查看操作指引',
+      targetId: overdueCareReminder.id,
+      trigger: { type: 'maintenance_overdue', source: 'maintenance_schedule' },
+    };
+  } else if (!waterChangedToday && isChangeOverdue) {
+    dailyActionTask = {
+      id: `water-change-${activeAquarium.id}`,
+      actionType: 'water_change',
+      title: '记录本次换水',
+      priority: 'high',
+      reason: `换水计划已逾期 ${waterChangeOverdueDays} 天。`,
+      evidence: latestWaterChangeDate ? `上次换水：${latestWaterChangeDate}` : '还没有可用的上次换水记录',
+      primaryLabel: '记录本次换水',
+      trigger: { type: 'maintenance_overdue', source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule' },
+    };
+  } else if (todayCareReminder) {
+    dailyActionTask = {
+      id: todayCareReminder.id,
+      actionType: 'care_plan',
+      title: todayCareReminder.title,
+      priority: 'medium',
+      reason: '这项养护计划今天到期。',
+      evidence: `计划日期：${format(new Date(todayCareReminder.scheduledFor), 'yyyy/MM/dd')}`,
+      primaryLabel: '查看操作指引',
+      targetId: todayCareReminder.id,
+      trigger: { type: 'maintenance_due', source: 'maintenance_schedule' },
+    };
+  } else if (!waterChangedToday && daysUntilChange <= 1) {
+    dailyActionTask = {
+      id: `water-change-${activeAquarium.id}`,
+      actionType: 'water_change',
+      title: '记录本次换水',
+      priority: 'medium',
+      reason: '换水计划今天需要处理。',
+      evidence: latestWaterChangeDate ? `上次换水：${latestWaterChangeDate}` : '还没有可用的上次换水记录',
+      primaryLabel: '记录本次换水',
+      trigger: { type: 'maintenance_due', source: latestWaterChangeDate ? 'water_change_record' : 'maintenance_schedule' },
+    };
+  } else if (!todayDailyCheckRecord) {
+    dailyActionTask = {
+      id: `daily-check-${activeAquarium.id}`,
+      actionType: 'daily_check',
+      title: '完成今天的鱼缸检查',
+      priority: 'normal',
+      reason: '今天还没有记录鱼群、水面和气味是否正常。',
+      evidence: '当前鱼缸今天没有巡检记录',
+      primaryLabel: '开始今日检查',
+      trigger: { type: 'scheduled_task', source: 'user_observation' },
+    };
+  } else {
+    dailyActionTask = {
+      id: `routine-${activeAquarium.id}`,
+      actionType: 'routine',
+      title: '今天没有必须处理',
+      priority: 'normal',
+      reason: '今日检查已完成，当前没有到期计划或阻断级风险。',
+      evidence: '基于今天的巡检、养护计划和混养规则记录',
+      trigger: { type: 'scheduled_task', source: 'aquarium_stock' },
+    };
+  }
+
+  const dailyActionLevel: AquariumStatusLevel = ['urgent_recovery', 'compatibility_review'].includes(dailyActionTask.actionType)
     ? 'urgent'
-    : dailyAdviceTask
+    : dailyActionTask.priority === 'high' || dailyActionTask.priority === 'medium'
       ? 'needs_attention'
-      : dailyAdviceMissingData.length >= 2 && !hasStockedAnimals
-        ? 'insufficient_data'
-        : 'normal';
-  const dailyAdviceViewModel: DailyAdviceViewModel = {
-    level: dailyAdviceLevel,
-    label: dailyAdviceLevel === 'urgent'
-      ? '需要立即处理'
-      : dailyAdviceLevel === 'needs_attention'
-        ? '需要处理'
-        : dailyAdviceLevel === 'insufficient_data'
-          ? '信息不足'
-          : '状态稳定',
-    sourceLabel: dailyAdviceTask?.trigger.source === 'water_change_record' ? '基于养护记录' : '基于鱼缸记录',
-    referenceTank: {
-      name: activeAquarium.name,
-      waterType: activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水',
-      temperature: activeAquarium.targetTemperature ? `${activeAquarium.targetTemperature}°C` : '未设置水温',
-    },
+      : 'normal';
+  const dailyActionViewModel: DailyActionViewModel = {
+    level: dailyActionLevel,
+    label: dailyActionLevel === 'urgent' ? '优先处理' : dailyActionLevel === 'needs_attention' ? '今天完成' : dailyActionTask.actionType === 'routine' ? '已完成' : '今日待办',
+    sourceLabel: dailyActionTask.actionType === 'care_plan' || dailyActionTask.actionType === 'water_change' ? '基于养护记录' : dailyActionTask.actionType === 'urgent_recovery' || dailyActionTask.actionType === 'daily_check' ? '基于巡检记录' : '基于鱼缸规则',
     status: {
-      pendingTaskCount: dailyAdviceTask ? 1 : 0,
+      pendingTaskCount: dailyActionTask.actionType === 'routine' ? 0 : 1,
       maintenanceStatus: waterChangedToday ? 'normal' : isChangeOverdue ? 'overdue' : daysUntilChange <= 1 ? 'due' : 'normal',
       knownRiskLevel,
       dataStatus: dailyAdviceMissingData.length === 0 ? 'sufficient' : dailyAdviceMissingData.length >= 2 ? 'insufficient' : 'partial',
       missingData: dailyAdviceMissingData,
     },
-    task: dailyAdviceTask,
-    statusItems: [
-      {
-        title: '维护状态',
-        value: waterChangedToday
-          ? '今日已记录换水'
-          : isChangeOverdue
-            ? `换水逾期 ${waterChangeOverdueDays} 天`
-            : daysUntilChange <= 1
-              ? '换水计划到期'
-              : `下次换水约 ${nextSuggestedWaterChangeDate}`,
-        tone: waterChangedToday || (!isChangeOverdue && daysUntilChange > 1) ? 'normal' : 'warning',
-        note: latestWaterChangeDate ? `上次记录：${latestWaterChangeDate}` : '暂无上次换水记录',
-      },
-      {
-        title: '已知异常',
-        value: conflicts.length > 0 ? `已记录 ${conflicts.length} 条混养提醒` : '暂无已记录的紧急异常',
-        tone: conflicts.length > 0 ? 'danger' : 'normal',
-        note: conflicts.length > 0 ? '来自混养规则结果' : '不等于没有风险，仅表示没有异常记录',
-      },
-      {
-        title: '数据状态',
-        value: dailyAdviceMissingData.length > 0 ? `缺少${dailyAdviceMissingData.join('、')}` : '关键数据已记录',
-        tone: dailyAdviceMissingData.length > 0 ? 'warning' : 'normal',
-        note: dailyAdviceMissingData.length > 0 ? '暂无近期数据时不判断水质正常' : '可继续按记录维护',
-      },
-    ],
+    task: dailyActionTask,
     reasoning: [
-      dailyAdviceTask
-        ? dailyAdviceTask.evidence
-        : '今天没有来自养护记录的必须处理任务。',
-      conflicts.length > 0
-        ? `当前已有 ${conflicts.length} 条混养提醒，需单独查看混养依据。`
-        : '暂无已记录的紧急异常；系统不会把未记录当作“无风险”。',
-      dailyAdviceMissingData.length > 0
-        ? `仍缺少：${dailyAdviceMissingData.join('、')}。`
-        : '关键维护数据已有记录。',
+      dailyActionTask.evidence,
+      conflicts.length > 0 ? `当前记录了 ${conflicts.length} 条混养提醒。` : '当前没有阻断级混养记录。',
+      dailyAdviceMissingData.length > 0 ? `尚缺：${dailyAdviceMissingData.join('、')}。` : '关键维护信息已有记录。',
     ],
   };
   const localTemperatureHint = weatherStatus === 'ready' && localWeather?.temperatureC !== undefined
@@ -3599,7 +3978,6 @@ export default function AquariumManager() {
     : todayTaskCount > 0
       ? `今天有 ${todayTaskCount} 项建议处理。`
       : '今天暂无紧急任务，可以正常观察。';
-  const todayDailyCheckRecord = findDailyPatrolRecord(diagnosisRecords, activeAquarium.id);
   const dailyCheckStatus = !todayDailyCheckRecord
     ? '今日未检查'
     : todayDailyCheckRecord.riskCode === 'high' || todayDailyCheckRecord.riskCode === 'medium' || todayDailyCheckRecord.riskCode === 'unknown'
@@ -3659,14 +4037,6 @@ export default function AquariumManager() {
       active: fedToday,
     },
     {
-      id: 'viewTankSpecies',
-      label: '缸内物种',
-      description: hasStockedAnimals ? `${stockedSpeciesCount} 种 · 共 ${totalStockedQuantity} 只/条` : '当前还没有生物',
-      icon: <BookOpen className="h-4 w-4" />,
-      onClick: openTankArchive,
-      tone: hasStockedAnimals ? 'info' as const : 'muted' as const,
-    },
-    {
       id: 'addSpecies',
       label: '添加生物',
       description: tankHealthStatus === '风险' ? '先处理风险后添加' : '从图鉴加入鱼缸',
@@ -3676,8 +4046,8 @@ export default function AquariumManager() {
     },
     {
       id: 'smartRecommend',
-      label: 'AI 建缸助手',
-      description: '说目标，补条件，看方案',
+      label: isEn ? 'AI Tank Copilot' : 'AI 建缸助手',
+      description: isEn ? 'Set goal, fill info, view plan' : '说目标，补条件，看方案',
       icon: <Sparkles className="h-4 w-4" />,
       onClick: () => openTankBuildCopilot(),
       tone: 'normal' as const,
@@ -3735,6 +4105,51 @@ export default function AquariumManager() {
     }] : []),
   ];
   const structuredDiagnosis = diagnosisResult;
+  const diagnosisVisualModel = structuredDiagnosis ? (() => {
+    const deterministicResult: DiagnosisOutput = {
+      riskLevel: structuredDiagnosis.riskLevel,
+      riskLabel: structuredDiagnosis.risk,
+      summary: structuredDiagnosis.verdict,
+      currentAction: structuredDiagnosis.currentAction,
+      actions: structuredDiagnosis.actions,
+      avoidActions: structuredDiagnosis.avoid,
+      possibleCauses: structuredDiagnosis.reasons,
+      observeItems: structuredDiagnosis.observe,
+      missingInfo: structuredDiagnosis.missing,
+      evidence: structuredDiagnosis.evidence,
+      keyMetrics: structuredDiagnosis.keyMetrics,
+      matchedRules: [],
+      matchedArticles: [],
+      nextCheckAt: structuredDiagnosis.nextCheckAt,
+    };
+    const model = buildDiagnosisVisualResult({
+      result: deterministicResult,
+      answers: diagnosisQuizAnswers,
+      aquariumName: diagnosisAquarium?.name || '当前鱼缸',
+      livestock: getDiagnosisLivestock(diagnosisAquarium).map(item => item.fish),
+      primaryActionLabel: diagnosisIssueType === '巡检' && dailyCheckArticles[0]
+        ? '查看补救步骤'
+        : diagnosisIssueType === '巡检'
+          ? todayDailyCheckRecord ? '更新今天记录' : '保存今天记录'
+          : '保存本次诊断',
+      primaryActionType: diagnosisIssueType === '巡检' && dailyCheckArticles[0] ? 'dialog' : 'mutation',
+    });
+    if (dailyCheckInterpretation) {
+      model.detailSections.push({
+        id: 'interpretation',
+        title: dailyCheckInterpretation.source === 'model' ? 'AI 补充解读' : '本地补充解读',
+        items: [dailyCheckInterpretation.summary, ...dailyCheckInterpretation.reasoning, dailyCheckInterpretation.disclaimer].filter(Boolean),
+      });
+    }
+    return model;
+  })() : null;
+  const handleVisualDiagnosisPrimary = () => {
+    handleSaveDiagnosisRecord();
+    if (diagnosisIssueType === '巡检' && dailyCheckArticles[0] && structuredDiagnosis) {
+      setSelectedDailyCheckArticle(dailyCheckArticles[0]);
+      trackSessionEvent('remedy_article_opened', { action: 'open', status: structuredDiagnosis.riskLevel, entry: 'daily-check-result' });
+    }
+  };
   const scrollToDesktopDiscovery = () => {
     void navigateToSection('aquarium-discovery', { updateHash: false });
   };
@@ -3754,16 +4169,16 @@ export default function AquariumManager() {
                   <Droplets className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-black">{activeAquarium?.name || '我的鱼缸'}</span>
-                  <span className="block text-[10px] font-bold text-white/62">{aquariums.length} 个鱼缸</span>
+                  <span className="block truncate text-[14px] font-black">{activeAquarium?.name || t('aquarium.switchTank')}</span>
+                  <span className="block text-[10px] font-bold text-white/62">{t('aquarium.tankCount', { count: aquariums.length })}</span>
                 </span>
               </span>
             </button>
             {isAquariumMenuOpen && (
               <div className="absolute left-0 top-[calc(100%+8px)] z-[70] w-[260px] overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-ink/5">
                 <div className="border-b border-border/60 px-3 py-2">
-                  <div className="text-[11px] font-black text-ink">切换鱼缸</div>
-                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">选择当前正在管理的鱼缸</div>
+                  <div className="text-[11px] font-black text-ink">{t('aquarium.switchTank')}</div>
+                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">{t('aquarium.selectTankHint')}</div>
                 </div>
                 <div className="max-h-[240px] overflow-y-auto p-1.5">
                   {aquariums.map(aq => {
@@ -3788,7 +4203,7 @@ export default function AquariumManager() {
                         <span className="min-w-0">
                           <span className="block truncate text-[12px] font-black text-ink">{aq.name}</span>
                           <span className="block text-[9px] font-bold text-ink/42">
-                            {aq.fishes.length > 0 ? `${aq.fishes.length} 种内容` : '暂无生物'}
+                            {aq.fishes.length > 0 ? t('aquarium.livestockCount', { count: aq.fishes.length }) : t('aquarium.noLivestock')}
                           </span>
                         </span>
                       </button>
@@ -3800,13 +4215,13 @@ export default function AquariumManager() {
           </div>
           <button
             type="button"
-            onClick={() => navigateToRoute('/collection?tab=wishlist')}
+            onClick={() => navigateToRoute('/collection/wishlist')}
             className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-rose-500 transition-colors hover:bg-white"
           >
             <span className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <Heart className={`h-4 w-4 ${wishlistFishes.length > 0 ? 'fill-current' : ''}`} />
-                <span className="text-[13px] font-black">水族册种草</span>
+                <span className="text-[13px] font-black">{t('nav.wishlist')}</span>
               </span>
               <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black">{wishlistFishes.length}</span>
             </span>
@@ -3818,7 +4233,7 @@ export default function AquariumManager() {
           >
             <span className="flex items-center gap-2">
               <Info className="h-4 w-4" />
-              <span className="text-[13px] font-black">数据保存提醒</span>
+              <span className="text-[13px] font-black">{t('aquarium.dataSavingTitle')}</span>
             </span>
           </button>
           <button
@@ -3826,8 +4241,8 @@ export default function AquariumManager() {
             onClick={scrollToDesktopDiscovery}
             className="rounded-[20px] bg-white/70 px-3 py-3 text-left text-ink/58 transition-colors hover:bg-white hover:text-accent"
           >
-            <span className="block text-[13px] font-black">今日种草</span>
-            <span className="mt-0.5 block text-[10px] font-bold text-ink/36">定位到推荐板块</span>
+            <span className="block text-[13px] font-black">{t('aquarium.todayDiscovery')}</span>
+            <span className="mt-0.5 block text-[10px] font-bold text-ink/36">{t('aquarium.scrollToDiscovery')}</span>
           </button>
         </div>
       </aside>
@@ -3842,7 +4257,7 @@ export default function AquariumManager() {
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700"><Droplets className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-black text-ink">{activeAquarium.name}</span>
-              <span className="block text-[10px] font-bold text-ink/42">{aquariums.length} 个鱼缸 · 点击切换</span>
+              <span className="block text-[10px] font-bold text-ink/42">{t('aquarium.switchTankHint', { count: aquariums.length })}</span>
             </span>
             <ChevronRight className={`h-4 w-4 text-ink/35 transition-transform ${isAquariumMenuOpen ? 'rotate-90' : ''}`} />
           </button>
@@ -3857,20 +4272,17 @@ export default function AquariumManager() {
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-[12px] font-black">{aquarium.name}</span>
-                    <span className="block text-[9px] font-bold opacity-55">{new Set(aquarium.fishes.map(fish => fish.fishId)).size} 种生物</span>
+                    <span className="block text-[9px] font-bold opacity-55">{t('aquarium.livestockCount', { count: new Set(aquarium.fishes.map(fish => fish.fishId)).size })}</span>
                   </span>
-                  {aquarium.id === activeId && <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black">当前</span>}
+                  {aquarium.id === activeId && <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black">{t('aquarium.active')}</span>}
                 </button>
               ))}
             </div>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" variant="outline" onClick={openTankArchive} className="h-10 rounded-full border-border bg-white px-4 text-[12px] font-black text-ink/68">
-            <BookOpen className="mr-1.5 h-4 w-4" />缸内物种 {stockedSpeciesCount}
-          </Button>
           <Button type="button" onClick={handleAddAquarium} className="h-10 rounded-full bg-emerald-700 px-4 text-[12px] font-black text-white hover:bg-emerald-800">
-            <Plus className="mr-1.5 h-4 w-4" />新建鱼缸
+            <Plus className="mr-1.5 h-4 w-4" />{t('aquarium.newTank')}
           </Button>
         </div>
       </section>
@@ -3883,7 +4295,7 @@ export default function AquariumManager() {
               onClick={() => setIsAquariumMenuOpen(prev => !prev)}
               className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-white/80 bg-white px-2.5 text-left shadow-sm ring-1 ring-ink/5 transition-colors hover:border-emerald-100"
               aria-expanded={isAquariumMenuOpen}
-              title="切换鱼缸"
+              title={isEn ? 'Switch Tank' : '切换鱼缸'}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
@@ -3891,10 +4303,10 @@ export default function AquariumManager() {
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[12px] font-black leading-tight text-ink">
-                    {activeAquarium?.name || '我的鱼缸'}
+                    {getLocalizedAquariumName(activeAquarium?.name, isEn)}
                   </span>
                   <span className="block text-[9px] font-bold leading-tight text-ink/42">
-                    {aquariums.length} 个鱼缸
+                    {isEn ? `${aquariums.length} ${aquariums.length === 1 ? 'Tank' : 'Tanks'}` : `${aquariums.length} 个鱼缸`}
                   </span>
                 </span>
               </span>
@@ -3904,12 +4316,13 @@ export default function AquariumManager() {
             {isAquariumMenuOpen && (
               <div className="absolute left-0 top-[calc(100%+8px)] z-[70] w-[min(300px,calc(100vw-112px))] overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-ink/5">
                 <div className="border-b border-border/60 px-3 py-2">
-                  <div className="text-[11px] font-black text-ink">切换鱼缸</div>
-                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">选择当前正在管理的鱼缸</div>
+                  <div className="text-[11px] font-black text-ink">{isEn ? 'Switch Tank' : '切换鱼缸'}</div>
+                  <div className="mt-0.5 text-[9px] font-bold text-ink/42">{isEn ? 'Select active aquarium to manage' : '选择当前正在管理的鱼缸'}</div>
                 </div>
                 <div className="max-h-[240px] overflow-y-auto p-1.5">
                   {aquariums.map(aq => {
                     const isActiveAquarium = activeId === aq.id;
+                    const localizedAqName = getLocalizedAquariumName(aq.name, isEn);
                     return (
                       <div
                         key={aq.id}
@@ -3931,27 +4344,29 @@ export default function AquariumManager() {
                             <Droplets className="h-4 w-4" />
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate text-[12px] font-black text-ink">{aq.name}</span>
+                            <span className="block truncate text-[12px] font-black text-ink">{localizedAqName}</span>
                             <span className="block text-[9px] font-bold text-ink/42">
-                              {aq.fishes.length > 0 ? `${aq.fishes.length} 种内容` : '暂无生物'}
+                              {aq.fishes.length > 0 
+                                ? (isEn ? `${aq.fishes.length} ${aq.fishes.length === 1 ? 'item' : 'items'}` : `${aq.fishes.length} 种内容`) 
+                                : (isEn ? 'No species' : '暂无生物')}
                             </span>
                           </span>
                         </button>
                         {isActiveAquarium && (
                           <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-emerald-700 shadow-sm">
-                            当前
+                            {isEn ? 'Active' : '当前'}
                           </span>
                         )}
                         <button
                           type="button"
-                          aria-label={`删除${aq.name}`}
+                          aria-label={isEn ? `Delete ${localizedAqName}` : `删除${aq.name}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             setIsAquariumMenuOpen(false);
                             requestDeleteAquarium(aq.id);
                           }}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink/28 transition-colors hover:bg-red-50 hover:text-red-600"
-                          title="删除鱼缸"
+                          title={isEn ? 'Delete Aquarium' : '删除鱼缸'}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -3968,7 +4383,7 @@ export default function AquariumManager() {
                   className="flex w-full items-center justify-center gap-1.5 border-t border-border/60 bg-bg/55 px-3 py-2.5 text-[12px] font-black text-emerald-700 transition-colors hover:bg-emerald-50"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  新建鱼缸
+                  {isEn ? 'New Aquarium' : '新建鱼缸'}
                 </button>
               </div>
             )}
@@ -3976,7 +4391,7 @@ export default function AquariumManager() {
           <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() => navigateToRoute('/collection?tab=wishlist')}
+              onClick={() => navigateToRoute('/collection/wishlist')}
               className="flex h-8 items-center gap-1 rounded-full border border-rose-100 bg-white px-2.5 text-[11px] font-black text-rose-500 shadow-sm"
               title="查看水族册种草"
             >
@@ -3994,29 +4409,65 @@ export default function AquariumManager() {
             >
               <Info className="h-4 w-4" />
             </button>
+            <button
+              type="button"
+              onClick={() => navigateToRoute('/settings')}
+              aria-label="语言设置"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/50 shadow-sm transition-colors hover:text-emerald-700"
+              title="语言设置"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
       </section>
 
+      <OnboardingTaskCard />
+
+      <AquariumWorkspace
+        observeTitle={t('aquarium.zoneObserve')}
+        observeSubtitle={t('aquarium.zoneObserveHint')}
+        manageTitle={t('aquarium.zoneManage')}
+        manageSubtitle={t('aquarium.zoneManageHint')}
+        learnTitle={t('aquarium.zoneLearn')}
+        learnSubtitle={t('aquarium.zoneLearnHint')}
+        status={(
       <div id="aquarium-overview" className="aquarium-status order-[2] scroll-mt-4 md:order-none">
         <StatusSummaryCard
-          advice={dailyAdviceViewModel}
-          showDetails={isDailyAdviceDetailsOpen}
-          aiAnswer={dailyAdviceAiAnswer}
-          aiError={dailyAdviceAiError}
-          aiSource={dailyAdviceAiSource}
-          isAiLoading={isDailyAdviceAiLoading}
-          onAskAI={handleAskDailyAdviceAI}
-          onAction={handleDailyAdviceAction}
+          action={dailyActionViewModel}
+          showWhy={isDailyActionWhyOpen}
+          carePlan={carePlanSummary}
+          showCarePlan={isCarePlanExpanded}
+          onPrimaryAction={handleDailyActionPrimary}
+          onToggleWhy={() => setIsDailyActionWhyOpen(open => !open)}
+          onToggleCarePlan={() => setIsCarePlanExpanded(open => !open)}
+          onOpenCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`);
+          }}
+          onCompleteCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) handleCompleteReminder(reminder);
+          }}
+          onRescheduleCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) setPendingReminderReschedule(reminder);
+          }}
+          onDeleteCarePlan={(id) => {
+            const reminder = activeCareReminders.find(item => item.id === id);
+            if (reminder) setPendingReminderDelete(reminder);
+          }}
+          onBrowseCare={() => navigateToRoute('/care')}
         />
       </div>
-
+        )}
+        discovery={(
       <section id="aquarium-discovery" className="aquarium-discovery order-[1] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[13px] font-black text-ink">今日种草</div>
-            <div className="text-[10px] font-bold text-ink/45">每天随机 10 个物种，完整模式点卡片进入。</div>
+            <div className="text-[13px] font-black text-ink">{isEn ? 'Daily Recommendations' : '今日种草'}</div>
+            <div className="text-[10px] font-bold text-ink/45">{isEn ? '10 random species daily. Tap card for full details.' : '每天随机 10 个物种，完整模式点卡片进入。'}</div>
           </div>
           <span className="shrink-0 rounded-full bg-white px-2.5 py-1.5 text-[10px] font-black text-ink/42">
             今日 {discoveryRemainingToday}/10
@@ -4036,10 +4487,12 @@ export default function AquariumManager() {
             className="grid min-h-[146px] w-full cursor-pointer grid-cols-[38%_1fr] gap-3 rounded-[16px] bg-[#FBFAF6] p-3 text-left shadow-sm transition-transform active:scale-[0.99] md:desktop-split-card md:items-start md:gap-4"
           >
             <div className={`flex h-full min-h-[116px] items-center justify-center rounded-[14px] p-2 ${getSpeciesImageSurfaceClass(discoveryFish)}`}>
-              <img
-                src={discoveryImageSrc}
+              <ResilientImage
+                src={getSpeciesVisualSources(discoveryFish).thumbnail}
+                srcSet={`${getSpeciesVisualSources(discoveryFish).thumbnail} 256w, ${getSpeciesVisualSources(discoveryFish).detail} 768w`}
+                sizes="(max-width: 430px) 38vw, 260px"
                 alt={discoveryFish.name}
-                className={`max-h-[104px] w-full object-contain ${getSpeciesImageClass(discoveryFish)}`}
+                className={`h-full w-full object-contain p-2 ${getSpeciesImageClass(discoveryFish)}`}
                 referrerPolicy="no-referrer"
                 loading="eager"
                 decoding="async"
@@ -4108,90 +4561,43 @@ export default function AquariumManager() {
           </div>
         )}
       </section>
-
+        )}
+        actions={(
       <section id="aquarium-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
         <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
         </div>
       </section>
-
-      <section id="care-plan" className="aquarium-care-plan order-[4] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
-        <SectionHeader
-          title="养护计划"
-          subtitle={dueCareReminders.length > 0 ? `${dueCareReminders.length} 项今天需要处理` : activeCareReminders.length > 0 ? '计划会按本地日期提醒你。' : '从养护指南设置观察或维护日期。'}
-        />
-        {activeCareReminders.length > 0 ? (
-          <div className="mt-3 grid gap-2">
-            {activeCareReminders.slice(0, 3).map(reminder => {
-              const status = getCareReminderStatus(reminder);
-              const statusLabel = status === 'overdue' ? '已逾期' : status === 'today' ? '今天' : '即将到期';
-              const statusClass = status === 'overdue' ? 'bg-red-50 text-red-700' : status === 'today' ? 'bg-amber-50 text-amber-800' : 'bg-sky-50 text-sky-700';
-              return (
-                <article key={reminder.id} className="rounded-[16px] border border-border/70 bg-white p-3 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-black text-ink">{reminder.title}</div>
-                      <div className="mt-1 text-[10px] font-bold text-ink/45">{format(new Date(reminder.scheduledFor), 'MM月dd日')} · {reminder.label || '复查养护状态'}</div>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${statusClass}`}>{statusLabel}</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Button type="button" onClick={() => navigateToRoute(`/care?topic=${encodeURIComponent(reminder.sourceTopicId)}`)} className="h-8 rounded-full bg-emerald-700 px-3 text-[10px] font-black text-white hover:bg-emerald-800">查看指引</Button>
-                    <Button type="button" variant="outline" onClick={() => handleCompleteReminder(reminder)} className="h-8 rounded-full border-emerald-100 px-3 text-[10px] font-black text-emerald-700">完成</Button>
-                    <button type="button" onClick={() => setPendingReminderReschedule(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-ink/48 hover:bg-bg">改期</button>
-                    <button type="button" onClick={() => setPendingReminderDelete(reminder)} className="h-8 rounded-full px-2 text-[10px] font-black text-red-500 hover:bg-red-50">删除</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+        )}
+        tank={(
+      <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[6] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
+        {shouldLoadThreeAquarium ? (
+          <Suspense
+            fallback={
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
+                正在加载鱼缸画面...
+              </div>
+            }
+          >
+            <ThreeAquarium
+              aquarium={activeAquarium}
+              activeSpecies={active3DSpecies}
+              onSpeciesSelect={handleAquariumSpeciesSelect}
+            />
+          </Suspense>
         ) : (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-[16px] border border-dashed border-border bg-white/70 px-3 py-3">
-            <div className="text-[11px] font-bold text-ink/48">还没有养护计划，可以从操作指南设置。</div>
-            <Button type="button" variant="outline" onClick={() => navigateToRoute('/care')} className="h-8 shrink-0 rounded-full px-3 text-[10px] font-black">浏览指南</Button>
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,#dff4f6,#a9d7cf)]">
+            {currentFishesDetails[0] ? (
+              <div className="h-40 w-56 opacity-85"><ResilientImage src={getSpeciesVisualSources(currentFishesDetails[0]).thumbnail} alt={currentFishesDetails[0].name} className="h-full w-full object-contain" /></div>
+            ) : <span className="text-xs font-black text-emerald-900/55">{isEn ? 'Aquarium view will load when idle' : '鱼缸画面将在空闲时加载'}</span>}
+            {requiresManualThreeLoad && (
+              <Button type="button" onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); }} className="absolute bottom-3 left-1/2 h-9 -translate-x-1/2 rounded-full bg-white px-4 text-[11px] font-black text-emerald-800 shadow-sm hover:bg-white">
+                加载 3D 鱼缸
+              </Button>
+            )}
           </div>
         )}
-      </section>
-
-      {recommendedActionCandidates.length > 0 && (
-      <section id="next-actions" className="aquarium-recommend order-[5] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
-        <SectionHeader title="下一步行动" subtitle={tankActionMessage || nextStepMessage} />
-        <div className="mt-3">
-          <div className="grid grid-cols-1 gap-2">
-            {recommendedActionCandidates.map(action => (
-              <ActionCenterCard
-                key={action.id}
-                title={action.title}
-                status={action.status}
-                description={action.description}
-                actionText={action.actionText}
-                icon={action.icon}
-                onAction={action.onAction}
-                tone={action.tone}
-                size="tool"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Visual Tank Placeholder */}
-      <div id="aquarium-tank" tabIndex={-1} className="aquarium-tank order-[6] relative h-72 w-full scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 shadow-sm group md:order-none md:h-[min(50dvh,470px)] md:min-h-[360px]">
-        <Suspense
-          fallback={
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-sky-100 to-emerald-100 text-xs font-bold text-accent">
-              正在加载鱼缸画面...
-            </div>
-          }
-        >
-          <ThreeAquarium
-            aquarium={activeAquarium}
-            activeSpecies={active3DSpecies}
-            onSpeciesSelect={handleAquariumSpeciesSelect}
-          />
-        </Suspense>
         
         {/* Environment Info Overlay */}
         <div className="absolute left-2 top-2 z-10 flex max-w-[calc(100%-112px)] flex-wrap gap-1.5 pointer-events-none">
@@ -4206,7 +4612,7 @@ export default function AquariumManager() {
         {/* Species Sidebar Overlay for 3D navigation */}
         {activeAquarium && activeAquarium.fishes.length > 0 && (
           <div className="absolute top-12 left-2 z-10 bg-white/80 backdrop-blur-md border border-white/50 rounded-sm shadow-sm p-1.5 max-h-[60%] overflow-y-auto w-24 sm:w-28 custom-scrollbar flex flex-col gap-1 hidden md:flex">
-            <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider px-1 text-center mb-1">切换镜头</span>
+            <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider px-1 text-center mb-1">{isEn ? 'Switch Camera' : '切换镜头'}</span>
             {Array.from(new Set(activeAquarium.fishes.map(f => f.fishId))).map(uId => {
               const fishInfo = fishData.find(f => f.id === uId);
               if (!fishInfo) return null;
@@ -4241,14 +4647,14 @@ export default function AquariumManager() {
           <Button
             aria-label="全屏预览"
             title="全屏预览"
-            onClick={() => setIsTankPreviewOpen(true)}
+            onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); setIsTankPreviewOpen(true); }}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
           >
             <Maximize2 className="h-4 w-4" />
           </Button>
           <Button
-            aria-label="鱼缸设置"
-            title="鱼缸设置"
+            aria-label={isEn ? 'Tank Settings' : '鱼缸设置'}
+            title={isEn ? 'Tank Settings' : '鱼缸设置'}
             onClick={() => openAquariumSettings()}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
           >
@@ -4270,25 +4676,27 @@ export default function AquariumManager() {
           </div>
         )}
       </div>
-
-      {/* Tank Species Archive */}
+        )}
+        archive={(
       <section id="aquarium-records" className="aquarium-archive order-[7] scroll-mt-4 overflow-hidden rounded-[18px] border border-white/80 bg-[#F8F7F2] shadow-sm">
         <button
           type="button"
           onClick={() => setIsTankArchiveExpanded(prev => !prev)}
+          aria-expanded={isTankArchiveExpanded}
+          aria-controls="aquarium-records-content"
           className="flex w-full items-center justify-between gap-3 bg-[#E9E8E2] px-3 py-3 text-left transition-colors hover:bg-[#E4E2DB]"
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[14px] font-black text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-              缸内物种与配置
+              {t('aquarium.tankContentsTitle')}
             </div>
             <div className="mt-0.5 text-[10px] font-bold text-ink/45">
               {hasStockedAnimals
-                ? `已养 ${totalStockedQuantity} 只 · 已配置 ${tankContentCount} 项`
+                ? t('aquarium.tankContentsCount', { species: stockedSpeciesCount, quantity: totalStockedQuantity })
                 : hasEnvironmentContent
-                  ? '暂无鱼虾螺，已配置环境内容'
-                  : '当前还没有配置鱼缸内容'}
+                  ? t('aquarium.tankContentsEnvironmentOnly')
+                  : t('aquarium.tankContentsEmpty')}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -4302,11 +4710,39 @@ export default function AquariumManager() {
               </div>
             )}
             <span className="rounded-full bg-white/80 px-2.5 py-1 text-[12px] font-black tabular-nums text-ink shadow-sm">
-              已配置 {activeConfiguredSettingCount} 项
+              {t('aquarium.tankContentsConfigured', { count: activeConfiguredSettingCount })}
             </span>
             <ChevronRight className={`h-4 w-4 text-ink/45 transition-transform ${isTankArchiveExpanded ? 'rotate-90' : ''}`} />
           </div>
         </button>
+
+        {!isTankArchiveExpanded && (
+          <div className="aquarium-archive-preview border-t border-white/70 bg-[#F4F2EC] p-3">
+            {ownedArchivePreviewItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {ownedArchivePreviewItems.map(item => (
+                  <div key={`preview-${item.id}`} className="grid min-w-0 grid-cols-[42px_minmax(0,1fr)] items-center gap-2 rounded-[14px] bg-white/80 p-2">
+                    <span className={`flex h-[42px] w-[42px] items-center justify-center rounded-[12px] ${getSpeciesImageSurfaceClass(item.fish)}`}>
+                      <img src={getSpeciesDisplayImage(item.fish)} alt="" className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] font-black text-ink">{item.name}</span>
+                      <span className="mt-0.5 block text-[9px] font-bold text-ink/45">{isEn ? `${item.quantity} in tank` : `缸内 ${item.quantity} 只/条`}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[150px] flex-col items-center justify-center rounded-[16px] border border-dashed border-ink/10 bg-white/65 px-4 text-center">
+                <BookOpen className="h-6 w-6 text-emerald-700" />
+                <p className="mt-2 max-w-[28ch] text-[10px] font-bold leading-5 text-ink/48">{t('aquarium.tankContentsEmptyHint')}</p>
+                <button type="button" onClick={() => setIsAddFishOpen(true)} className="mt-3 min-h-10 rounded-full bg-emerald-700 px-4 text-[11px] font-black text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+                  {t('aquarium.addLivestock')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {isTankArchiveExpanded && (
           <>
@@ -4314,7 +4750,7 @@ export default function AquariumManager() {
           <div className="hidden items-center justify-between gap-3">
             <button
               type="button"
-              aria-label="回到鱼缸画面"
+              aria-label={isEn ? 'Back to aquarium view' : '回到鱼缸画面'}
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white/85 text-ink/55 shadow-sm transition-colors hover:text-ink"
             >
@@ -4323,43 +4759,43 @@ export default function AquariumManager() {
             <div className="min-w-0 text-center">
               <div className="flex items-center justify-center gap-1.5 text-[20px] font-black leading-none text-ink">
               <BookOpen className="h-4 w-4 text-accent" />
-                缸内物种与配置
+                {t('aquarium.tankContentsTitle')}
               </div>
               <div className="mt-1 text-[10px] font-bold text-ink/45">{activeAquarium.name}</div>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-[11px] font-bold text-ink/45">配置项</div>
+              <div className="text-[11px] font-bold text-ink/45">{isEn ? 'Configurations' : '配置项'}</div>
               <div className="mt-1 rounded-full bg-white/80 px-2.5 py-1 text-[13px] font-black tabular-nums text-ink shadow-sm">
-                {activeConfiguredSettingCount} 项
+                {t('aquarium.tankContentsConfigured', { count: activeConfiguredSettingCount })}
               </div>
             </div>
           </div>
 
         </div>
 
-        <div className="relative bg-[#FBFAF6] px-2.5 pb-4 pt-3 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_10%,rgba(27,77,62,0.06),transparent_24%),linear-gradient(rgba(26,26,26,0.025)_1px,transparent_1px)] before:bg-[length:100%_100%,18px_18px]">
+        <div id="aquarium-records-content" className="relative bg-[#FBFAF6] px-2.5 pb-4 pt-3 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_10%,rgba(27,77,62,0.06),transparent_24%),linear-gradient(rgba(26,26,26,0.025)_1px,transparent_1px)] before:bg-[length:100%_100%,18px_18px]">
           {!hasAnyTankContent ? (
             <div className="relative rounded-[16px] bg-white/82 px-4 py-6 text-center shadow-sm">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-sky-600">
                 <Plus className="h-6 w-6" />
               </div>
-              <div className="text-sm font-black text-ink">当前还没有配置鱼缸内容</div>
+              <div className="text-sm font-black text-ink">{t('aquarium.tankContentsEmpty')}</div>
               <p className="mx-auto mt-1 max-w-[260px] text-[11px] font-medium leading-relaxed text-ink/50">
-                可以先完善配置、添加生物，或套用搭建方案快速起步。
+                {t('aquarium.tankContentsEmptyHint')}
               </p>
               <div className="mt-4 flex justify-center">
                 <Button type="button" variant="outline" onClick={() => setIsAddFishOpen(true)} className="h-9 rounded-full text-xs font-black">
-                  添加生物
+                  {t('aquarium.addLivestock')}
                 </Button>
               </div>
             </div>
           ) : filteredTankContentItems.length > 0 ? (
-            <div className="relative grid grid-cols-5 gap-x-1.5 gap-y-4 rounded-[16px] bg-[#FBFAF6] px-1 py-2">
+            <div className="relative grid grid-cols-1 gap-3 rounded-[16px] bg-[#FBFAF6] px-1 py-2 sm:grid-cols-2 lg:grid-cols-5">
               {!hasStockedAnimals && hasEnvironmentContent && tankArchiveCategory === '全部' && (
-                <div className="col-span-5 rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
-                  <div className="text-[12px] font-black text-sky-800">暂无鱼虾螺，已配置环境内容</div>
+                <div className="col-span-full rounded-[14px] border border-sky-100 bg-sky-50/70 px-3 py-2">
+                  <div className="text-[12px] font-black text-sky-800">{t('aquarium.tankContentsEnvironmentOnly')}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/55">
-                    你已配置水草、底砂、造景或设备，可以继续添加适合的生物。
+                    {t('aquarium.tankContentsEnvironmentHint')}
                   </p>
                 </div>
               )}
@@ -4367,6 +4803,19 @@ export default function AquariumManager() {
                 const ownedAqFish = item.fish ? activeAquarium.fishes.find(aqFish => aqFish.fishId === item.fish?.id) : undefined;
                 const canOpenDetail = Boolean(item.fish && ownedAqFish && item.source === 'stocked');
                 const canOpenSettings = ['equipment', 'substrate', 'plant'].includes(item.source);
+
+                if (canOpenDetail && item.fish && ownedAqFish) {
+                  return (
+                    <LivestockBatchCard
+                      key={item.id}
+                      fish={item.fish}
+                      record={ownedAqFish}
+                      reproductiveApplicable={!isAquaticPlantSpecies(item.fish) && !isHardscapeSpecies(item.fish)}
+                      onOpenDetail={() => openAquariumSpeciesDetail(item.fish!, ownedAqFish, `aquarium-archive-species-${item.fish!.id}`)}
+                      onSave={(nextRecord) => saveLivestockBatches(ownedAqFish.id, nextRecord)}
+                    />
+                  );
+                }
 
                 return (
                   <button
@@ -4425,9 +4874,9 @@ export default function AquariumManager() {
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent-light text-accent">
                 <BookOpen className="h-6 w-6" />
               </div>
-              <div className="text-sm font-black text-ink">还没有这一类内容</div>
+              <div className="text-sm font-black text-ink">{t('aquarium.noItemsInCategory')}</div>
               <p className="mx-auto mt-1 max-w-[220px] text-[11px] font-medium leading-relaxed text-ink/50">
-                {emptyMessageByCategory[tankArchiveCategory] || '暂无内容。'}
+                {emptyMessageByCategory[tankArchiveCategory] || t('aquarium.none')}
               </p>
             </div>
           )}
@@ -4435,61 +4884,93 @@ export default function AquariumManager() {
           </>
         )}
       </section>
-
-      {deceasedArchiveItems.length > 0 && (
-        <section className="order-[8] overflow-hidden rounded-[18px] border border-white/80 bg-white/70 p-3 shadow-sm">
+        )}
+        basics={(
+      <section className="aquarium-basics min-w-0 rounded-[20px] border border-white/80 bg-white/68 p-4 shadow-sm" aria-labelledby="aquarium-basics-title">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="aquarium-basics-title" className="text-[14px] font-black text-ink">{t('aquarium.tankBasics')}</h2>
+            <p className="mt-0.5 text-[10px] font-bold leading-4 text-ink/45">{t('aquarium.tankBasicsHint')}</p>
+          </div>
           <button
             type="button"
-            onClick={() => setIsDeceasedArchiveExpanded(prev => !prev)}
-            className="flex w-full items-center justify-between gap-3 text-left"
+            onClick={() => openAquariumSettings()}
+            className="shrink-0 rounded-full bg-emerald-50 px-3 py-2 text-[10px] font-black text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
           >
-            <div>
-              <div className="flex items-center gap-2 text-[14px] font-black text-ink">
-                <Skull className="h-4 w-4 text-ink/45" />
-                死亡图鉴
-              </div>
-              <div className="mt-0.5 text-[10px] font-bold text-ink/45">已记录 {deceasedArchiveItems.length} 次死亡，用于回看和复盘。</div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="rounded-full bg-bg px-2 py-1 text-[10px] font-black text-ink/45">{deceasedArchiveItems.length}</span>
-              <ChevronRight className={`h-4 w-4 text-ink/45 transition-transform ${isDeceasedArchiveExpanded ? 'rotate-90' : ''}`} />
-            </div>
+            {t('aquarium.editBasics')}
           </button>
-          {isDeceasedArchiveExpanded && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {deceasedArchiveItems.slice(0, 12).map(({ record, fish }) => (
-                <div key={record.id} className="min-w-0 rounded-[16px] bg-bg p-2">
-                  <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-[14px] opacity-70 grayscale ${getSpeciesImageSurfaceClass(fish)}`}>
-                    <img src={getSpeciesDisplayImage(fish)} alt={fish.name} className={`max-h-[86%] max-w-[86%] object-contain ${getSpeciesImageClass(fish)}`} referrerPolicy="no-referrer" />
-                    <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/75 px-1.5 py-0.5 text-[9px] font-black text-white">死亡</span>
-                  </div>
-                  <div className="mt-2 truncate text-[12px] font-black text-ink">{fish.name}</div>
-                  <div className="mt-0.5 truncate text-[9px] font-bold text-ink/42">{fish.category}</div>
-                  <div className="mt-1 text-[9px] font-bold text-ink/38">{format(new Date(record.date), 'yyyy/MM/dd')}</div>
-                  <button
-                    type="button"
-                    onClick={() => handleReAddDeceasedFish(fish)}
-                    className="mt-2 h-7 w-full rounded-full bg-white text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition-colors hover:bg-emerald-50 md:w-auto md:max-w-[200px]"
-                  >
-                    再次加入
-                  </button>
-                </div>
-              ))}
+        </div>
+        <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
+          {[
+            {
+              label: t('aquarium.tankBasicsWater'),
+              value: `${tankVolumeLiters || '—'}L · ${activeAquarium.waterType === 'Saltwater' ? t('aquarium.saltwater') : t('aquarium.freshwater')}`,
+              meta: t('aquarium.userEntered'),
+              icon: <Droplets className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsEquipment'),
+              value: activeAquarium.equipment?.filter && activeAquarium.equipment.filter !== '无'
+                ? t('aquarium.filterReady')
+                : t('aquarium.filterMissing'),
+              meta: activeAquarium.equipment?.heater
+                ? t('aquarium.heaterReady')
+                : activeAquarium.equipment?.oxygen
+                  ? t('aquarium.aerationReady')
+                  : t('aquarium.optionalEquipment'),
+              icon: <Settings className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsLivestock'),
+              value: hasStockedAnimals
+                ? t('aquarium.tankContentsCount', { species: stockedSpeciesCount, quantity: totalStockedQuantity })
+                : t('aquarium.noLivestock'),
+              meta: t('aquarium.userEntered'),
+              icon: <BookOpen className="h-4 w-4" />,
+            },
+            {
+              label: t('aquarium.tankBasicsObservation'),
+              value: todayDailyCheckRecord
+                ? dailyActionViewModel.level === 'urgent' || dailyActionViewModel.level === 'needs_attention'
+                  ? t('aquarium.needsAttention')
+                  : t('aquarium.checkedToday')
+                : t('aquarium.notCheckedToday'),
+              meta: todayDailyCheckRecord ? t('aquarium.checkedToday') : t('aquarium.unknown'),
+              icon: <Activity className="h-4 w-4" />,
+            },
+          ].map(item => (
+            <div key={item.label} className="grid min-w-0 grid-cols-[34px_minmax(0,1fr)] gap-2 rounded-[15px] bg-[#F8F7F2] p-2.5">
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[12px] bg-white text-emerald-700 shadow-sm">{item.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-ink/38">{item.label}</span>
+                <span className="mt-0.5 block break-words text-[11px] font-black leading-4 text-ink">{item.value}</span>
+                <span className="mt-0.5 block break-words text-[9px] font-bold leading-4 text-ink/42">{item.meta}</span>
+              </span>
             </div>
-          )}
-        </section>
-      )}
+          ))}
+        </div>
+      </section>
+        )}
+        advanced={(
+      <details className="aquarium-advanced-tests min-w-0 rounded-[18px] border border-dashed border-emerald-900/15 bg-white/45 px-4 py-3 text-ink">
+        <summary className="cursor-pointer select-none text-[11px] font-black text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+          {t('aquarium.advancedTests')}
+        </summary>
+        <p className="mt-2 max-w-[72ch] text-[10px] font-bold leading-5 text-ink/52">{t('aquarium.advancedTestsHint')}</p>
+      </details>
+        )}
+      />
 
       <Dialog open={Boolean(pendingReminderReschedule)} onOpenChange={(open) => !open && setPendingReminderReschedule(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-border bg-white p-5">
           <DialogHeader>
-            <DialogTitle className="text-lg font-black text-ink">养护计划改期</DialogTitle>
-            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">选择新的复查日期，原计划会直接更新。</DialogDescription>
+            <DialogTitle className="text-lg font-black text-ink">{t('aquarium.rescheduleReminderTitle')}</DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">{t('aquarium.rescheduleReminderDesc')}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-2">
             {[1, 3, 7].map(days => (
               <Button key={days} type="button" variant="outline" onClick={() => pendingReminderReschedule && handleRescheduleReminder(pendingReminderReschedule, days)} className="h-11 justify-start rounded-[16px] border-border bg-bg px-4 text-[12px] font-black text-ink/70">
-                {days === 1 ? '明天' : `${days} 天后`}
+                {days === 1 ? t('aquarium.tomorrow') : t('aquarium.daysLater', { count: days })}
               </Button>
             ))}
           </div>
@@ -4499,12 +4980,12 @@ export default function AquariumManager() {
       <Dialog open={Boolean(pendingReminderDelete)} onOpenChange={(open) => !open && setPendingReminderDelete(null)}>
         <DialogContent className="w-[90vw] max-w-[380px] rounded-[22px] border-red-100 bg-white p-5">
           <DialogHeader>
-            <DialogTitle className="text-lg font-black text-ink">删除养护计划</DialogTitle>
-            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">将删除“{pendingReminderDelete?.title}”的提醒，指南收藏和完成记录不受影响。</DialogDescription>
+            <DialogTitle className="text-lg font-black text-ink">{t('aquarium.deleteReminderTitle')}</DialogTitle>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">{t('aquarium.deleteReminderDesc', { title: pendingReminderDelete?.title })}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2">
-            <Button type="button" variant="outline" onClick={() => setPendingReminderDelete(null)} className="h-10 rounded-full">取消</Button>
-            <Button type="button" onClick={handleDeleteReminder} className="h-10 rounded-full bg-red-600 text-white hover:bg-red-700">删除</Button>
+            <Button type="button" variant="outline" onClick={() => setPendingReminderDelete(null)} className="h-10 rounded-full">{t('aquarium.cancel')}</Button>
+            <Button type="button" onClick={handleDeleteReminder} className="h-10 rounded-full bg-red-600 text-white hover:bg-red-700">{t('aquarium.deleteReminderBtn')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -4514,18 +4995,18 @@ export default function AquariumManager() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-black text-ink">
               <X className="h-5 w-5 rounded-full bg-red-50 p-1 text-red-600" />
-              删除鱼缸
+              {t('aquarium.deleteTank')}
             </DialogTitle>
             <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
               {aquariums.length <= 1
-                ? '至少需要保留一个鱼缸，当前鱼缸不能删除。'
-                : `你将删除「${pendingDeleteAquarium?.name || '当前鱼缸'}」。`}
+                ? t('aquarium.deleteTankDescSingle')
+                : t('aquarium.deleteTankDescConfirm', { name: pendingDeleteAquarium?.name || t('aquarium.switchTank') })}
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-[16px] border border-red-100 bg-red-50 px-4 py-3 text-[12px] font-bold leading-relaxed text-red-700">
             {aquariums.length <= 1
-              ? '请先新建另一个鱼缸，再删除当前鱼缸。'
-              : '删除后，该鱼缸的配置、生物、换水记录等数据不会恢复。'}
+              ? t('aquarium.deleteTankHintSingle')
+              : t('aquarium.deleteTankHintConfirm')}
           </div>
           <DialogFooter className="mt-2 grid grid-cols-2 gap-2 sm:space-x-0">
             <Button
@@ -4534,7 +5015,7 @@ export default function AquariumManager() {
               className="h-10 rounded-full text-sm font-bold"
               onClick={() => setPendingDeleteAquariumId(null)}
             >
-              取消
+              {t('aquarium.cancel')}
             </Button>
             <Button
               type="button"
@@ -4542,7 +5023,7 @@ export default function AquariumManager() {
               disabled={aquariums.length <= 1}
               onClick={confirmDeleteAquarium}
             >
-              确认删除
+              {t('aquarium.confirmDelete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -4551,9 +5032,9 @@ export default function AquariumManager() {
       <Dialog open={isLocalDataOpen} onOpenChange={setIsLocalDataOpen}>
         <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
-            <DialogTitle className="text-xl font-black text-ink">数据保存提醒</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{t('aquarium.dataSavingTitle')}</DialogTitle>
             <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
-              你的鱼缸记录会保存在当前浏览器里，方便下次继续查看。
+              {t('aquarium.dataSavingDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -4561,23 +5042,23 @@ export default function AquariumManager() {
               <div className="rounded-[18px] border border-emerald-100 bg-emerald-50/70 p-4">
                 <div className="flex items-center gap-2 text-[14px] font-black text-emerald-800">
                   <Info className="h-4 w-4" />
-                  当前浏览器会记住你的鱼缸
+                  {t('aquarium.dataSavingDetailTitle1')}
                 </div>
                 <p className="mt-2">
-                  你添加的生物、种草、换水记录和鱼缸设置，都会保存在现在这个浏览器和这个网址下。
+                  {t('aquarium.dataSavingDetailDesc1')}
                 </p>
               </div>
               <div className="rounded-[18px] border border-amber-100 bg-amber-50/70 p-4">
-                <div className="text-[14px] font-black text-amber-900">换浏览器后不会自动出现</div>
+                <div className="text-[14px] font-black text-amber-900">{t('aquarium.dataSavingDetailTitle2')}</div>
                 <p className="mt-2">
-                  如果换手机、换浏览器、清理浏览器数据，之前的鱼缸记录可能看不到。当前版本还没有同步到云端账号。
+                  {t('aquarium.dataSavingDetailDesc2')}
                 </p>
               </div>
             </div>
           </div>
           <DialogFooter className="shrink-0 border-t border-white bg-white px-4 py-3">
             <Button type="button" variant="outline" onClick={() => setIsLocalDataOpen(false)} className="h-10 w-full rounded-full text-sm font-bold md:w-fit md:max-w-[220px]">
-              关闭
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -4586,8 +5067,8 @@ export default function AquariumManager() {
       <Dialog open={isTankPreviewOpen} onOpenChange={setIsTankPreviewOpen}>
         <DialogContent className="h-[92dvh] w-[96vw] max-w-[1180px] overflow-hidden rounded-[24px] border-border p-0 md:h-[calc(100dvh-24px)] md:w-[calc(100vw-32px)] md:max-w-[1480px]">
           <DialogHeader className="sr-only">
-            <DialogTitle>鱼缸全屏预览</DialogTitle>
-            <DialogDescription>放大查看当前鱼缸 3D 画面。</DialogDescription>
+            <DialogTitle>{isEn ? 'Full Screen Preview' : '鱼缸全屏预览'}</DialogTitle>
+            <DialogDescription>{isEn ? 'Enlarge to view current 3D tank scene.' : '放大查看当前鱼缸 3D 画面。'}</DialogDescription>
           </DialogHeader>
           <div className="grid h-full w-full bg-[#DDEAE8] md:grid-cols-[minmax(0,1fr)_280px]">
             <div id="aquarium-tank-preview" tabIndex={-1} className="relative min-h-0">
@@ -4629,12 +5110,12 @@ export default function AquariumManager() {
                   </button>
                 );
               })}
-              {activeAquarium.fishes.length === 0 && <div className="px-3 py-2 text-[11px] font-bold text-ink/45">还没有缸内物种。</div>}
+              {activeAquarium.fishes.length === 0 && <div className="px-3 py-2 text-[11px] font-bold text-ink/45">{isEn ? 'No species in tank yet.' : '还没有缸内物种。'}</div>}
             </div>
             </div>
             <aside className="hidden min-h-0 border-l border-white/70 bg-white/78 p-4 backdrop-blur md:block">
               <div className="text-[18px] font-black text-ink">{activeAquarium.name}</div>
-              <div className="mt-1 text-[12px] font-bold text-ink/48">沉浸式鱼缸视图</div>
+              <div className="mt-1 text-[12px] font-bold text-ink/48">{isEn ? 'Immersive Tank View' : '沉浸式鱼缸视图'}</div>
               <div className="mt-4 grid gap-2">
                 {[
                   `${activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · ${activeAquarium.targetTemperature || '25'}°C`,
@@ -4646,7 +5127,7 @@ export default function AquariumManager() {
                   </div>
                 ))}
               </div>
-              <div className="mt-5 text-[13px] font-black text-ink">镜头切换</div>
+              <div className="mt-5 text-[13px] font-black text-ink">{isEn ? 'Camera Angle' : '镜头切换'}</div>
               <div className="app-scrollbar-hidden mt-2 grid max-h-[48dvh] gap-2 overflow-y-auto">
                 {Array.from(new Set(activeAquarium.fishes.map(f => f.fishId))).map(fishId => {
                   const fishInfo = fishData.find(fish => fish.id === fishId);
@@ -4688,19 +5169,19 @@ export default function AquariumManager() {
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Activity className="h-5 w-5 text-emerald-700" />
-              {diagnosisIssueType === '巡检' ? '每日鱼缸检查' : '一键诊断'}
+              {diagnosisIssueType === '巡检' ? t('aquarium.dailyCheck') : t('aquarium.smartDiagnosis')}
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               {diagnosisIssueType === '巡检'
-                ? '检查鱼的呼吸、水体、水面、异味、行为和最近操作。'
-                : '像做一个小测试一样，回答几个问题后生成处理建议。'}
+                ? t('aquarium.dailyCheckDesc')
+                : t('aquarium.smartDiagnosisDesc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="grid gap-4 p-4 pb-24">
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="mb-2 text-[12px] font-black text-ink/55">当前鱼缸摘要</div>
+                <div className="mb-2 text-[12px] font-black text-ink/55">{t('aquarium.activeTankSummary')}</div>
                 {aquariums.length > 1 && (
                   <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
                     {aquariums.map(aquarium => (
@@ -4725,14 +5206,14 @@ export default function AquariumManager() {
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: '鱼缸', value: diagnosisTankSummary.name },
-                    { label: '水体', value: diagnosisTankSummary.water },
-                    { label: '温度', value: diagnosisTankSummary.temperature },
-                    { label: '水量', value: diagnosisTankSummary.volume },
-                    { label: '尺寸', value: diagnosisTankSummary.dimensions },
-                    { label: '最近换水', value: diagnosisTankSummary.waterChange },
-                    { label: '最近喂食', value: diagnosisTankSummary.recentFeeding },
-                    { label: '最近添加', value: diagnosisTankSummary.recentAddedSpecies },
+                    { label: t('aquarium.labelTank'), value: diagnosisTankSummary.name },
+                    { label: t('aquarium.labelWater'), value: diagnosisTankSummary.water },
+                    { label: t('aquarium.labelTemp'), value: diagnosisTankSummary.temperature },
+                    { label: t('aquarium.labelVolume'), value: diagnosisTankSummary.volume },
+                    { label: t('aquarium.labelDimensions'), value: diagnosisTankSummary.dimensions },
+                    { label: t('aquarium.labelWaterChange'), value: diagnosisTankSummary.waterChange },
+                    { label: t('aquarium.labelFeeding'), value: diagnosisTankSummary.recentFeeding },
+                    { label: t('aquarium.labelAddedSpecies'), value: diagnosisTankSummary.recentAddedSpecies },
                   ].map(item => (
                     <div key={item.label} className="rounded-[12px] bg-bg px-2.5 py-2">
                       <div className="text-[10px] font-black text-ink/38">{item.label}</div>
@@ -4741,21 +5222,21 @@ export default function AquariumManager() {
                   ))}
                 </div>
                 <div className="mt-2 rounded-[12px] bg-emerald-50 px-2.5 py-2 text-[11px] font-bold leading-relaxed text-emerald-900">
-                  当前活体：{diagnosisTankSummary.stocked}
+                  {t('aquarium.stockedLivestock')}{diagnosisTankSummary.stocked}
                 </div>
                 <div className="mt-2 rounded-[12px] bg-bg px-2.5 py-2 text-[11px] font-bold leading-relaxed text-ink/60">
-                  设备：{diagnosisTankSummary.equipment}
+                  {t('aquarium.equipmentColon')}{diagnosisTankSummary.equipment}
                 </div>
                 <div className="mt-2 text-[10px] font-bold text-ink/42">
-                  可选补充：{diagnosisTankSummary.missing.join(' / ')}
+                  {t('aquarium.missingInfo')}{diagnosisTankSummary.missing.join(' / ')}
                 </div>
               </section>
 
               {careDiagnosisContext && (
                 <section className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-3 shadow-sm">
-                  <div className="text-[12px] font-black text-emerald-800">来自养护百科：{careDiagnosisContext.title}</div>
+                  <div className="text-[12px] font-black text-emerald-800">{t('aquarium.fromCareEncyclopedia')}{careDiagnosisContext.title}</div>
                   <p className="mt-1 text-[11px] font-medium leading-relaxed text-emerald-900/70">
-                    已帮你带入问题入口。具体处理建议会在完成问答并点击“一键诊断”后生成。
+                    {t('aquarium.fromCareEncyclopediaDesc')}
                   </p>
                 </section>
               )}
@@ -4764,7 +5245,7 @@ export default function AquariumManager() {
                 <>
                   {recentDiagnosisRecords.length > 0 && (
                     <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
-                      <div className="text-[13px] font-black text-ink">最近诊断记录</div>
+                      <div className="text-[13px] font-black text-ink">{t('aquarium.recentDiagnosis')}</div>
                       {recentDiagnosisRecords.map(record => (
                         <button
                           key={record.diagnosisId}
@@ -4787,8 +5268,8 @@ export default function AquariumManager() {
 
                   <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
                     <div>
-                      <div className="text-[13px] font-black text-ink">选择问题类型</div>
-                      <p className="mt-0.5 text-[11px] font-medium text-ink/50">点击后进入逐题测试，每次只回答一道题。</p>
+                      <div className="text-[13px] font-black text-ink">{isEn ? 'Select Problem Type' : '选择问题类型'}</div>
+                      <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Tap to start test, answer one question at a time.' : '点击后进入逐题测试，每次只回答一道题。'}</p>
                     </div>
                     <div className="grid gap-2">
                       {diagnosisIssueTypes.map(type => {
@@ -4814,8 +5295,83 @@ export default function AquariumManager() {
                 </>
               )}
 
-              {diagnosisMode === 'quiz' && activeDiagnosisQuestion && (
-                <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
+              {diagnosisMode === 'quiz' && isDailyCheckQuiz && (
+                <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[13px] font-black text-ink">{isEn ? 'Complete Daily Check' : '一次完成今天检查'}</div>
+                        <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Select based on observation, extra notes optional.' : '按实际观察选择，补充描述可以留空。'}</p>
+                      </div>
+                      <div className="shrink-0 text-[11px] font-black text-emerald-700">
+                        {dailyCheckAnsweredCount} / {dailyCheckRequiredQuestions.length}
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg">
+                      <div
+                        className="h-full rounded-full bg-emerald-600 transition-all"
+                        style={{ width: `${dailyCheckRequiredQuestions.length > 0 ? (dailyCheckAnsweredCount / dailyCheckRequiredQuestions.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {activeDiagnosisQuestions.map((question, index) => {
+                      const answer = diagnosisQuizAnswers[question.id] || '';
+                      return (
+                        <div
+                          key={question.id}
+                          ref={(node) => { diagnosisQuestionRefs.current[question.id] = node; }}
+                          tabIndex={-1}
+                          className="rounded-[16px] bg-bg p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-emerald-700">
+                              {index + 1}
+                            </span>
+                            <div className="text-[13px] font-black leading-relaxed text-ink">{question.question}</div>
+                          </div>
+                          {question.optionalText ? (
+                            <Input
+                              value={answer === '跳过' ? '' : answer}
+                              onChange={(event) => handleDiagnosisAnswer(question.id, event.target.value)}
+                              placeholder="可选：补充一句你看到的异常"
+                              className="mt-2 h-10 rounded-[12px] bg-white text-sm"
+                            />
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {question.options.map(option => {
+                                const selected = answer === option;
+                                return (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => handleDiagnosisChoice(question.id, option)}
+                                    className={`rounded-full border px-3 py-2 text-[11px] font-black transition-colors ${
+                                      selected
+                                        ? 'border-emerald-700 bg-emerald-700 text-white'
+                                        : 'border-border bg-white text-ink/58 hover:border-emerald-200'
+                                    }`}
+                                  >
+                                    {option}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {diagnosisMode === 'quiz' && !isDailyCheckQuiz && activeDiagnosisQuestion && (
+                <section
+                  ref={(node) => { diagnosisQuestionRefs.current[activeDiagnosisQuestion.id] = node; }}
+                  tabIndex={-1}
+                  className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                >
                   <div>
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-[13px] font-black text-ink">{diagnosisIssueType}</div>
@@ -4839,7 +5395,7 @@ export default function AquariumManager() {
                           <button
                             key={option}
                             type="button"
-                            onClick={() => handleDiagnosisAnswer(activeDiagnosisQuestion.id, option)}
+                            onClick={() => handleDiagnosisChoice(activeDiagnosisQuestion.id, option)}
                             className={`rounded-[14px] border px-3 py-3 text-left text-[13px] font-black transition-colors ${
                               selected ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-transparent bg-white text-ink/65 hover:border-emerald-100'
                             }`}
@@ -4859,9 +5415,9 @@ export default function AquariumManager() {
                     )}
                     {activeDiagnosisQuestion.id === 'optionalTestData' && (
                       <div className="mt-3 grid gap-1.5 rounded-[12px] bg-white px-3 py-2 text-[10px] font-medium leading-relaxed text-ink/55">
-                        <div><span className="font-black text-ink/65">pH：</span>水偏酸还是偏碱，很多鱼能适应一定范围，不需要每天测。</div>
-                        <div><span className="font-black text-ink/65">氨氮：</span>鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。</div>
-                        <div><span className="font-black text-ink/65">亚硝酸盐：</span>过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。</div>
+                        <div><span className="font-black text-ink/65">pH：</span>{isEn ? 'Water pH level. Most fish adapt well, daily tests unnecessary.' : '水偏酸还是偏碱，很多鱼能适应一定范围，不需要每天测。'}</div>
+                        <div><span className="font-black text-ink/65">氨氮：</span>{isEn ? 'Toxic waste from uneaten food and fish waste. Spikes in new tanks or overfeeding.' : '鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。'}</div>
+                        <div><span className="font-black text-ink/65">亚硝酸盐：</span>{isEn ? 'Harmful compound when filter cycle is unstable; can cause gasping or lethargy.' : '过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。'}</div>
                       </div>
                     )}
                   </div>
@@ -4870,73 +5426,12 @@ export default function AquariumManager() {
 
               {diagnosisMode === 'result' && structuredDiagnosis && (
               <>
-              <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[13px] font-black text-ink">结构化诊断结果</div>
-                    <p className="mt-0.5 text-[11px] font-medium text-ink/50">
-                      {`基于「${diagnosisIssueType}」测试回答生成。`}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${
-                    structuredDiagnosis.riskLevel === 'high' ? 'bg-red-50 text-red-700' :
-                    structuredDiagnosis.riskLevel === 'medium' ? 'bg-amber-50 text-amber-700' :
-                    structuredDiagnosis.riskLevel === 'unknown' ? 'bg-blue-50 text-blue-700' :
-                    'bg-emerald-50 text-emerald-700'
-                  }`}>
-                    {structuredDiagnosis.risk}
-                  </span>
-                </div>
-
-                <div className={`rounded-[16px] px-3 py-3 ${
-                  structuredDiagnosis.riskLevel === 'high' ? 'bg-red-50' :
-                  structuredDiagnosis.riskLevel === 'medium' ? 'bg-amber-50' :
-                  structuredDiagnosis.riskLevel === 'unknown' ? 'bg-blue-50' :
-                  'bg-emerald-50'
-                }`}>
-                  <div className="text-[10px] font-black text-ink/42">诊断结论</div>
-                  <div className="mt-1 text-[14px] font-black leading-relaxed text-ink">{structuredDiagnosis.verdict}</div>
-                  <div className="mt-2 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-black text-ink/70">
-                    当前建议：{structuredDiagnosis.currentAction}
-                  </div>
-                </div>
-
-                {structuredDiagnosis.keyMetrics.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {structuredDiagnosis.keyMetrics.map(metric => (
-                      <div key={`${metric.label}-${metric.value}`} className="rounded-[14px] bg-bg px-3 py-2">
-                        <div className="text-[10px] font-black text-ink/38">{metric.label}</div>
-                        <div className="mt-1 text-[13px] font-black leading-tight text-ink">{metric.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {[
-                  { title: '依据', items: structuredDiagnosis.evidence },
-                  { title: '立即处理', items: structuredDiagnosis.actions },
-                  { title: '暂时避免', items: structuredDiagnosis.avoid },
-                  { title: '可能原因', items: structuredDiagnosis.reasons },
-                  { title: '继续观察', items: structuredDiagnosis.observe },
-                ].map(section => (
-                  <div key={section.title} className="grid gap-1.5">
-                    <div className="text-[12px] font-black text-ink">{section.title}</div>
-                    <div className="grid gap-1">
-                      {section.items.slice(0, 3).map(item => (
-                        <div key={item} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium leading-relaxed text-ink/70">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {structuredDiagnosis.missing.length > 0 && (
-                  <div className="rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2">
-                    <div className="text-[12px] font-black text-blue-800">可选补充</div>
-                    <div className="mt-1 text-[11px] font-medium leading-relaxed text-blue-900/75">
-                      如果情况没有改善，可以补充：{structuredDiagnosis.missing.join('、')}。
-                    </div>
-                  </div>
+              <section className="grid gap-3">
+                {diagnosisVisualModel && (
+                  <VisualResultCard
+                    model={diagnosisVisualModel}
+                    onPrimaryAction={handleVisualDiagnosisPrimary}
+                  />
                 )}
                 {diagnosisSaveMessage && (
                   <div className="rounded-[12px] bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
@@ -4948,76 +5443,8 @@ export default function AquariumManager() {
                     AI 正在整理你的补充描述；本地风险和处理步骤已先生成。
                   </div>
                 )}
-                {diagnosisIssueType === '巡检' && dailyCheckInterpretation && (
-                  <div className="rounded-[16px] border border-violet-100 bg-violet-50/70 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[12px] font-black text-violet-800">补充解读</div>
-                      <span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-violet-700">
-                        {dailyCheckInterpretation.source === 'model' ? 'AI 模型回复' : '本地安全兜底'}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[12px] font-bold leading-relaxed text-ink/70">{dailyCheckInterpretation.summary}</p>
-                    {dailyCheckInterpretation.reasoning.length > 0 && (
-                      <div className="mt-2 grid gap-1">
-                        {dailyCheckInterpretation.reasoning.slice(0, 3).map(item => (
-                          <div key={item} className="rounded-[11px] bg-white/80 px-2.5 py-2 text-[10px] font-medium leading-relaxed text-ink/62">{item}</div>
-                        ))}
-                      </div>
-                    )}
-                    {dailyCheckInterpretation.clarifyingQuestions.length > 0 && (
-                      <p className="mt-2 text-[10px] font-bold leading-relaxed text-violet-900/65">可继续补充：{dailyCheckInterpretation.clarifyingQuestions.join('；')}</p>
-                    )}
-                    <p className="mt-2 text-[9px] font-bold text-ink/38">{dailyCheckInterpretation.disclaimer}</p>
-                  </div>
-                )}
-                {diagnosisIssueType === '巡检' && dailyCheckArticles[0] && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDailyCheckArticle(dailyCheckArticles[0]);
-                      trackSessionEvent('remedy_article_opened', { action: 'open', status: structuredDiagnosis.riskLevel, entry: 'daily-check-result' });
-                    }}
-                    className="flex w-full items-center justify-between gap-3 rounded-[16px] bg-emerald-700 px-4 py-3 text-left text-white shadow-sm"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[10px] font-black text-white/65">按百科步骤补救</span>
-                      <span className="mt-0.5 block truncate text-[13px] font-black">{dailyCheckArticles[0].title}</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 shrink-0" />
-                  </button>
-                )}
               </section>
 
-              <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
-                <div>
-                  <div className="text-[13px] font-black text-ink">继续补充信息</div>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">追问会沿着当前问题继续判断，不重新复述鱼缸基础信息。</p>
-                </div>
-                {diagnosisFollowUps.length > 0 && (
-                  <div className="grid gap-2">
-                    {diagnosisFollowUps.map((item, index) => (
-                      <div key={`${item.question}-${index}`} className="rounded-[14px] bg-bg p-3">
-                        <div className="text-[11px] font-black text-ink">问：{item.question}</div>
-                        <div className="mt-1 text-[11px] font-medium leading-relaxed text-ink/70">{item.answer}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <Input
-                    value={diagnosisQuestion}
-                    onChange={(event) => setDiagnosisQuestion(event.target.value)}
-                    placeholder="补充症状、水质数据或最近操作"
-                    className="h-10 rounded-[12px] bg-bg text-sm"
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') handleDiagnosisFollowUp();
-                    }}
-                  />
-                  <Button onClick={handleDiagnosisFollowUp} disabled={isDiagnosing || !diagnosisQuestion.trim()} className="h-10 rounded-[12px] bg-emerald-700 px-3 text-sm font-bold text-white hover:bg-emerald-800">
-                    追问
-                  </Button>
-                </div>
-              </section>
               </>
               )}
 
@@ -5032,7 +5459,7 @@ export default function AquariumManager() {
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2 text-[12px] font-black leading-relaxed text-ink">{selectedDiagnosisRecord.resultSummary}</div>
                   <div>
-                    <div className="text-[12px] font-black text-ink">建议动作</div>
+                    <div className="text-[12px] font-black text-ink">{isEn ? 'Suggested Actions' : '建议动作'}</div>
                     <div className="mt-1 grid gap-1">
                       {selectedDiagnosisRecord.suggestedActions.map(action => (
                         <div key={action} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium text-ink/70">{action}</div>
@@ -5041,7 +5468,7 @@ export default function AquariumManager() {
                   </div>
                   {selectedDiagnosisRecord.followUpNotes.length > 0 && (
                     <div>
-                      <div className="text-[12px] font-black text-ink">补充记录</div>
+                      <div className="text-[12px] font-black text-ink">{isEn ? 'Additional Notes' : '补充记录'}</div>
                       <div className="mt-1 grid gap-1">
                         {selectedDiagnosisRecord.followUpNotes.map(note => (
                           <div key={note} className="rounded-[12px] bg-bg px-3 py-2 text-[11px] font-medium text-ink/70">{note}</div>
@@ -5054,27 +5481,35 @@ export default function AquariumManager() {
             </div>
           </div>
           <DialogFooter className="shrink-0 border-t border-white bg-white/95 px-4 py-3 shadow-[0_-10px_24px_rgba(27,77,62,0.08)]">
-            {diagnosisMode === 'home' && <Button onClick={() => setIsDiagnosisOpen(false)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">关闭</Button>}
+            {diagnosisMode === 'home' && <Button onClick={() => setIsDiagnosisOpen(false)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">{t('common.close')}</Button>}
             {diagnosisMode === 'quiz' && (
               <>
-                <Button variant="outline" onClick={handleDiagnosisPrevious} className="h-10 rounded-full text-sm font-bold">上一题</Button>
-                <Button onClick={handleDiagnosisNext} disabled={!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
-                  {diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? '一键诊断' : '下一题'}
+                <Button
+                  variant="outline"
+                  onClick={isDailyCheckQuiz ? () => setDiagnosisMode('home') : handleDiagnosisPrevious}
+                  className="h-10 rounded-full text-sm font-bold"
+                >
+                  {isDailyCheckQuiz ? t('aquarium.back') : t('aquarium.prevQuestion')}
+                </Button>
+                <Button
+                  ref={diagnosisSubmitRef}
+                  onClick={isDailyCheckQuiz ? () => void handleRunDiagnosis() : handleDiagnosisNext}
+                  disabled={isDailyCheckQuiz ? !isDailyCheckReady : (!currentDiagnosisAnswer && !activeDiagnosisQuestion?.optionalText)}
+                  className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
+                >
+                  {isDailyCheckQuiz
+                    ? `${t('aquarium.generateCheckResults')}${isDailyCheckReady ? '' : t('aquarium.missingItemsCount', { count: dailyCheckRequiredQuestions.length - dailyCheckAnsweredCount })}`
+                    : diagnosisQuestionIndex >= activeDiagnosisQuestions.length - 1 ? t('aquarium.smartDiagnosis') : t('aquarium.nextQuestion')}
                 </Button>
               </>
             )}
             {diagnosisMode === 'result' && (
-              <>
-                <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">重新诊断</Button>
-                <Button onClick={handleSaveDiagnosisRecord} disabled={!structuredDiagnosis} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35">
-                  {diagnosisIssueType === '巡检' ? (todayDailyCheckRecord ? '更新今天记录' : '保存今天记录') : '保存本次诊断'}
-                </Button>
-              </>
+              <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 w-full rounded-full text-sm font-bold">{t('aquarium.diagnoseAgain')}</Button>
             )}
             {diagnosisMode === 'history' && (
               <>
-                <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">返回</Button>
-                <Button onClick={() => handleStartDiagnosisQuiz(selectedDiagnosisRecord?.problemType || '巡检')} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">按此问题再诊断</Button>
+                <Button variant="outline" onClick={() => setDiagnosisMode('home')} className="h-10 rounded-full text-sm font-bold">{t('aquarium.back')}</Button>
+                <Button onClick={() => handleStartDiagnosisQuiz(selectedDiagnosisRecord?.problemType || '巡检')} className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800">{t('aquarium.diagnoseAgainThisProblem')}</Button>
               </>
             )}
           </DialogFooter>
@@ -5085,16 +5520,16 @@ export default function AquariumManager() {
         <DialogContent className="flex max-h-[86dvh] w-[92vw] max-w-[560px] flex-col overflow-hidden rounded-[22px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
             <DialogTitle className="text-xl font-black text-ink">{selectedDailyCheckArticle?.title}</DialogTitle>
-            <DialogDescription className="text-xs leading-relaxed text-ink/55">来自养护百科的安全补救步骤；关闭后会回到本次检查结果。</DialogDescription>
+            <DialogDescription className="text-xs leading-relaxed text-ink/55">{t('aquarium.selectedDailyCheckArticleDesc')}</DialogDescription>
           </DialogHeader>
           {selectedDailyCheckArticle && (
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <section className="rounded-[18px] border border-emerald-100 bg-emerald-50/70 p-3">
-                <div className="text-[11px] font-black text-emerald-800">核心结论</div>
+                <div className="text-[11px] font-black text-emerald-800">{t('aquarium.keyConclusion')}</div>
                 <p className="mt-1 text-[13px] font-bold leading-relaxed text-ink">{selectedDailyCheckArticle.summary}</p>
               </section>
               <section className="mt-3 rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">按顺序处理</div>
+                <div className="text-[13px] font-black text-ink">{t('aquarium.stepByStepActions')}</div>
                 <div className="mt-2 grid gap-2">
                   {selectedDailyCheckArticle.firstSteps.map((step, index) => (
                     <div key={step} className="grid grid-cols-[26px_1fr] gap-2 rounded-[13px] bg-bg p-2.5 text-[11px] font-medium leading-relaxed text-ink/68">
@@ -5105,7 +5540,7 @@ export default function AquariumManager() {
                 </div>
               </section>
               <section className="mt-3 rounded-[18px] border border-red-100 bg-red-50 p-3">
-                <div className="text-[13px] font-black text-red-800">暂时不要做</div>
+                <div className="text-[13px] font-black text-red-800">{isEn ? 'Avoid For Now' : '暂时不要做'}</div>
                 <div className="mt-2 grid gap-1.5">
                   {selectedDailyCheckArticle.avoid.map(item => (
                     <div key={item} className="rounded-[12px] bg-white/80 px-3 py-2 text-[11px] font-medium leading-relaxed text-red-900/72">{item}</div>
@@ -5115,7 +5550,7 @@ export default function AquariumManager() {
             </div>
           )}
           <DialogFooter className="shrink-0 border-t border-border bg-white p-4">
-            <Button onClick={() => setSelectedDailyCheckArticle(null)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white">返回检查结果</Button>
+            <Button onClick={() => setSelectedDailyCheckArticle(null)} className="h-10 w-full rounded-full bg-emerald-700 text-sm font-black text-white">{isEn ? 'Back to Results' : '返回检查结果'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -5123,7 +5558,7 @@ export default function AquariumManager() {
       <Dialog open={isRiskReminderOpen} onOpenChange={setIsRiskReminderOpen}>
         <DialogContent className="flex max-h-[82dvh] w-[90vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white bg-white px-5 py-4 text-left">
-            <DialogTitle className="font-serif text-xl font-bold italic text-ink">全部提醒</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-bold italic text-ink">{isEn ? 'All Reminders' : '全部提醒'}</DialogTitle>
             <DialogDescription className="text-xs font-medium text-ink/55">
               不是所有提醒都需要立即处理，先完成最明确的一项。
             </DialogDescription>
@@ -5188,13 +5623,13 @@ export default function AquariumManager() {
       <Dialog open={isObservationOpen} onOpenChange={setIsObservationOpen}>
         <DialogContent className="w-[90vw] max-w-[420px] overflow-hidden rounded-[20px] border-border p-0">
           <DialogHeader className="border-b border-border bg-white px-5 py-4 text-left">
-            <DialogTitle className="font-serif text-xl font-bold italic text-ink">观察鱼的状态</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-bold italic text-ink">{isEn ? 'Observe Fish Condition' : '观察鱼的状态'}</DialogTitle>
             <DialogDescription className="text-xs font-medium text-ink/55">
-              2 分钟内你看到以下情况了吗？
+              {isEn ? 'Did you observe any of these in 2 minutes?' : '2 分钟内你看到以下情况了吗？'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 px-5 py-4 md:grid-cols-2">
-            {['鱼浮在水面', '呼吸明显急促', '趴缸或躲藏', '拒食或抢食异常', '没有明显异常'].map(item => {
+            {(isEn ? ['Fish floating at surface', 'Rapid breathing', 'Lying at bottom or hiding', 'Refusing food or abnormal feeding', 'No obvious abnormalities'] : ['鱼浮在水面', '呼吸明显急促', '趴缸或躲藏', '拒食或抢食异常', '没有明显异常']).map(item => {
               const checked = observationChecks.includes(item);
               return (
                 <button
@@ -5236,7 +5671,7 @@ export default function AquariumManager() {
                 setIsObservationOpen(false);
               }}
             >
-              没有异常，记录观察
+              {isEn ? 'No Abnormalities' : '没有异常，记录观察'}
             </Button>
             <Button
               className="h-10 rounded-full bg-red-600 text-sm font-bold text-white hover:bg-red-700"
@@ -5259,7 +5694,7 @@ export default function AquariumManager() {
                 handleOpenDiagnosisWithType('鱼只异常');
               }}
             >
-              发现异常，去诊断
+              {isEn ? 'Go to Diagnosis' : '发现异常，去诊断'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5278,7 +5713,7 @@ export default function AquariumManager() {
               }}>
         <AdaptiveTaskContent className="bg-bg md:max-w-[680px]">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">添加生物到鱼缸</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Add Species to Tank' : '添加生物到鱼缸'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               先选择生物，再填写数量和入缸日期。
             </DialogDescription>
@@ -5292,7 +5727,7 @@ export default function AquariumManager() {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <div className="min-w-0">
-                      <div className="text-lg font-black text-emerald-800">已添加到当前鱼缸</div>
+                      <div className="text-lg font-black text-emerald-800">{isEn ? 'Added to active tank' : '已添加到当前鱼缸'}</div>
                       <p className="mt-1 text-[12px] font-bold leading-relaxed text-emerald-900/70">
                         已加入 {addFishSuccess.aquariumName}，你可以回到鱼缸查看，也可以继续添加其他生物。
                       </p>
@@ -5322,12 +5757,64 @@ export default function AquariumManager() {
                     </Button>
                   </div>
                 </div>
+              ) : addFishCompatibilityReview ? (
+                <section className={`grid gap-3 rounded-[20px] border p-4 shadow-sm ${
+                  addFishCompatibilityReview.status === 'not_recommended'
+                    ? 'border-red-200 bg-red-50'
+                    : addFishCompatibilityReview.status === 'insufficient_data'
+                      ? 'border-sky-100 bg-sky-50'
+                      : 'border-amber-100 bg-amber-50'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-black text-ink/45">{isEn ? 'Step 2: Compatibility Review' : '第 2 步：混养复核'}</div>
+                      <div className="mt-1 text-lg font-black text-ink">
+                        {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
+                      </div>
+                      <p className="mt-1 text-[12px] font-bold leading-relaxed text-ink/62">
+                        {addFishCompatibilityReview.status === 'not_recommended'
+                          ? '当前组合命中阻断风险，不能直接加入这个鱼缸。'
+                          : addFishCompatibilityReview.status === 'insufficient_data'
+                            ? '鱼缸关键信息不足，请先补全后再判断。'
+                            : '存在需要注意的条件，确认理解风险后才能加入。'}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-ink/55 shadow-sm">
+                      {addFishCompatibilityReview.evaluations.length} 种生物
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {addFishCompatibilityReview.evaluations.map(evaluation => (
+                      <div key={evaluation.fish.id} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-[14px] bg-white/82 px-3 py-2 shadow-sm">
+                        <span className="min-w-0">
+                          <span className="block truncate text-[12px] font-black text-ink">{evaluation.fish.name} x {evaluation.quantity}</span>
+                          <span className="mt-0.5 block truncate text-[10px] font-bold text-ink/45">{evaluation.result.summary}</span>
+                        </span>
+                        <span className="shrink-0 text-[10px] font-black text-ink/60">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {addFishCompatibilityReview.keyRules.length > 0 && (
+                    <div className="rounded-[14px] bg-white/72 p-3">
+                      <div className="text-[11px] font-black text-ink">{isEn ? 'Key Reasons' : '最关键的依据'}</div>
+                      <div className="mt-2 grid gap-1.5">
+                        {addFishCompatibilityReview.keyRules.slice(0, 3).map(rule => (
+                          <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[11px] font-medium leading-relaxed text-ink/62">
+                            <span className="font-black text-ink/72">{rule.title}：</span>{rule.evidence}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
               ) : (
                 <>
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <div className="text-[13px] font-black text-ink">第 1 步：选择生物</div>
+                  <div className="text-[13px] font-black text-ink">{isEn ? 'Step 1: Select Species' : '第 1 步：选择生物'}</div>
                   <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-ink/50">{addFishIntro}</p>
                 </div>
               <div className="relative">
@@ -5347,7 +5834,7 @@ export default function AquariumManager() {
 
                 <div className="flex items-center justify-between">
                   <div className="text-[12px] font-black text-ink/55">{fishSearchTerm.trim() ? '搜索结果' : '智能推荐'}</div>
-                  {!fishSearchTerm.trim() && <span className="text-[10px] font-bold text-ink/35">基于当前鱼缸</span>}
+                  {!fishSearchTerm.trim() && <span className="text-[10px] font-bold text-ink/35">{isEn ? 'Based on active tank' : '基于当前鱼缸'}</span>}
                 </div>
 
                 <div className="grid max-h-[300px] gap-2 overflow-y-auto pr-1">
@@ -5389,7 +5876,7 @@ export default function AquariumManager() {
                     );
                   })}
                   {fishSearchTerm.trim() && searchResults.length === 0 && (
-                    <div className="rounded-[14px] bg-bg px-3 py-5 text-center text-xs font-medium text-ink/50">没有找到相关生物</div>
+                    <div className="rounded-[14px] bg-bg px-3 py-5 text-center text-xs font-medium text-ink/50">{isEn ? 'No species found' : '没有找到相关生物'}</div>
                   )}
                   {!fishSearchTerm.trim() && recommendedFishes.length === 0 && (
                     <div className="rounded-[14px] bg-amber-50 p-3 text-xs font-medium leading-relaxed text-amber-800">
@@ -5402,7 +5889,7 @@ export default function AquariumManager() {
               <section className={`grid gap-3 rounded-[18px] bg-white p-3 shadow-sm ${selectedAddSpeciesCount > 0 ? '' : 'opacity-80'}`}>
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-[13px] font-black text-ink">第 2 步：确认已选生物</div>
+                    <div className="text-[13px] font-black text-ink">{isEn ? 'Step 2: Confirm Selected Species' : '第 2 步：确认已选生物'}</div>
                     {selectedAddSpeciesCount > 0 && (
                       <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">
                         已选择 {selectedAddSpeciesCount} 种
@@ -5430,7 +5917,7 @@ export default function AquariumManager() {
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-ink">{item.fish.name}</div>
                               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">{item.fish.category}</div>
-                              <div className="mt-1 text-[10px] font-bold text-emerald-700">建议先少量加入，观察 3-7 天。</div>
+                              <div className="mt-1 text-[10px] font-bold text-emerald-700">{isEn ? 'Recommend adding a small amount first and observing for 3-7 days.' : '建议先少量加入，观察 3-7 天。'}</div>
                             </div>
                                     <button
                                       type="button"
@@ -5470,7 +5957,7 @@ export default function AquariumManager() {
                               </div>
                             </div>
                             <div className="rounded-[14px] bg-white p-2">
-                              <Label className="text-[10px] font-black text-ink/48">入缸日期</Label>
+                              <Label className="text-[10px] font-black text-ink/48">{isEn ? 'Entry Date' : '入缸日期'}</Label>
                               <button
                                 type="button"
                                 onClick={() => setAddFishDatePicker(prev => (
@@ -5549,50 +6036,6 @@ export default function AquariumManager() {
                       })}
                             </div>
 
-                            {addFishCompatibilityReview && (
-                              <div className={`rounded-[16px] border p-3 text-[12px] font-bold leading-relaxed ${
-                                addFishCompatibilityReview.status === 'not_recommended'
-                                  ? 'border-red-200 bg-red-50 text-red-800'
-                                  : addFishCompatibilityReview.status === 'insufficient_data'
-                                    ? 'border-sky-100 bg-sky-50 text-sky-900'
-                                    : 'border-amber-100 bg-amber-50 text-amber-900'
-                              }`}>
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <div className="text-[12px] font-black">添加前混养预检</div>
-                                    <p className="mt-1">
-                                      {addFishCompatibilityReview.status === 'not_recommended'
-                                        ? '命中阻断风险，默认不能加入当前鱼缸。'
-                                        : addFishCompatibilityReview.status === 'insufficient_data'
-                                          ? '关键信息不足，不能显示“适合”。可先补信息，或确认后谨慎少量加入。'
-                                          : '存在需要确认的混养风险，确认后才会写入鱼缸。'}
-                                    </p>
-                                  </div>
-                                  <span className="shrink-0 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black">
-                                    {getTankCompatibilityStatusLabel(addFishCompatibilityReview.status)}
-                                  </span>
-                                </div>
-                                <div className="mt-2 grid gap-1">
-                                  {addFishCompatibilityReview.evaluations.map(evaluation => (
-                                    <div key={evaluation.fish.id} className="flex items-center justify-between gap-2 rounded-full bg-white/70 px-2 py-1">
-                                      <span className="truncate">{evaluation.fish.name} x {evaluation.quantity}</span>
-                                      <span className="shrink-0 text-[10px] font-black">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                {addFishCompatibilityReview.keyRules.length > 0 && (
-                                  <div className="mt-2 grid gap-1 rounded-[12px] bg-white/55 p-2">
-                                    {addFishCompatibilityReview.keyRules.map(rule => (
-                                      <div key={`${rule.code}-${rule.title}-${rule.evidence}`} className="text-[10px] leading-relaxed">
-                                        <span className="font-black">{rule.title}</span>
-                                        <span className="ml-1 opacity-75">{rule.evidence}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-        
                             <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-bold leading-relaxed text-emerald-900">
                       {selectedAddSpeciesCount === 1 ? (
                         <>
@@ -5640,7 +6083,7 @@ export default function AquariumManager() {
                         {addFishCompatibilityReview ? '返回调整' : '取消'}
                       </Button>
                       <div className="grid gap-1">
-                        {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">从上方搜索或推荐中选择要加入鱼缸的生物</div>}
+                        {selectedAddSpeciesCount === 0 && <div className="text-center text-[10px] font-bold text-ink/38">{isEn ? 'Select species from search or recommendations above to add.' : '从上方搜索或推荐中选择要加入鱼缸的生物'}</div>}
                         <Button
                           className="h-10 rounded-full bg-emerald-700 text-sm font-bold text-white hover:bg-emerald-800 disabled:bg-ink/15 disabled:text-ink/35"
                           onClick={addFishCompatibilityReview
@@ -5671,19 +6114,19 @@ export default function AquariumManager() {
           <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-4 text-left">
             <DialogTitle className="flex items-center gap-2 text-xl font-black text-ink">
               <Sparkles className="h-5 w-5 text-accent" />
-              AI 建缸助手
+              {isEn ? 'AI Tank Copilot' : 'AI 建缸助手'}
             </DialogTitle>
             <DialogDescription className="text-xs font-medium leading-relaxed text-ink/55">
-              告诉我想养什么，我帮你补齐条件并整理安全方案。
+              {isEn ? 'Tell me what you want to keep, and I will complete conditions & organize a safe plan.' : '告诉我想养什么，我帮你补齐条件并整理安全方案。'}
             </DialogDescription>
           </DialogHeader>
           <div className="app-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { step: 1, title: '说目标', note: '输入方向' },
-                  { step: 2, title: '补信息', note: '最多 3 问' },
-                  { step: 3, title: '看方案', note: '执行下一步' },
+                  { step: 1, title: isEn ? 'Set Goal' : '说目标', note: isEn ? 'Input direction' : '输入方向' },
+                  { step: 2, title: isEn ? 'Fill Info' : '补信息', note: isEn ? 'Max 3 questions' : '最多 3 问' },
+                  { step: 3, title: isEn ? 'View Plan' : '看方案', note: isEn ? 'Next step' : '执行下一步' },
                 ].map(item => {
                   const isActive = tankCopilotStep === item.step;
                   const isDone = tankCopilotStep > item.step;
@@ -5708,13 +6151,13 @@ export default function AquariumManager() {
               <section className="rounded-[20px] border border-border bg-bg/70 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="text-sm font-black text-ink">你想建什么样的缸？</div>
+                    <div className="text-sm font-black text-ink">{isEn ? 'What tank do you want to build?' : '你想建什么样的缸？'}</div>
                     <div className="text-[11px] font-bold text-ink/45">
                       当前参考：{activeAquarium.name} · {activeAquarium.waterType === 'Saltwater' ? '海水' : '淡水'} · {activeAquarium.targetTemperature || 25}°C
                     </div>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-ink/45">
-                    最多 3 步到方案
+                    {isEn ? 'Max 3 steps to plan' : '最多 3 步到方案'}
                   </span>
                 </div>
                 <div>
@@ -5724,12 +6167,12 @@ export default function AquariumManager() {
                       setTankCopilotGoal(event.target.value);
                       setTankCopilotError('');
                     }}
-                    placeholder="例如：新手小型淡水缸、低维护草缸、虾缸"
+                    placeholder={isEn ? 'e.g. Small beginner freshwater tank, low-tech planted tank, shrimp tank' : '例如：新手小型淡水缸、低维护草缸、虾缸'}
                     className="h-11 rounded-full border-border bg-white px-4 text-sm font-bold"
                   />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {['新手小型淡水缸', '低维护草缸', '虾缸', '观赏鱼群游缸'].map(goal => (
+                  {(isEn ? ['Beginner freshwater tank', 'Low-maintenance planted tank', 'Shrimp tank', 'Display schooling tank'] : ['新手小型淡水缸', '低维护草缸', '虾缸', '观赏鱼群游缸']).map(goal => (
                     <button
                       key={goal}
                       type="button"
@@ -5756,7 +6199,7 @@ export default function AquariumManager() {
                 <>
                   <section className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-accent">目标理解</div>
+                      <div className="text-sm font-black text-accent">{isEn ? 'Goal Interpretation' : '目标理解'}</div>
                       <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
                         tankCopilotResult.source === 'model'
                           ? 'bg-emerald-100 text-emerald-700'
@@ -5773,7 +6216,7 @@ export default function AquariumManager() {
                     {tankCopilotNeedsAnswers && (
                       <div className="mt-3 rounded-[16px] bg-white/85 p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-xs font-black text-amber-700">第 2 步：补充关键信息</div>
+                          <div className="text-xs font-black text-amber-700">{isEn ? 'Step 2: Key Information' : '第 2 步：补充关键信息'}</div>
                           <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">
                             {tankCopilotMissingQuestions.length} 项
                           </span>
@@ -5808,7 +6251,7 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && Boolean(tankCopilotResult.planSummary?.trim()) && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
-                      <div className="text-sm font-black text-ink">推荐方向</div>
+                      <div className="text-sm font-black text-ink">{isEn ? 'Recommended Direction' : '推荐方向'}</div>
                       <div className="mt-3 rounded-[14px] bg-bg px-3 py-2 text-xs font-bold leading-relaxed text-ink/65">
                         {tankCopilotResult.planSummary}
                       </div>
@@ -5818,7 +6261,7 @@ export default function AquariumManager() {
                   {!tankCopilotNeedsAnswers && tankCopilotAllowedCandidates.length > 0 && (
                     <section className="rounded-[20px] border border-border bg-white p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-black text-ink">候选生物</div>
+                        <div className="text-sm font-black text-ink">{isEn ? 'Candidate Species' : '候选生物'}</div>
                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
                           本地规则允许
                         </span>
@@ -5845,7 +6288,7 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && tankCopilotResult.selectedCandidateIds.length > 0 && tankCopilotAllowedCandidates.length === 0 && (
                     <section className="rounded-[20px] border border-amber-100 bg-amber-50/70 p-4">
-                      <div className="text-sm font-black text-amber-800">暂无可执行候选</div>
+                      <div className="text-sm font-black text-amber-800">{isEn ? 'No executable candidates' : '暂无可执行候选'}</div>
                       <p className="mt-2 text-xs font-bold leading-relaxed text-amber-700">
                         模型或模板给出的候选没有通过本地规则候选池校验。请重新描述目标，或先完善鱼缸信息。
                       </p>
@@ -5860,9 +6303,9 @@ export default function AquariumManager() {
 
                   {!tankCopilotNeedsAnswers && (
                   <section className="rounded-[20px] border border-border bg-white p-4">
-                    <div className="text-sm font-black text-ink">下一步动作</div>
+                    <div className="text-sm font-black text-ink">{isEn ? 'Next Step' : '下一步动作'}</div>
                     <div className="mt-3 rounded-[16px] bg-emerald-50 px-3 py-3">
-                      <div className="text-xs font-black text-emerald-700">建议先做</div>
+                      <div className="text-xs font-black text-emerald-700">{isEn ? 'Recommended First' : '建议先做'}</div>
                       <div className="mt-1 text-sm font-black text-ink">{tankCopilotActionView.label}</div>
                       <div className="mt-1 text-[11px] font-bold leading-relaxed text-ink/55">
                         {tankCopilotActionView.description}
@@ -5870,7 +6313,7 @@ export default function AquariumManager() {
                     </div>
                     {tankCopilotResult.blockedExplanation.length > 0 && (
                       <details className="mt-3 rounded-[14px] bg-rose-50/70 px-3 py-2 text-xs font-bold text-rose-700">
-                        <summary className="cursor-pointer">查看不建议方向</summary>
+                        <summary className="cursor-pointer">{isEn ? 'View Not Recommended' : '查看不建议方向'}</summary>
                         <div className="mt-2 grid gap-1.5">
                           {tankCopilotResult.blockedExplanation.map(reason => (
                             <div key={reason}>• {reason}</div>
@@ -5883,7 +6326,7 @@ export default function AquariumManager() {
                 </>
               ) : (
                 <section className="rounded-[20px] border border-dashed border-border bg-white p-5 text-center">
-                  <div className="text-sm font-black text-ink">还没有生成方案</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'No setup plan generated yet' : '还没有生成方案'}</div>
                   <p className="mt-2 text-xs font-bold leading-relaxed text-ink/45">
                     输入一个目标后，系统会先用本地规则筛掉不安全方向，再让 AI 组织成可执行方案。
                   </p>
@@ -5952,7 +6395,7 @@ export default function AquariumManager() {
 
               <div className="grid gap-3 rounded-[20px] border border-emerald-100 bg-emerald-50/60 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <div className="text-sm font-black text-ink">当前鱼缸画像</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'Current Tank Profile' : '当前鱼缸画像'}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black">
                     <span className="rounded-full bg-white px-2.5 py-1 text-accent">负载 {smartRecommendation.profile.load.loadRate}%</span>
                     <span className="rounded-full bg-white px-2.5 py-1 text-ink/58">剩余 {smartRecommendation.profile.load.remainingCapacity} 负载</span>
@@ -5966,7 +6409,7 @@ export default function AquariumManager() {
               </div>
 
               <div className="grid gap-2 rounded-[18px] border border-border/70 bg-white p-3">
-                <Label className="text-[12px] font-black text-ink">偏好关键词</Label>
+                <Label className="text-[12px] font-black text-ink">{isEn ? 'Preference Keywords' : '偏好关键词'}</Label>
                 <div className="flex flex-wrap gap-2">
                   {['新手友好', '低维护', '群游', '清洁工具', '草缸友好'].map(keyword => (
                     <button
@@ -5997,7 +6440,7 @@ export default function AquariumManager() {
 
               {!smartCandidateScope && smartRecommendation.mode === 'empty_tank' && smartRecommendation.emptyPlans.length > 0 && (
                 <section className="grid gap-3">
-                  <div className="text-sm font-black text-ink">空缸组合方案</div>
+                  <div className="text-sm font-black text-ink">{isEn ? 'Empty Tank Preset Plans' : '空缸组合方案'}</div>
                   <div className="grid gap-3 md:grid-cols-3">
                     {smartRecommendation.emptyPlans.map(plan => (
                       <div key={plan.id} className="rounded-[20px] border border-border/70 bg-bg/45 p-4">
@@ -6114,7 +6557,7 @@ export default function AquariumManager() {
                       <div className="text-xl font-black text-accent">{smartSimulation.afterLoadRate}%</div>
                     </div>
                     <div className="rounded-[16px] bg-white px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">设备支持</div>
+                      <div className="text-[10px] font-black text-ink/38">{isEn ? 'Equipment Support' : '设备支持'}</div>
                       <div className="text-sm font-black text-ink">{smartSimulation.equipmentStillFits ? '仍满足' : '需确认'}</div>
                     </div>
                   </div>
@@ -6155,9 +6598,9 @@ export default function AquariumManager() {
       }}>
         <DialogContent className="flex h-[86dvh] max-h-[calc(100dvh-24px)] w-[92vw] max-w-[430px] md:max-w-[600px] flex-col overflow-hidden rounded-[20px] border-border bg-bg p-0">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">换水记录</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Water Change Log' : '换水记录'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
-              记录换水日期，系统会据此更新下次提醒。
+              {isEn ? 'Log water change date to update next reminder.' : '记录换水日期，系统会据此更新下次提醒。'}
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -6165,19 +6608,19 @@ export default function AquariumManager() {
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">最近换水</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Last Change' : '最近换水'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">{latestWaterChangeDate ? format(new Date(latestWaterChangeDate), 'yyyy/MM/dd') : '暂无记录'}</div>
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">下次建议</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Next Due' : '下次建议'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">{nextSuggestedWaterChangeDate}</div>
                   </div>
                   <div className="rounded-[14px] bg-bg px-3 py-2">
-                    <div className="text-[10px] font-black text-ink/42">周期</div>
+                    <div className="text-[10px] font-black text-ink/42">{isEn ? 'Cycle' : '周期'}</div>
                     <div className="mt-1 text-[12px] font-black text-ink">约 {shortestCycle} 天</div>
                   </div>
                   <div className={`rounded-[14px] px-3 py-2 ${waterChangedToday ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
-                    <div className="text-[10px] font-black opacity-60">今日状态</div>
+                    <div className="text-[10px] font-black opacity-60">{isEn ? 'Today Status' : '今日状态'}</div>
                     <div className="mt-1 text-[12px] font-black">{waterChangedToday ? '今天已记录' : '今天未记录'}</div>
                   </div>
                 </div>
@@ -6194,9 +6637,9 @@ export default function AquariumManager() {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <div className="text-center">
-                    <div className="text-sm font-black text-ink">{format(calendarMonth, 'yyyy年 MM月')}</div>
+                    <div className="text-sm font-black text-ink">{format(calendarMonth, isEn ? 'MMMM yyyy' : 'yyyy年 MM月')}</div>
                     <button type="button" onClick={() => setCalendarMonth(new Date())} className="mt-0.5 text-[10px] font-bold text-accent">
-                      回到今天
+                      {isEn ? 'Today' : '回到今天'}
                     </button>
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}>
@@ -6204,10 +6647,10 @@ export default function AquariumManager() {
                   </Button>
                 </div>
                 <div className="mb-3 rounded-[14px] bg-sky-50 px-3 py-2 text-[11px] font-medium leading-relaxed text-sky-800">
-                  点击日期先选中，再用底部按钮记录或取消该日换水。
+                  {isEn ? 'Tap date to select, then log or cancel water change below.' : '点击日期先选中，再用底部按钮记录或取消该日换水。'}
                 </div>
                 <div className="mb-2 grid grid-cols-7 gap-1 text-center">
-                  {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+                  {(isEn ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['日', '一', '二', '三', '四', '五', '六']).map(d => (
                     <div key={d} className="text-[10px] font-bold text-ink/45">{d}</div>
                   ))}
                 </div>
@@ -6261,7 +6704,7 @@ export default function AquariumManager() {
                 );
               }}
             >
-              {selectedWaterDateHasRecord ? '取消这天记录' : '记录这天换水'}
+              {selectedWaterDateHasRecord ? (isEn ? 'Remove Log' : '取消这天记录') : (isEn ? 'Log Water Change' : '记录这天换水')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -6292,8 +6735,8 @@ export default function AquariumManager() {
 
               <section className="grid gap-2 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <div className="text-[13px] font-black text-ink">先选择方案名称</div>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/45">选中方案后，下方会展示这个鱼缸的图片、尺寸、环境、造景和生物组合。</p>
+                  <div className="text-[13px] font-black text-ink">{isEn ? 'Select a setup plan name first' : '先选择方案名称'}</div>
+                  <p className="mt-0.5 text-[11px] font-medium text-ink/45">{isEn ? 'Once selected, details will display below.' : '选中方案后，下方会展示这个鱼缸的图片、尺寸、环境、造景和生物组合。'}</p>
                 </div>
                 <div className="grid gap-2">
                   {adaptedBuildPlans.map(plan => {
@@ -6323,7 +6766,7 @@ export default function AquariumManager() {
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${plan.statusTone}`}>
                             {plan.statusLabel}
                           </span>
-                          {isSelected && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white">已选</span>}
+                          {isSelected && <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white">{isEn ? 'Selected' : '已选'}</span>}
                         </div>
                       </button>
                     );
@@ -6375,7 +6818,7 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <h3 className="text-[14px] font-black text-ink">A. 当前鱼缸适配结果</h3>
+                  <h3 className="text-[14px] font-black text-ink">{isEn ? 'A. Active Tank Compatibility Results' : 'A. 当前鱼缸适配结果'}</h3>
                   <p className="mt-0.5 text-[11px] font-medium text-ink/50">{selectedAdaptedBuildPlan.summary}</p>
                 </div>
                 <div className={`grid gap-2 rounded-[16px] p-3 ${selectedAdaptedBuildPlan.status === 'unsuitable' ? 'bg-red-50' : selectedAdaptedBuildPlan.status === 'caution' ? 'bg-amber-50' : 'bg-emerald-50/70'}`}>
@@ -6395,8 +6838,8 @@ export default function AquariumManager() {
 
               <section className="grid gap-3 rounded-[18px] bg-white p-3 shadow-sm">
                 <div>
-                  <h3 className="text-[14px] font-black text-ink">B. 综合方案摘要</h3>
-                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">这里展示会真正应用到当前鱼缸的适配结果。</p>
+                  <h3 className="text-[14px] font-black text-ink">{isEn ? 'B. Setup Plan Summary' : 'B. 综合方案摘要'}</h3>
+                  <p className="mt-0.5 text-[11px] font-medium text-ink/50">{isEn ? 'Displays results that will apply to your active tank.' : '这里展示会真正应用到当前鱼缸的适配结果。'}</p>
                 </div>
                 <div className="grid gap-2 rounded-[16px] bg-emerald-50/70 p-3">
                   {[
@@ -6417,9 +6860,9 @@ export default function AquariumManager() {
                 <details>
                   <summary className="cursor-pointer list-none text-[14px] font-black text-ink">
                     C. 配置明细
-                    <span className="ml-2 text-[11px] font-bold text-ink/45">点击展开</span>
+                    <span className="ml-2 text-[11px] font-bold text-ink/45">{isEn ? 'Tap to expand' : '点击展开'}</span>
                   </summary>
-                  <p className="mt-1 text-[11px] font-medium text-ink/50">需要确认或微调时，再看具体底砂、水草、硬景、设备和维护提醒。</p>
+                  <p className="mt-1 text-[11px] font-medium text-ink/50">{isEn ? 'Expand to view detailed substrate, plants, hardscape, equipment, and tips.' : '需要确认或微调时，再看具体底砂、水草、硬景、设备和维护提醒。'}</p>
                   <div className="mt-3 grid gap-3">
                 {[
                   { title: '底砂', items: [selectedBuildTemplate.baseSubstrate] },
@@ -6443,14 +6886,14 @@ export default function AquariumManager() {
                   </div>
                 </details>
                 <div className="rounded-[14px] border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] font-medium leading-relaxed text-amber-900">
-                  <span className="font-black">主要提醒：</span>{selectedBuildTemplate.caution}
+                  <span className="font-black">{isEn ? 'Key Notes:' : '主要提醒：'}</span>{selectedBuildTemplate.caution}
                 </div>
               </section>
             </div>
           </div>
 
           <DialogFooter className="shrink-0 border-t border-white bg-white/90 px-4 py-3">
-            <Button variant="outline" onClick={() => setIsBuildPlanOpen(false)} className="h-10 rounded-full text-sm font-bold">暂不应用</Button>
+            <Button variant="outline" onClick={() => setIsBuildPlanOpen(false)} className="h-10 rounded-full text-sm font-bold">{isEn ? 'Cancel' : '暂不应用'}</Button>
             <Button
               onClick={() => handleApplyBuildTemplate(selectedAdaptedBuildPlan)}
               disabled={!selectedAdaptedBuildPlan.canApply}
@@ -6472,7 +6915,7 @@ export default function AquariumManager() {
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <AdaptiveTaskContent className="bg-bg">
           <DialogHeader className="shrink-0 border-b border-white px-4 pb-3 pt-4">
-            <DialogTitle className="text-xl font-black text-ink">鱼缸设置</DialogTitle>
+            <DialogTitle className="text-xl font-black text-ink">{isEn ? 'Tank Settings' : '鱼缸设置'}</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed text-ink/60">
               调整尺寸、水质、设备与环境配置
             </DialogDescription>
@@ -6530,11 +6973,11 @@ export default function AquariumManager() {
               </section>
 
               {false && activeSettingsPanel === 'size' && (
-              <ConfigSection title="尺寸" subtitle="用于估算容量和后续养护建议。">
+              <ConfigSection title={t('aquarium.dimensions')} subtitle={t('aquarium.dimensionsDesc')}>
                 <div className="grid grid-cols-3 gap-2">
                   {dimensionFields.map(item => (
                     <div key={item.key} className="grid gap-1.5">
-                      <Label className="text-[11px] font-bold text-ink/55">{item.label} (cm)</Label>
+                      <Label className="text-[11px] font-bold text-ink/55">{t(`aquarium.${item.key}`)} (cm)</Label>
                       <Input
                         type="number"
                         inputMode="decimal"
@@ -6555,26 +6998,26 @@ export default function AquariumManager() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-emerald-50/70 p-3 md:flex md:flex-wrap md:gap-2">
                   <div>
-                    <div className="text-[10px] font-black text-ink/45">理论容量</div>
+                    <div className="text-[10px] font-black text-ink/45">{t('aquarium.grossVolume')}</div>
                     <div className="mt-1 text-2xl font-black text-ink">{settingsGrossVolumeLiters > 0 ? `${settingsGrossVolumeLiters}L` : '--'}</div>
-                    <div className="text-[10px] font-medium text-ink/42">长 x 宽 x 高 / 1000</div>
+                    <div className="text-[10px] font-medium text-ink/42">{t('aquarium.grossVolumeFormula')}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-black text-ink/45">估算实际水量</div>
+                    <div className="text-[10px] font-black text-ink/45">{t('aquarium.estimatedWater')}</div>
                     <div className="mt-1 text-2xl font-black text-emerald-700">{settingsEstimatedWaterLiters > 0 ? `${settingsEstimatedWaterLiters}L` : '--'}</div>
-                    <div className="text-[10px] font-medium text-ink/42">按约 85% 水位估算</div>
+                    <div className="text-[10px] font-medium text-ink/42">{t('aquarium.estimatedWaterFormula')}</div>
                   </div>
                 </div>
               </ConfigSection>
               )}
 
               {false && activeSettingsPanel === 'parameters' && (
-              <ConfigSection title="参数" subtitle="新手优先保持稳定，不要频繁大幅调整。">
+              <ConfigSection title={t('aquarium.parameters')} subtitle={t('aquarium.parametersDesc')}>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { value: 'Freshwater', label: '淡水', description: '常见观赏鱼' },
-                    { value: 'Saltwater', label: '海水', description: '海水生物' },
-                    { value: 'Brackish', label: '汽水', description: '暂未支持', disabled: true },
+                    { value: 'Freshwater', label: t('aquarium.freshwater'), description: t('aquarium.freshwaterDescription') },
+                    { value: 'Saltwater', label: t('aquarium.saltwater'), description: t('aquarium.saltwaterDescription') },
+                    { value: 'Brackish', label: t('aquarium.brackish'), description: t('aquarium.brackishDescription'), disabled: true },
                   ].map(option => (
                     <SelectableOptionCard
                       key={option.value}
@@ -6587,7 +7030,7 @@ export default function AquariumManager() {
                   ))}
                 </div>
                 <div className="mt-3 grid gap-1.5">
-                  <Label className="text-[11px] font-bold text-ink/55">目标温度 (°C)</Label>
+                  <Label className="text-[11px] font-bold text-ink/55">{t('aquarium.targetTemp')}</Label>
                   <Input
                     type="number"
                     value={settingsForm.targetTemperature || ''}
@@ -6603,8 +7046,8 @@ export default function AquariumManager() {
                 <div className="border-b border-bg px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-[16px] font-black leading-tight text-ink">{activeSettingsPanel === 'substrate' ? '底砂 / 造景' : '水草'}</h3>
-                      <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/48">{activeSettingsPanel === 'substrate' ? '底砂单选，硬景可多选' : '选择当前鱼缸里的水草种类'}</p>
+                      <h3 className="text-[16px] font-black leading-tight text-ink">{activeSettingsPanel === 'substrate' ? t('aquarium.substrateHardscape') : t('aquarium.plants')}</h3>
+                      <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/48">{activeSettingsPanel === 'substrate' ? t('aquarium.substrateDesc') : t('aquarium.plantsDesc')}</p>
                     </div>
                     <button
                       type="button"
@@ -6617,17 +7060,17 @@ export default function AquariumManager() {
                       }}
                       className="shrink-0 rounded-full bg-bg px-3 py-1 text-[11px] font-bold text-accent hover:bg-accent-light"
                     >
-                      {(activeSettingsPanel === 'substrate' ? isScapeListExpanded : isPlantListExpanded) ? '收起' : '查看全部'}
+                      {(activeSettingsPanel === 'substrate' ? isScapeListExpanded : isPlantListExpanded) ? t('aquarium.collapse') : t('aquarium.viewAll')}
                     </button>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div className="rounded-[14px] bg-bg px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">已选底砂 / 硬景</div>
-                      <div className="mt-1 truncate text-[12px] font-black text-ink">{currentSubstrate}{selectedHardscapeNames.length > 0 ? ` / ${selectedHardscapeNames.join('、')}` : ''}</div>
+                      <div className="text-[10px] font-black text-ink/38">{t('aquarium.selectedSubstrate')}</div>
+                      <div className="mt-1 truncate text-[12px] font-black text-ink">{currentSubstrate}{selectedHardscapeNames.length > 0 ? ` / ${selectedHardscapeNames.join(i18n.language === 'zh-CN' ? '、' : ', ')}` : ''}</div>
                     </div>
                     <div className="rounded-[14px] bg-bg px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">已选水草</div>
-                      <div className="mt-1 truncate text-[12px] font-black text-ink">{selectedPlantNames.length > 0 ? selectedPlantNames.join('、') : '暂无'}</div>
+                      <div className="text-[10px] font-black text-ink/38">{t('aquarium.selectedPlants')}</div>
+                      <div className="mt-1 truncate text-[12px] font-black text-ink">{selectedPlantNames.length > 0 ? selectedPlantNames.join(i18n.language === 'zh-CN' ? '、' : ', ') : t('aquarium.none')}</div>
                     </div>
                   </div>
                 </div>
@@ -6637,10 +7080,10 @@ export default function AquariumManager() {
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <div className="text-[13px] font-black text-ink">底砂 / 硬景</div>
-                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">常用选项预览</div>
+                        <div className="text-[13px] font-black text-ink">{t('aquarium.substrateHardscape')}</div>
+                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">{t('aquarium.commonOptions')}</div>
                       </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-ink/42">已选 {selectedScapeCount}</span>
+                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-ink/42">{t('aquarium.selectedWithCount', { count: selectedScapeCount })}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {visibleScapeOptions.map(option => {
@@ -6652,11 +7095,11 @@ export default function AquariumManager() {
                           <SelectableOptionCard
                             key={option.id}
                             label={option.label}
-                            description={option.type === 'substrate' ? `底砂 · ${option.hint}` : `硬景 · ${option.hint}`}
+                            description={option.type === 'substrate' ? (isEn ? `Substrate · ${option.hintEn || option.hint}` : `底砂 · ${option.hint}`) : (isEn ? `Hardscape · ${option.hintEn || option.hint}` : `硬景 · ${option.hint}`)}
                             selected={isSelected}
                             mode={option.type === 'substrate' ? 'single' : 'multi'}
                             visual={option.type === 'hardscape' ? (
-                              <img src={option.image} alt={option.label} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />
+                              <ResilientImage src={getSpeciesDisplayImage(option)} alt={isEn ? (option.labelEn || option.label) : option.label} className="h-full w-full object-contain p-0.5" />
                             ) : (
                               <span className={`h-6 w-6 rounded-full border ${
                                 option.value === '无' ? 'border-dashed border-ink/30 bg-white' :
@@ -6685,7 +7128,7 @@ export default function AquariumManager() {
                     </div>
                     {!isScapeListExpanded && hiddenScapeCount > 0 && (
                       <button type="button" onClick={() => setIsScapeListExpanded(true)} className="justify-self-start text-[11px] font-bold text-accent">
-                        查看全部 {hiddenScapeCount + visibleScapeOptions.length} 个底砂/硬景
+                        {isEn ? `View all ${hiddenScapeCount + visibleScapeOptions.length} substrates / hardscapes` : `查看全部 ${hiddenScapeCount + visibleScapeOptions.length} 个底砂/硬景`}
                       </button>
                     )}
                   </div>
@@ -6695,10 +7138,10 @@ export default function AquariumManager() {
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <div className="text-[13px] font-black text-ink">水草种类</div>
-                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">已选和常用水草</div>
+                        <div className="text-[13px] font-black text-ink">{isEn ? 'Plant Species' : '水草种类'}</div>
+                        <div className="mt-0.5 text-[10px] font-medium text-ink/42">{isEn ? 'Selected & Common Plants' : '已选和常用水草'}</div>
                       </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-ink/42">已选 {selectedPlantCount}</span>
+                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-ink/42">{isEn ? `Selected ${selectedPlantCount}` : `已选 ${selectedPlantCount}`}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {visiblePlantOptions.map(plant => {
@@ -6711,7 +7154,7 @@ export default function AquariumManager() {
                             description={plant.scientificName}
                             selected={isSelected}
                             mode="multi"
-                            visual={<img src={plant.image} alt={plant.name} className="h-full w-full object-contain p-0.5" referrerPolicy="no-referrer" />}
+                            visual={<ResilientImage src={getSpeciesDisplayImage(plant)} alt={plant.name} className="h-full w-full object-contain p-0.5" />}
                             onClick={() => {
                               setSettingsForm({
                                 ...settingsForm,
@@ -6726,7 +7169,7 @@ export default function AquariumManager() {
                     </div>
                     {!isPlantListExpanded && hiddenPlantCount > 0 && (
                       <button type="button" onClick={() => setIsPlantListExpanded(true)} className="justify-self-start text-[11px] font-bold text-accent">
-                        查看全部 {hiddenPlantCount + visiblePlantOptions.length} 种水草
+                        {isEn ? `View all ${hiddenPlantCount + visiblePlantOptions.length} plant species` : `查看全部 ${hiddenPlantCount + visiblePlantOptions.length} 种水草`}
                       </button>
                     )}
                   </div>
@@ -6738,14 +7181,14 @@ export default function AquariumManager() {
               {false && (activeSettingsPanel === 'lighting' || activeSettingsPanel === 'equipment') && (
               <section className="overflow-hidden rounded-[22px] border border-white bg-white shadow-sm">
                 <div className="border-b border-bg px-4 py-3">
-                  <h3 className="text-[16px] font-black leading-tight text-ink">{activeSettingsPanel === 'lighting' ? '灯光' : '设备'}</h3>
-                  <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/48">{activeSettingsPanel === 'lighting' ? '选择草缸和观赏所需灯光' : '过滤单选，加热与氧气按需开启'}</p>
+                  <h3 className="text-[16px] font-black leading-tight text-ink">{activeSettingsPanel === 'lighting' ? t('aquarium.lighting') : t('aquarium.equipment')}</h3>
+                  <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/48">{activeSettingsPanel === 'lighting' ? t('aquarium.lightingDesc') : t('aquarium.equipmentDesc')}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {[
-                      settingsForm.equipment?.filter || '瀑布过滤',
-                      settingsForm.equipment?.light || '普通灯',
-                      settingsForm.equipment?.heater ? '加热棒' : '未开加热',
-                      settingsForm.equipment?.oxygen ? '氧气/气泡石' : '未开氧气',
+                      t(`aquarium.${filterOptionKeys[settingsForm.equipment?.filter || '瀑布过滤'] || 'filterCascade'}`),
+                      t(`aquarium.${lightOptionKeys[settingsForm.equipment?.light || '普通灯'] || 'lightNormal'}`),
+                      settingsForm.equipment?.heater ? t('aquarium.heater') : t('aquarium.noHeater'),
+                      settingsForm.equipment?.oxygen ? t('aquarium.oxygen') : t('aquarium.noOxygen'),
                     ].map(item => (
                       <span key={item} className="rounded-full bg-bg px-2.5 py-1 text-[10px] font-bold text-ink/52">
                         {item}
@@ -6758,14 +7201,14 @@ export default function AquariumManager() {
                   {activeSettingsPanel === 'equipment' && (
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div>
-                      <div className="text-[13px] font-black text-ink">过滤系统</div>
-                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">决定水体稳定和维护压力</div>
+                      <div className="text-[13px] font-black text-ink">{t('aquarium.filterSystem')}</div>
+                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">{t('aquarium.filterSystemDesc')}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {['无', '瀑布过滤', '桶滤', '上滤', '海绵过滤'].map(option => (
                         <SelectableOptionCard
                           key={option}
-                          label={option}
+                          label={t(`aquarium.${filterOptionKeys[option] || 'none'}`)}
                           selected={(settingsForm.equipment?.filter || '瀑布过滤') === option}
                           onClick={() => setSettingsForm({
                             ...settingsForm,
@@ -6779,14 +7222,14 @@ export default function AquariumManager() {
                   {activeSettingsPanel === 'lighting' && (
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div>
-                      <div className="text-[13px] font-black text-ink">灯光</div>
-                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">草缸和观赏效果的基础配置</div>
+                      <div className="text-[13px] font-black text-ink">{t('aquarium.lighting')}</div>
+                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">{t('aquarium.lightingSystemDesc')}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {['无', '普通灯', '水草灯', '海水灯'].map(option => (
                         <SelectableOptionCard
                           key={option}
-                          label={option}
+                          label={t(`aquarium.${lightOptionKeys[option] || 'none'}`)}
                           selected={(settingsForm.equipment?.light || '普通灯') === option}
                           onClick={() => setSettingsForm({
                             ...settingsForm,
@@ -6800,13 +7243,13 @@ export default function AquariumManager() {
                   {activeSettingsPanel === 'equipment' && (
                   <div className="grid gap-2 rounded-[18px] bg-bg/55 p-3">
                     <div>
-                      <div className="text-[13px] font-black text-ink">辅助设备</div>
-                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">按生物和季节需求开启</div>
+                      <div className="text-[13px] font-black text-ink">{t('aquarium.helperDevices')}</div>
+                      <div className="mt-0.5 text-[10px] font-medium text-ink/42">{t('aquarium.helperDevicesDesc')}</div>
                     </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { key: 'heater', label: '加热棒', description: '低温或热带鱼建议开启' },
-                      { key: 'oxygen', label: '氧气 / 气泡石', description: '高密度或虾缸可开启' },
+                      { key: 'heater', label: t('aquarium.heater'), description: t('aquarium.heaterDesc') },
+                      { key: 'oxygen', label: t('aquarium.oxygen'), description: t('aquarium.oxygenDesc') },
                     ].map(device => {
                       const isSelected = Boolean((settingsForm.equipment as any)?.[device.key]);
                       return (
@@ -6853,8 +7296,9 @@ export default function AquariumManager() {
             <Button onClick={() => {
               const updated = aquariums.map(a => a.id === activeId ? { ...a, ...settingsForm } : a);
               saveAquariums(updated);
+              markAquariumConfigured();
               setIsSettingsOpen(false);
-            }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">保存设置</Button>
+            }} className="h-10 min-w-[128px] rounded-full bg-accent text-sm font-bold text-white hover:bg-accent/90">{isEn ? 'Save Settings' : '保存设置'}</Button>
           </DialogFooter>
         </AdaptiveTaskContent>
       </Dialog>
@@ -6887,23 +7331,23 @@ export default function AquariumManager() {
             </div>
             <div className="bg-blue-50 p-3 rounded-sm border border-blue-100">
               <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-blue-600" /> 囤水小贴士</h4>
-              <p className="text-xs text-blue-900/80 leading-relaxed font-medium">换水前建议提前 24 小时囤水，除氯并调到接近缸内水温后再换。冬季或温差较大时，优先保证新水温度稳定。</p>
+              <p className="text-xs text-blue-900/80 leading-relaxed font-medium">{isEn ? 'Age water 24 hours prior to remove chlorine and match tank temp.' : '换水前建议提前 24 小时囤水，除氯并调到接近缸内水温后再换。冬季或温差较大时，优先保证新水温度稳定。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 新鱼入缸换水方法</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">新鱼入缸前需严格过温过水。建议入缸后前三天不喂食、不换水，保持水质稳定，减少应激。第四天可进行第一次少量换水（约10%）。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Acclimate new fish carefully. Do not feed or change water for 3 days.' : '新鱼入缸前需严格过温过水。建议入缸后前三天不喂食、不换水，保持水质稳定，减少应激。第四天可进行第一次少量换水（约10%）。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 周期换水方法</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">根据过滤系统能力和生物密度，建议每周或每两周换水 20%-30%。切忌一次性全缸换水，以免破坏硝化系统。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Change 20%-30% water weekly or bi-weekly. Never change 100% at once.' : '根据过滤系统能力和生物密度，建议每周或每两周换水 20%-30%。切忌一次性全缸换水，以免破坏硝化系统。'}</p>
             </div>
             <div className="bg-bg p-3 rounded-sm border border-border">
               <h4 className="text-sm font-bold text-ink mb-1 flex items-center gap-1"><Info className="w-4 h-4 text-accent" /> 温度控制</h4>
-              <p className="text-xs text-ink/80 leading-relaxed font-medium">换水时，新水温度应与缸内水温尽量保持一致，温差不应超过 1-2°C。冬季换水建议提前加热新水。</p>
+              <p className="text-xs text-ink/80 leading-relaxed font-medium">{isEn ? 'Match new water temp within 1-2°C. Pre-heat in winter.' : '换水时，新水温度应与缸内水温尽量保持一致，温差不应超过 1-2°C。冬季换水建议提前加热新水。'}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsGuideOpen(false)}>我知道了</Button>
+            <Button className="rounded-sm bg-ink text-white font-bold w-full" onClick={() => setIsGuideOpen(false)}>{isEn ? 'Got it' : '我知道了'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -6955,13 +7399,13 @@ export default function AquariumManager() {
                 </div>
 
                 <div className="mt-3 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-3">
-                  <div className="text-xs font-black text-emerald-800">适合谁</div>
+                  <div className="text-xs font-black text-emerald-800">{isEn ? 'Who is it for' : '适合谁'}</div>
                   <p className="mt-1 text-xs font-bold leading-relaxed text-emerald-900/75">
                     {getDiscoveryFitText(selectedDiscoveryFish).suitable}
                   </p>
                 </div>
                 <div className="mt-2 rounded-[18px] border border-amber-100 bg-amber-50 px-4 py-3">
-                  <div className="text-xs font-black text-amber-800">加入前注意</div>
+                  <div className="text-xs font-black text-amber-800">{isEn ? 'Pre-Stocking Notes' : '加入前注意'}</div>
                   <p className="mt-1 text-xs font-bold leading-relaxed text-amber-900/75">
                     {getDiscoveryFitText(selectedDiscoveryFish).unsuitable}
                   </p>
@@ -7033,15 +7477,22 @@ export default function AquariumManager() {
         }}
         onRecordDeath={selectedAqFish ? (fish, input) => {
           if (!selectedAqFish) return;
-          const { records } = recordSpeciesMemorial({ fishId: fish.id, ...input });
-          setDeceasedRecords(records);
-          captureProductEvent('memorial_recorded');
-          if ((selectedAqFish.aqFish.quantity || 1) > 1) {
-            handleUpdateQuantity(selectedAqFish.aqFish.id, (selectedAqFish.aqFish.quantity || 1) - 1);
-          } else {
-            handleRemoveFish(selectedAqFish.aqFish.id);
-            closeAquariumSpeciesDetail();
-          }
+          const batchId = input.batchId || selectedAqFish.aqFish.batches?.[0]?.id || `${selectedAqFish.aqFish.id}_legacy`;
+          return getCurrentAquaGuideRepository().then(repository => repository.saveLivestockMemorial({
+            speciesCatalogKey: fish.id,
+            date: input.date,
+            reason: input.reason,
+            batchId,
+            aquariumId: activeAquarium.id,
+            aquariumFishId: selectedAqFish.aqFish.id,
+            operationId: input.operationId,
+          })).then(result => {
+            setAquariums(current => current.map(item => item.id === result.aquarium.id ? result.aquarium : item));
+            setDeceasedRecords(current => [...current, result.record]);
+            if (!result.aquarium.fishes.some(item => item.id === selectedAqFish.aqFish.id)) {
+              closeAquariumSpeciesDetail();
+            }
+          });
         } : undefined}
       />
 
@@ -7077,60 +7528,60 @@ export default function AquariumManager() {
 
                 <div className="grid grid-cols-2 gap-3 text-[12px] border-t border-b border-border py-4 bg-bg/50 px-3 rounded-sm">
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">水温</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Temp' : '水温'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.waterTemperature}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">酸碱度 (pH)</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'pH Level' : '酸碱度 (pH)'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.phLevel}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">换水周期</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Change Cycle' : '换水周期'}</span>
                     <span className="text-ink font-bold">约 {selectedAqFish.fish.waterChangeCycle} 天</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">鱼缸尺寸</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Tank Size' : '鱼缸尺寸'}</span>
                     <span className="text-ink font-bold">{selectedAqFish.fish.tankSize}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">性情</span>
-                    <span className="text-ink font-bold">{selectedAqFish.fish.temperament === 'Peaceful' ? '温和' : selectedAqFish.fish.temperament === 'Aggressive' ? '凶猛' : '领地意识强'}</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Temperament' : '性情'}</span>
+                    <span className="text-ink font-bold">{selectedAqFish.fish.temperament === 'Peaceful' ? (isEn ? 'Peaceful' : '温和') : selectedAqFish.fish.temperament === 'Aggressive' ? (isEn ? 'Aggressive' : '凶猛') : (isEn ? 'Territorial' : '领地意识强')}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">体型</span>
-                    <span className="text-ink font-bold">{selectedAqFish.fish.size === 'Small' ? '小型' : selectedAqFish.fish.size === 'Medium' ? '中型' : '大型'}</span>
+                    <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Size' : '体型'}</span>
+                    <span className="text-ink font-bold">{selectedAqFish.fish.size === 'Small' ? (isEn ? 'Small' : '小型') : selectedAqFish.fish.size === 'Medium' ? (isEn ? 'Medium' : '中型') : (isEn ? 'Large' : '大型')}</span>
                   </div>
                 </div>
 
                 <div className="border border-amber-200 bg-amber-50/60 p-4 rounded-sm">
                   <div className="flex items-center justify-between gap-3 mb-3">
-                    <h4 className="text-[11px] uppercase tracking-[1px] text-amber-800 font-bold">饮食习惯</h4>
+                    <h4 className="text-[11px] uppercase tracking-[1px] text-amber-800 font-bold">{isEn ? 'Diet & Feeding' : '饮食习惯'}</h4>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-amber-800 border border-amber-200">
                       {selectedAqFish.fish.feedingProfile?.feedingType || '杂食性'}
                     </span>
                   </div>
                   <div className="grid gap-3 text-sm md:text-[14px] text-ink">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">推荐食物</div>
+                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Recommended Foods' : '推荐食物'}</div>
                       <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.recommendedFoods || selectedAqFish.fish.diet}</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">喂食频率</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Frequency' : '喂食频率'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.feedingFrequency || '每天1-2次'}</p>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">投喂量</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Portion Rule' : '投喂量'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.portionRule || '2-3分钟内吃完，残饵及时清理'}</p>
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">禁忌</div>
+                      <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Avoid Foods' : '禁忌'}</div>
                       <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile?.avoidFoods || '过量投喂；变质饲料；长期残饵'}</p>
                     </div>
                     {selectedAqFish.fish.feedingProfile?.specialNotes && (
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">特殊提醒</div>
+                        <div className="text-[10px] uppercase tracking-wider text-ink/55 font-bold mb-1">{isEn ? 'Special Notes' : '特殊提醒'}</div>
                         <p className="font-medium leading-relaxed">{selectedAqFish.fish.feedingProfile.specialNotes}</p>
                       </div>
                     )}
@@ -7138,10 +7589,10 @@ export default function AquariumManager() {
                 </div>
 
                 <div className="bg-accent-light/30 border border-accent/20 p-4 rounded-sm flex flex-col gap-3">
-                  <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold">入缸管理</h4>
+                  <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold">{isEn ? 'Stocking Management' : '入缸管理'}</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">入缸日期</Label>
+                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">{isEn ? 'Entry Date' : '入缸日期'}</Label>
                       <Input 
                         type="date" 
                         className="h-9 text-sm bg-white" 
@@ -7151,7 +7602,7 @@ export default function AquariumManager() {
                       />
                     </div>
                     <div>
-                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">数量 (条/只)</Label>
+                      <Label className="text-[10px] text-ink/60 font-bold mb-1 block">{isEn ? 'Quantity (pcs)' : '数量 (条/只)'}</Label>
                       <Input 
                         type="number" 
                         min="1"
@@ -7162,7 +7613,7 @@ export default function AquariumManager() {
                     </div>
                   </div>
                   <div className="flex justify-between items-center text-sm font-bold text-ink bg-white/50 p-2 rounded-sm mt-1">
-                    <span>已入缸时间:</span>
+                    <span>{isEn ? 'Days in tank:' : '已入缸时间:'}</span>
                     <span className="font-serif text-lg">{differenceInDays(new Date(), new Date(selectedAqFish.aqFish.entryDate))} 天</span>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -7174,7 +7625,7 @@ export default function AquariumManager() {
                         setSelectedAqFish(null);
                       }}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" /> 移出鱼缸
+                      <Trash2 className="w-4 h-4 mr-2" /> {isEn ? 'Remove from Tank' : '移出鱼缸'}
                     </Button>
                   </div>
                 </div>
@@ -7197,12 +7648,12 @@ export default function AquariumManager() {
             <div className="border-b border-white bg-white px-5 py-4">
              <div className="flex items-center gap-2 text-amber-600">
                 <AlertTriangle className="w-5 h-5" />
-                <DialogTitle className="text-xl font-bold font-serif">鱼缸风险提示</DialogTitle>
+                <DialogTitle className="text-xl font-bold font-serif">{isEn ? 'Tank Risk Warnings' : '鱼缸风险提示'}</DialogTitle>
              </div>
              <DialogDescription className="mt-1 text-amber-700/80 text-xs">
                {activeAquarium && (activeAquarium as Aquarium & { buildTemplateMeta?: { name: string } }).buildTemplateMeta
-                 ? '基础搭建方案已记录，当前提示会优先区分是推荐配置本身，还是后续加入的生物数量或组合带来的风险。'
-                 : '当前提示按容量、水质参数和混养组合分组展示。'}
+                 ? (isEn ? 'Base template setup recorded. Current hints prioritize distinguishing between recommended config vs subsequent stocking volume/mix risks.' : '基础搭建方案已记录，当前提示会优先区分是推荐配置本身，还是后续加入的生物数量或组合带来的风险。')
+                 : (isEn ? 'Current hints are grouped by tank capacity, water parameters, and housing compatibility.' : '当前提示按容量、水质参数和混养组合分组展示。')}
              </DialogDescription>
             </div>
           </DialogHeader>
@@ -7210,10 +7661,10 @@ export default function AquariumManager() {
             {activeAquarium && (activeAquarium as Aquarium & { buildTemplateMeta?: { name: string; capacityGuidance?: TankBuildTemplate['capacityGuidance'] } }).buildTemplateMeta && (
               <div className="rounded-[16px] border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-medium leading-relaxed text-emerald-900/78">
                 <div className="font-black text-emerald-800">
-                  基础搭建方案：{(activeAquarium as Aquarium & { buildTemplateMeta?: { name: string } }).buildTemplateMeta?.name}
+                  {isEn ? 'Base Template Setup: ' : '基础搭建方案：'}{(activeAquarium as Aquarium & { buildTemplateMeta?: { name: string } }).buildTemplateMeta?.name}
                 </div>
                 <div className="mt-1">
-                  基础配置本身不等于风险；如果出现容量或混养提示，通常来自当前动物数量、后续加入生物或组合超出建议范围。
+                  {isEn ? 'Base config itself is not a risk; capacity or housing hints usually arise when livestock quantity or subsequent combinations exceed recommendations.' : '基础配置本身不等于风险；如果出现容量或混养提示，通常来自当前动物数量、后续加入生物或组合超出建议范围。'}
                 </div>
               </div>
             )}
@@ -7232,41 +7683,11 @@ export default function AquariumManager() {
                 <div className="mt-1 text-[13px] font-black">{item.title}</div>
                 <p className="mt-1 text-[12px] font-medium leading-relaxed opacity-80">{item.detail}</p>
                 <p className="mt-2 rounded-[12px] bg-white/70 px-2.5 py-2 text-[11px] font-bold leading-relaxed opacity-85">
-                  下一步：{item.nextStep}
+                  {isEn ? 'Next Step: ' : '下一步：'}{item.nextStep}
                 </p>
               </div>
             ))}
           </div>
-          <details className="mx-4 mb-4 mt-1 rounded-[14px] border border-yellow-100 bg-white/50 px-3 py-2 text-xs font-medium leading-relaxed text-ink/70">
-            <summary className="cursor-pointer font-bold text-yellow-700">
-              让 AI 帮我解读
-            </summary>
-            <div className="mt-2 rounded-[12px] bg-yellow-50/70 px-3 py-2 text-[11px] font-bold text-ink/55">
-              系统结论由规则生成，AI 仅负责解释，不会改变风险等级。
-            </div>
-            {aiReasoning ? (
-              <div className="mt-2 space-y-1">
-                <div className={`mb-2 w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${
-                  aiReasoningSource === 'model'
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-amber-50 text-amber-700'
-                }`}>
-                  {aiReasoningSource === 'model' ? '模型回复' : '本地模板'}
-                </div>
-                {aiReasoning.split('\n').map((line, idx) => <p key={idx}>{line}</p>)}
-              </div>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleAskAIAboutConflicts}
-                disabled={isRecommending}
-                variant="outline"
-                className="mt-3 h-9 rounded-full px-4 text-xs font-black"
-              >
-                {isRecommending ? '正在解读...' : <><Sparkles className="mr-2 h-3.5 w-3.5" />生成解释</>}
-              </Button>
-            )}
-          </details>
         </DialogContent>
       </Dialog>
 

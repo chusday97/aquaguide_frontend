@@ -44,6 +44,16 @@ body,
   display: none;
 }
 
+@media (min-width: 768px) {
+  .wishlist-feedback-toast {
+    right: 12px !important;
+    left: auto !important;
+    width: min(calc(100vw - var(--desktop-sidebar-width, 280px) - 48px), 520px);
+    margin: 0 !important;
+    transform: none !important;
+  }
+}
+
 .aquaguide-app.desktop-shell-active {
   height: 100dvh;
   overflow: hidden;
@@ -104,6 +114,107 @@ body,
 
 .encyclopedia-workspace {
   container: encyclopedia-workspace / inline-size;
+}
+
+.visual-result-card {
+  container: visual-result / inline-size;
+}
+
+.visual-result-stage {
+  position: relative;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.visual-result-stage-label {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  z-index: 2;
+  color: rgb(6 95 70 / 0.72);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.visual-result-focus {
+  position: absolute;
+  left: 50%;
+  top: 39%;
+  z-index: 2;
+  display: flex;
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+}
+
+.visual-result-related {
+  position: absolute;
+  inset-inline: 6px;
+  bottom: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.visual-result-subject {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+}
+
+.visual-result-connectors {
+  display: none;
+}
+
+@container visual-result (min-width: 680px) {
+  .visual-result-stage {
+    min-height: 330px;
+  }
+
+  .visual-result-focus {
+    left: 43%;
+    top: 51%;
+  }
+
+  .visual-result-related {
+    inset: 38px 22px 24px auto;
+    width: 30%;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-around;
+    max-height: 268px;
+    overflow-y: auto;
+  }
+
+  .visual-result-subject {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    text-align: left;
+  }
+
+  .visual-result-subject > span:first-child {
+    grid-row: 1 / span 2;
+  }
+
+  .visual-result-subject > span:nth-child(2),
+  .visual-result-subject > span:nth-child(3) {
+    justify-self: start;
+  }
+
+  .visual-result-connectors {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .aquaguide-app.desktop-shell-active .aquarium-toolbar,
@@ -497,12 +608,12 @@ body,
   .aquarium-desktop-layout {
     display: grid;
     grid-template-columns: minmax(300px, 0.95fr) minmax(380px, 1fr) minmax(300px, 0.95fr);
-    grid-template-rows: auto minmax(290px, auto) auto minmax(430px, auto);
+    grid-template-rows: auto minmax(290px, auto) minmax(430px, auto) auto;
     grid-template-areas:
       "header header header"
       "status actions discovery"
-      "careplan careplan careplan"
-      "tank tank tank";
+      "tank tank tank"
+      "archive archive archive";
     gap: 18px;
     align-items: stretch;
     justify-content: stretch;
@@ -523,10 +634,6 @@ body,
 
   .aquarium-desktop-header {
     grid-area: header;
-  }
-
-  .aquarium-care-plan {
-    grid-area: careplan;
   }
 
   .aquarium-tank {
@@ -555,7 +662,7 @@ body,
 
   .aquarium-archive {
     grid-area: archive;
-    display: none;
+    display: block;
   }
 
   .aquarium-status,
@@ -643,13 +750,13 @@ body,
   .aquarium-desktop-layout {
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto auto auto auto minmax(360px, auto);
+    grid-template-rows: auto auto auto minmax(360px, auto) auto;
     grid-template-areas:
       "header header"
       "status actions"
       "discovery discovery"
-      "careplan careplan"
-      "tank tank";
+      "tank tank"
+      "archive archive";
   }
 
   .aquarium-tank {
@@ -662,14 +769,14 @@ body,
 @media (min-width: 768px) and (max-width: 999px) {
   .aquarium-desktop-layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto minmax(320px, auto);
+    grid-template-rows: auto auto auto auto minmax(320px, auto) auto;
     grid-template-areas:
       "header"
       "status"
       "actions"
       "discovery"
-      "careplan"
-      "tank";
+      "tank"
+      "archive";
   }
 
   .aquarium-tank {
@@ -695,6 +802,299 @@ body {
 
 body::-webkit-scrollbar {
   display: none;
+}
+
+/* Aquarium homepage C: guided workspace. Mobile stays a single task-led column. */
+.aquarium-zone-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.aquarium-zone-index {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #1b4d3e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 7px 16px rgba(27, 77, 62, 0.14);
+}
+
+.aquarium-onboarding { order: initial; }
+.aquarium-zone-observe { order: 2; }
+.aquarium-tank { order: 3; }
+.aquarium-status { order: 4; }
+.aquarium-zone-manage { order: 5; }
+.aquarium-archive { order: 6; }
+.aquarium-actions { order: 7; }
+.aquarium-recommend { order: 8; display: none; }
+.aquarium-zone-learn { order: 9; }
+.aquarium-discovery { order: 10; }
+.aquarium-basics { order: 11; }
+.aquarium-advanced-tests { order: 12; }
+
+@media (min-width: 768px) {
+  .aquarium-desktop-layout {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "header"
+      "onboarding"
+      "observe-label"
+      "tank"
+      "status"
+      "manage-label"
+      "archive"
+      "actions"
+      "learn-label"
+      "discovery"
+      "basics"
+      "advanced";
+    gap: 12px;
+    align-items: stretch;
+    min-height: calc(100dvh - 48px);
+    overflow: visible;
+  }
+
+  .aquarium-desktop-header { grid-area: header; }
+  .aquarium-onboarding { grid-area: onboarding; padding: 14px 16px; }
+  .aquarium-zone-observe { grid-area: observe-label; }
+  .aquarium-tank { grid-area: tank; height: min(48dvh, 460px) !important; min-height: 320px !important; }
+  .aquarium-status { grid-area: status; }
+  .aquarium-zone-manage { grid-area: manage-label; }
+  .aquarium-archive { grid-area: archive; }
+  .aquarium-actions { grid-area: actions; }
+  .aquarium-recommend { grid-area: recommend; display: none; }
+  .aquarium-zone-learn { grid-area: learn-label; }
+  .aquarium-discovery { grid-area: discovery; }
+  .aquarium-basics { grid-area: basics; }
+  .aquarium-advanced-tests { grid-area: advanced; }
+
+  .aquarium-status,
+  .aquarium-actions,
+  .aquarium-discovery,
+  .aquarium-basics {
+    min-width: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .aquarium-status > section {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .aquarium-onboarding > div:first-child {
+    align-items: center;
+  }
+
+  .aquarium-onboarding > div:nth-child(2) {
+    margin-top: 10px;
+  }
+
+  .aquarium-onboarding > button {
+    margin-top: 10px;
+  }
+
+  .aquarium-actions .desktop-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .aquarium-actions .desktop-card-grid > button {
+    min-width: 0;
+    min-height: 76px;
+    height: auto;
+  }
+
+  .aquarium-discovery [role="button"] {
+    min-height: 176px;
+  }
+
+  .aquarium-discovery img {
+    max-height: 150px;
+  }
+}
+
+@media (min-width: 1050px) {
+  .aquarium-desktop-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    grid-template-areas:
+      "header header"
+      "onboarding onboarding"
+      "observe-label observe-label"
+      "tank status"
+      "manage-label manage-label"
+      "archive actions"
+      "learn-label learn-label"
+      "discovery basics"
+      "advanced advanced";
+    gap: 14px;
+  }
+
+  .aquarium-tank {
+    height: min(52dvh, 500px) !important;
+    min-height: 390px !important;
+  }
+
+  .aquarium-status > section {
+    min-height: 390px;
+  }
+
+  .aquarium-archive,
+  .aquarium-actions,
+  .aquarium-discovery,
+  .aquarium-basics {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-layout-mode="desktop"] .aquarium-desktop-header {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  [data-layout-mode="desktop"] .aquarium-desktop-header > div,
+  [data-layout-mode="desktop"] .aquarium-desktop-header > button,
+  [data-layout-mode="desktop"] .aquarium-desktop-header > div > button {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  [data-layout-mode="desktop"] .aquarium-toolbar {
+    display: none !important;
+  }
+
+  .aquarium-zone-header {
+    margin-top: 4px;
+  }
+
+  .aquarium-basics > div:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aquarium-onboarding > div:last-child > details {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .aquarium-onboarding > div:last-child > details > summary {
+    margin-left: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  #care-plan > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #care-plan > div > button {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+/* C workspace uses semantic sections so DOM, screen-reader, keyboard and visual order match. */
+.aquarium-workspace-zone {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.aquarium-zone-grid {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  align-items: start;
+}
+
+.aquarium-archive-preview {
+  display: none;
+}
+
+.aquarium-workspace-zone .aquarium-tank,
+.aquarium-workspace-zone .aquarium-status,
+.aquarium-workspace-zone .aquarium-archive,
+.aquarium-workspace-zone .aquarium-actions,
+.aquarium-workspace-zone .aquarium-discovery,
+.aquarium-workspace-zone .aquarium-basics {
+  grid-area: auto;
+  order: initial;
+}
+
+.aquarium-workspace-zone .aquarium-status > section {
+  height: auto;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .aquarium-desktop-layout {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 14px;
+  }
+
+  .aquarium-workspace-zone {
+    gap: 12px;
+  }
+
+  .aquarium-desktop-header {
+    min-width: 0;
+  }
+
+  .aquarium-manage-grid > .aquarium-archive {
+    align-self: start;
+  }
+}
+
+@media (min-width: 1050px) {
+  .aquarium-archive-preview {
+    display: block;
+  }
+
+  .aquarium-observe-grid,
+  .aquarium-manage-grid {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  }
+
+  .aquarium-learn-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1049px) {
+  .aquarium-zone-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aquarium-desktop-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .aquarium-desktop-header > div,
+  .aquarium-desktop-header > button,
+  .aquarium-desktop-header > div > button {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .app-scrollbar-hidden {
