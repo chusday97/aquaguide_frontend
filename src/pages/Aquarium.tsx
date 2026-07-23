@@ -5,7 +5,96 @@ import { useTranslation } from 'react-i18next';
 import { Aquarium, AquariumFish, Fish } from '../types';
 import { fishData } from '../data/fishData';
 import i18n from '../i18n';
-import { getLocalizedAquariumName } from '../i18n/localizeData';
+import { getLocalizedAquariumName, englishTranslations } from '../i18n/localizeData';
+import { autoTranslations } from '../i18n/localizeDataAuto';
+
+const getSpeciesNameLocalized = (species: any, isEn = false): string => {
+  if (!species) return '';
+  if (!isEn) return species.name || '';
+  if (species.scientificName) return species.scientificName;
+  const id = species.id || '';
+  if (autoTranslations[id]?.name) return autoTranslations[id].name;
+  if (englishTranslations[id]?.name) return englishTranslations[id].name;
+  return species.name || '';
+};
+
+const getSubstrateLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '河沙': 'River Sand',
+    '溪流砂': 'Stream Sand',
+    '化妆砂': 'Cosmetic Sand',
+    '水草泥': 'Aqua Soil',
+    '黑金沙': 'Black Quartz Sand',
+    '陶粒': 'Ceramsite Substrate',
+    '碎石': 'Gravel Pebbles',
+    '鹅卵石': 'Smooth Cobblestone',
+    '珊瑚砂': 'Coral Sand',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getFilterLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '瀑布过滤': 'Hang-on-Back Filter',
+    '桶滤': 'Canister Filter',
+    '上滤': 'Top Filter',
+    '海绵过滤': 'Sponge Filter',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getLightLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'None' : '无';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '普通灯': 'Standard LED Light',
+    '水草灯': 'Planted Spectrum Light',
+    '海水灯': 'Reef Coral Light',
+    '无': 'None',
+  };
+  return map[val] || val;
+};
+
+const getTemperamentLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Peaceful' : '温和';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '温和': 'Peaceful',
+    '有领地意识': 'Territorial',
+    '具攻击性': 'Aggressive',
+    '谨慎': 'Cautious',
+  };
+  return map[val] || val;
+};
+
+const getHousingModeLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Compatible' : '适合混养';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '适合混养': 'Compatible',
+    '谨慎混养': 'Caution Mix',
+    '建议单养': 'Single Specimen',
+  };
+  return map[val] || val;
+};
+
+const getCareLevelLocalized = (val: string | undefined, isEn = false): string => {
+  if (!val) return isEn ? 'Easy' : '简单';
+  if (!isEn) return val;
+  const map: Record<string, string> = {
+    '简单': 'Easy',
+    '中等': 'Moderate',
+    '困难': 'Advanced',
+  };
+  return map[val] || val;
+};
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -3657,10 +3746,10 @@ export default function AquariumManager() {
   const equipmentSummaryItems = [
     activeAquarium.equipment?.filter && (isEn 
       ? `Filter: ${t(`aquarium.${filterOptionKeys[activeAquarium.equipment.filter] || 'none'}`) || activeAquarium.equipment.filter}`
-      : `过滤：${activeAquarium.equipment.filter}`),
+      : (isEn ? `Filter: ${getFilterLocalized(activeAquarium.equipment.filter, true)}` : `过滤：${activeAquarium.equipment.filter}`)),
     activeAquarium.equipment?.light && (isEn 
       ? `Lighting: ${t(`aquarium.${lightOptionKeys[activeAquarium.equipment.light] || 'none'}`) || activeAquarium.equipment.light}`
-      : `灯光：${activeAquarium.equipment.light}`),
+      : (isEn ? `Light: ${getLightLocalized(activeAquarium.equipment.light, true)}` : `灯光：${activeAquarium.equipment.light}`)),
     typeof activeAquarium.equipment?.heater === 'boolean' && (activeAquarium.equipment.heater 
       ? (isEn ? 'Heater: On' : '加热棒：已开启') 
       : (isEn ? 'Heater: Off' : '加热棒：未开启')),
@@ -4726,7 +4815,7 @@ export default function AquariumManager() {
                       <img src={getSpeciesDisplayImage(item.fish)} alt="" className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-[11px] font-black text-ink">{item.name}</span>
+                      <span className="block truncate text-[11px] font-black text-ink">{getSpeciesNameLocalized(item, isEn)}</span>
                       <span className="mt-0.5 block text-[9px] font-bold text-ink/45">{isEn ? `${item.quantity} in tank` : `缸内 ${item.quantity} 只/条`}</span>
                     </span>
                   </div>
@@ -4846,7 +4935,7 @@ export default function AquariumManager() {
                       {item.fish ? (
                         <img
                           src={getSpeciesDisplayImage(item.fish)}
-                          alt={item.name}
+                          alt={getSpeciesNameLocalized(item, isEn)}
                           referrerPolicy="no-referrer"
                           className={`max-h-[50px] max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] ${getSpeciesImageClass(item.fish)}`}
                         />
@@ -4861,7 +4950,7 @@ export default function AquariumManager() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-accent">{item.name}</div>
+                    <div className="mt-1.5 truncate text-[10px] font-bold leading-tight text-ink/75 group-hover:text-accent">{getSpeciesNameLocalized(item, isEn)}</div>
                     <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-ink/38">
                       {formatTankContentDate(item.acquiredDate)}
                     </div>
@@ -5738,10 +5827,10 @@ export default function AquariumManager() {
                     {addFishSuccess.items.map(item => (
                       <div key={item.fishId} className="grid grid-cols-[44px_1fr] gap-3 rounded-[16px] bg-white/82 p-2 shadow-sm">
                         <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-[14px] bg-[#FBFAF6]">
-                          {item.image && <img src={item.image} alt={item.name} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />}
+                          {item.image && <img src={item.image} alt={getSpeciesNameLocalized(item, isEn)} className="h-full w-full object-contain p-1" referrerPolicy="no-referrer" />}
                         </span>
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-black text-ink">{item.name} x {item.quantity}</div>
+                          <div className="truncate text-sm font-black text-ink">{getSpeciesNameLocalized(item, isEn)} x {item.quantity}</div>
                           <div className="mt-0.5 text-[11px] font-bold text-ink/48">入缸日期：{formatAddFishDateLabel(item.entryDate)}</div>
                         </div>
                       </div>
@@ -5788,7 +5877,7 @@ export default function AquariumManager() {
                     {addFishCompatibilityReview.evaluations.map(evaluation => (
                       <div key={evaluation.fish.id} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-[14px] bg-white/82 px-3 py-2 shadow-sm">
                         <span className="min-w-0">
-                          <span className="block truncate text-[12px] font-black text-ink">{evaluation.fish.name} x {evaluation.quantity}</span>
+                          <span className="block truncate text-[12px] font-black text-ink">{getSpeciesNameLocalized(evaluation.fish, isEn)} x {evaluation.quantity}</span>
                           <span className="mt-0.5 block truncate text-[10px] font-bold text-ink/45">{evaluation.result.summary}</span>
                         </span>
                         <span className="shrink-0 text-[10px] font-black text-ink/60">{getTankCompatibilityStatusLabel(evaluation.result.status)}</span>
@@ -5854,7 +5943,7 @@ export default function AquariumManager() {
                       <span className="min-w-0">
                         <span className="flex items-start justify-between gap-2">
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-black text-ink">{fish.name}</span>
+                            <span className="block truncate text-sm font-black text-ink">{getSpeciesNameLocalized(fish, isEn)}</span>
                             <span className="block truncate text-[10px] font-medium text-ink/45">{fish.scientificName || fish.category}</span>
                           </span>
                           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black ${
@@ -5915,7 +6004,7 @@ export default function AquariumManager() {
                               <img src={getSpeciesDisplayImage(item.fish)} alt={item.fish.name} className={`h-full w-full object-contain p-1 ${getSpeciesImageClass(item.fish)}`} referrerPolicy="no-referrer" />
                             </span>
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-black text-ink">{item.fish.name}</div>
+                              <div className="truncate text-sm font-black text-ink">{getSpeciesNameLocalized(item.fish, isEn)}</div>
                               <div className="mt-0.5 truncate text-[10px] font-medium text-ink/45">{item.fish.category}</div>
                               <div className="mt-1 text-[10px] font-bold text-emerald-700">{isEn ? 'Recommend adding a small amount first and observing for 3-7 days.' : '建议先少量加入，观察 3-7 天。'}</div>
                             </div>
@@ -6046,7 +6135,7 @@ export default function AquariumManager() {
                           将添加：{selectedAddSpeciesCount} 种生物，共 {selectedAddTotalQuantity} 只/条
                           <div className="mt-1 grid gap-0.5 text-[10px] font-bold text-emerald-900/70">
                             {selectedAddFishDetails.slice(0, 4).map(item => (
-                              <span key={item.fishId}>{item.fish.name} x {item.quantity}</span>
+                              <span key={item.fishId}>{getSpeciesNameLocalized(item.fish, isEn)} x {item.quantity}</span>
                             ))}
                             {selectedAddFishDetails.length > 4 && <span>还有 {selectedAddFishDetails.length - 4} 种...</span>}
                           </div>
