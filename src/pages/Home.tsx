@@ -95,7 +95,7 @@ export default function Home() {
     if (wishlistFishIds.size === 0) {
       return (
         <div className="text-center py-4 text-ink/50 text-xs font-medium">
-          还没有种草的内容，去图鉴看看吧～
+          {isEn ? 'No saved items yet. Explore the encyclopedia!' : '还没有种草的内容，去图鉴看看吧～'}
         </div>
       );
     }
@@ -178,7 +178,7 @@ export default function Home() {
                   ))
                 ) : (
                   <div className="text-xs text-[#7a6745] font-medium text-center">
-                    查看所有水族生物资料
+                    {isEn ? 'Explore all aquatic species profiles' : '查看所有水族生物资料'}
                   </div>
                 )}
             </div>
@@ -199,7 +199,7 @@ export default function Home() {
                 <Bot className="w-5 h-5 text-accent" /> 养鱼助手 AI
             </h3>
             <div className="text-xs text-[#7a6745] font-medium text-center z-10 leading-relaxed px-2">
-              实时解答养缸、水质、混养冲突等任何疑问
+              {isEn ? 'Real-time answers for cycling, water quality, and co-housing conflicts.' : '实时解答养缸、水质、混养冲突等任何疑问'}
             </div>
           </Link>
         </section>
@@ -208,7 +208,7 @@ export default function Home() {
       {/* 3. Deceased Memorial */}
       {deceasedRecords.length > 0 && (
         <div className="mt-4">
-          <h2 className="font-serif font-bold text-lg text-ink mb-2">逝去生物纪念</h2>
+          <h2 className="font-serif font-bold text-lg text-ink mb-2">{isEn ? 'Livestock Memorial' : '逝去生物纪念'}</h2>
           <section className="bg-white rounded-xl shadow-sm border border-border overflow-hidden p-4">
             <ScrollArea className="w-full max-h-[160px]">
               <div className="flex flex-wrap gap-4">
@@ -264,33 +264,33 @@ export default function Home() {
 
               <div className="grid grid-cols-2 gap-3 text-[12px] border-t border-b border-border py-4 bg-bg/50 px-3 rounded-sm">
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">水温</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Temp' : '水温'}</span>
                   <span className="text-ink font-bold">{selectedFish.waterTemperature}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">酸碱度 (pH)</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'pH Level' : '酸碱度 (pH)'}</span>
                   <span className="text-ink font-bold">{selectedFish.phLevel}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">换水周期</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Water Change' : '换水周期'}</span>
                   <span className="text-ink font-bold">约 {selectedFish.waterChangeCycle} 天</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">鱼缸尺寸</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Tank Size' : '鱼缸尺寸'}</span>
                   <span className="text-ink font-bold">{selectedFish.tankSize}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">性情</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Temperament' : '性情'}</span>
                   <span className="text-ink font-bold">{selectedFish.temperament === 'Peaceful' ? '温和' : selectedFish.temperament === 'Aggressive' ? '凶猛' : '领地意识强'}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">体型</span>
+                  <span className="text-ink/60 uppercase tracking-wider text-[10px] font-bold">{isEn ? 'Adult Size' : '体型'}</span>
                   <span className="text-ink font-bold">{selectedFish.size === 'Small' ? '小型' : selectedFish.size === 'Medium' ? '中型' : '大型'}</span>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold mb-1.5">饮食习惯</h4>
+                <h4 className="text-[11px] uppercase tracking-[1px] text-ink/60 font-bold mb-1.5">{isEn ? 'Diet & Feeding' : '饮食习惯'}</h4>
                 <p className="text-sm md:text-[14px] text-ink font-medium">{selectedFish.diet}</p>
               </div>
 

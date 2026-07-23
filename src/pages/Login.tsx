@@ -15,16 +15,16 @@ type LoginErrors = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const validateLoginForm = (email: string, password: string): LoginErrors => {
+const validateLoginForm = (email: string, password: string, isEn = false): LoginErrors => {
   const errors: LoginErrors = {};
   if (!email.trim()) {
-    errors.email = '请输入邮箱';
+    errors.email = isEn ? 'Please enter email' : '请输入邮箱';
   } else if (!emailPattern.test(email.trim())) {
-    errors.email = '请输入有效的邮箱地址';
+    errors.email = isEn ? 'Please enter a valid email' : '请输入有效的邮箱地址';
   }
 
   if (!password) {
-    errors.password = '请输入密码';
+    errors.password = isEn ? 'Please enter password' : '请输入密码';
   }
 
   return errors;
@@ -33,6 +33,8 @@ const validateLoginForm = (email: string, password: string): LoginErrors => {
 export default function Login() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<LoginErrors>({});
@@ -40,7 +42,7 @@ export default function Login() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const nextErrors = validateLoginForm(email, password);
+    const nextErrors = validateLoginForm(email, password, isEn);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -86,8 +88,8 @@ export default function Login() {
             <Droplets className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="text-[22px] font-black leading-tight">登录 AquaGuide</h1>
-            <p className="mt-1 text-[12px] font-bold text-ink/48">同步你的鱼缸、收藏和养护记录。</p>
+            <h1 className="text-[22px] font-black leading-tight">{isEn ? 'Sign in to AquaGuide' : '登录 AquaGuide'}</h1>
+            <p className="mt-1 text-[12px] font-bold text-ink/48">{isEn ? 'Sync your aquariums, favorites, and care history.' : '同步你的鱼缸、收藏和养护记录。'}</p>
           </div>
         </div>
 
@@ -137,7 +139,7 @@ export default function Login() {
                 disabled={isSubmitting}
                 aria-invalid={Boolean(errors.password)}
                 aria-describedby={errors.password ? 'login-password-error' : undefined}
-                placeholder="输入密码"
+                placeholder="isEn ? 'Enter password' : '输入密码'"
                 className="h-12 rounded-[18px] border-border bg-bg pl-10 text-[15px] font-bold text-ink placeholder:text-ink/30"
               />
             </div>
@@ -154,14 +156,14 @@ export default function Login() {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                登录中...
+                {isEn ? 'Signing in...' : '登录中...'}
               </>
             ) : '登录'}
           </Button>
         </form>
 
         <p className="mt-5 rounded-[18px] bg-emerald-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-emerald-800">
-          当前版本仍支持未登录本地使用；登录后再逐步开启云端同步。
+          {isEn ? 'Local use without signing in is fully supported. Cloud sync activates after sign-in.' : '当前版本仍支持未登录本地使用；登录后再逐步开启云端同步。'}
         </p>
       </main>
     </div>

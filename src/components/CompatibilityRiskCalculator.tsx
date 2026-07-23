@@ -362,7 +362,7 @@ function CompatibilityBottomSheet({
       <button
         type="button"
         className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]"
-        aria-label="关闭弹窗"
+        aria-label="isEn ? 'Close Modal' : '关闭弹窗'"
         onClick={onClose}
       />
       <section
@@ -393,7 +393,7 @@ function CompatibilityBottomSheet({
               <h3 id="compatibility-sheet-title" className="text-[18px] font-black text-ink">{sheetTitle}</h3>
               <p className="mt-0.5 text-[11px] font-bold text-ink/45">{isAdjustment ? '只看现在能做什么。' : '看清是哪组生物需要谨慎。'}</p>
             </div>
-            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/55" aria-label="关闭">
+            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-ink/55" aria-label="isEn ? 'Close' : '关闭'">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -409,11 +409,11 @@ function CompatibilityBottomSheet({
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {conflictTags.length > 0 ? conflictTags.map(tag => (
                     <span key={tag} className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700">{tag}</span>
-                  )) : <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">基础匹配</span>}
+                  )) : <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700">{isEn ? 'Basic Compatibility' : '基础匹配'}</span>}
                 </div>
               </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">现在怎么做</div>
+                <div className="text-[13px] font-black text-ink">{isEn ? 'Action Plan' : '现在怎么做'}</div>
                 <div className="mt-2 grid gap-2">
                   {actionHints.slice(0, 3).map((step, stepIndex) => (
                     <div key={step} className="flex gap-2 rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">
@@ -427,11 +427,11 @@ function CompatibilityBottomSheet({
           ) : (
             <div className="grid gap-3">
               <section className={`rounded-[18px] border p-3 ${meta.tone}`}>
-                <div className="text-[10px] font-black opacity-60">当前结论</div>
+                <div className="text-[10px] font-black opacity-60">{isEn ? 'Current Assessment' : '当前结论'}</div>
                 <div className="mt-1 text-[15px] font-black">{meta.label}：{riskConclusion}</div>
               </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[10px] font-black text-ink/42">主要提醒对象</div>
+                <div className="text-[10px] font-black text-ink/42">{isEn ? 'Key Species Warnings' : '主要提醒对象'}</div>
                 <div className="mt-1 text-[15px] font-black text-ink">{primaryConflict.pair}</div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {primaryReasons.map(reason => (
@@ -452,7 +452,7 @@ function CompatibilityBottomSheet({
                 )}
               </section>
               <section className="rounded-[18px] bg-white p-3 shadow-sm">
-                <div className="text-[13px] font-black text-ink">现在怎么做</div>
+                <div className="text-[13px] font-black text-ink">{isEn ? 'Action Plan' : '现在怎么做'}</div>
                 <div className="mt-2 grid gap-2">
                   {actionHints.slice(0, 2).map((step, stepIndex) => (
                     <div key={step} className="flex gap-2 rounded-[14px] bg-emerald-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-emerald-900">
@@ -655,16 +655,18 @@ export function CompatibilityRiskCalculator({
   }, [activeSpeciesIds, currentLivestock, preferredSpeciesIds, selectedAquarium]);
   const selectedCount = selectedSpecies.length;
   const statusLabel = selectedCount === 0
-    ? '未开始'
+    ? (isEn ? 'Not Started' : '未开始')
     : selectedCount === 1
-      ? '待添加'
+      ? (isEn ? 'Pending Addition' : '待添加')
       : meta.label;
-  const selectedTitle = selectedCount < 2 ? `已选生物 ${selectedCount}/2` : `已选生物 ${selectedCount} 种`;
+  const selectedTitle = selectedCount < 2
+    ? (isEn ? `Selected ${selectedCount}/2` : `已选生物 ${selectedCount}/2`)
+    : (isEn ? `Selected ${selectedCount} species` : `已选生物 ${selectedCount} 种`);
   const selectedHint = selectedCount === 0
-    ? '还没有添加生物。'
+    ? (isEn ? 'No species added yet.' : '还没有添加生物。')
     : selectedCount === 1
-      ? '还需 1 种生物。'
-      : '已满足计算条件。';
+      ? (isEn ? '1 more species required.' : '还需 1 种生物。')
+      : (isEn ? 'Ready for calculation.' : '已满足计算条件。');
   const searchResults = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return [];
@@ -778,8 +780,8 @@ export function CompatibilityRiskCalculator({
             {result.level === 'compatible' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-[14px] font-black text-ink">混养风险计算</h2>
-            <p className="text-[10px] font-medium text-ink/50">添加 2 种以上生物，系统会判断是否适合同缸。</p>
+            <h2 className="truncate text-[14px] font-black text-ink">{isEn ? 'Tank Housing Compatibility' : '混养风险计算'}</h2>
+            <p className="text-[10px] font-medium text-ink/50">{isEn ? 'Add 2+ species to evaluate co-housing compatibility.' : '添加 2 种以上生物，系统会判断是否适合同缸。'}</p>
           </div>
         </div>
         <span className="shrink-0 rounded-full border border-current/20 bg-white/70 px-2.5 py-1 text-[11px] font-black">
@@ -793,8 +795,8 @@ export function CompatibilityRiskCalculator({
           <div className="mb-3 rounded-[16px] border border-emerald-100 bg-emerald-50/45 p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[12px] font-black text-ink">按鱼缸计算</div>
-                <div className="mt-0.5 text-[10px] font-bold text-ink/45">导入真实缸内活体，不会修改鱼缸数据。</div>
+                <div className="text-[12px] font-black text-ink">{isEn ? 'Calculate by Tank' : '按鱼缸计算'}</div>
+                <div className="mt-0.5 text-[10px] font-bold text-ink/45">{isEn ? 'Import current tank livestock without modifying tank state.' : '导入真实缸内活体，不会修改鱼缸数据。'}</div>
               </div>
               <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">
                 {currentLivestock.length} 种活体
@@ -802,7 +804,7 @@ export function CompatibilityRiskCalculator({
             </div>
             {aquariums.length > 1 ? (
               <label className="mt-2 flex h-10 items-center gap-2 rounded-[13px] bg-white px-3 text-[11px] font-black text-ink/70">
-                <span className="shrink-0 text-ink/42">鱼缸</span>
+                <span className="shrink-0 text-ink/42">{isEn ? 'Aquarium' : '鱼缸'}</span>
                 <select
                   value={selectedAquarium?.id || ''}
                   onChange={(event) => setSelectedAquariumId(event.target.value)}
@@ -828,7 +830,7 @@ export function CompatibilityRiskCalculator({
               </div>
             ) : (
               <div className="mt-2 rounded-[13px] bg-white px-3 py-2 text-[11px] font-bold text-ink/45">
-                当前鱼缸暂无活体，推荐会使用新手友好候选。
+                {isEn ? 'Current tank has no livestock. Beginner-friendly species will be recommended.' : '当前鱼缸暂无活体，推荐会使用新手友好候选。'}
               </div>
             )}
             {missingLivestockCount > 0 && (
@@ -842,16 +844,16 @@ export function CompatibilityRiskCalculator({
               disabled={currentLivestock.length === 0}
               className="mt-3 h-10 w-full rounded-full bg-emerald-700 text-[12px] font-black text-white disabled:bg-ink/10 disabled:text-ink/35"
             >
-              导入该鱼缸生物计算
+              {isEn ? 'Import Livestock & Calculate' : '导入该鱼缸生物计算'}
             </button>
           </div>
-          <div className="mb-2 text-[12px] font-black text-ink">添加生物</div>
+          <div className="mb-2 text-[12px] font-black text-ink">{isEn ? 'Add Species' : '添加生物'}</div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/45" />
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="搜索并加入要混养的生物"
+              placeholder="{isEn ? 'Search and add species to evaluate' : '搜索并加入要混养的生物'}"
               className="h-10 rounded-[14px] border-amber-200 bg-white pl-8 text-[12px] font-medium text-ink placeholder:text-ink/40"
             />
           </div>
@@ -924,13 +926,13 @@ export function CompatibilityRiskCalculator({
                 type="button"
                 onClick={onBrowseAtlas}
                 className="flex w-[82px] shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-emerald-200 bg-emerald-50/65 p-2 text-center text-emerald-800 shadow-sm"
-                aria-label="浏览更多图鉴"
+                aria-label="{isEn ? 'Browse more species' : '浏览更多图鉴'}"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/75 text-emerald-700 shadow-sm">
                   <ChevronRight className="h-5 w-5" />
                 </span>
-                <span className="text-[12px] font-black leading-tight">更多</span>
-                <span className="text-[9px] font-bold leading-tight text-emerald-900/58">浏览图鉴</span>
+                <span className="text-[12px] font-black leading-tight">{isEn ? 'More' : '更多'}</span>
+                <span className="text-[9px] font-bold leading-tight text-emerald-900/58">{isEn ? 'Browse Species' : '浏览图鉴'}</span>
               </button>
               </div>
             </div>
@@ -951,7 +953,7 @@ export function CompatibilityRiskCalculator({
             </div>
             {selectedSpecies.length === 0 ? (
               <div className="rounded-[14px] bg-bg px-3 py-4 text-center">
-                <div className="text-[12px] font-black text-ink/55">还没有添加生物。</div>
+                <div className="text-[12px] font-black text-ink/55">{isEn ? 'No species added yet.' : '还没有添加生物。'}</div>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -984,11 +986,11 @@ export function CompatibilityRiskCalculator({
 
         <section className={selectedCount >= 2 ? `rounded-[16px] border p-3 lg:col-span-2 ${meta.tone}` : 'rounded-[16px] bg-bg px-3 py-3 lg:col-span-2'}>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-[12px] font-black">计算结果</span>
+            <span className="text-[12px] font-black">{isEn ? 'Compatibility Results' : '计算结果'}</span>
             <span className="text-[10px] font-bold opacity-70">{selectedCount} 种生物</span>
           </div>
           {selectedCount < 2 ? (
-            <div className="text-[11px] font-bold text-ink/45">添加 2 种以上生物后显示风险结果。</div>
+            <div className="text-[11px] font-bold text-ink/45">{isEn ? 'Add 2+ species to display risk assessment.' : '添加 2 种以上生物后显示风险结果。'}</div>
           ) : (
             <>
               {visualResultModel && (
@@ -1019,7 +1021,7 @@ export function CompatibilityRiskCalculator({
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-[12px] font-black text-ink">{getDecisionStepTitle(result.level)}</div>
-                    <div className="text-[10px] font-bold text-ink/42">勾选要加入的对象；删除键只移出本次计算，不会删除鱼缸数据。</div>
+                    <div className="text-[10px] font-bold text-ink/42">{isEn ? 'Check items to include. Delete only affects current calculation.' : '勾选要加入的对象；删除键只移出本次计算，不会删除鱼缸数据。'}</div>
                   </div>
                   {conflictTags.length > 0 && (
                     <div className="flex max-w-[52%] flex-wrap justify-end gap-1">
@@ -1034,7 +1036,7 @@ export function CompatibilityRiskCalculator({
 
                 {speciesActionGroups.remove.length > 0 && (
                   <div className="mb-2 rounded-[14px] border border-red-100 bg-red-50/80 p-2.5">
-                    <div className="mb-2 text-[10px] font-black text-red-600">建议先移除 / 更换</div>
+                    <div className="mb-2 text-[10px] font-black text-red-600">{isEn ? 'Recommended to Remove / Replace' : '建议先移除 / 更换'}</div>
                     <div className="flex flex-wrap gap-2">
                       {speciesActionGroups.remove.map(fish => (
                         <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white py-1 pl-1.5 pr-2 shadow-sm">
@@ -1066,14 +1068,14 @@ export function CompatibilityRiskCalculator({
 
                 {result.level === 'not_recommended' && speciesActionGroups.remove.length === 0 && (
                   <div className="mb-2 rounded-[14px] border border-red-100 bg-red-50/80 px-3 py-3 text-[11px] font-bold leading-relaxed text-red-700">
-                    当前规则无法安全确定应移除哪一个对象，请返回重新选择组合，不会自动猜测删除物种。
+                    {isEn ? 'Rules cannot safely determine which species to remove. Please modify selection.' : '当前规则无法安全确定应移除哪一个对象，请返回重新选择组合，不会自动猜测删除物种。'}
                   </div>
                 )}
 
                 {speciesActionGroups.keep.length > 0 && (
                   <div className="mb-2 rounded-[14px] border border-emerald-100 bg-emerald-50/80 p-2.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="text-[10px] font-black text-emerald-700">可加入的新生物</div>
+                      <div className="text-[10px] font-black text-emerald-700">{isEn ? 'Compatible New Additions' : '可加入的新生物'}</div>
                       <div className="text-[9px] font-bold text-emerald-700/70">
                         {selectedAddableCount > 0 ? `已选 ${selectedAddableCount} 个` : '未选择'}
                       </div>
@@ -1122,7 +1124,7 @@ export function CompatibilityRiskCalculator({
 
                 {speciesActionGroups.existing.length > 0 && (
                   <div className="rounded-[14px] border border-border/70 bg-bg/70 p-2.5">
-                    <div className="mb-2 text-[10px] font-black text-ink/45">缸内原有物种</div>
+                    <div className="mb-2 text-[10px] font-black text-ink/45">{isEn ? 'Existing Tank Species' : '缸内原有物种'}</div>
                     <div className="flex flex-wrap gap-2">
                       {speciesActionGroups.existing.map(fish => (
                         <div key={fish.id} className="flex items-center gap-2 rounded-full bg-white/85 py-1 pl-1.5 pr-3">
@@ -1178,7 +1180,7 @@ export function CompatibilityRiskCalculator({
     <Dialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
       <DialogContent className="w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[24px] border-border bg-white p-0">
         <DialogHeader className="border-b border-border/70 px-6 py-5 text-left">
-          <DialogTitle className="text-[18px] font-black text-ink">清空当前混养组合？</DialogTitle>
+          <DialogTitle className="text-[18px] font-black text-ink">{isEn ? 'Clear current species selection?' : '清空当前混养组合？'}</DialogTitle>
           <DialogDescription className="mt-1 text-[12px] font-bold leading-relaxed text-ink/55">
             将移除当前已选的 {selectedCount} 种生物和数量设置，此操作不会删除鱼缸里的真实生物。
           </DialogDescription>
@@ -1189,14 +1191,14 @@ export function CompatibilityRiskCalculator({
             onClick={() => setIsClearConfirmOpen(false)}
             className="h-11 rounded-full border border-border bg-white text-[13px] font-black text-ink/60 hover:border-ink/20 hover:text-ink"
           >
-            保留组合
+            {isEn ? 'Keep Selection' : '保留组合'}
           </button>
           <button
             type="button"
             onClick={clearSelectedSpecies}
             className="h-11 rounded-full bg-red-600 text-[13px] font-black text-white hover:bg-red-700"
           >
-            确认清空
+            {isEn ? 'Confirm Clear' : '确认清空'}
           </button>
         </DialogFooter>
       </DialogContent>

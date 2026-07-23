@@ -1678,7 +1678,7 @@ export default function Encyclopedia() {
                         : 'border-white text-ink/45 hover:border-rose-100 hover:text-rose-500'
                     }`}
                     aria-label={`选择${group.groupName}的具体变种收藏`}
-                    title="选择具体变种收藏"
+                    title={isEn ? "Select Variant to Save" : "选择具体变种收藏"}
                   >
                     <Heart className={`h-[18px] w-[18px] ${group.variants.some(variant => wishlistFishIds.has(variant.id)) ? 'fill-current' : ''}`} />
                   </button>

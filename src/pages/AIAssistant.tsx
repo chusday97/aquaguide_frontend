@@ -91,13 +91,13 @@ function AssistantAnswer({ content }: { content: string }) {
   return (
     <div className="space-y-3">
       <div>
-        <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-accent/70">结论</div>
+        <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-accent/70">{isEn ? 'Conclusion' : '结论'}</div>
         <p className="text-[14px] font-black leading-relaxed text-accent">{structured.conclusion}</p>
       </div>
 
       {structured.reasons.length > 0 && (
         <div>
-          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">为什么</div>
+          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">{isEn ? 'Reasoning' : '为什么'}</div>
           <ul className="space-y-1.5">
             {structured.reasons.map((reason, index) => (
               <li key={`${reason}-${index}`} className="grid grid-cols-[16px_1fr] gap-1.5 text-[12px] font-medium leading-relaxed text-ink/75">
@@ -111,7 +111,7 @@ function AssistantAnswer({ content }: { content: string }) {
 
       {structured.actions.length > 0 && (
         <div>
-          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">下一步</div>
+          <div className="mb-1 text-[10px] font-black uppercase tracking-[1px] text-ink/45">{isEn ? 'Next Step' : '下一步'}</div>
           <div className="space-y-1.5">
             {structured.actions.map((action, index) => (
               <div key={`${action}-${index}`} className="rounded-sm border border-accent/15 bg-white/70 px-2.5 py-2 text-[12px] font-bold leading-relaxed text-ink">
@@ -214,8 +214,8 @@ export default function AIAssistant() {
     <div className="page-frame flex min-h-[calc(100dvh-150px)] min-w-0 max-w-full flex-col overflow-x-hidden">
       <header className="mb-4 flex min-w-0 items-start justify-between gap-3 md:items-center">
         <div className="min-w-0">
-          <h1 className="mb-1 font-serif text-[34px] font-bold leading-tight text-ink">AI 养鱼助手</h1>
-          <p className="text-xs font-medium text-ink/80">会记住本机里的历史对话，继续追问也能接上上下文。</p>
+          <h1 className="mb-1 font-serif text-[34px] font-bold leading-tight text-ink">{isEn ? 'AI Tank Copilot' : 'AI 养鱼助手'}</h1>
+          <p className="text-xs font-medium text-ink/80">{isEn ? 'Remembers conversation history for seamless follow-up questions.' : '会记住本机里的历史对话，继续追问也能接上上下文。'}</p>
         </div>
         {messages.length > 1 && (
           <button
@@ -243,7 +243,7 @@ export default function AIAssistant() {
               >
                 {message.role === 'user' ? (
                   <>
-                    <span className="mr-2 font-bold text-ink/60">问：</span>
+                    <span className="mr-2 font-bold text-ink/60">{isEn ? 'Q: ' : '问：'}</span>
                     {message.content}
                   </>
                 ) : (
@@ -284,7 +284,7 @@ export default function AIAssistant() {
             ))}
             {isLoading && (
               <div className="mt-2 border-t border-border pt-2 text-[13px] italic text-ink/60 font-medium">
-                AI 正在为您分析当前鱼缸环境...
+                {isEn ? 'AI is analyzing your aquarium environment...' : 'AI 正在为您分析当前鱼缸环境...'}
               </div>
             )}
           </div>
@@ -313,7 +313,7 @@ export default function AIAssistant() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="输入您的问题..."
+              placeholder="isEn ? 'Ask a question...' : '输入您的问题...'"
               disabled={isLoading}
               className="h-auto flex-1 rounded-none border-border p-2.5 text-xs font-medium text-ink shadow-none placeholder:text-ink/50 focus-visible:ring-1 focus-visible:ring-accent md:desktop-input-limit"
             />
