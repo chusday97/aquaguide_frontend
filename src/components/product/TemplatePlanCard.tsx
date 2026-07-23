@@ -62,7 +62,7 @@ export function TemplatePlanCard({
 
       <div className="mb-2 flex items-start justify-between gap-2 px-1">
         <h3 className="min-w-0 text-[14px] font-black leading-tight text-ink">{name}</h3>
-        <TagPill tone={difficulty === '新手' ? 'normal' : 'warning'}>{difficulty}</TagPill>
+        <TagPill tone={difficulty === '新手' ? 'normal' : 'warning'}>{i18n.language === 'en' ? (difficulty === '新手' ? 'Beginner' : 'Advanced') : difficulty}</TagPill>
       </div>
       <div className="flex flex-wrap gap-1 px-1">
         {benefitTags.slice(0, 3).map(tag => (
@@ -73,11 +73,11 @@ export function TemplatePlanCard({
       </div>
       <p className="mt-2 line-clamp-2 px-1 text-[11px] font-medium leading-relaxed text-ink/55">{tagline}</p>
       <div className="mt-2 grid gap-1.5 rounded-[12px] bg-bg/70 px-2 py-2 text-[10px] font-bold leading-tight text-ink/55">
-        <span>缸型：{bestFor}</span>
-        <span>尺寸：{tankSize}</span>
-        <span>环境：{environmentSummary}</span>
-        <span>造景：{layoutSummary}</span>
-        <span>生物：{livestockSummary}</span>
+        <span>{i18n.language === 'en' ? 'Tank: ' : '缸型：'}{bestFor}</span>
+        <span>{i18n.language === 'en' ? 'Size: ' : '尺寸：'}{tankSize}</span>
+        <span>{i18n.language === 'en' ? 'Environment: ' : '环境：'}{environmentSummary}</span>
+        <span>{i18n.language === 'en' ? 'Hardscape: ' : '造景：'}{layoutSummary}</span>
+        <span>{i18n.language === 'en' ? 'Livestock: ' : '生物：'}{livestockSummary}</span>
       </div>
     </button>
   );

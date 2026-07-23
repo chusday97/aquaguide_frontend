@@ -240,7 +240,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
   const environmentFit: FitDimension[] = [
     {
       type: 'water_type',
-      label: '水体类型',
+      label: isEn ? "Water Type" : "水体类型",
       current: aquarium ? (aquarium.waterType === 'Saltwater' ? t('encyclopedia.saltwater_label') : t('encyclopedia.freshwater_label')) : t('encyclopedia.noTankSelected'),
       requirement: isSaltwaterSpecies ? t('encyclopedia.saltwater_label') : t('encyclopedia.freshwater_label'),
       status: !aquarium ? 'info' : waterTypeMismatch ? 'danger' : 'ok',
@@ -252,7 +252,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
     },
     {
       type: 'temperature',
-      label: '温度',
+      label: isEn ? "Temperature" : "温度",
       current: currentTemperature ? `${currentTemperature}℃` : t('encyclopedia.noTankSelected'),
       requirement: fish.waterTemperature,
       status: !aquarium || !currentTemperature || !tempRange
@@ -266,7 +266,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
     },
     {
       type: 'water_parameter',
-      label: '水质参数',
+      label: isEn ? "Water Parameters" : "水质参数",
       current: phRange ? t('encyclopedia.phMatch') : t('encyclopedia.fitInsufficient'),
       requirement: phRange ? fish.phLevel : t('encyclopedia.fitInsufficient'),
       status: 'info',
@@ -277,7 +277,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
   const spaceFit: FitDimension[] = [
     {
       type: 'space',
-      label: '缸体大小',
+      label: isEn ? "Tank Size" : "缸体大小",
       current: tankLiters ? `~${tankLiters}L` : t('encyclopedia.noTankSelected'),
       requirement: fish.tankSize,
       status: !tankLiters || !minLiters ? 'info' : tankLiters >= minLiters ? 'ok' : tankLiters < minLiters * 0.65 ? 'danger' : 'warning',
@@ -292,7 +292,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
   const equipmentFit: FitDimension[] = [
     {
       type: 'care_difficulty',
-      label: '养护难度',
+      label: isEn ? "Care Difficulty" : "养护难度",
       current: t('encyclopedia.difficultyCategory'),
       requirement: fish.difficulty === 'Easy' ? t('encyclopedia.difficultyEasyShort') : fish.difficulty === 'Medium' ? t('encyclopedia.difficultyMediumShort') : t('encyclopedia.difficultyHardShort'),
       status: fish.difficulty === 'Hard' ? 'warning' : 'ok',
@@ -300,7 +300,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
     },
     {
       type: 'filter',
-      label: '过滤',
+      label: isEn ? "Filtration" : "过滤",
       current: aquarium?.equipment?.filter || t('encyclopedia.noTankSelected'),
       requirement: specialCareType === '水母' ? (t('encyclopedia.freshwater') === '淡水' ? '专用水母缸 / 柔和循环水流' : 'Specialized Jellyfish Tank') : (t('encyclopedia.freshwater') === '淡水' ? '稳定过滤' : 'Stable Filtration'),
       status: !aquarium ? 'info' : specialCareType === '水母' ? 'warning' : hasFilter ? 'ok' : 'info',
@@ -314,7 +314,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
     },
     {
       type: 'heater',
-      label: '加热',
+      label: isEn ? "Heater" : "加热",
       current: aquarium ? (aquarium.equipment?.heater ? t('encyclopedia.heaterYes') : t('encyclopedia.heaterNo')) : t('encyclopedia.noTankSelected'),
       requirement: needsHeater ? t('encyclopedia.heaterYes') : t('encyclopedia.heaterNo'),
       status: !aquarium ? 'info' : heaterMissing ? 'warning' : 'ok',
@@ -330,7 +330,7 @@ const getSpeciesFitAssessment = (fish: Fish, aquarium: Aquarium | null | undefin
 
   const compatibilityFit: FitDimension[] = isEmptyTank ? [] : [{
     type: alreadyInTank ? 'livestock_status' : 'compatibility',
-    label: '混养',
+    label: isEn ? "Compatibility" : "混养",
     current: alreadyInTank ? t('encyclopedia.inTankAlready') : t('encyclopedia.livestockCount', { count: existingLivestock.length }),
     requirement: fish.housingMode ? translateTag(fish.housingMode, t) : t('encyclopedia.fitCaution'),
     status: alreadyInTank ? 'ok' : fish.housingMode === '建议单养' ? 'danger' : fish.housingMode === '谨慎混养' ? 'warning' : 'ok',
@@ -498,9 +498,9 @@ export function SpeciesDetailDialog({
     const filter = findItem('过滤');
     const heater = findItem('加热');
     return [
-      water && { ...water, label: '水体类型', icon: Waves },
-      temp && { ...temp, label: '温度', icon: Thermometer },
-      waterParam && { ...waterParam, label: '水质参数', icon: FlaskConical },
+      water && { ...water, label: isEn ? "Water Type" : "水体类型", icon: Waves },
+      temp && { ...temp, label: isEn ? "Temperature" : "温度", icon: Thermometer },
+      waterParam && { ...waterParam, label: isEn ? "Water Parameters" : "水质参数", icon: FlaskConical },
       space && { ...space, label: '空间', icon: Box },
       filter && { ...filter, icon: SlidersHorizontal },
       heater && { ...heater, icon: Flame },

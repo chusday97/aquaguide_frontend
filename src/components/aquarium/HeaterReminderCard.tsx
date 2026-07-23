@@ -26,12 +26,12 @@ export function HeaterReminderCard({
   const weatherTemperatureValue = localWeather?.apparentTemperatureC ?? localWeather?.temperatureC;
   const weatherTemperature = formatTemperature(weatherTemperatureValue);
   const heaterRequired = heaterSpeciesCount > 0;
-  const heaterStatusLabel = weatherStatus === 'loading' ? '判断中' : heaterRequired ? '建议需要' : '暂不需要';
+  const heaterStatusLabel = weatherStatus === 'loading' ? (isEn ? 'Checking' : '判断中') : heaterRequired ? (isEn ? 'Recommended' : '建议需要') : (isEn ? 'Not Required' : '暂不需要');
   const heaterStatusDetail = weatherStatus === 'unavailable'
-    ? '天气暂不可用'
+    ? (isEn ? 'Weather Unavailable' : '天气暂不可用')
     : heaterRequired
-      ? `${heaterSpeciesCount} 种需恒温`
-      : '当前生物耐温较宽';
+      ? (isEn ? `${heaterSpeciesCount} species need constant temp` : `${heaterSpeciesCount} 种需恒温`)
+      : (isEn ? 'Broad temp tolerance' : '当前生物耐温较宽');
   const thermometerLevel = typeof weatherTemperatureValue === 'number'
     ? Math.min(92, Math.max(12, Math.round(((weatherTemperatureValue + 5) / 45) * 100)))
     : 38;
@@ -54,8 +54,8 @@ export function HeaterReminderCard({
         </div>
       </div>
       <div className="min-w-0">
-        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-ink/40">本地温控</p>
-        <h3 className="mt-0.5 truncate text-[13px] font-black leading-tight text-ink">加热棒提醒</h3>
+        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-ink/40">{isEn ? 'Temp Control' : '本地温控'}</p>
+        <h3 className="mt-0.5 truncate text-[13px] font-black leading-tight text-ink">{isEn ? 'Heater Reminder' : '加热棒提醒'}</h3>
         <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black ${heaterTone}`}>
             {heaterStatusLabel}
           </span>
@@ -63,11 +63,11 @@ export function HeaterReminderCard({
       </div>
       <div className="grid min-w-0 grid-cols-2 gap-1.5">
         <div className="rounded-sm bg-bg px-2 py-1.5">
-          <p className="text-[9px] font-bold text-ink/45">温度</p>
+          <p className="text-[9px] font-bold text-ink/45">{isEn ? 'Temp' : '温度'}</p>
           <p className="mt-0.5 truncate text-[11px] font-black text-ink">{weatherTemperature || '--°C'}</p>
         </div>
         <div className="rounded-sm bg-bg px-2 py-1.5">
-          <p className="text-[9px] font-bold text-ink/45">判断</p>
+          <p className="text-[9px] font-bold text-ink/45">{isEn ? 'Status' : '判断'}</p>
           <p className="mt-0.5 truncate text-[11px] font-black text-ink">{heaterStatusDetail}</p>
         </div>
       </div>

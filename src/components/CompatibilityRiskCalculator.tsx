@@ -320,7 +320,7 @@ function CompatibilityBottomSheet({
   mainConflicts,
   actionHints,
   selectedSpecies,
-  acceptLabel = '我知道了',
+  acceptLabel = isEn ? 'Got it' : '我知道了',
   onAccept,
   onEdit,
 }: {
@@ -355,7 +355,7 @@ function CompatibilityBottomSheet({
     0,
     conflicts.reduce((sum, conflict) => sum + (conflict.reasons?.length || 1), 0) - primaryReasons.length
   );
-  const sheetTitle = isAdjustment ? '调整建议' : '混养提醒';
+  const sheetTitle = isEn ? (isAdjustment ? 'Adjustment Recommendations' : 'Housing Risk Warnings') : (isAdjustment ? '调整建议' : '混养提醒');
 
   return (
     <div className="fixed inset-0 z-[230] flex items-end justify-center">
@@ -403,7 +403,7 @@ function CompatibilityBottomSheet({
           {isAdjustment ? (
             <div className="grid gap-3">
               <section className={`rounded-[18px] border p-3 ${meta.tone}`}>
-                <div className="text-[10px] font-black opacity-65">当前结论</div>
+                <div className="text-[10px] font-black opacity-65">{isEn ? 'Current Assessment' : '当前结论'}</div>
                 <div className="mt-1 text-[15px] font-black">{meta.label}：{riskConclusion}</div>
                 <p className="mt-2 text-[12px] font-medium leading-relaxed opacity-70">{getRiskExplanation(conflictTags, result.reasons)}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
