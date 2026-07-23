@@ -1036,7 +1036,7 @@ export function SpeciesDetailDialog({
                   <div className="grid gap-2">
                     {owned || displayFit.alreadyInTank ? (
                       <div className="flex h-11 items-center justify-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-700">
-                        <CheckCircle2 className="h-4 w-4" /> 已在鱼缸中
+                        <CheckCircle2 className="h-4 w-4" /> {isEn ? 'In Tank' : '已在鱼缸中'}
                       </div>
                     ) : onAddToTank ? (
                       <Button className="h-11 rounded-full bg-accent text-sm font-black text-white hover:bg-accent/90" onClick={() => onAddToTank(fish)}>
@@ -1058,13 +1058,13 @@ export function SpeciesDetailDialog({
                     {detailFeedback && (
                       <div className="flex items-center justify-between gap-2 rounded-[14px] border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
                         <span>{detailFeedback}</span>
-                        {onGoCalculator && <button type="button" className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={onGoCalculator}>去计算</button>}
+                        {onGoCalculator && <button type="button" className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700" onClick={onGoCalculator}>{isEn ? 'Calculate' : '去计算'}</button>}
                       </div>
                     )}
                   </div>
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">基础需求<ChevronRight className="h-4 w-4 text-ink/38" /></summary>
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">{isEn ? 'Basic Requirements' : '基础需求'}<ChevronRight className="h-4 w-4 text-ink/38" /></summary>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
                       {[
                         ['温度', fish.waterTemperature],
@@ -1087,15 +1087,15 @@ export function SpeciesDetailDialog({
                     </summary>
                     <div className="mt-3 grid gap-2">
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-bold text-ink/42">{displayFit.isEmptyTank ? '当前状态' : '性情 / 混养'}</div>
+                        <div className="text-[10px] font-bold text-ink/42">{displayFit.isEmptyTank ? (isEn ? 'Current Status' : '当前状态') : (isEn ? 'Temperament / Housing' : '性情 / 混养')}</div>
                         <div className="mt-1 text-[12px] font-black text-ink">
-                          {displayFit.isEmptyTank ? '空鱼缸，暂无混养冲突' : displayFit.alreadyInTank ? '已在鱼缸中 · 查看现有条件' : `${getTemperamentLabel(fish.temperament)} · ${fish.housingMode || '需观察'}`}
+                          {displayFit.isEmptyTank ? (isEn ? 'Empty tank, no conflicts' : '空鱼缸，暂无混养冲突') : displayFit.alreadyInTank ? (isEn ? 'In Tank · View conditions' : '已在鱼缸中 · 查看现有条件') : `${getTemperamentLabel(fish.temperament)} · ${fish.housingMode || '需观察'}`}
                         </div>
                       </div>
                       <p className="rounded-[12px] bg-bg p-2 text-[11px] font-medium leading-relaxed text-ink/65">
                         {displayFit.isEmptyTank
-                          ? '请优先确认水体类型、水温、空间和设备；有活体入缸后再判断混养关系。'
-                          : displayFit.alreadyInTank ? '该生物已经在当前鱼缸中，当前页面不再提供重复加入入口。' : fish.housingReason || '建议加入混养计算后再确认。'}
+                          ? (isEn ? 'Please check water type, temp, space and filter first.' : '请优先确认水体类型、水温、空间和设备；有活体入缸后再判断混养关系。')
+                          : displayFit.alreadyInTank ? (isEn ? 'Species is already in current tank.' : '该生物已经在当前鱼缸中，当前页面不再提供重复加入入口。') : fish.housingReason || (isEn ? 'Run co-housing calculation to confirm.' : '建议加入混养计算后再确认。')}
                       </p>
                       {displayFit.risks.length > 0 && (
                         <div className="grid gap-1.5">
@@ -1121,19 +1121,19 @@ export function SpeciesDetailDialog({
                   </details>
 
                   <details className="rounded-[16px] border border-border bg-white p-3 shadow-sm">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">喂养与养护<ChevronRight className="h-4 w-4 text-ink/38" /></summary>
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-black text-ink">{isEn ? 'Feeding & Care' : '喂养与养护'}<ChevronRight className="h-4 w-4 text-ink/38" /></summary>
                     <div className="mt-3 grid gap-3">
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">喂食</div>
+                        <div className="text-[10px] font-black text-ink/42">{isEn ? 'Diet & Feeding' : '喂食'}</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{fish.feedingProfile?.recommendedFoods || fish.diet}</p>
                         <p className="mt-1 text-[11px] font-bold text-ink/48">{fish.feedingProfile?.feedingFrequency || '少量投喂，避免残饵。'}</p>
                 </div>
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">换水 / 环境</div>
+                        <div className="text-[10px] font-black text-ink/42">{isEn ? 'Water & Environment' : '换水 / 环境'}</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">约 {fish.waterChangeCycle} 天 · {fish.waterTemperature} · pH {fish.phLevel}</p>
                       </div>
                       <div className="rounded-[12px] bg-bg p-2">
-                        <div className="text-[10px] font-black text-ink/42">提醒</div>
+                        <div className="text-[10px] font-black text-ink/42">{isEn ? 'Care Notes' : '提醒'}</div>
                         <p className="mt-1 text-[12px] font-medium leading-relaxed text-ink/68">{fish.feedingProfile?.specialNotes || fish.description}</p>
                       </div>
                     </div>

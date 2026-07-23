@@ -3287,7 +3287,7 @@ export default function AquariumManager() {
   const renderSettingsPanel = (panel: NonNullable<typeof activeSettingsPanel>) => {
     if (panel === 'size') {
       return (
-        <ConfigSection title="尺寸" subtitle="用于估算容量和后续养护建议。">
+        <ConfigSection title={isEn ? "Dimensions" : "尺寸"} subtitle="用于估算容量和后续养护建议。">
           <div className="grid grid-cols-3 gap-2">
             {dimensionFields.map(item => (
               <div key={item.key} className="grid gap-1.5">
@@ -3326,7 +3326,7 @@ export default function AquariumManager() {
 
     if (panel === 'parameters') {
       return (
-        <ConfigSection title="参数" subtitle="新手优先保持稳定，不要频繁大幅调整。">
+        <ConfigSection title={isEn ? "Parameters" : "参数"} subtitle="新手优先保持稳定，不要频繁大幅调整。">
           <div className="grid grid-cols-3 gap-2">
             {[
               { value: 'Freshwater', label: '淡水', description: '常见观赏鱼' },
@@ -3359,7 +3359,7 @@ export default function AquariumManager() {
     if (panel === 'substrate') {
       return (
         <ConfigSection
-          title="底砂 / 造景"
+          title={isEn ? "Substrate / Hardscape" : "底砂 / 造景"}
           subtitle="底砂单选，硬景可多选。"
           actionText={isScapeListExpanded ? '收起' : '查看全部'}
           onAction={() => setIsScapeListExpanded(prev => !prev)}
@@ -3412,7 +3412,7 @@ export default function AquariumManager() {
     if (panel === 'plants') {
       return (
         <ConfigSection
-          title="水草"
+          title={isEn ? "Aquatic Plants" : "水草"}
           subtitle="选择当前鱼缸里的水草种类。"
           actionText={isPlantListExpanded ? '收起' : '查看全部'}
           onAction={() => setIsPlantListExpanded(prev => !prev)}
@@ -3447,7 +3447,7 @@ export default function AquariumManager() {
 
     if (panel === 'lighting') {
       return (
-        <ConfigSection title="灯光" subtitle="选择草缸和观赏所需灯光。">
+        <ConfigSection title={isEn ? "Lighting" : "灯光"} subtitle="选择草缸和观赏所需灯光。">
           <div className="grid grid-cols-2 gap-2">
             {['无', '普通灯', '水草灯', '海水灯'].map(option => (
               <SelectableOptionCard
@@ -3466,7 +3466,7 @@ export default function AquariumManager() {
     }
 
     return (
-      <ConfigSection title="设备" subtitle="过滤单选，加热与氧气按需开启。">
+      <ConfigSection title={isEn ? "Equipment" : "设备"} subtitle="过滤单选，加热与氧气按需开启。">
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-2">
             {['无', '瀑布过滤', '桶滤', '上滤', '海绵过滤'].map(option => (
@@ -4393,7 +4393,7 @@ export default function AquariumManager() {
               type="button"
               onClick={() => navigateToRoute('/collection/wishlist')}
               className="flex h-8 items-center gap-1 rounded-full border border-rose-100 bg-white px-2.5 text-[11px] font-black text-rose-500 shadow-sm"
-              title="查看水族册种草"
+              title={isEn ? "Browse Collection Hub" : "查看水族册种草"}
             >
               <Heart className={`h-3.5 w-3.5 ${wishlistFishes.length > 0 ? 'fill-current' : ''}`} />
               <span className="hidden min-[380px]:inline">水族册</span>
@@ -4405,7 +4405,7 @@ export default function AquariumManager() {
               onClick={openLocalDataManager}
               aria-label="数据保存提醒"
               className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-ink/50 shadow-sm transition-colors hover:text-ink"
-              title="数据保存提醒"
+              title={isEn ? "Data Storage Notice" : "数据保存提醒"}
             >
               <Info className="h-4 w-4" />
             </button>
@@ -4414,7 +4414,7 @@ export default function AquariumManager() {
               onClick={() => navigateToRoute('/settings')}
               aria-label="语言设置"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-ink/50 shadow-sm transition-colors hover:text-emerald-700"
-              title="语言设置"
+              title={isEn ? "Language Settings" : "语言设置"}
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -4564,7 +4564,7 @@ export default function AquariumManager() {
         )}
         actions={(
       <section id="aquarium-actions" className="aquarium-actions order-[3] scroll-mt-4 overflow-hidden rounded-[20px] border border-white/80 bg-white/65 p-3 shadow-sm md:order-none">
-        <SectionHeader title="常用操作" subtitle="快速记录日常养护。" />
+        <SectionHeader title={isEn ? "Quick Actions" : "常用操作"} subtitle="快速记录日常养护。" />
         <div className="mt-3">
           <QuickActionGrid actions={commonActions} />
         </div>
@@ -4637,7 +4637,7 @@ export default function AquariumManager() {
         {/* Tank Action Toolbar */}
         <div className="absolute right-2 top-2 z-20 flex flex-col gap-2">
           <Button
-            aria-label="添加生物"
+            aria-label={isEn ? "Add Livestock" : "添加生物"}
             title="添加生物"
             onClick={() => setIsAddFishOpen(true)}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
@@ -4645,7 +4645,7 @@ export default function AquariumManager() {
             <Plus className="h-4 w-4" />
           </Button>
           <Button
-            aria-label="全屏预览"
+            aria-label={isEn ? "Fullscreen Preview" : "全屏预览"}
             title="全屏预览"
             onClick={() => { setShouldLoadThreeAquarium(true); setRequiresManualThreeLoad(false); setIsTankPreviewOpen(true); }}
             className="h-8 w-8 rounded-full border border-white/50 bg-white/55 p-0 text-ink/55 shadow-none backdrop-blur-sm hover:bg-white hover:text-accent"
@@ -4671,7 +4671,7 @@ export default function AquariumManager() {
               onClick={() => setIsConflictDialogOpen(true)}
             >
               <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-              <span className="font-bold text-xs">风险警告</span>
+              <span className="font-bold text-xs">{isEn ? "Risk Warnings" : "风险警告"}</span>
             </Button>
           </div>
         )}
@@ -5335,7 +5335,7 @@ export default function AquariumManager() {
                             <Input
                               value={answer === '跳过' ? '' : answer}
                               onChange={(event) => handleDiagnosisAnswer(question.id, event.target.value)}
-                              placeholder="可选：补充一句你看到的异常"
+                              placeholder={isEn ? "Optional: Describe any abnormal symptoms..." : "可选：补充一句你看到的异常"}
                               className="mt-2 h-10 rounded-[12px] bg-white text-sm"
                             />
                           ) : (
@@ -5409,15 +5409,15 @@ export default function AquariumManager() {
                       <Input
                         value={currentDiagnosisAnswer === '跳过' ? '' : currentDiagnosisAnswer}
                         onChange={(event) => handleDiagnosisAnswer(activeDiagnosisQuestion.id, event.target.value)}
-                        placeholder="可选：补充一句症状描述"
+                        placeholder={isEn ? "Optional: Additional symptom description..." : "可选：补充一句症状描述"}
                         className="mt-3 h-10 rounded-[12px] bg-white text-sm"
                       />
                     )}
                     {activeDiagnosisQuestion.id === 'optionalTestData' && (
                       <div className="mt-3 grid gap-1.5 rounded-[12px] bg-white px-3 py-2 text-[10px] font-medium leading-relaxed text-ink/55">
                         <div><span className="font-black text-ink/65">pH：</span>{isEn ? 'Water pH level. Most fish adapt well, daily tests unnecessary.' : '水偏酸还是偏碱，很多鱼能适应一定范围，不需要每天测。'}</div>
-                        <div><span className="font-black text-ink/65">氨氮：</span>{isEn ? 'Toxic waste from uneaten food and fish waste. Spikes in new tanks or overfeeding.' : '鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。'}</div>
-                        <div><span className="font-black text-ink/65">亚硝酸盐：</span>{isEn ? 'Harmful compound when filter cycle is unstable; can cause gasping or lethargy.' : '过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。'}</div>
+                        <div><span className="font-black text-ink/65">{isEn ? "Ammonia: " : "氨氮："}</span>{isEn ? 'Toxic waste from uneaten food and fish waste. Spikes in new tanks or overfeeding.' : '鱼便、残饵腐烂后产生的有毒废物，新缸或喂多时容易升高。'}</div>
+                        <div><span className="font-black text-ink/65">{isEn ? "Nitrite: " : "亚硝酸盐："}</span>{isEn ? 'Harmful compound when filter cycle is unstable; can cause gasping or lethargy.' : '过滤系统不稳定时容易出现的有害指标，可能导致鱼浮头、趴缸。'}</div>
                       </div>
                     )}
                   </div>
@@ -5820,7 +5820,7 @@ export default function AquariumManager() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/45" />
                 <Input 
-                  placeholder="搜索鱼、虾、螺或学名" 
+                  placeholder={isEn ? "Search fish, shrimp, snails or scientific name..." : "搜索鱼、虾、螺或学名"} 
                   className="h-10 rounded-[14px] border-border bg-bg pl-9 text-sm font-medium text-ink"
                   value={fishSearchTerm}
                           onChange={(e) => {
@@ -5934,7 +5934,7 @@ export default function AquariumManager() {
 
                           <div className="grid gap-2 md:grid-cols-[0.78fr_1.22fr]">
                             <div className="rounded-[14px] bg-white p-2">
-                              <Label className="text-[10px] font-black text-ink/48">数量</Label>
+                              <Label className="text-[10px] font-black text-ink/48">{isEn ? "Quantity" : "数量"}</Label>
                               <div className="mt-1 grid h-10 grid-cols-[34px_1fr_34px] items-center gap-1 rounded-full bg-bg p-1">
                                 <button
                                   type="button"
@@ -6428,7 +6428,7 @@ export default function AquariumManager() {
                   value={smartPreference}
                   onChange={event => setSmartPreference(event.target.value)}
                   className="h-10 rounded-full bg-bg text-sm font-bold"
-                  placeholder="例如：想要低维护、颜色明显、适合新手"
+                  placeholder={isEn ? "e.g. Low maintenance, vibrant color, beginner friendly" : "例如：想要低维护、颜色明显、适合新手"}
                 />
               </div>
 
@@ -6549,11 +6549,11 @@ export default function AquariumManager() {
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-3">
                     <div className="rounded-[16px] bg-white px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">添加前负载</div>
+                      <div className="text-[10px] font-black text-ink/38">{isEn ? "Bioload Before" : "添加前负载"}</div>
                       <div className="text-xl font-black text-ink">{smartSimulation.beforeLoadRate}%</div>
                     </div>
                     <div className="rounded-[16px] bg-white px-3 py-2">
-                      <div className="text-[10px] font-black text-ink/38">添加后负载</div>
+                      <div className="text-[10px] font-black text-ink/38">{isEn ? "Bioload After" : "添加后负载"}</div>
                       <div className="text-xl font-black text-accent">{smartSimulation.afterLoadRate}%</div>
                     </div>
                     <div className="rounded-[16px] bg-white px-3 py-2">
@@ -7693,7 +7693,7 @@ export default function AquariumManager() {
 
       <FilterBottomSheet
         open={isTankContentFilterOpen}
-        title="选择鱼缸内容分类"
+        title={isEn ? "Select Category" : "选择鱼缸内容分类"}
         subtitle="切换查看鱼类、虾螺、水草、底砂和造景。"
         groups={[
           {
